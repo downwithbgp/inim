@@ -37,14 +37,15 @@ Known
 ── Impact waves ──────────────────────────
   Detected:  2
   Wave 1: Wave 1 — path change (61.7s, 12 prefixes, 4 peers)  2026-07-14 07:24:47.679275035 UTC-2026-07-14 07:25:49.382287979 UTC (12)
-  Wave 2: Wave 2 — failover and restoration (187.8s, 13 prefixes, 5 peers)  2026-07-14 07:33:59.462019920 UTC-2026-07-14 07:37:07.244383096 UTC (13)
+  Wave 2: Wave 2 — path change (187.8s, 13 prefixes, 5 peers)  2026-07-14 07:33:59.462019920 UTC-2026-07-14 07:37:07.244383096 UTC (13)
 
 ── Outcome ───────────────────────────────
-  Verdict: EXPECTED PARTICIPANT UNAVAILABILITY
+  Verdict: PARTIAL IMPACT
   - Total route transitions observed: 214
   - Withdrawals: 14
   - Path changes: 104
   - Restorations to baseline: 35
+  - Stream lifecycle: total=48 unchanged=2 prepend-only=22 withdrawn=13 departed-I2=0 restored=35 not-restored=13
 
 ── Limitations ────────────────────────────
   • 1 of 2 requested collectors retained after RIB preflight (["route-views2"])

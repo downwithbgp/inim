@@ -1,5 +1,5 @@
    Compiling inim v0.1.0 (/home/vadim/inim)
-    Finished `release` profile [optimized] target(s) in 13.83s
+    Finished `release` profile [optimized] target(s) in 14.19s
      Running `target/release/inim analyze --event tests/fixtures/internet2/INC0299001.json --manifest manifests/INC0299001.json --cache cache/ --out out/INC0299001/ --jobs 0`
 → Broker discovery: RIB files
   route-views2: caching RIB http://archive.routeviews.org/bgpdata/2026.07/RIBS/rib.20260714.0400.bz2
@@ -44,34 +44,11 @@ warning: size differ for http://archive.routeviews.org/bgpdata/2026.07/UPDATES/u
 → Writing outputs to out/INC0299001/
 
 ── Stage timings ───────────────────────────
-  broker+cache                        0.5s
-  UPDATE cache+parse                 16.1s
+  broker+cache                        0.7s
+  UPDATE cache+parse                 27.5s
   reconstruction                      0.0s
   tokenize                            0.0s
   waves+motifs                        0.0s
   assess                              0.0s
   outputs                             0.0s
-  TOTAL                              21.8s
-	Command being timed: "cargo run --release -- analyze --event tests/fixtures/internet2/INC0299001.json --manifest manifests/INC0299001.json --cache cache/ --out out/INC0299001/ --jobs 0"
-	User time (seconds): 51.89
-	System time (seconds): 3.79
-	Percent of CPU this job got: 155%
-	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:35.74
-	Average shared text size (kbytes): 0
-	Average unshared data size (kbytes): 0
-	Average stack size (kbytes): 0
-	Average total size (kbytes): 0
-	Maximum resident set size (kbytes): 477676
-	Average resident set size (kbytes): 0
-	Major (requiring I/O) page faults: 17
-	Minor (reclaiming a frame) page faults: 265901
-	Voluntary context switches: 23173
-	Involuntary context switches: 3317
-	Swaps: 0
-	File system inputs: 0
-	File system outputs: 329088
-	Socket messages sent: 0
-	Socket messages received: 0
-	Signals delivered: 0
-	Page size (bytes): 4096
-	Exit status: 0
+  TOTAL                              33.6s
