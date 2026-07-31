@@ -421,7 +421,7 @@ mod tests {
         let content = std::fs::read_to_string(manifest_path).unwrap();
         let manifest: serde_json::Value = serde_json::from_str(&content).unwrap();
         assert_eq!(manifest["target"]["origin_asns"][0], 225);
-        assert_eq!(manifest["target"]["internet2_asn"], 11537);
+        assert_eq!(manifest["target"]["managed_network_asn"], 11537);
         assert!(manifest["target"]["prefix_selection"]
             .as_str()
             .unwrap()

@@ -16,7 +16,7 @@
   "target": {
     "label": "UVA via Internet2",
     "origin_asns": [225],
-    "internet2_asn": 11537,
+    "managed_network_asn": 11537,
     "prefix_selection": "origin AS225 AND baseline AS path contains AS11537",
     "prefix_selection_provenance": "Manual analyst mapping: AS225 = University of Virginia (the participant named in the ticket); AS11537 = Internet2 (the network through which UVA connects). We select only prefixes originated by UVA whose pre-event baseline path traverses Internet2, as those are the routes that could be affected by the I2 participant relationship unavailability."
   },

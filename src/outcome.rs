@@ -24,9 +24,6 @@ pub enum AnalysisOutcome {
     /// Never rendered as a statement about routing visibility.
     #[serde(rename = "incomplete")]
     Incomplete { failure: String },
-    /// Pre-execution planning blocked analysis. Not an observational verdict.
-    #[serde(rename = "analysis_blocked")]
-    Blocked { reason: String },
 }
 
 impl AnalysisOutcome {
@@ -46,13 +43,6 @@ impl AnalysisOutcome {
     pub fn incomplete(failure: impl Into<String>) -> Self {
         AnalysisOutcome::Incomplete {
             failure: failure.into(),
-        }
-    }
-
-    /// Pre-execution planning blocked analysis.
-    pub fn blocked(reason: impl Into<String>) -> Self {
-        AnalysisOutcome::Blocked {
-            reason: reason.into(),
         }
     }
 

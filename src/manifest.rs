@@ -46,8 +46,7 @@ pub struct LocalWindow {
 pub struct ManifestTarget {
     pub label: String,
     pub origin_asns: Vec<u32>,
-    /// Legacy field — prefer transit_predicate for new manifests.
-    #[serde(default, alias = "internet2_asn")]
+    #[serde(default)]
     pub managed_network_asn: u32,
     #[serde(default)]
     pub transit_predicate: TransitPredicateMapping,
