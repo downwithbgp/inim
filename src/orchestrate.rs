@@ -599,7 +599,13 @@ fn run_inner(
         transitions: &transitions,
         waves: &waves,
         semantic_waves: &semantic_waves,
+        lifecycles: &lifecycles,
+        ticket_lifecycle: if manifest.open { "Open" } else { "Closed" },
         limitations: &limitations,
+        no_observable_impact: matches!(
+            assessment.verdict,
+            crate::domain::assessment::Verdict::NoObservableBgpImpact
+        ),
     };
     crate::output::write_outputs(&ctx, out_dir).map_err(|e| format!("output error: {e}"))?;
     timings.push(("outputs".to_string(), t_out.elapsed().as_secs_f64()));

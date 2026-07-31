@@ -32,7 +32,13 @@ pub struct OutputContext<'a> {
     pub waves: &'a [ImpactWave],
     /// Semantic waves derived from ObserverPrefixKey lifecycles.
     pub semantic_waves: &'a [crate::lifecycle::SemanticWave],
+    /// Observer-prefix stream lifecycles.
+    pub lifecycles: &'a [crate::lifecycle::StreamLifecycle],
+    /// Ticket lifecycle (Open/Closed) for the report.
+    pub ticket_lifecycle: &'a str,
     pub limitations: &'a [String],
+    /// Whether the report may use the NoObservableBgpImpact wording.
+    pub no_observable_impact: bool,
 }
 
 /// Write all output artifacts to `out_dir`. Returns the list of created files.
@@ -81,175 +87,287 @@ pub fn write_outputs(ctx: &OutputContext, out_dir: &Path) -> Result<Vec<PathBuf>
 // ── report.txt ─────────────────────────────────────────────────────
 
 fn write_report_txt(ctx: &OutputContext, path: &Path) -> Result<(), String> {
+    use crate::lifecycle::StreamCategory;
+
     let mut buf = String::new();
 
     push_ln(&mut buf, "══════════════════════════════════════════");
     push_ln(&mut buf, "  INTERNET IMPACT ANALYSIS");
     push_ln(&mut buf, "══════════════════════════════════════════");
     push_ln(&mut buf, "");
-
-    push_ln(&mut buf, &format!("Event:       {}", ctx.event_id));
-    push_ln(&mut buf, &format!("Title:       {}", ctx.ticket_title));
-    push_ln(&mut buf, &format!("UTC Window:  {}", ctx.event_window));
-    push_ln(&mut buf, &format!("Warmup:      {}", ctx.warmup_window));
-    push_ln(&mut buf, &format!("Cooldown:    {}", ctx.cooldown_window));
+    push_ln(&mut buf, &format!("Event:        {}", ctx.event_id));
+    push_ln(&mut buf, &format!("Title:        {}", ctx.ticket_title));
+    push_ln(
+        &mut buf,
+        &format!("Report schema: v{}", crate::schema::REPORT_SCHEMA_VERSION),
+    );
     push_ln(&mut buf, "");
 
-    push_ln(&mut buf, "── Declared expectation ──────────────────");
-    push_ln(&mut buf, ctx.declared_expectation);
+    // ── 8.1 Observed event signature ────────────────────────────
+    push_ln(&mut buf, "── Observed event signature ────────────────");
+    push_ln(
+        &mut buf,
+        &format!("  Ticket expectation:      {}", ctx.declared_expectation),
+    );
+    push_ln(
+        &mut buf,
+        &format!("  Ticket lifecycle:        {}", ctx.ticket_lifecycle),
+    );
+    push_ln(
+        &mut buf,
+        &format!("  Analysis window (UTC):   {}", ctx.event_window),
+    );
+    push_ln(
+        &mut buf,
+        &format!("  Warmup:                  {}", ctx.warmup_window),
+    );
+    push_ln(
+        &mut buf,
+        &format!("  Cooldown:                {}", ctx.cooldown_window),
+    );
+    push_ln(
+        &mut buf,
+        &format!(
+            "  Observer scope:          {} collectors ({})",
+            ctx.collectors.len(),
+            ctx.collectors.join(", ")
+        ),
+    );
     push_ln(&mut buf, "");
 
-    push_ln(&mut buf, "── Target predicate ──────────────────────");
-    push_ln(&mut buf, ctx.target_predicate);
+    let lcs = ctx.lifecycles;
+    let baseline_streams = lcs.len();
+    let baseline_instances: usize = lcs.iter().map(|l| l.baseline_instance_count).sum();
+    let multi_instance = lcs
+        .iter()
+        .filter(|l| {
+            l.baseline_instance_count > 1 || l.total_route_instances > l.baseline_instance_count
+        })
+        .count();
+    let unchanged = lcs
+        .iter()
+        .filter(|l| l.category == StreamCategory::Unchanged)
+        .count();
+    let prepend_only = lcs
+        .iter()
+        .filter(|l| l.category == StreamCategory::PrependOnly)
+        .count();
+    let still_via = lcs
+        .iter()
+        .filter(|l| l.category == StreamCategory::PathChangedStillViaTransit)
+        .count();
+    let departed = lcs
+        .iter()
+        .filter(|l| l.category == StreamCategory::DepartedTransitPath)
+        .count();
+    let withdrawn = lcs.iter().filter(|l| l.was_withdrawn).count();
+    let restored = lcs.iter().filter(|l| l.flags.restored).count();
+    let unresolved = lcs.iter().filter(|l| l.flags.not_restored).count();
+    let ambiguous = lcs.iter().filter(|l| l.flags.add_path_ambiguous).count();
+    let retaining = unchanged + prepend_only + still_via;
+    let material_changes = ctx
+        .transitions
+        .iter()
+        .filter(|t| t.effects.material_path_changed)
+        .count();
+
+    push_ln(&mut buf, "  ── Observer scope (streams and instances) ──");
+    push_ln(
+        &mut buf,
+        &format!("    Baseline observer-prefix streams: {}", baseline_streams),
+    );
+    push_ln(
+        &mut buf,
+        &format!(
+            "    Baseline route instances:          {}",
+            baseline_instances
+        ),
+    );
+    push_ln(
+        &mut buf,
+        &format!("    Multiple-instance streams:          {}", multi_instance),
+    );
+    push_ln(&mut buf, "");
+    push_ln(&mut buf, "  ── Stream lifecycle ─────────────────────");
+    push_ln(
+        &mut buf,
+        &format!("    Unchanged streams:                  {}", unchanged),
+    );
+    push_ln(
+        &mut buf,
+        &format!("    Prepend-only streams:               {}", prepend_only),
+    );
+    push_ln(
+        &mut buf,
+        &format!(
+            "    Material path changes (transitions):{}",
+            material_changes
+        ),
+    );
+    push_ln(
+        &mut buf,
+        &format!("    Streams retaining transit:          {}", retaining),
+    );
+    push_ln(
+        &mut buf,
+        &format!("    Streams departing transit:          {}", departed),
+    );
+    push_ln(
+        &mut buf,
+        &format!("    Withdrawn streams:                  {}", withdrawn),
+    );
+    push_ln(
+        &mut buf,
+        &format!("    Restored streams:                   {}", restored),
+    );
+    push_ln(
+        &mut buf,
+        &format!("    Unresolved streams:                 {}", unresolved),
+    );
+    push_ln(
+        &mut buf,
+        &format!("    ADD-PATH ambiguous streams:         {}", ambiguous),
+    );
     push_ln(&mut buf, "");
 
-    push_ln(&mut buf, "── Collectors ────────────────────────────");
-    for c in ctx.collectors {
-        push_ln(&mut buf, &format!("  {c}"));
-    }
-    push_ln(&mut buf, "");
-
-    if let Some(preflight) = ctx.preflight {
-        push_ln(&mut buf, "── RIB preflight ─────────────────────────");
-        push_ln(
-            &mut buf,
-            &format!(
-                "  Collectors requested:      {}",
-                preflight.collectors_requested
-            ),
-        );
-        push_ln(
-            &mut buf,
-            &format!(
-                "  Collectors with usable RIBs: {}",
-                preflight.collectors_with_usable_ribs
-            ),
-        );
-        push_ln(
-            &mut buf,
-            &format!(
-                "  Origin-matching routes:    {}",
-                preflight.origin_matching_routes
-            ),
-        );
-        push_ln(
-            &mut buf,
-            &format!(
-                "  Transit-matching routes:   {}",
-                preflight.transit_matching_routes
-            ),
-        );
-        push_ln(
-            &mut buf,
-            &format!("  Frozen streams:            {}", preflight.frozen_streams),
-        );
-        push_ln(
-            &mut buf,
-            &format!(
-                "  Distinct prefixes:         {}",
-                preflight.distinct_prefixes
-            ),
-        );
-        push_ln(
-            &mut buf,
-            &format!("  Distinct peers:            {}", preflight.distinct_peers),
-        );
+    if !ctx.semantic_waves.is_empty() {
+        push_ln(&mut buf, "  ── Semantic waves ────────────────────────");
+        for w in ctx.semantic_waves {
+            push_ln(
+                &mut buf,
+                &format!(
+                    "    {} {}  {} – {} ({} streams, {} route instances, peak {} – {})",
+                    w.id,
+                    w.label.as_str(),
+                    w.start.format("%H:%M:%S"),
+                    w.end.format("%H:%M:%S"),
+                    w.stream_count,
+                    w.route_instance_count,
+                    w.peak_start.format("%H:%M:%S"),
+                    w.peak_end.format("%H:%M:%S"),
+                ),
+            );
+        }
         push_ln(&mut buf, "");
     }
 
-    push_ln(&mut buf, "── Continuity ────────────────────────────");
-    push_ln(&mut buf, ctx.continuity);
-    push_ln(&mut buf, "");
-
-    let event_transitions: Vec<_> = ctx
-        .transitions
-        .iter()
-        .filter(|t| matches!(t.phase, AnalysisPhase::Event))
-        .collect();
-    let cooldown_transitions: Vec<_> = ctx
-        .transitions
-        .iter()
-        .filter(|t| matches!(t.phase, AnalysisPhase::Cooldown))
-        .collect();
-
-    push_ln(&mut buf, "── Transitions ───────────────────────────");
-    push_ln(&mut buf, &format!("  Total:     {}", ctx.transitions.len()));
-    push_ln(
-        &mut buf,
-        &format!("  Event:     {}", event_transitions.len()),
-    );
-    push_ln(
-        &mut buf,
-        &format!("  Cooldown:  {}", cooldown_transitions.len()),
-    );
-    push_ln(&mut buf, "");
-
-    push_ln(&mut buf, "── Impact waves ──────────────────────────");
-    push_ln(&mut buf, &format!("  Detected:  {}", ctx.waves.len()));
-    for wave in ctx.waves {
-        push_ln(
-            &mut buf,
-            &format!(
-                "  Wave {}: {}  {}-{} ({})",
-                wave.id,
-                wave.label,
-                wave.start,
-                wave.end,
-                wave.affected_prefixes.len()
-            ),
-        );
-    }
-    push_ln(&mut buf, "");
-
-    // Outcome
-    push_ln(&mut buf, "── Outcome ───────────────────────────────");
+    push_ln(&mut buf, "  ── Final impact assessment ───────────────");
     match ctx.outcome {
         AnalysisOutcome::Completed { assessment } => {
-            push_ln(&mut buf, &format!("  Verdict: {}", assessment.verdict));
+            push_ln(&mut buf, &format!("    Verdict: {}", assessment.verdict));
             for ev in &assessment.evidence {
-                push_ln(&mut buf, &format!("  - {}", ev.description));
+                push_ln(&mut buf, &format!("    - {}", ev.description));
             }
-            // For NoObservableBgpImpact, explicitly scope the finding
-            if matches!(
-                assessment.verdict,
-                crate::domain::assessment::Verdict::NoObservableBgpImpact
-            ) {
+            if ctx.no_observable_impact {
                 push_ln(&mut buf, "");
                 push_ln(
                     &mut buf,
-                    "  No observable BGP impact was found among the selected RouteViews",
-                );
-                push_ln(&mut buf, "  observer-route streams.");
-                push_ln(&mut buf, "");
-                push_ln(
-                    &mut buf,
-                    "  This is consistent with the redundant-impact expectation encoded",
-                );
-                push_ln(&mut buf, "  in the Internet2 ticket title.");
-                push_ln(&mut buf, "");
-                push_ln(
-                    &mut buf,
-                    "  This result does not establish: global reachability, absence of",
+                    "    No route-state changes were observed among the selected RouteViews",
                 );
                 push_ln(
                     &mut buf,
-                    "  traffic impact, successful physical failover, or absence of changes",
+                    "    observer-prefix streams. This is consistent with the",
                 );
-                push_ln(&mut buf, "  outside the selected observer streams.");
+                push_ln(&mut buf, "    redundant-attachment expectation.");
             }
         }
         AnalysisOutcome::InsufficientVisibility { reason } => {
-            push_ln(&mut buf, "  INSUFFICIENT VISIBILITY");
-            push_ln(&mut buf, &format!("  {reason}"));
+            push_ln(&mut buf, "    INSUFFICIENT VISIBILITY");
+            push_ln(&mut buf, &format!("    {reason}"));
         }
         AnalysisOutcome::Incomplete { failure } => {
-            push_ln(&mut buf, "  INCOMPLETE");
-            push_ln(&mut buf, &format!("  {failure}"));
+            push_ln(&mut buf, "    INCOMPLETE");
+            push_ln(&mut buf, &format!("    {failure}"));
         }
     }
     push_ln(&mut buf, "");
 
-    push_ln(&mut buf, "── Limitations ────────────────────────────");
+    // ── 8.2 Observable mechanism hints ───────────────────────────
+    push_ln(&mut buf, "── Observable mechanism hints ──────────────");
+    let gshut_streams = lcs.iter().filter(|l| l.graceful_shutdown_seen).count();
+    if gshut_streams > 0 {
+        push_ln(
+            &mut buf,
+            &format!(
+                "  RFC 8326 GRACEFUL_SHUTDOWN community (65535:0) was observed on {gshut_streams} selected observer-prefix streams."
+            ),
+        );
+        // GSHUT timing hints.
+        let with_timing: Vec<_> = lcs
+            .iter()
+            .filter(|l| l.graceful_shutdown_seen)
+            .map(|l| {
+                let first = l
+                    .first_gshut_timestamp
+                    .map(|t| t.format("%H:%M:%S").to_string())
+                    .unwrap_or_else(|| "?".into());
+                let last = l
+                    .last_gshut_timestamp
+                    .map(|t| t.format("%H:%M:%S").to_string())
+                    .unwrap_or_else(|| "?".into());
+                format!(
+                    "    {}:{} {} first={first} last={last} before-withdrawal={} before-replacement={}",
+                    l.collector, l.peer_ip, l.prefix, l.gshut_before_withdrawal, l.gshut_before_path_change
+                )
+            })
+            .collect();
+        for line in with_timing {
+            push_ln(&mut buf, &line);
+        }
+    } else {
+        push_ln(
+            &mut buf,
+            "  No RFC 8326 GRACEFUL_SHUTDOWN community reached the selected observers.",
+        );
+        push_ln(
+            &mut buf,
+            "  Its absence does not establish that graceful shutdown was not used.",
+        );
+    }
+    let community_only = ctx
+        .transitions
+        .iter()
+        .filter(|t| t.effects.communities_changed && !t.effects.material_path_changed)
+        .count();
+    push_ln(
+        &mut buf,
+        &format!("  Community-only changes (no path change): {community_only} transition(s)."),
+    );
+    push_ln(
+        &mut buf,
+        "  RFC 9003: administrative-shutdown message not observable from these remote collector sessions.",
+    );
+    push_ln(
+        &mut buf,
+        "  RFC 8327: operational intent not directly observable.",
+    );
+    push_ln(
+        &mut buf,
+        "  Graceful Restart: negotiated session capability/state not directly observable from this dataset.",
+    );
+    push_ln(
+        &mut buf,
+        "  Mechanism hints do not change the impact assessment by themselves.",
+    );
+    push_ln(&mut buf, "");
+
+    // ── 8.3 Limitations ─────────────────────────────────────────
+    push_ln(&mut buf, "── Limitations ─────────────────────────────");
+    push_ln(
+        &mut buf,
+        "  • Selected collectors do not provide global visibility.",
+    );
+    push_ln(&mut buf, "  • BGP route state is not traffic measurement.");
+    push_ln(&mut buf, "  • Local session state is not observed.");
+    push_ln(&mut buf, "  • Physical-link state is not observed.");
+    push_ln(
+        &mut buf,
+        "  • Absent communities do not prove a mechanism was unused.",
+    );
+    push_ln(
+        &mut buf,
+        "  • Event declarations and BGP changes establish temporal association, not automatic causation.",
+    );
     for lim in ctx.limitations {
         push_ln(&mut buf, &format!("  • {lim}"));
     }
@@ -275,11 +393,14 @@ fn write_report_txt(ctx: &OutputContext, path: &Path) -> Result<(), String> {
 
 #[derive(Serialize)]
 struct JsonReport {
+    schema_version: u32,
     event_id: String,
+    observed_event_signature: serde_json::Value,
+    observable_mechanism_hints: serde_json::Value,
+    limitations: Vec<String>,
     outcome: serde_json::Value,
     transitions: JsonTransitionStats,
     waves: Vec<JsonWaveSummary>,
-    limitations: Vec<String>,
 }
 
 #[derive(Serialize)]
@@ -298,8 +419,9 @@ struct JsonWaveSummary {
     affected_prefix_count: usize,
     motif_id: Option<String>,
 }
-
 fn write_report_json(ctx: &OutputContext, path: &Path) -> Result<(), String> {
+    use crate::lifecycle::StreamCategory;
+
     let outcome_json = serde_json::to_value(ctx.outcome).unwrap_or_default();
     let event_count = ctx
         .transitions
@@ -312,8 +434,79 @@ fn write_report_json(ctx: &OutputContext, path: &Path) -> Result<(), String> {
         .filter(|t| matches!(t.phase, AnalysisPhase::Cooldown))
         .count();
 
+    let lcs = ctx.lifecycles;
+    let signature = serde_json::json!({
+        "ticket_expectation": ctx.declared_expectation,
+        "ticket_lifecycle": ctx.ticket_lifecycle,
+        "analysis_window_utc": ctx.event_window,
+        "observer_scope": {
+            "collectors": ctx.collectors,
+            "baseline_observer_prefix_streams": lcs.len(),
+            "baseline_route_instances": lcs.iter().map(|l| l.baseline_instance_count).sum::<usize>(),
+            "multiple_instance_streams": lcs.iter().filter(|l| l.baseline_instance_count > 1 || l.total_route_instances > l.baseline_instance_count).count(),
+        },
+        "stream_lifecycle": {
+            "unchanged": lcs.iter().filter(|l| l.category == StreamCategory::Unchanged).count(),
+            "prepend_only": lcs.iter().filter(|l| l.category == StreamCategory::PrependOnly).count(),
+            "material_path_changes": ctx.transitions.iter().filter(|t| t.effects.material_path_changed).count(),
+            "streams_retaining_transit": lcs.iter().filter(|l| matches!(l.category, StreamCategory::Unchanged | StreamCategory::PrependOnly | StreamCategory::PathChangedStillViaTransit)).count(),
+            "streams_departing_transit": lcs.iter().filter(|l| l.category == StreamCategory::DepartedTransitPath).count(),
+            "withdrawn_streams": lcs.iter().filter(|l| l.was_withdrawn).count(),
+            "restored_streams": lcs.iter().filter(|l| l.flags.restored).count(),
+            "unresolved_streams": lcs.iter().filter(|l| l.flags.not_restored).count(),
+            "add_path_ambiguous_streams": lcs.iter().filter(|l| l.flags.add_path_ambiguous).count(),
+        },
+        "semantic_waves": ctx.semantic_waves.iter().map(|w| serde_json::json!({
+            "id": w.id,
+            "label": w.label.as_str(),
+            "start": w.start,
+            "peak_start": w.peak_start,
+            "peak_end": w.peak_end,
+            "end": w.end,
+            "stream_count": w.stream_count,
+            "route_instance_count": w.route_instance_count,
+            "prefixes": w.prefixes,
+            "peers": w.peers,
+            "facets": serde_json::to_value(&w.facets).unwrap_or_default(),
+            "event_relative": serde_json::to_value(&w.event_relative).unwrap_or_default(),
+            "representative_before": w.representative_before,
+            "representative_after": w.representative_after,
+            "evidence_refs": w.evidence_refs.iter().map(|e| e.observation_id.0).collect::<Vec<_>>(),
+        })).collect::<Vec<_>>(),
+        "final_impact_assessment": serde_json::to_value(ctx.outcome).unwrap_or_default(),
+    });
+
+    let gshut_streams = lcs.iter().filter(|l| l.graceful_shutdown_seen).count();
+    let mechanism_hints = serde_json::json!({
+        "rfc8326": {
+            "gshut_streams": gshut_streams,
+            "statement": if gshut_streams > 0 {
+                format!("RFC 8326 GRACEFUL_SHUTDOWN community was observed on {gshut_streams} selected observer-prefix streams.")
+            } else {
+                "No RFC 8326 GRACEFUL_SHUTDOWN community reached the selected observers. Its absence does not establish that graceful shutdown was not used.".to_string()
+            },
+            "gshut_timing": lcs.iter().filter(|l| l.graceful_shutdown_seen).map(|l| serde_json::json!({
+                "stream": format!("{}:{} {}", l.collector, l.peer_ip, l.prefix),
+                "first": l.first_gshut_timestamp,
+                "last": l.last_gshut_timestamp,
+                "before_withdrawal": l.gshut_before_withdrawal,
+                "before_path_replacement": l.gshut_before_path_change,
+                "tag_to_consequence_secs": l.gshut_to_consequence_secs,
+            })).collect::<Vec<_>>(),
+        },
+        "community_only_changes": ctx.transitions.iter().filter(|t| t.effects.communities_changed && !t.effects.material_path_changed).count(),
+        "rfc9003": "administrative-shutdown message not observable from these remote collector sessions",
+        "rfc8327": "operational intent not directly observable",
+        "graceful_restart": "negotiated session capability/state not directly observable from this dataset",
+        "mechanism_hints_do_not_change_impact_assessment": true,
+    });
+
     let report = JsonReport {
+        schema_version: crate::schema::REPORT_SCHEMA_VERSION,
         event_id: ctx.event_id.to_string(),
+        observed_event_signature: signature,
+        observable_mechanism_hints: mechanism_hints,
+        limitations: ctx.limitations.to_vec(),
         outcome: outcome_json,
         transitions: JsonTransitionStats {
             total: ctx.transitions.len(),
@@ -332,7 +525,6 @@ fn write_report_json(ctx: &OutputContext, path: &Path) -> Result<(), String> {
                 motif_id: w.motif.as_ref().map(|m| m.id.clone()),
             })
             .collect(),
-        limitations: ctx.limitations.to_vec(),
     };
 
     let json = serde_json::to_string_pretty(&report)
@@ -494,14 +686,15 @@ struct Limitations {
 fn write_limitations(ctx: &OutputContext, path: &Path) -> Result<(), String> {
     let lim = Limitations {
         observer: vec![
-            "Analysis uses selected RouteViews collectors only. Other observation points may yield different results.".into(),
+            "Analysis uses selected RouteViews collectors only. Selected collectors do not provide global visibility.".into(),
+            "BGP route state is not traffic measurement.".into(),
         ],
         continuity_gaps: ctx.limitations.iter()
             .filter(|l| l.contains("gap"))
             .cloned()
             .collect(),
         add_path: vec![
-            "ADD-PATH identity is not preserved. Multiple paths from the same peer for the same prefix may be collapsed.".into(),
+            "ADD-PATH identity is preserved per route instance. Streams with mixed keyed/unkeyed encoding are flagged add-path ambiguous and excluded from strong stream-level assessment.".into(),
         ],
         manual_mappings: vec![
             "Participant-to-ASN mapping is manually supplied in the reviewed manifest. It is not derived automatically from ticket text.".into(),
@@ -510,7 +703,10 @@ fn write_limitations(ctx: &OutputContext, path: &Path) -> Result<(), String> {
             "Parsed via bgpkit-parser. Parser limitations apply.".into(),
         ],
         unsupported_conclusions: vec![
-            "Physical-layer attribution (e.g. 'the NYIIX circuit failed') is not supported by control-plane observations alone.".into(),
+            "Local session state is not observed.".into(),
+            "Physical-link state is not observed.".into(),
+            "Absent communities do not prove a mechanism was unused.".into(),
+            "Event declarations and BGP changes establish temporal association, not automatic causation.".into(),
             "Global reachability cannot be asserted from a limited set of observer streams.".into(),
         ],
     };
@@ -561,6 +757,7 @@ mod tests {
         transitions: &'a Vec<RouteTransition>,
         waves: &'a Vec<ImpactWave>,
         semantic_waves: &'a Vec<crate::lifecycle::SemanticWave>,
+        lifecycles: &'a Vec<crate::lifecycle::StreamLifecycle>,
         limitations: &'a Vec<String>,
     ) -> OutputContext<'a> {
         OutputContext {
@@ -580,7 +777,10 @@ mod tests {
             transitions,
             waves,
             semantic_waves,
+            lifecycles,
+            ticket_lifecycle: "Closed",
             limitations,
+            no_observable_impact: true,
         }
     }
 
@@ -595,6 +795,7 @@ mod tests {
         let transitions = vec![];
         let waves = vec![];
         let semantic_waves = vec![];
+        let lifecycles: Vec<crate::lifecycle::StreamLifecycle> = vec![];
         let limitations = vec![
             "Test limitation 1".to_string(),
             "Test limitation 2".to_string(),
@@ -608,6 +809,7 @@ mod tests {
             &transitions,
             &waves,
             &semantic_waves,
+            &lifecycles,
             &limitations,
         );
 
@@ -636,6 +838,7 @@ mod tests {
         let transitions = vec![];
         let waves = vec![];
         let semantic_waves = vec![];
+        let lifecycles: Vec<crate::lifecycle::StreamLifecycle> = vec![];
         let limitations = vec!["gap detected".to_string()];
         let ctx = make_ctx(
             &outcome,
@@ -645,6 +848,7 @@ mod tests {
             &transitions,
             &waves,
             &semantic_waves,
+            &lifecycles,
             &limitations,
         );
         let dir = tempfile::tempdir().unwrap();
@@ -666,6 +870,7 @@ mod tests {
         let transitions = vec![];
         let waves = vec![];
         let semantic_waves = vec![];
+        let lifecycles: Vec<crate::lifecycle::StreamLifecycle> = vec![];
         let limitations = vec![];
         let ctx = make_ctx(
             &outcome,
@@ -675,6 +880,7 @@ mod tests {
             &transitions,
             &waves,
             &semantic_waves,
+            &lifecycles,
             &limitations,
         );
         let dir = tempfile::tempdir().unwrap();
@@ -694,6 +900,7 @@ mod tests {
         let transitions = vec![];
         let waves = vec![];
         let semantic_waves = vec![];
+        let lifecycles: Vec<crate::lifecycle::StreamLifecycle> = vec![];
         let limitations = vec![];
         let ctx = make_ctx(
             &outcome,
@@ -703,6 +910,7 @@ mod tests {
             &transitions,
             &waves,
             &semantic_waves,
+            &lifecycles,
             &limitations,
         );
         let dir = tempfile::tempdir().unwrap();
@@ -722,6 +930,7 @@ mod tests {
         let transitions = vec![];
         let waves = vec![];
         let semantic_waves = vec![];
+        let lifecycles: Vec<crate::lifecycle::StreamLifecycle> = vec![];
         let limitations = vec![];
         let ctx = make_ctx(
             &outcome,
@@ -731,6 +940,7 @@ mod tests {
             &transitions,
             &waves,
             &semantic_waves,
+            &lifecycles,
             &limitations,
         );
         let dir = tempfile::tempdir().unwrap();
@@ -794,6 +1004,7 @@ mod tests {
         let transitions = vec![transition];
         let waves = vec![wave];
         let semantic_waves = vec![];
+        let lifecycles: Vec<crate::lifecycle::StreamLifecycle> = vec![];
         let limitations = vec![];
         let ctx = make_ctx(
             &outcome,
@@ -803,6 +1014,7 @@ mod tests {
             &transitions,
             &waves,
             &semantic_waves,
+            &lifecycles,
             &limitations,
         );
         let dir = tempfile::tempdir().unwrap();
@@ -813,5 +1025,227 @@ mod tests {
         assert!(appendix.contains("after"));
         // Verify one line per transition
         assert_eq!(appendix.lines().count(), 1);
+    }
+
+    // ── Part 8: report structure tests ────────────────────────────
+
+    fn make_lifecycle(
+        category: crate::lifecycle::StreamCategory,
+    ) -> crate::lifecycle::StreamLifecycle {
+        use crate::lifecycle::{StreamFlags, StreamLifecycle};
+        StreamLifecycle {
+            collector: "route-views2".into(),
+            peer_ip: "185.1.8.65".into(),
+            prefix: "192.0.2.0/24".into(),
+            baseline_path: vec![6447, 11537, 3333],
+            baseline_instance_count: 1,
+            max_concurrent_instances: 1,
+            total_route_instances: 1,
+            category,
+            flags: StreamFlags {
+                restored: false,
+                not_restored: false,
+                multiple_cycles: false,
+                add_path_ambiguous: false,
+            },
+            first_change: None,
+            transitions: vec![],
+            min_absence_secs: None,
+            max_absence_secs: None,
+            was_withdrawn: false,
+            withdrawn_instances: vec![],
+            stream_withdrawal_count: 0,
+            restorations: vec![],
+            add_path_ambiguity: None,
+            replacement_appeared: false,
+            replacement_retained_transit: None,
+            prepending_changed: false,
+            cooldown_transitions: vec![],
+            final_state: None,
+            baseline_restored: false,
+            restoration_time: None,
+            affected_duration_secs: None,
+            graceful_shutdown_seen: false,
+            gshut_present_at_baseline: false,
+            gshut_newly_added: false,
+            gshut_removed: false,
+            first_gshut_timestamp: None,
+            last_gshut_timestamp: None,
+            gshut_before_withdrawal: false,
+            gshut_before_path_change: false,
+            gshut_to_consequence_secs: None,
+            gshut_removed_during_restoration: false,
+            communities_before: vec![],
+            communities_after: vec![],
+        }
+    }
+
+    #[test]
+    fn report_separates_impact_and_mechanism_sections() {
+        let outcome = sample_outcome();
+        let collectors = vec!["route-views2".to_string()];
+        let ribs = vec![];
+        let updates = vec![];
+        let transitions = vec![];
+        let waves = vec![];
+        let semantic_waves = vec![];
+        let lifecycles = vec![make_lifecycle(crate::lifecycle::StreamCategory::Unchanged)];
+        let limitations = vec![];
+        let ctx = make_ctx(
+            &outcome,
+            &collectors,
+            &ribs,
+            &updates,
+            &transitions,
+            &waves,
+            &semantic_waves,
+            &lifecycles,
+            &limitations,
+        );
+        let dir = tempfile::tempdir().unwrap();
+        write_outputs(&ctx, dir.path()).unwrap();
+        let report = std::fs::read_to_string(dir.path().join("report.txt")).unwrap();
+        let sig = report.find("Observed event signature").unwrap();
+        let hints = report.find("Observable mechanism hints").unwrap();
+        let lim = report.find("Limitations").unwrap();
+        assert!(sig < hints, "signature precedes mechanism hints");
+        assert!(hints < lim, "mechanism hints precede limitations");
+    }
+
+    #[test]
+    fn report_counts_streams_and_instances_separately() {
+        let outcome = sample_outcome();
+        let collectors = vec!["route-views2".to_string()];
+        let ribs = vec![];
+        let updates = vec![];
+        let transitions = vec![];
+        let waves = vec![];
+        let semantic_waves = vec![];
+        let lifecycles = vec![
+            make_lifecycle(crate::lifecycle::StreamCategory::Unchanged),
+            make_lifecycle(crate::lifecycle::StreamCategory::Unchanged),
+        ];
+        let empty_limitations: Vec<String> = vec![];
+        let ctx = make_ctx(
+            &outcome,
+            &collectors,
+            &ribs,
+            &updates,
+            &transitions,
+            &waves,
+            &semantic_waves,
+            &lifecycles,
+            &empty_limitations,
+        );
+        let dir = tempfile::tempdir().unwrap();
+        write_outputs(&ctx, dir.path()).unwrap();
+        let report = std::fs::read_to_string(dir.path().join("report.txt")).unwrap();
+        assert!(report.contains("Baseline observer-prefix streams: 2"));
+        assert!(report.contains("Baseline route instances:          2"));
+    }
+
+    #[test]
+    fn report_uses_observer_scoped_withdrawal_wording() {
+        let outcome = sample_outcome();
+        let collectors = vec!["route-views2".to_string()];
+        let ribs = vec![];
+        let updates = vec![];
+        let transitions = vec![];
+        let waves = vec![];
+        let semantic_waves = vec![];
+        let mut lc = make_lifecycle(crate::lifecycle::StreamCategory::Withdrawn);
+        lc.was_withdrawn = true;
+        lc.flags.not_restored = true;
+        let lifecycles = vec![lc];
+        let empty_limitations: Vec<String> = vec![];
+        let ctx = make_ctx(
+            &outcome,
+            &collectors,
+            &ribs,
+            &updates,
+            &transitions,
+            &waves,
+            &semantic_waves,
+            &lifecycles,
+            &empty_limitations,
+        );
+        let dir = tempfile::tempdir().unwrap();
+        write_outputs(&ctx, dir.path()).unwrap();
+        let report = std::fs::read_to_string(dir.path().join("report.txt")).unwrap();
+        assert!(report.contains("Withdrawn streams:                  1"));
+        // Observer-scoped: never "global withdrawal".
+        assert!(!report.contains("global withdrawal"), "{report}");
+    }
+
+    #[test]
+    fn report_does_not_claim_unobservable_mechanisms() {
+        let outcome = sample_outcome();
+        let collectors = vec![];
+        let ribs = vec![];
+        let updates = vec![];
+        let transitions = vec![];
+        let waves = vec![];
+        let semantic_waves = vec![];
+        let lifecycles = vec![];
+        let empty_limitations: Vec<String> = vec![];
+        let ctx = make_ctx(
+            &outcome,
+            &collectors,
+            &ribs,
+            &updates,
+            &transitions,
+            &waves,
+            &semantic_waves,
+            &lifecycles,
+            &empty_limitations,
+        );
+        let dir = tempfile::tempdir().unwrap();
+        write_outputs(&ctx, dir.path()).unwrap();
+        let report = std::fs::read_to_string(dir.path().join("report.txt")).unwrap();
+        // RFC 9003 / 8327 / GR are stated as not observable, never claimed.
+        assert!(report.contains("RFC 9003: administrative-shutdown message not observable"));
+        assert!(report.contains("RFC 8327: operational intent not directly observable"));
+        assert!(report.contains(
+            "Graceful Restart: negotiated session capability/state not directly observable"
+        ));
+        assert!(!report.contains("was administratively shut down"));
+        assert!(!report.contains("intended to withdraw"));
+    }
+
+    #[test]
+    fn report_contains_schema_version() {
+        let outcome = sample_outcome();
+        let collectors = vec![];
+        let ribs = vec![];
+        let updates = vec![];
+        let transitions = vec![];
+        let waves = vec![];
+        let semantic_waves = vec![];
+        let lifecycles = vec![];
+        let empty_limitations: Vec<String> = vec![];
+        let ctx = make_ctx(
+            &outcome,
+            &collectors,
+            &ribs,
+            &updates,
+            &transitions,
+            &waves,
+            &semantic_waves,
+            &lifecycles,
+            &empty_limitations,
+        );
+        let dir = tempfile::tempdir().unwrap();
+        write_outputs(&ctx, dir.path()).unwrap();
+        let report = std::fs::read_to_string(dir.path().join("report.txt")).unwrap();
+        assert!(
+            report.contains(&format!(
+                "Report schema: v{}",
+                crate::schema::REPORT_SCHEMA_VERSION
+            )),
+            "{report}"
+        );
+        let json = std::fs::read_to_string(dir.path().join("report.json")).unwrap();
+        let val: serde_json::Value = serde_json::from_str(&json).unwrap();
+        assert_eq!(val["schema_version"], crate::schema::REPORT_SCHEMA_VERSION);
     }
 }
