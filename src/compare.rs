@@ -307,16 +307,20 @@ impl ComparisonArtifact {
         buf
     }
 
-    /// Write the comparison artifacts (json + txt) to an output directory.
+    /// Write the comparison artifacts to an output directory.
+    ///
+    /// Files are named `{a.event_id}-vs-{b.event_id}.json` and `.txt` per
+    /// the artifact contract.
     pub fn write(&self, out_dir: &Path) -> Result<(), String> {
         std::fs::create_dir_all(out_dir)
             .map_err(|e| format!("cannot create {}: {e}", out_dir.display()))?;
+        let base = format!("{}-vs-{}", self.a.event_id, self.b.event_id);
         let json = serde_json::to_string_pretty(self)
             .map_err(|e| format!("comparison JSON serialization failed: {e}"))?;
-        std::fs::write(out_dir.join("comparison.json"), json)
-            .map_err(|e| format!("cannot write comparison.json: {e}"))?;
-        std::fs::write(out_dir.join("comparison.txt"), self.render_text())
-            .map_err(|e| format!("cannot write comparison.txt: {e}"))?;
+        std::fs::write(out_dir.join(format!("{base}.json")), json)
+            .map_err(|e| format!("cannot write {base}.json: {e}"))?;
+        std::fs::write(out_dir.join(format!("{base}.txt")), self.render_text())
+            .map_err(|e| format!("cannot write {base}.txt: {e}"))?;
         Ok(())
     }
 }
@@ -414,7 +418,7 @@ mod tests {
         assert_eq!(text, art.render_text());
         let out = dir.path().join("cmp");
         art.write(&out).unwrap();
-        let json = std::fs::read_to_string(out.join("comparison.json")).unwrap();
+        let json = std::fs::read_to_string(out.join("INC1-vs-INC2.json")).unwrap();
         let val: serde_json::Value = serde_json::from_str(&json).unwrap();
         assert_eq!(val["schema_version"], COMPARISON_ARTIFACT_SCHEMA_VERSION);
         // No severity score is added to the artifact.
