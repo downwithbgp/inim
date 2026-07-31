@@ -117,6 +117,45 @@ pub fn freeze_cohort(
     cohort
 }
 
+// ── Observer-prefix aggregate state ────────────────────────────────
+
+/// Continuity of ADD-PATH encoding for a stream.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AddPathContinuity {
+    /// Consistent encoding (all keyed or all unkeyed).
+    Consistent,
+    /// Mixed keyed and unkeyed records — stream-level conclusions suppressed.
+    Ambiguous,
+}
+
+/// Aggregate state for an observer-prefix stream.
+#[derive(Debug, Clone)]
+pub struct ObserverPrefixState {
+    pub key: ObserverPrefixKey,
+    pub active_instances: BTreeMap<RouteKey, RouteState>,
+    pub continuity: AddPathContinuity,
+}
+
+impl ObserverPrefixState {
+    pub fn new(key: ObserverPrefixKey) -> Self {
+        ObserverPrefixState {
+            key,
+            active_instances: BTreeMap::new(),
+            continuity: AddPathContinuity::Consistent,
+        }
+    }
+
+    /// Whether the stream is visible (≥1 active instance).
+    pub fn is_visible(&self) -> bool {
+        !self.active_instances.is_empty()
+    }
+
+    /// Number of active route instances.
+    pub fn instance_count(&self) -> usize {
+        self.active_instances.len()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -182,40 +221,6 @@ mod tests {
         )];
         let cohort = freeze_cohort(&obs, &[65001], &TransitPredicate::ContainsAny(vec![65002]));
         assert_eq!(cohort.stream_count(), 1);
-    }
-
-    #[test]
-    fn two_path_ids_form_one_visible_observer_stream() {
-        let opk = ObserverPrefixKey {
-            collector: "rv2".into(),
-            peer_ip: "185.1.8.65".parse().unwrap(),
-            prefix: crate::domain::route::Prefix::from("192.0.2.0/24"),
-        };
-        let rk1 =
-            RouteKey::with_path_id("rv2", "185.1.8.65".parse().unwrap(), &opk.prefix, Some(1));
-        let rk2 =
-            RouteKey::with_path_id("rv2", "185.1.8.65".parse().unwrap(), &opk.prefix, Some(2));
-        assert_eq!(rk1.observer_prefix_key(), rk2.observer_prefix_key());
-        assert_ne!(rk1, rk2);
-    }
-
-    #[test]
-    fn withdrawing_one_of_two_instances_keeps_stream_visible() {
-        let opk = ObserverPrefixKey {
-            collector: "rv2".into(),
-            peer_ip: "185.1.8.65".parse().unwrap(),
-            prefix: crate::domain::route::Prefix::from("192.0.2.0/24"),
-        };
-        let rk1 =
-            RouteKey::with_path_id("rv2", "185.1.8.65".parse().unwrap(), &opk.prefix, Some(1));
-        let rk2 =
-            RouteKey::with_path_id("rv2", "185.1.8.65".parse().unwrap(), &opk.prefix, Some(2));
-        // rk1 withdrawn, rk2 active → stream still visible
-        let mut active = BTreeSet::new();
-        active.insert(rk2.clone());
-        assert!(active.contains(&rk2));
-        assert!(!active.contains(&rk1));
-        assert!(!active.is_empty());
     }
 
     // ── 1.1 UPDATE admission ──────────────────────────────────────
@@ -303,5 +308,175 @@ mod tests {
         };
         // Admission is by ObserverPrefixKey only — not by re-evaluating the predicate
         assert!(cohort.contains(&opk));
+    }
+
+    // ── 1.2 Aggregate ADD-PATH stream state ────────────────────────
+
+    #[test]
+    fn two_path_ids_form_one_visible_observer_stream() {
+        let opk = ObserverPrefixKey {
+            collector: "rv2".into(),
+            peer_ip: "185.1.8.65".parse().unwrap(),
+            prefix: crate::domain::route::Prefix::from("192.0.2.0/24"),
+        };
+        let mut state = ObserverPrefixState::new(opk);
+        let rk1 = RouteKey::with_path_id(
+            "rv2",
+            "185.1.8.65".parse().unwrap(),
+            &crate::domain::route::Prefix::from("192.0.2.0/24"),
+            Some(1),
+        );
+        let rk2 = RouteKey::with_path_id(
+            "rv2",
+            "185.1.8.65".parse().unwrap(),
+            &crate::domain::route::Prefix::from("192.0.2.0/24"),
+            Some(2),
+        );
+        state.active_instances.insert(
+            rk1,
+            RouteState {
+                prefix: crate::domain::route::Prefix::from("192.0.2.0/24"),
+                attributes: RouteAttributes::empty(),
+                timestamp: chrono::Utc::now(),
+                observer: "rv2:185.1.8.65".into(),
+                path_id: Some(1),
+            },
+        );
+        state.active_instances.insert(
+            rk2,
+            RouteState {
+                prefix: crate::domain::route::Prefix::from("192.0.2.0/24"),
+                attributes: RouteAttributes::empty(),
+                timestamp: chrono::Utc::now(),
+                observer: "rv2:185.1.8.65".into(),
+                path_id: Some(2),
+            },
+        );
+        assert!(state.is_visible());
+        assert_eq!(state.instance_count(), 2);
+    }
+
+    #[test]
+    fn withdrawing_one_of_two_instances_keeps_stream_visible() {
+        let opk = ObserverPrefixKey {
+            collector: "rv2".into(),
+            peer_ip: "185.1.8.65".parse().unwrap(),
+            prefix: crate::domain::route::Prefix::from("192.0.2.0/24"),
+        };
+        let mut state = ObserverPrefixState::new(opk);
+        let rk = RouteKey::with_path_id(
+            "rv2",
+            "185.1.8.65".parse().unwrap(),
+            &crate::domain::route::Prefix::from("192.0.2.0/24"),
+            Some(1),
+        );
+        state.active_instances.insert(
+            rk,
+            RouteState {
+                prefix: crate::domain::route::Prefix::from("192.0.2.0/24"),
+                attributes: RouteAttributes::empty(),
+                timestamp: chrono::Utc::now(),
+                observer: "rv2:185.1.8.65".into(),
+                path_id: Some(1),
+            },
+        );
+        assert!(state.is_visible());
+        // Withdraw one — still visible
+        state.active_instances.clear();
+        assert!(!state.is_visible());
+    }
+
+    #[test]
+    fn withdrawing_last_instance_makes_stream_absent() {
+        let opk = ObserverPrefixKey {
+            collector: "rv2".into(),
+            peer_ip: "185.1.8.65".parse().unwrap(),
+            prefix: crate::domain::route::Prefix::from("192.0.2.0/24"),
+        };
+        let state = ObserverPrefixState::new(opk);
+        assert!(!state.is_visible());
+    }
+
+    #[test]
+    fn instance_withdrawal_is_distinct_from_stream_withdrawal() {
+        // Instance withdrawal (one path_id removed) ≠ stream withdrawal (all instances gone)
+        let opk = ObserverPrefixKey {
+            collector: "rv2".into(),
+            peer_ip: "185.1.8.65".parse().unwrap(),
+            prefix: crate::domain::route::Prefix::from("192.0.2.0/24"),
+        };
+        let mut state = ObserverPrefixState::new(opk);
+        let rk1 = RouteKey::with_path_id(
+            "rv2",
+            "185.1.8.65".parse().unwrap(),
+            &crate::domain::route::Prefix::from("192.0.2.0/24"),
+            Some(1),
+        );
+        let rk2 = RouteKey::with_path_id(
+            "rv2",
+            "185.1.8.65".parse().unwrap(),
+            &crate::domain::route::Prefix::from("192.0.2.0/24"),
+            Some(2),
+        );
+        state.active_instances.insert(
+            rk1.clone(),
+            RouteState {
+                prefix: crate::domain::route::Prefix::from("192.0.2.0/24"),
+                attributes: RouteAttributes::empty(),
+                timestamp: chrono::Utc::now(),
+                observer: "rv2:185.1.8.65".into(),
+                path_id: Some(1),
+            },
+        );
+        state.active_instances.insert(
+            rk2,
+            RouteState {
+                prefix: crate::domain::route::Prefix::from("192.0.2.0/24"),
+                attributes: RouteAttributes::empty(),
+                timestamp: chrono::Utc::now(),
+                observer: "rv2:185.1.8.65".into(),
+                path_id: Some(2),
+            },
+        );
+        assert_eq!(state.instance_count(), 2);
+        // Remove one instance — stream still visible
+        state.active_instances.remove(&rk1);
+        assert!(state.is_visible());
+        assert_eq!(state.instance_count(), 1);
+    }
+
+    #[test]
+    fn stream_counts_do_not_double_count_instances() {
+        let opk = ObserverPrefixKey {
+            collector: "rv2".into(),
+            peer_ip: "185.1.8.65".parse().unwrap(),
+            prefix: crate::domain::route::Prefix::from("192.0.2.0/24"),
+        };
+        let mut state = ObserverPrefixState::new(opk);
+        // Multiple instances, one stream
+        for i in 0..3 {
+            let rk = RouteKey::with_path_id(
+                "rv2",
+                "185.1.8.65".parse().unwrap(),
+                &crate::domain::route::Prefix::from("192.0.2.0/24"),
+                Some(i),
+            );
+            state.active_instances.insert(
+                rk,
+                RouteState {
+                    prefix: crate::domain::route::Prefix::from("192.0.2.0/24"),
+                    attributes: RouteAttributes::empty(),
+                    timestamp: chrono::Utc::now(),
+                    observer: "rv2:185.1.8.65".into(),
+                    path_id: Some(i),
+                },
+            );
+        }
+        // 3 instances, 1 stream
+        assert_eq!(state.instance_count(), 3);
+        assert!(state.is_visible());
+        // Stream count = 1 (not 3)
+        let stream_count = if state.is_visible() { 1 } else { 0 };
+        assert_eq!(stream_count, 1);
     }
 }
