@@ -1,0 +1,61 @@
+→ Broker discovery: RIB files
+  route-views2: caching RIB http://archive.routeviews.org/bgpdata/2026.07/RIBS/rib.20260730.0800.bz2
+warning: size differ for http://archive.routeviews.org/bgpdata/2026.07/RIBS/rib.20260730.0800.bz2: expected 75497472, got 75241938 (continuing)
+  route-views2: parsing RIB (origin filter: [3333])...
+  [route-views2 RIB] done: 114 parsed, 114 origin, 18 transit, 18 frozen streams, 6 prefixes, 3 peers (115.0s)
+  route-views6: caching RIB http://archive.routeviews.org/route-views6/bgpdata/2026.07/RIBS/rib.20260730.0800.bz2
+warning: size differ for http://archive.routeviews.org/route-views6/bgpdata/2026.07/RIBS/rib.20260730.0800.bz2: expected 26214400, got 26040530 (continuing)
+  route-views6: parsing RIB (origin filter: [3333])...
+  [route-views6 RIB] done: 20 parsed, 20 origin, 1 transit, 1 frozen streams, 1 prefixes, 1 peers (37.1s)
+→ RIB preflight done: 19 frozen streams over 2 collectors
+→ Broker discovery: UPDATE files
+  route-views6: querying UPDATE files...
+  route-views6: 14 UPDATE files selected
+warning: size differ for http://archive.routeviews.org/route-views6/bgpdata/2026.07/UPDATES/updates.20260730.0730.bz2: expected 1363148, got 1407773 (continuing)
+warning: size differ for http://archive.routeviews.org/route-views6/bgpdata/2026.07/UPDATES/updates.20260730.0745.bz2: expected 1363148, got 1402204 (continuing)
+warning: size differ for http://archive.routeviews.org/route-views6/bgpdata/2026.07/UPDATES/updates.20260730.0800.bz2: expected 1363148, got 1354460 (continuing)
+warning: size differ for http://archive.routeviews.org/route-views6/bgpdata/2026.07/UPDATES/updates.20260730.0815.bz2: expected 1258291, got 1301564 (continuing)
+warning: size differ for http://archive.routeviews.org/route-views6/bgpdata/2026.07/UPDATES/updates.20260730.0830.bz2: expected 1153433, got 1201679 (continuing)
+warning: size differ for http://archive.routeviews.org/route-views6/bgpdata/2026.07/UPDATES/updates.20260730.0845.bz2: expected 1363148, got 1415654 (continuing)
+warning: size differ for http://archive.routeviews.org/route-views6/bgpdata/2026.07/UPDATES/updates.20260730.0900.bz2: expected 1258291, got 1275789 (continuing)
+warning: size differ for http://archive.routeviews.org/route-views6/bgpdata/2026.07/UPDATES/updates.20260730.0915.bz2: expected 1258291, got 1249522 (continuing)
+warning: size differ for http://archive.routeviews.org/route-views6/bgpdata/2026.07/UPDATES/updates.20260730.0930.bz2: expected 1572864, got 1549301 (continuing)
+warning: size differ for http://archive.routeviews.org/route-views6/bgpdata/2026.07/UPDATES/updates.20260730.0945.bz2: expected 1258291, got 1255260 (continuing)
+warning: size differ for http://archive.routeviews.org/route-views6/bgpdata/2026.07/UPDATES/updates.20260730.1000.bz2: expected 1258291, got 1234989 (continuing)
+warning: size differ for http://archive.routeviews.org/route-views6/bgpdata/2026.07/UPDATES/updates.20260730.1015.bz2: expected 1153433, got 1170182 (continuing)
+warning: size differ for http://archive.routeviews.org/route-views6/bgpdata/2026.07/UPDATES/updates.20260730.1030.bz2: expected 1153433, got 1159681 (continuing)
+warning: size differ for http://archive.routeviews.org/route-views6/bgpdata/2026.07/UPDATES/updates.20260730.1045.bz2: expected 1782579, got 1749375 (continuing)
+  route-views2: querying UPDATE files...
+  route-views2: 14 UPDATE files selected
+warning: size differ for http://archive.routeviews.org/bgpdata/2026.07/UPDATES/updates.20260730.0730.bz2: expected 1468006, got 1443544 (continuing)
+warning: size differ for http://archive.routeviews.org/bgpdata/2026.07/UPDATES/updates.20260730.0745.bz2: expected 1048576, got 1053820 (continuing)
+warning: size differ for http://archive.routeviews.org/bgpdata/2026.07/UPDATES/updates.20260730.0800.bz2: expected 1468006, got 1508158 (continuing)
+warning: size differ for http://archive.routeviews.org/bgpdata/2026.07/UPDATES/updates.20260730.0815.bz2: expected 1048576, got 1072412 (continuing)
+warning: size differ for http://archive.routeviews.org/bgpdata/2026.07/UPDATES/updates.20260730.0830.bz2: expected 945152, got 945014 (continuing)
+warning: size differ for http://archive.routeviews.org/bgpdata/2026.07/UPDATES/updates.20260730.0845.bz2: expected 1258291, got 1220939 (continuing)
+warning: size differ for http://archive.routeviews.org/bgpdata/2026.07/UPDATES/updates.20260730.0900.bz2: expected 1048576, got 1086063 (continuing)
+warning: size differ for http://archive.routeviews.org/bgpdata/2026.07/UPDATES/updates.20260730.0915.bz2: expected 1153433, got 1177210 (continuing)
+warning: size differ for http://archive.routeviews.org/bgpdata/2026.07/UPDATES/updates.20260730.0930.bz2: expected 1153433, got 1112428 (continuing)
+warning: size differ for http://archive.routeviews.org/bgpdata/2026.07/UPDATES/updates.20260730.0945.bz2: expected 1153433, got 1122997 (continuing)
+warning: size differ for http://archive.routeviews.org/bgpdata/2026.07/UPDATES/updates.20260730.1000.bz2: expected 1363148, got 1388230 (continuing)
+warning: size differ for http://archive.routeviews.org/bgpdata/2026.07/UPDATES/updates.20260730.1015.bz2: expected 1048576, got 1066916 (continuing)
+warning: size differ for http://archive.routeviews.org/bgpdata/2026.07/UPDATES/updates.20260730.1030.bz2: expected 1258291, got 1299404 (continuing)
+warning: size differ for http://archive.routeviews.org/bgpdata/2026.07/UPDATES/updates.20260730.1045.bz2: expected 1048576, got 1063137 (continuing)
+→ Combining 19 RIB + 0 UPDATE observations...
+→ Reconstructing routes...
+→ Tokenizing 0 state changes...
+→ Detecting waves from 0 transitions...
+→ Assessing...
+→ Writing outputs to out/INC0302574
+
+── Stage timings ───────────────────────────
+  broker+cache                        0.7s
+  route-views2 RIB parse            115.0s
+  route-views6 RIB parse             37.1s
+  UPDATE cache+parse                 34.3s
+  reconstruction                      0.0s
+  tokenize                            0.0s
+  waves+motifs                        0.0s
+  assess                              0.0s
+  outputs                             0.0s
+  TOTAL                             192.9s

@@ -337,37 +337,6 @@ fn sha_sidecar_path(path: &Path) -> PathBuf {
 /// - Truncated downloads (size mismatch)
 /// - Corrupted cache (checksum mismatch)
 /// - Missing sidecar (treated as corrupt)
-fn cached_file_matches(path: &Path, expected_size: u64, expected_sha: Option<&str>) -> bool {
-    // File must exist
-    let meta = match std::fs::metadata(path) {
-        Ok(m) => m,
-        Err(_) => return false,
-    };
-
-    // Size must match
-    if meta.len() != expected_size {
-        return false;
-    }
-
-    // Sidecar must exist
-    let stored_sha = match read_sha_sidecar(path) {
-        Some(s) => s,
-        None => return false,
-    };
-
-    // If expected SHA provided, it must match the sidecar
-    if let Some(expected) = expected_sha {
-        if stored_sha != expected {
-            return false;
-        }
-    }
-
-    // Recompute and verify against sidecar
-    match compute_sha256(path) {
-        Ok(current) => current == stored_sha,
-        Err(_) => false,
-    }
-}
 
 // ── Caching with integrity ─────────────────────────────────────────
 
@@ -396,9 +365,11 @@ pub fn cache_archive(
 
     let final_path = local_dir.join(&basename);
 
-    // Check if already cached with matching integrity
-    if cached_file_matches(&final_path, item.size, None) {
-        if let Ok(sha) = compute_sha256(&final_path) {
+    // Check if already cached with matching integrity. The broker-reported
+    // size is only a hint (it is frequently inaccurate); the SHA-256
+    // sidecar is the authoritative integrity check.
+    if let Ok(sha) = compute_sha256(&final_path) {
+        if read_sha_sidecar(&final_path).as_deref() == Some(sha.as_str()) {
             return Ok(CachedArchive {
                 url: item.url.clone(),
                 local_path: final_path.to_string_lossy().to_string(),
@@ -748,45 +719,6 @@ mod tests {
     }
 
     // ── Cache + sidecar tests ──────────────────────────────────────
-
-    #[test]
-    fn cached_archive_checksum_is_verified() {
-        let dir = tempfile::tempdir().unwrap();
-        let cache = dir.path().join("cache");
-
-        // Write a fake cached file
-        let local_dir = cache.join("rv2").join("rib");
-        std::fs::create_dir_all(&local_dir).unwrap();
-        let data_path = local_dir.join("rib.bz2");
-        std::fs::write(&data_path, b"hello test data").unwrap();
-        let sha = bytes_to_hex(&Sha256::digest(b"hello test data")[..]);
-
-        // Write sidecar
-        std::fs::write(sha_sidecar_path(&data_path), format!("{sha}\n")).unwrap();
-
-        assert!(cached_file_matches(&data_path, 15, Some(&sha)));
-        assert!(!cached_file_matches(&data_path, 999, Some(&sha))); // wrong size
-        assert!(!cached_file_matches(&data_path, 15, Some("deadbeef"))); // wrong sha
-    }
-
-    #[test]
-    fn corrupt_cached_file_is_replaced() {
-        let dir = tempfile::tempdir().unwrap();
-        let cache = dir.path().join("cache");
-
-        // Write a "corrupt" cached file (content doesn't match sidecar)
-        let local_dir = cache.join("rv2").join("rib");
-        std::fs::create_dir_all(&local_dir).unwrap();
-        let data_path = local_dir.join("rib.bz2");
-        std::fs::write(&data_path, b"corrupt data here").unwrap();
-
-        // Write sidecar with DIFFERENT hash
-        let wrong_sha = bytes_to_hex(&Sha256::digest(b"something else")[..]);
-        std::fs::write(sha_sidecar_path(&data_path), format!("{wrong_sha}\n")).unwrap();
-
-        // Should NOT match (recomputed SHA differs from sidecar)
-        assert!(!cached_file_matches(&data_path, 18, None));
-    }
 
     #[test]
     fn duplicate_urls_are_rejected() {

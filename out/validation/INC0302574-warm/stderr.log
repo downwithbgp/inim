@@ -1,0 +1,3 @@
+→ Broker discovery: RIB files
+  route-views2: caching RIB http://archive.routeviews.org/bgpdata/2026.07/RIBS/rib.20260730.0800.bz2
+warning: size differ for http://archive.routeviews.org/bgpdata/2026.07/RIBS/rib.20260730.0800.bz2: expected 75497472, got 75241938 (continuing)

@@ -1,0 +1,36 @@
+{
+  "status": "completed",
+  "assessment": {
+    "event_id": "INC0302574",
+    "expectation": {
+      "kind": "Redundant",
+      "description": "Parenthesized site code (NEWA) indicates expected redundancy",
+      "provenance": "Internet2 title convention: parenthesized site code indicates expected redundancy"
+    },
+    "verdict": "NoObservableBgpImpact",
+    "evidence": [
+      {
+        "description": "Total route transitions observed: 0",
+        "source_records": []
+      },
+      {
+        "description": "Withdrawals: 0",
+        "source_records": []
+      },
+      {
+        "description": "Path changes: 0",
+        "source_records": []
+      },
+      {
+        "description": "Restorations to baseline: 0",
+        "source_records": []
+      },
+      {
+        "description": "Stream lifecycle: total=19 unchanged=19 prepend-only=0 withdrawn=0 departed-I2=0 restored=0 not-restored=0 add-path-ambiguous=0",
+        "source_records": []
+      }
+    ],
+    "waves": [],
+    "generated_at": "2026-07-31T20:48:28.339193707Z"
+  }
+}
