@@ -2,7 +2,7 @@
 name = "inim"
 version = "0.1.0"
 edition = "2021"
-authors = ["Vadim Petrov <vadim@downwithbgp.net>"]
+authors = ["Vadim Petrov <vadim@vadimpetrov.com>"]
 license = "MIT"
 description = "Internetwork Impact Monitor — determine how planned or unplanned network events affect the globally visible routing system"
 
