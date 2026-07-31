@@ -57,6 +57,10 @@ enum Commands {
         /// Force rebuild of all derived caches (ignore and overwrite).
         #[arg(long, default_value_t = false)]
         rebuild_derived_cache: bool,
+
+        /// Number of parallel parsing jobs (1=serial, 0=auto, default: 1).
+        #[arg(short = 'j', long, default_value_t = 1)]
+        jobs: usize,
     },
 }
 
@@ -71,12 +75,14 @@ fn main() {
             out,
             no_derived_cache,
             rebuild_derived_cache,
+            jobs,
         } => {
             if let Some(manifest_path) = manifest {
                 let discovery = inim::discover::LiveArchiveDiscovery;
                 let cache_control = inim::orchestrate::CacheControl {
                     no_derived_cache: *no_derived_cache,
                     rebuild_derived_cache: *rebuild_derived_cache,
+                    jobs: *jobs,
                 };
                 let outcome = inim::orchestrate::run_real_analysis(
                     event,
