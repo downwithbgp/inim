@@ -926,6 +926,7 @@ mod tests {
             attributes: RouteAttributes::from_as_path(path),
             timestamp: chrono::Utc.with_ymd_and_hms(2026, 7, 14, 7, 0, 0).unwrap(),
             observer: "test:0.0.0.0".into(),
+            path_id: None,
         }
     }
 
@@ -938,6 +939,7 @@ mod tests {
             attributes: attrs,
             timestamp: chrono::Utc.with_ymd_and_hms(2026, 7, 14, 7, 0, 0).unwrap(),
             observer: "test:0.0.0.0".into(),
+            path_id: None,
         }
     }
 

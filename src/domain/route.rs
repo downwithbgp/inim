@@ -468,6 +468,7 @@ mod tests {
             attributes: RouteAttributes::from_as_path(path),
             timestamp: sample_time(),
             observer: observer.to_string(),
+            path_id: None,
         }
     }
 

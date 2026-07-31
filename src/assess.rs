@@ -358,12 +358,14 @@ mod tests {
             attributes: RouteAttributes::from_as_path(old),
             timestamp: t(at - 1),
             observer: "rv2:185.1.8.65".into(),
+            path_id: None,
         };
         let to = RouteState {
             prefix: Prefix::from("192.0.2.0/24"),
             attributes: RouteAttributes::from_as_path(new),
             timestamp: t(at),
             observer: "rv2:185.1.8.65".into(),
+            path_id: None,
         };
         make_transition(
             Some(from),
@@ -381,12 +383,14 @@ mod tests {
             attributes: RouteAttributes::from_as_path(vec![6447, 237, 1101]),
             timestamp: t(at - 1),
             observer: "rv2:185.1.8.65".into(),
+            path_id: None,
         };
         let to = RouteState {
             prefix: Prefix::from("192.0.2.0/24"),
             attributes: RouteAttributes::from_as_path(vec![6447, 11537, 1101]),
             timestamp: t(at),
             observer: "rv2:185.1.8.65".into(),
+            path_id: None,
         };
         make_transition(Some(from), to, TransitionKind::ReturnToBaseline)
     }
@@ -397,12 +401,14 @@ mod tests {
             attributes: RouteAttributes::from_as_path(vec![6447, 11537, 1101]),
             timestamp: t(at - 1),
             observer: "rv2:185.1.8.65".into(),
+            path_id: None,
         };
         let to = RouteState {
             prefix: Prefix::from("192.0.2.0/24"),
             attributes: RouteAttributes::from_as_path(vec![]),
             timestamp: t(at),
             observer: "rv2:185.1.8.65".into(),
+            path_id: None,
         };
         make_transition(Some(from), to, TransitionKind::Withdrawal)
     }

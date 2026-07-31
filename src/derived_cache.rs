@@ -399,6 +399,7 @@ mod tests {
                 prefix: Prefix::from("193.0.0.0/21"),
                 origin_as: 3333,
                 as_path: vec![6447, 11537, 3333],
+                path_id: None,
             }],
         );
         let h1 = targetset_hash(&t1);
@@ -416,6 +417,7 @@ mod tests {
                 prefix: Prefix::from("193.0.0.0/21"),
                 origin_as: 3333,
                 as_path: vec![6447, 11537, 3333],
+                path_id: None,
             }],
         );
         let mut t2 = TargetSet::default();
@@ -426,6 +428,7 @@ mod tests {
                 prefix: Prefix::from("193.0.0.0/21"),
                 origin_as: 3333,
                 as_path: vec![6447, 11537, 3333],
+                path_id: None,
             }],
         );
         assert_ne!(targetset_hash(&t1), targetset_hash(&t2));
@@ -441,6 +444,7 @@ mod tests {
                 prefix: Prefix::from("193.0.0.0/21"),
                 origin_as: 3333,
                 as_path: vec![6447, 11537, 3333],
+                path_id: None,
             }],
         );
         let mut t2 = TargetSet::default();
@@ -451,6 +455,7 @@ mod tests {
                 prefix: Prefix::from("193.0.0.0/21"),
                 origin_as: 3333,
                 as_path: vec![6447, 11537, 3333],
+                path_id: None,
             }],
         );
         assert_ne!(targetset_hash(&t1), targetset_hash(&t2));

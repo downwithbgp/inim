@@ -328,6 +328,7 @@ mod tests {
             attributes: RouteAttributes::from_as_path(vec![6447, 11537, 1101]),
             timestamp: t(at),
             observer: "rv2:185.1.8.65".into(),
+            path_id: None,
         };
         let key = RouteKey::new("test", "0.0.0.0".parse().unwrap(), &state.prefix);
         let ev = EvidenceRef::synthetic(0, "test", "0000");

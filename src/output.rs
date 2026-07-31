@@ -721,6 +721,7 @@ mod tests {
                 attributes: crate::domain::route::RouteAttributes::from_as_path(vec![]),
                 timestamp: chrono::Utc::now(),
                 observer: "185.1.8.65".to_string(),
+                path_id: None,
             },
             ev.clone(),
         );
