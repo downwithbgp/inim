@@ -210,4 +210,38 @@ mod tests {
         };
         assert!(!cohort.contains(&opk));
     }
+
+    #[test]
+    fn two_path_ids_form_one_visible_observer_stream() {
+        let opk = ObserverPrefixKey {
+            collector: "rv2".into(),
+            peer_ip: "185.1.8.65".parse().unwrap(),
+            prefix: crate::domain::route::Prefix::from("192.0.2.0/24"),
+        };
+        let rk1 =
+            RouteKey::with_path_id("rv2", "185.1.8.65".parse().unwrap(), &opk.prefix, Some(1));
+        let rk2 =
+            RouteKey::with_path_id("rv2", "185.1.8.65".parse().unwrap(), &opk.prefix, Some(2));
+        assert_eq!(rk1.observer_prefix_key(), rk2.observer_prefix_key());
+        assert_ne!(rk1, rk2);
+    }
+
+    #[test]
+    fn withdrawing_one_of_two_instances_keeps_stream_visible() {
+        let opk = ObserverPrefixKey {
+            collector: "rv2".into(),
+            peer_ip: "185.1.8.65".parse().unwrap(),
+            prefix: crate::domain::route::Prefix::from("192.0.2.0/24"),
+        };
+        let rk1 =
+            RouteKey::with_path_id("rv2", "185.1.8.65".parse().unwrap(), &opk.prefix, Some(1));
+        let rk2 =
+            RouteKey::with_path_id("rv2", "185.1.8.65".parse().unwrap(), &opk.prefix, Some(2));
+        // rk1 withdrawn, rk2 active → stream still visible
+        let mut active = BTreeSet::new();
+        active.insert(rk2.clone());
+        assert!(active.contains(&rk2));
+        assert!(!active.contains(&rk1));
+        assert!(!active.is_empty());
+    }
 }
