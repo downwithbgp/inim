@@ -477,6 +477,14 @@ fn run_inner(
         rib = rib_observations.len(),
         upd = update_observations.len()
     );
+    // Freeze the observer-prefix cohort from RIB observations before they
+    // are moved into the combined stream.
+    let transit_predicate = reviewed_transit_predicate(&manifest)?;
+    let cohort = crate::cohort::freeze_cohort(
+        &rib_observations,
+        &manifest.target.origin_asns,
+        &transit_predicate,
+    );
     let mut all_obs = rib_observations;
     all_obs.extend(update_observations);
     all_obs.sort_by(|a, b| {
@@ -535,20 +543,10 @@ fn run_inner(
     let t_assess = Instant::now();
     let expectation_display = format!("{:?}: {}", expectation.kind, expectation.description);
 
-    // Build per-stream lifecycles for ParticipantRelationshipUnavailable events
-    let lifecycles = if expectation.kind
-        == crate::domain::expectation::ExpectationKind::ParticipantRelationshipUnavailable
-    {
-        let transit_predicate = reviewed_transit_predicate(&manifest)?;
-        Some(crate::lifecycle::build_lifecycles(
-            &transitions,
-            &target_set,
-            cooldown_end,
-            &transit_predicate,
-        ))
-    } else {
-        None
-    };
+    // Build per-stream lifecycles for every completed event: classification
+    // is by ObserverPrefixKey with full route-instance history retained.
+    let lifecycles =
+        crate::lifecycle::build_lifecycles(&transitions, &cohort, cooldown_end, &transit_predicate);
 
     let assessment = crate::assess::assess(
         event.id.clone(),
@@ -556,7 +554,7 @@ fn run_inner(
         &transitions,
         waves.clone(),
         any_continuity_unknown,
-        lifecycles.as_deref(),
+        Some(&lifecycles),
     );
     timings.push(("assess".to_string(), t_assess.elapsed().as_secs_f64()));
 

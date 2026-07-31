@@ -151,14 +151,24 @@ fn collect_evidence(
             .count();
         let restored = lcs.iter().filter(|l| l.flags.restored).count();
         let not_restored = lcs.iter().filter(|l| l.flags.not_restored).count();
+        let ambiguous = lcs.iter().filter(|l| l.flags.add_path_ambiguous).count();
 
         evidence.push(Evidence {
             description: format!(
-                "Stream lifecycle: total={} unchanged={} prepend-only={} withdrawn={} departed-I2={} restored={} not-restored={}",
-                lcs.len(), unchanged, prepend, withdrawn, departed, restored, not_restored,
+                "Stream lifecycle: total={} unchanged={} prepend-only={} withdrawn={} departed-I2={} restored={} not-restored={} add-path-ambiguous={}",
+                lcs.len(), unchanged, prepend, withdrawn, departed, restored, not_restored, ambiguous,
             ),
             source_records: vec![],
         });
+
+        if ambiguous > 0 {
+            evidence.push(Evidence {
+                description: format!(
+                    "⚠️  {ambiguous} stream(s) have ambiguous ADD-PATH continuity (mixed keyed/unkeyed records). Strong stream-level assessment is suppressed for those streams."
+                ),
+                source_records: vec![],
+            });
+        }
     }
 
     if any_unknown_continuity {
@@ -228,28 +238,36 @@ fn derive_verdict(
             }
         }
         ExpectationKind::ParticipantRelationshipUnavailable => {
-            // When lifecycle data is available, use set-based rules
+            // When lifecycle data is available, use set-based rules.
+            // Ambiguous streams (mixed keyed/unkeyed ADD-PATH encoding) are
+            // excluded from strong conclusions.
             if let Some(lcs) = lifecycles {
                 let total = lcs.len();
                 if total == 0 {
                     return Verdict::UnexpectedContinuedInternet2Path;
                 }
-                let withdrawn = lcs.iter().filter(|l| l.was_withdrawn).count();
-                let departed = lcs
+                let strong: Vec<_> = lcs.iter().filter(|l| !l.flags.add_path_ambiguous).collect();
+                if strong.is_empty() {
+                    // Every stream is ambiguous — no strong assessment possible.
+                    return Verdict::InsufficientVisibility;
+                }
+                let withdrawn = strong.iter().filter(|l| l.was_withdrawn).count();
+                let departed = strong
                     .iter()
                     .filter(|l| l.category == crate::lifecycle::StreamCategory::DepartedTransitPath)
                     .count();
-                let only_prepend = lcs.iter().all(|l| {
+                let only_prepend = strong.iter().all(|l| {
                     matches!(
                         l.category,
                         crate::lifecycle::StreamCategory::Unchanged
                             | crate::lifecycle::StreamCategory::PrependOnly
                     )
                 });
-                let all_affected = withdrawn + departed == total && (withdrawn > 0 || departed > 0);
+                let all_affected =
+                    withdrawn + departed == strong.len() && (withdrawn > 0 || departed > 0);
                 let some_affected = withdrawn > 0 || departed > 0;
 
-                if only_prepend && !some_affected {
+                let verdict = if only_prepend && !some_affected {
                     // Only prepend/policy changes, no withdrawals or departures
                     Verdict::PolicyChangeObserved
                 } else if departed > 0 && withdrawn == 0 {
@@ -263,6 +281,21 @@ fn derive_verdict(
                     Verdict::PartialImpact
                 } else {
                     Verdict::UnexpectedContinuedInternet2Path
+                };
+
+                // Ambiguous streams cannot support "no impact" claims: if the
+                // only clean evidence shows no impact while ambiguous streams
+                // exist, the assessment is not strong enough for a verdict.
+                let any_ambiguous = lcs.iter().any(|l| l.flags.add_path_ambiguous);
+                if any_ambiguous
+                    && matches!(
+                        verdict,
+                        Verdict::UnexpectedContinuedInternet2Path | Verdict::PolicyChangeObserved
+                    )
+                {
+                    Verdict::InsufficientVisibility
+                } else {
+                    verdict
                 }
             } else {
                 // Legacy fallback without lifecycle data
