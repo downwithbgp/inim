@@ -29,7 +29,8 @@ Observation scope
     Baseline routes:   19 route instances
     Baseline qualification:
         at least one route path traversed AS11537
-    Archive coverage:  Complete for the selected analysis plan (selected collectors, planned interval, verified archives).
+    Archive coverage:  Complete for the selected analysis plan (selected
+                       collectors, planned interval, verified archives).
 
 Important limitation
     This finding is limited to externally exported BGP route state at the
@@ -37,7 +38,8 @@ Important limitation
     or global reachability.
 
 Ticket interpretation
-    Ticket expectation: Redundant: Parenthesized site code (NEWA) indicates expected redundancy
+    Ticket expectation: Redundant: Parenthesized site code (NEWA) indicates
+                        expected redundancy
     Ticket lifecycle:   Closed
     Target predicate:   origin AS3333 AND baseline AS path contains AS11537
     TransitPredicate:   ContainsAny { 11537 }
@@ -60,7 +62,8 @@ Lifecycle counts (observer-prefix streams)
     Material change, still via reviewed transit: 0
     Streams departing the reviewed transit: 0
     Observer-prefix streams that became absent: 0
-    Streams restored after absence: Not applicable (no stream became absent or departed)
+    Streams restored after absence: Not applicable (no stream became absent
+                                    or departed)
     Unresolved streams:            0
     ADD-PATH ambiguous streams:    0
 
@@ -82,7 +85,8 @@ Method and limitations
     Physical-link state is not observed.
     Absent optional communities prove nothing about mechanism non-use.
     Temporal association is not automatic causation.
-    • 2 of 2 requested collectors retained after RIB preflight (route-views2, route-views6)
+    • 2 of 2 requested collectors retained after RIB preflight
+    (route-views2, route-views6)
 
 Evidence artifact references
     Full evidence with schema versions is written to this directory:

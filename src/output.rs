@@ -434,12 +434,11 @@ pub fn render_report_txt(ctx: &OutputContext) -> String {
         push_ln(&mut buf, "    Baseline qualification:");
         push_ln(&mut buf, &format!("        {}", pred.human_description()));
     }
-    push_ln(
+    push_labeled(
         &mut buf,
-        &format!(
-            "    Archive coverage:  {}",
-            render_archive_coverage(ctx.requested_collectors, ctx.collectors, ctx.limitations)
-        ),
+        "    Archive coverage:  ",
+        &render_archive_coverage(ctx.requested_collectors, ctx.collectors, ctx.limitations),
+        76,
     );
     push_ln(&mut buf, "");
 
@@ -458,9 +457,11 @@ pub fn render_report_txt(ctx: &OutputContext) -> String {
 
     // ── Ticket interpretation ─────────────────────────────────────
     push_ln(&mut buf, "Ticket interpretation");
-    push_ln(
+    push_labeled(
         &mut buf,
-        &format!("    Ticket expectation: {}", ctx.declared_expectation),
+        "    Ticket expectation: ",
+        ctx.declared_expectation,
+        76,
     );
     push_ln(
         &mut buf,
@@ -554,9 +555,11 @@ pub fn render_report_txt(ctx: &OutputContext) -> String {
             &format!("    Streams restored after absence: {restored}"),
         );
     } else {
-        push_ln(
+        push_labeled(
             &mut buf,
-            "    Streams restored after absence: Not applicable (no stream became absent or departed)",
+            "    Streams restored after absence: ",
+            "Not applicable (no stream became absent or departed)",
+            76,
         );
     }
     push_ln(
@@ -573,19 +576,17 @@ pub fn render_report_txt(ctx: &OutputContext) -> String {
     if !ctx.semantic_waves.is_empty() {
         push_ln(&mut buf, "Semantic waves");
         for w in ctx.semantic_waves {
-            push_ln(
-                &mut buf,
-                &format!(
-                    "    {}: {} — {} ({} – {}, {} observer-prefix streams, {} route instances)",
-                    w.id,
-                    w.label.as_str(),
-                    wave_label_human(&w.label),
-                    w.start.format("%H:%M:%S"),
-                    w.end.format("%H:%M:%S"),
-                    w.stream_count,
-                    w.route_instance_count,
-                ),
+            let wave_line = format!(
+                "{}: {} — {} ({} – {}, {} observer-prefix streams, {} route instances)",
+                w.id,
+                w.label.as_str(),
+                wave_label_human(&w.label),
+                w.start.format("%H:%M:%S"),
+                w.end.format("%H:%M:%S"),
+                w.stream_count,
+                w.route_instance_count,
             );
+            push_labeled(&mut buf, "    ", &wave_line, 76);
         }
         push_ln(&mut buf, "");
     }
@@ -672,7 +673,9 @@ pub fn render_report_txt(ctx: &OutputContext) -> String {
         "    Temporal association is not automatic causation.",
     );
     for lim in ctx.limitations {
-        push_ln(&mut buf, &format!("    • {lim}"));
+        for l in wrap_text(&format!("• {lim}"), 72, 4) {
+            push_ln(&mut buf, &l);
+        }
     }
     push_ln(&mut buf, "");
 
@@ -724,6 +727,24 @@ pub fn wave_label_human(label: &crate::lifecycle::WaveLabel) -> &'static str {
         WaveLabel::TransitReturn => "observer streams returning to the reviewed transit",
         WaveLabel::BaselinePolicyRestoration => "return to baseline route policy",
         WaveLabel::MixedRouteChange => "mixed route-state changes",
+    }
+}
+
+/// Print a label followed by wrapped text, aligning continuations.
+fn push_labeled(buf: &mut String, label: &str, text: &str, width: usize) {
+    let indent = label.len();
+    let mut first = true;
+    for l in wrap_text(text, width.saturating_sub(indent), 0) {
+        if first {
+            buf.push_str(label);
+            buf.push_str(&l);
+            buf.push('\n');
+            first = false;
+        } else {
+            buf.push_str(&" ".repeat(indent));
+            buf.push_str(&l);
+            buf.push('\n');
+        }
     }
 }
 
