@@ -116,6 +116,9 @@ pub struct RouteObservation {
     pub kind: ObservationKind,
     /// Route attributes (None for withdrawals and session boundaries).
     pub attributes: Option<ObservationAttributes>,
+    /// ADD-PATH path identifier. None for ordinary records.
+    #[serde(default)]
+    pub path_id: Option<u32>,
     /// Provenance for audit trail.
     pub provenance: ObservationProvenance,
 }
@@ -148,6 +151,9 @@ pub struct EvidenceRef {
     pub prefix: super::route::Prefix,
     pub timestamp: chrono::DateTime<chrono::Utc>,
     pub element_seq: u64,
+    /// ADD-PATH path identifier. None for ordinary records.
+    #[serde(default)]
+    pub path_id: Option<u32>,
 }
 
 impl EvidenceRef {
@@ -160,6 +166,7 @@ impl EvidenceRef {
             obs.peer_asn,
             &obs.prefix,
             obs.timestamp,
+            obs.path_id,
         )
     }
 
@@ -176,6 +183,7 @@ impl EvidenceRef {
             prefix: super::route::Prefix::from("0.0.0.0/0"),
             timestamp: chrono::Utc.with_ymd_and_hms(2026, 7, 30, 9, 0, 0).unwrap(),
             element_seq: 0,
+            path_id: None,
         }
     }
 }
@@ -220,6 +228,7 @@ impl ObservationProvenance {
     }
 
     /// Build an EvidenceRef from this provenance and a RouteObservation.
+    #[allow(clippy::too_many_arguments)]
     pub fn to_evidence_ref(
         &self,
         obs_id: ObservationId,
@@ -228,6 +237,7 @@ impl ObservationProvenance {
         peer_asn: Asn,
         prefix: &super::route::Prefix,
         timestamp: chrono::DateTime<chrono::Utc>,
+        path_id: Option<u32>,
     ) -> EvidenceRef {
         EvidenceRef {
             observation_id: obs_id,
@@ -239,6 +249,7 @@ impl ObservationProvenance {
             prefix: prefix.clone(),
             timestamp,
             element_seq: self.element_seq,
+            path_id,
         }
     }
 }
@@ -262,6 +273,7 @@ mod tests {
             peer_asn: Asn(6447),
             prefix: Prefix::from("192.0.2.0/24"),
             kind,
+            path_id: None,
             attributes: Some(ObservationAttributes {
                 as_path: vec![6447, 11537, 1101],
                 origin_asns: vec![Asn(1101)],

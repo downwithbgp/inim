@@ -501,6 +501,7 @@ mod tests {
                 atomic_aggregate: false,
                 communities: Communities::new(),
             }),
+            path_id: None,
             provenance: ObservationProvenance {
                 source_url: Some("http://example.com/updates.bz2".into()),
                 archive_sha256: Some("test_sha".into()),

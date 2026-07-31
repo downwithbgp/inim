@@ -39,6 +39,7 @@ pub fn make_synthetic_rib(
             atomic_aggregate: false,
             communities: Communities::new(),
         }),
+        path_id: None,
         provenance: ObservationProvenance::synthetic(IngestRole::Rib, id),
     }
 }
@@ -72,6 +73,7 @@ pub fn make_synthetic_announcement(
             atomic_aggregate: false,
             communities: Communities::new(),
         }),
+        path_id: None,
         provenance: ObservationProvenance::synthetic(IngestRole::Updates, id),
     }
 }
@@ -95,6 +97,7 @@ pub fn make_synthetic_withdrawal(
         prefix: Prefix::from(prefix),
         kind: ObservationKind::Withdrawal,
         attributes: None,
+        path_id: None,
         provenance: ObservationProvenance::synthetic(IngestRole::Updates, id),
     }
 }

@@ -256,6 +256,7 @@ pub fn bgp_elem_to_observation(
         prefix,
         kind,
         attributes,
+        path_id: elem.prefix.path_id,
         provenance,
     })
 }

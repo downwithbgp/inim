@@ -261,6 +261,7 @@ mod tests {
                 atomic_aggregate: false,
                 communities: Communities::new(),
             }),
+            path_id: None,
             provenance: ObservationProvenance::synthetic(IngestRole::Rib, 0),
         }
     }
@@ -292,6 +293,7 @@ mod tests {
                 atomic_aggregate: false,
                 communities: Communities::new(),
             }),
+            path_id: None,
             provenance: ObservationProvenance::synthetic(IngestRole::Updates, seq),
         }
     }
@@ -313,6 +315,7 @@ mod tests {
             prefix: Prefix::from(prefix),
             kind: ObservationKind::Withdrawal,
             attributes: None,
+            path_id: None,
             provenance: ObservationProvenance::synthetic(IngestRole::Updates, seq),
         }
     }
@@ -442,6 +445,7 @@ mod tests {
             prefix: Prefix::from("0.0.0.0/0"),
             kind: ObservationKind::SessionBoundary,
             attributes: None,
+            path_id: None,
             provenance: ObservationProvenance::synthetic(IngestRole::Updates, 0),
         };
         store.apply_update(&sb, AnalysisPhase::Event);

@@ -242,6 +242,7 @@ mod tests {
                 atomic_aggregate: false,
                 communities: Communities::new(),
             }),
+            path_id: None,
             provenance: ObservationProvenance {
                 source_url: None,
                 archive_sha256: None,
@@ -286,6 +287,7 @@ mod tests {
                 atomic_aggregate: false,
                 communities: Communities::new(),
             }),
+            path_id: None,
             provenance: ObservationProvenance {
                 source_url: None,
                 archive_sha256: None,
