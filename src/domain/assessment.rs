@@ -26,9 +26,9 @@ pub enum Verdict {
     /// departure from the required transit path.
     PolicyChangeObserved,
     /// Impact observed for an open event (restoration pending).
-    OpenEventImpactObserved,
+    ProvisionalImpactObserved,
     /// No impact observed so far for an open event.
-    OpenEventNoImpactSoFar,
+    ProvisionalNoImpactSoFar,
     /// Unexpected withdrawals occurred contrary to declared redundancy.
     UnexpectedWithdrawals,
     /// Redundancy failed — reachability was lost when it should have been preserved.
@@ -59,8 +59,8 @@ impl std::fmt::Display for Verdict {
                 write!(f, "UNEXPECTED CONTINUED INTERNET2 PATH")
             }
             Verdict::PolicyChangeObserved => write!(f, "POLICY CHANGE OBSERVED"),
-            Verdict::OpenEventImpactObserved => write!(f, "OPEN EVENT — IMPACT OBSERVED"),
-            Verdict::OpenEventNoImpactSoFar => write!(f, "OPEN EVENT — NO IMPACT SO FAR"),
+            Verdict::ProvisionalImpactObserved => write!(f, "PROVISIONAL IMPACT OBSERVED"),
+            Verdict::ProvisionalNoImpactSoFar => write!(f, "PROVISIONAL NO IMPACT SO FAR"),
             Verdict::UnexpectedWithdrawals => write!(f, "UNEXPECTED WITHDRAWALS"),
             Verdict::RedundancyFailureObserved => write!(f, "REDUNDANCY FAILURE"),
             Verdict::UnexpectedBlastRadius => write!(f, "UNEXPECTED BLAST RADIUS"),

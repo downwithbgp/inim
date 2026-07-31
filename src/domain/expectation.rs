@@ -21,10 +21,18 @@ pub enum ExpectationKind {
     ParticipantRelationshipUnavailable,
     /// Peer relationship may be unavailable (non-parenthesized peer title, no attachment qualifier).
     PeerRelationshipUnavailable,
-    /// Open-ended event with no published end time (restoration pending).
-    OpenEvent,
     /// Unable to determine expectation from available information.
     Unknown,
+}
+
+/// The lifecycle state of a ticket — independent of routing expectation.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub enum TicketLifecycle {
+    /// Ticket is closed (has a published end time).
+    #[default]
+    Closed,
+    /// Ticket is open (no published end time, restoration pending).
+    Open,
 }
 
 /// A parsed operational expectation with provenance.
@@ -70,12 +78,11 @@ impl ImpactExpectation {
         }
     }
 
-    /// Create an expectation for an open-ended event (no published end time).
-    pub fn open_event(provenance: &str) -> Self {
+    /// Create an expectation for an event with unknown impact.
+    pub fn unknown(provenance: &str) -> Self {
         ImpactExpectation {
-            kind: ExpectationKind::OpenEvent,
-            description: "Open-ended event with no published end time — restoration pending, no final restoration-success/failure verdict possible."
-                .to_string(),
+            kind: ExpectationKind::Unknown,
+            description: "Unable to determine expectation".to_string(),
             provenance: provenance.to_string(),
         }
     }
@@ -86,15 +93,6 @@ impl ImpactExpectation {
             kind: ExpectationKind::PeerRelationshipUnavailable,
             description: "Non-parenthesized peer title — GRNOC peer relationship may be unavailable. No attachment qualifier indicates expected peer unavailability."
                 .to_string(),
-            provenance: provenance.to_string(),
-        }
-    }
-
-    /// Create an expectation for an event with unknown impact.
-    pub fn unknown(provenance: &str) -> Self {
-        ImpactExpectation {
-            kind: ExpectationKind::Unknown,
-            description: "Unable to determine expectation".to_string(),
             provenance: provenance.to_string(),
         }
     }
