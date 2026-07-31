@@ -153,7 +153,7 @@ fn redundant_maintenance_vertical_slice() {
     let has_path_change_evidence = assessment
         .evidence
         .iter()
-        .any(|e| e.description.contains("Path changes"));
+        .any(|e| e.description.contains("Path-replacement transitions"));
     assert!(
         has_path_change_evidence,
         "Evidence must mention path changes"

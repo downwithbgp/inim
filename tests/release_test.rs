@@ -131,3 +131,37 @@ fn package_section(toml: &str) -> String {
     let end = rest.find("\n[").unwrap_or(rest.len());
     rest[..end].to_string()
 }
+
+#[test]
+fn readme_case_study_counts_match_current_artifacts() {
+    // Skip when the analysis outputs are absent (e.g. packaged-crate
+    // verification, which excludes out/).
+    let ripe = manifest_dir().join("out/INC0302574/report.json");
+    let uva = manifest_dir().join("out/INC0299001/report.json");
+    if !ripe.is_file() || !uva.is_file() {
+        return;
+    }
+    let readme = read("README.md");
+    let ripe_report: serde_json::Value =
+        serde_json::from_str(&std::fs::read_to_string(&ripe).unwrap()).unwrap();
+    let uva_report: serde_json::Value =
+        serde_json::from_str(&std::fs::read_to_string(&uva).unwrap()).unwrap();
+    let ripe_streams = ripe_report["observed_event_signature"]["observer_scope"]
+        ["baseline_observer_prefix_streams"]
+        .as_u64()
+        .unwrap();
+    let uva_streams = uva_report["observed_event_signature"]["observer_scope"]
+        ["baseline_observer_prefix_streams"]
+        .as_u64()
+        .unwrap();
+    let uva_withdrawn = uva_report["observed_event_signature"]["stream_lifecycle"]
+        ["withdrawn_streams"]
+        .as_u64()
+        .unwrap();
+    let uva_transitions = uva_report["transitions"]["total"].as_u64().unwrap();
+    // README case-study counts must match the current artifacts.
+    assert!(readme.contains(&format!("{ripe_streams} selected observer-prefix streams")));
+    assert!(readme.contains(&format!("{uva_streams} selected observer-prefix streams")));
+    assert!(readme.contains(&format!("{uva_withdrawn} temporarily absent")));
+    assert!(readme.contains(&format!("{uva_transitions} route-instance transitions")));
+}

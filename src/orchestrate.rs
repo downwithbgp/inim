@@ -365,10 +365,10 @@ fn run_inner(
         ));
     }
     limitations.push(format!(
-        "{} of {} requested collectors retained after RIB preflight ({:?})",
+        "{} of {} requested collectors retained after RIB preflight ({})",
         retained_collectors.len(),
         manifest.collectors.len(),
-        retained_collectors,
+        retained_collectors.join(", "),
     ));
 
     let frozen_prefixes = target_set.frozen_prefixes();

@@ -1,7 +1,15 @@
 # inim — Internetwork Impact Monitor
 
-inim compares operator-declared network events with externally observable
-BGP route behavior from selected public collectors (RouteViews).
+inim is a reproducible, event-conditioned BGP observation system. It tests
+operator-declared expectations against route behavior visible at selected
+public collectors (RouteViews).
+
+The central analytical unit is an **observer-prefix stream lifecycle
+conditioned on a reviewed event manifest**: one event, one reviewed
+observation plan, one frozen observer cohort, one reconstructed lifecycle
+per observer-prefix stream, one evidence-scoped assessment. Implementation
+complexity exists to preserve correctness, provenance, and
+reproducibility.
 
 It does not establish:
 
@@ -10,6 +18,39 @@ It does not establish:
 - circuit state
 - operator command usage
 - causation from temporal association alone
+
+## What inim produces
+
+inim compares an operator-declared event expectation with externally
+observable BGP route behavior at selected public collectors. Each
+completed report answers: what the ticket implied, what the selected
+observers showed, how the two compare, what the observation scope was,
+and what the result does not prove.
+
+### Case study: RIPE via NYIIX (INC0302574)
+
+- redundant-attachment expectation
+- 19 selected observer-prefix streams
+- no route-state change observed
+- consistent with expectation
+- observer-scoped limitation: the negative finding does not prove
+  physical redundancy
+
+### Case study: UVA via Internet2 (INC0299001)
+
+- participant-unavailability expectation
+- 48 selected observer-prefix streams
+- 13 temporarily absent and later returned
+- heterogeneous changes among the remainder (22 prepend-only, 11
+  material changes retaining the reviewed transit, 2 departing it)
+- **Partial routing impact observed** (PartialImpact)
+- the report distinguishes 214 route-instance transitions from the
+  13 observer-prefix streams that became absent — a demonstration of
+  ADD-PATH-aware stream analysis
+
+A peer event without a reviewed network-path predicate (e.g. INC0301970)
+is blocked before archive discovery rather than assigned a speculative
+impact verdict.
 
 ## Status
 
@@ -73,24 +114,6 @@ insufficient-visibility, or incomplete results.
    mechanism hints + limitations), evidence appendix, archive manifest,
    lifecycle.json, semantic_waves.json, withdrawal_audit.json,
    limitations.json; optional comparison artifacts.
-
-## Worked demonstrations
-
-Two completed case studies are analyzed in this repository:
-
-- **INC0302574** (RIPE via NYIIX, redundant-attachment expectation) —
-  **No observable BGP impact**: no route-state changes were observed among
-  the 19 selected RouteViews observer-prefix streams (19 baseline route
-  instances), consistent with the redundant-attachment expectation.
-- **INC0299001** (UVA via Internet2, participant-relationship expectation)
-  — **Partial impact**: among 48 selected observer-prefix streams,
-  22 prepend-only, 11 material changes still via transit, 2 departed the
-  reviewed transit predicate, 13 withdrew from the selected streams
-  (13 restored), 2 semantic waves; 214 route transitions.
-
-Both are observer-scoped conclusions about selected public collectors —
-see `out/` (current-schema artifacts) and the archived earlier analyses
-under `out/archive/`.
 
 See `docs/` for the full design, domain model, decisions, data provenance,
 and observability contracts.

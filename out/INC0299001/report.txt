@@ -1,66 +1,98 @@
 ══════════════════════════════════════════
-  INTERNET IMPACT ANALYSIS
+  EXTERNAL BGP EVENT ANALYSIS
 ══════════════════════════════════════════
 
-Event:        INC0299001
-Title:        Availability - I2 Participant UVA
-Report schema: v1
+INC0299001
+Availability - I2 Participant UVA
 
-── Observed event signature ────────────────
-  Ticket expectation:      ParticipantRelationshipUnavailable: Non-parenthesized participant title — managed-network participant relationship may be unavailable. Impact may include path departure from the reviewed transit predicate, alternate routing, or partial restorations.
-  Ticket lifecycle:        Closed
-  Transit predicate:       ContainsAny[11537]
-  Analysis window (UTC):   2026-07-14 06:35:00 UTC – 2026-07-14 07:56:00 UTC
-  Warmup:                  2026-07-14 05:35:00 UTC – 2026-07-14 06:35:00 UTC
-  Cooldown:                2026-07-14 07:56:00 UTC – 2026-07-14 08:56:00 UTC
-  Observer scope:          1 collectors (route-views2)
+Report schema: v2 (JSON schema v2)
 
-  ── Observer scope (streams and instances) ──
-    Baseline observer-prefix streams: 48
-    Baseline route instances:          48
-    Multiple-instance streams:          0
+Result
+    Partial routing impact observed
 
-  ── Stream lifecycle ─────────────────────
-    Unchanged streams:                  0
-    Prepend-only streams:               22
-    Material path changes (transitions):29
-    Streams retaining transit:          33
-    Streams departing transit:          2
-    Withdrawn streams:                  13
-    Restored streams:                   13
-    Unresolved streams:                 0
-    ADD-PATH ambiguous streams:         0
+    The event produced partial and heterogeneous external routing impact. 13
+    of 48 selected observer-prefix streams became absent and later returned.
+    Among the remaining 35 streams, 22 showed prepend-only changes, 11 had
+    other material path changes while retaining the reviewed transit, and 2
+    remained visible after departing that transit.
 
-  ── Semantic waves ────────────────────────
-    wave-1 PrependReduction  07:24:47 – 07:25:49 (48 streams, 48 route instances, peak 07:24:47 – 07:25:21)
-    wave-2 PrependReduction  07:33:59 – 07:37:07 (48 streams, 48 route instances, peak 07:33:59 – 07:34:35)
+Assessment against ticket expectation
+    Partially consistent with the participant-relationship-unavailable
+    expectation.
 
-  ── Final impact assessment ───────────────
-    Verdict: PARTIAL IMPACT
+Observation scope
+    Event window:      2026-07-14 06:35:00 UTC – 2026-07-14 07:56:00 UTC
+    Warmup:            2026-07-14 05:35:00 UTC – 2026-07-14 06:35:00 UTC
+    Cooldown:          2026-07-14 07:56:00 UTC – 2026-07-14 08:56:00 UTC
+    Collectors:        route-views2
+    Selected streams:  48 observer-prefix streams
+    Baseline routes:   48 route instances
+    Baseline qualification:
+        at least one route path traversed AS11537
+    Archive coverage:  Complete for the selected analysis plan at route-views2; route-views6 had no qualifying baseline target streams after RIB preflight.
+
+Important limitation
+    This finding is limited to externally exported BGP route state at the
+    selected public collectors. It does not measure traffic, circuit state,
+    or global reachability.
+
+Ticket interpretation
+    Ticket expectation: ParticipantRelationshipUnavailable: Non-parenthesized participant title — managed-network participant relationship may be unavailable. Impact may include path departure from the reviewed transit predicate, alternate routing, or partial restorations.
+    Ticket lifecycle:   Closed
+    Target predicate:   origin AS225 AND baseline AS path contains AS11537
+    TransitPredicate:   ContainsAny { 11537 }
+
+Evidence details
+    Route-instance transitions: 214
+      event-window: 214  cooldown: 0
+    Route-instance withdrawal transitions: 14
+    Material path changes (transitions): 29
+    Baseline route instances: 48
     - Total route transitions observed: 214
-    - Withdrawals: 14
-    - Path changes: 104
-    - Restorations to baseline: 35
-    - Stream lifecycle: total=48 unchanged=0 prepend-only=22 withdrawn=13 departed-I2=2 restored=13 not-restored=0 add-path-ambiguous=0
+    - Withdrawal transitions: 14
+    - Path-replacement transitions: 104
+    - Restorations to baseline (transitions): 35
 
-── Observable mechanism hints ──────────────
-  No RFC 8326 GRACEFUL_SHUTDOWN community reached the selected observers.
-  Its absence does not establish that graceful shutdown was not used.
-  Community-only changes (no path change): 101 transition(s).
-  RFC 9003: administrative-shutdown message not observable from these remote collector sessions.
-  RFC 8327: operational intent not directly observable.
-  Graceful Restart: negotiated session capability/state not directly observable from this dataset.
-  Mechanism hints do not change the impact assessment by themselves.
+Lifecycle counts (observer-prefix streams)
+    Total selected streams:      48
+    Unchanged streams:            0
+    Prepend-only streams:         22
+    Material change, still via reviewed transit: 11
+    Streams departing the reviewed transit: 2
+    Observer-prefix streams that became absent: 13
+    Streams restored after absence: 13
+    Unresolved streams:            0
+    ADD-PATH ambiguous streams:    0
 
-── Limitations ─────────────────────────────
-  • Selected collectors do not provide global visibility.
-  • BGP route state is not traffic measurement.
-  • Local session state is not observed.
-  • Physical-link state is not observed.
-  • Absent communities do not prove a mechanism was unused.
-  • Event declarations and BGP changes establish temporal association, not automatic causation.
-  • 1 of 2 requested collectors retained after RIB preflight (["route-views2"])
+Semantic waves
+    wave-1: PrependReduction — widespread reduction in origin-AS prepending (07:24:47 – 07:25:49, 48 observer-prefix streams, 48 route instances)
+    wave-2: PrependReduction — widespread reduction in origin-AS prepending (07:33:59 – 07:37:07, 48 observer-prefix streams, 48 route instances)
 
-This analysis uses control-plane observations from selected RouteViews
-collectors only. Conclusions are observer-scoped and do not claim
-global reachability or physical-layer attribution.
+Observable mechanism hints
+    No RFC 8326 GRACEFUL_SHUTDOWN community reached the selected observers.
+    Its absence does not establish that graceful shutdown was not used.
+    Community-only changes: 101 transition(s)
+
+    Not directly observable here:
+      RFC 9003 administrative-shutdown message
+      RFC 8327 operational intent
+      Graceful Restart negotiation state
+    Mechanism hints do not change the impact assessment by themselves.
+
+Method and limitations
+    Selected collectors do not provide global visibility.
+    BGP route state is not traffic measurement.
+    Local BGP session state is not directly observed.
+    Physical-link state is not observed.
+    Absent optional communities prove nothing about mechanism non-use.
+    Temporal association is not automatic causation.
+    • 1 of 2 requested collectors retained after RIB preflight (route-views2)
+
+Evidence artifact references
+    Full evidence with schema versions is written to this directory:
+      report.json        assessment, signature, mechanism hints, limitations
+      evidence_appendix.jsonl   per-transition evidence
+      archive_manifest.json     source archives with SHA-256
+      lifecycle.json           per-stream lifecycles
+      semantic_waves.json      wave boundaries and facets
+      withdrawal_audit.json    withdrawn-stream audit

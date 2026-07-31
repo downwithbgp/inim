@@ -14,23 +14,23 @@
         "source_records": []
       },
       {
-        "description": "Withdrawals: 0",
+        "description": "Withdrawal transitions: 0",
         "source_records": []
       },
       {
-        "description": "Path changes: 0",
+        "description": "Path-replacement transitions: 0",
         "source_records": []
       },
       {
-        "description": "Restorations to baseline: 0",
+        "description": "Restorations to baseline (transitions): 0",
         "source_records": []
       },
       {
-        "description": "Stream lifecycle: total=19 unchanged=19 prepend-only=0 withdrawn=0 departed-I2=0 restored=0 not-restored=0 add-path-ambiguous=0",
+        "description": "Stream lifecycle: total=19 unchanged=19 prepend-only=0 withdrawn=0 departed-transit=0 restored=0 not-restored=0 add-path-ambiguous=0",
         "source_records": []
       }
     ],
     "waves": [],
-    "generated_at": "2026-07-31T21:12:21.589622121Z"
+    "generated_at": "2026-07-31T23:07:58.540158755Z"
   }
 }

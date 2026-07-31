@@ -1,6 +1,16 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "event_id": "INC0302574",
+  "result": {
+    "finding": "Across 19 selected observer-prefix streams at route-views2, route-views6, inim observed no announcements, withdrawals, path changes, or community changes during the event analysis window.",
+    "verdict": "NoObservableBgpImpact",
+    "verdict_label": "No route-state change observed"
+  },
+  "assessment": {
+    "provisional": false,
+    "statement": "Consistent with the redundant-attachment expectation.",
+    "verdict": "NoObservableBgpImpact"
+  },
   "observed_event_signature": {
     "analysis_window_utc": "2026-07-30 09:25:00 UTC – 2026-07-30 09:47:00 UTC",
     "final_impact_assessment": {
@@ -12,19 +22,19 @@
             "source_records": []
           },
           {
-            "description": "Withdrawals: 0",
+            "description": "Withdrawal transitions: 0",
             "source_records": []
           },
           {
-            "description": "Path changes: 0",
+            "description": "Path-replacement transitions: 0",
             "source_records": []
           },
           {
-            "description": "Restorations to baseline: 0",
+            "description": "Restorations to baseline (transitions): 0",
             "source_records": []
           },
           {
-            "description": "Stream lifecycle: total=19 unchanged=19 prepend-only=0 withdrawn=0 departed-I2=0 restored=0 not-restored=0 add-path-ambiguous=0",
+            "description": "Stream lifecycle: total=19 unchanged=19 prepend-only=0 withdrawn=0 departed-transit=0 restored=0 not-restored=0 add-path-ambiguous=0",
             "source_records": []
           }
         ],
@@ -33,19 +43,22 @@
           "kind": "Redundant",
           "provenance": "Internet2 title convention: parenthesized site code indicates expected redundancy"
         },
-        "generated_at": "2026-07-31T21:12:21.589622121Z",
+        "generated_at": "2026-07-31T23:07:58.540158755Z",
         "verdict": "NoObservableBgpImpact",
         "waves": []
       },
       "status": "completed"
     },
     "observer_scope": {
+      "archive_coverage": "Complete for the selected analysis plan (selected collectors, planned interval, verified archives).",
       "baseline_observer_prefix_streams": 19,
+      "baseline_qualification": "at least one route path traversed AS11537",
       "baseline_route_instances": 19,
       "collectors": [
         "route-views2",
         "route-views6"
       ],
+      "exact_transit_predicate": "ContainsAny { 11537 }",
       "multiple_instance_streams": 0
     },
     "semantic_waves": [],
@@ -77,7 +90,7 @@
     "rfc9003": "administrative-shutdown message not observable from these remote collector sessions"
   },
   "limitations": [
-    "2 of 2 requested collectors retained after RIB preflight ([\"route-views2\", \"route-views6\"])"
+    "2 of 2 requested collectors retained after RIB preflight (route-views2, route-views6)"
   ],
   "outcome": {
     "assessment": {
@@ -88,19 +101,19 @@
           "source_records": []
         },
         {
-          "description": "Withdrawals: 0",
+          "description": "Withdrawal transitions: 0",
           "source_records": []
         },
         {
-          "description": "Path changes: 0",
+          "description": "Path-replacement transitions: 0",
           "source_records": []
         },
         {
-          "description": "Restorations to baseline: 0",
+          "description": "Restorations to baseline (transitions): 0",
           "source_records": []
         },
         {
-          "description": "Stream lifecycle: total=19 unchanged=19 prepend-only=0 withdrawn=0 departed-I2=0 restored=0 not-restored=0 add-path-ambiguous=0",
+          "description": "Stream lifecycle: total=19 unchanged=19 prepend-only=0 withdrawn=0 departed-transit=0 restored=0 not-restored=0 add-path-ambiguous=0",
           "source_records": []
         }
       ],
@@ -109,7 +122,7 @@
         "kind": "Redundant",
         "provenance": "Internet2 title convention: parenthesized site code indicates expected redundancy"
       },
-      "generated_at": "2026-07-31T21:12:21.589622121Z",
+      "generated_at": "2026-07-31T23:07:58.540158755Z",
       "verdict": "NoObservableBgpImpact",
       "waves": []
     },

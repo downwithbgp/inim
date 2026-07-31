@@ -3,6 +3,9 @@
   "a": {
     "event_id": "INC0302574",
     "expectation_kind": "Redundant",
+    "expectation_human": "Redundant attachment",
+    "observed_signature": "No route-state change observed",
+    "assessment": "Consistent with the redundant-attachment expectation.",
     "expectation_provenance": "Internet2 title convention: parenthesized site code indicates expected redundancy",
     "ticket_lifecycle": "Closed",
     "transit_predicate": "ContainsAny[11537]",
@@ -21,14 +24,18 @@
     "restorations": 0,
     "gshut_streams": 0,
     "semantic_waves": [],
+    "coverage": "Complete for the selected analysis plan (selected collectors, planned interval, verified archives).",
     "verdict": "NoObservableBgpImpact",
     "limitations": [
-      "2 of 2 requested collectors retained after RIB preflight ([\"route-views2\", \"route-views6\"])"
+      "2 of 2 requested collectors retained after RIB preflight (route-views2, route-views6)"
     ]
   },
   "b": {
     "event_id": "INC0299001",
     "expectation_kind": "ParticipantRelationshipUnavailable",
+    "expectation_human": "Relationship unavailable",
+    "observed_signature": "Partial routing impact observed",
+    "assessment": "Partially consistent with the participant-relationship-unavailable expectation.",
     "expectation_provenance": "Internet2 title convention: parenthesized site code indicates expected redundancy",
     "ticket_lifecycle": "Closed",
     "transit_predicate": "ContainsAny[11537]",
@@ -55,9 +62,16 @@
         "PrependReduction"
       ]
     ],
+    "coverage": "Complete for the selected analysis plan at route-views2; route-views6 had no qualifying baseline target streams after RIB preflight.",
     "verdict": "PartialImpact",
     "limitations": [
-      "1 of 2 requested collectors retained after RIB preflight ([\"route-views2\"])"
+      "1 of 2 requested collectors retained after RIB preflight (route-views2)"
     ]
+  },
+  "blocked": {
+    "event_id": "INC0301970",
+    "expectation_human": "Peer unavailable",
+    "plan_status": "{\"Blocked\":{\"reason\":\"MissingReviewedTransitPredicate\"}}",
+    "reason": "MissingReviewedTransitPredicate"
   }
 }

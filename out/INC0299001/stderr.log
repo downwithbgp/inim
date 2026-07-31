@@ -1,14 +1,36 @@
 → Broker discovery: RIB files
   route-views2: caching RIB http://archive.routeviews.org/bgpdata/2026.07/RIBS/rib.20260714.0400.bz2
-  route-views2: parsing RIB (origin filter: [225])...
-  [route-views2 RIB] done: 381 parsed, 381 origin, 48 transit, 48 frozen streams, 12 prefixes, 4 peers (110.8s)
+  [route-views2 RIB] derived cache hit, skipping parse
+  [route-views2 RIB] cached: 48 frozen streams, 12 prefixes, 4 peers (0.0s)
   route-views6: caching RIB http://archive.routeviews.org/route-views6/bgpdata/2026.07/RIBS/rib.20260714.0400.bz2
-  route-views6: parsing RIB (origin filter: [225])...
-  [route-views6 RIB] done: 0 parsed, 0 origin, 0 transit, 0 frozen streams, 0 prefixes, 0 peers (39.1s)
+  [route-views6 RIB] derived cache hit, skipping parse
+  [route-views6 RIB] cached: 0 frozen streams, 0 prefixes, 0 peers (0.0s)
 → RIB preflight done: 48 frozen streams over 1 collectors
 → Broker discovery: UPDATE files
   route-views2: querying UPDATE files...
   route-views2: 22 UPDATE files selected
+  [route-views2 updates 1/22] done: 147142 parsed, 0 prefix, 0 coll+pref, 0 admitted (0 ann, 0 wd) [cache hit]
+  [route-views2 updates 2/22] done: 263200 parsed, 0 prefix, 0 coll+pref, 0 admitted (0 ann, 0 wd) [cache hit]
+  [route-views2 updates 3/22] done: 152092 parsed, 0 prefix, 0 coll+pref, 0 admitted (0 ann, 0 wd) [cache hit]
+  [route-views2 updates 4/22] done: 1240035 parsed, 12 prefix, 12 coll+pref, 0 admitted (0 ann, 0 wd) [cache hit]
+  [route-views2 updates 5/22] done: 224759 parsed, 0 prefix, 0 coll+pref, 0 admitted (0 ann, 0 wd) [cache hit]
+  [route-views2 updates 6/22] done: 138477 parsed, 0 prefix, 0 coll+pref, 0 admitted (0 ann, 0 wd) [cache hit]
+  [route-views2 updates 7/22] done: 285470 parsed, 0 prefix, 0 coll+pref, 0 admitted (0 ann, 0 wd) [cache hit]
+  [route-views2 updates 8/22] done: 144600 parsed, 0 prefix, 0 coll+pref, 0 admitted (0 ann, 0 wd) [cache hit]
+  [route-views2 updates 9/22] done: 283373 parsed, 0 prefix, 0 coll+pref, 0 admitted (0 ann, 0 wd) [cache hit]
+  [route-views2 updates 10/22] done: 194072 parsed, 0 prefix, 0 coll+pref, 0 admitted (0 ann, 0 wd) [cache hit]
+  [route-views2 updates 11/22] done: 322635 parsed, 0 prefix, 0 coll+pref, 0 admitted (0 ann, 0 wd) [cache hit]
+  [route-views2 updates 12/22] done: 166034 parsed, 117 prefix, 117 coll+pref, 86 admitted (73 ann, 13 wd) [cache hit]
+  [route-views2 updates 13/22] done: 279672 parsed, 0 prefix, 0 coll+pref, 0 admitted (0 ann, 0 wd) [cache hit]
+  [route-views2 updates 14/22] done: 188540 parsed, 0 prefix, 0 coll+pref, 0 admitted (0 ann, 0 wd) [cache hit]
+  [route-views2 updates 15/22] done: 278510 parsed, 0 prefix, 0 coll+pref, 0 admitted (0 ann, 0 wd) [cache hit]
+  [route-views2 updates 16/22] done: 284585 parsed, 94 prefix, 94 coll+pref, 68 admitted (68 ann, 0 wd) [cache hit]
+  [route-views2 updates 17/22] done: 213201 parsed, 202 prefix, 202 coll+pref, 146 admitted (132 ann, 14 wd) [cache hit]
+  [route-views2 updates 18/22] done: 293136 parsed, 0 prefix, 0 coll+pref, 0 admitted (0 ann, 0 wd) [cache hit]
+  [route-views2 updates 19/22] done: 151484 parsed, 0 prefix, 0 coll+pref, 0 admitted (0 ann, 0 wd) [cache hit]
+  [route-views2 updates 20/22] done: 331790 parsed, 1 prefix, 1 coll+pref, 0 admitted (0 ann, 0 wd) [cache hit]
+  [route-views2 updates 21/22] done: 168123 parsed, 0 prefix, 0 coll+pref, 0 admitted (0 ann, 0 wd) [cache hit]
+  [route-views2 updates 22/22] done: 281141 parsed, 0 prefix, 0 coll+pref, 0 admitted (0 ann, 0 wd) [cache hit]
 → Combining 48 RIB + 300 UPDATE observations...
 → Reconstructing routes...
 → Tokenizing 214 state changes...
@@ -17,13 +39,11 @@
 → Writing outputs to out/INC0299001
 
 ── Stage timings ───────────────────────────
-  broker+cache                        0.6s
-  route-views2 RIB parse            110.8s
-  route-views6 RIB parse             39.1s
-  UPDATE cache+parse                 16.5s
+  broker+cache                        0.4s
+  UPDATE cache+parse                  0.5s
   reconstruction                      0.0s
   tokenize                            0.0s
   waves+motifs                        0.0s
   assess                              0.0s
   outputs                             0.0s
-  TOTAL                             168.0s
+  TOTAL                               1.8s

@@ -14,7 +14,7 @@
         "source_records": []
       },
       {
-        "description": "Withdrawals: 14",
+        "description": "Withdrawal transitions: 14",
         "source_records": [
           "route-views2:163.253.3.14 199.111.192.0/18 at 2026-07-14 07:33:59.462019920 UTC",
           "route-views2:163.253.3.14 199.111.224.0/19 at 2026-07-14 07:33:59.462019920 UTC",
@@ -33,7 +33,7 @@
         ]
       },
       {
-        "description": "Path changes: 104",
+        "description": "Path-replacement transitions: 104",
         "source_records": [
           "route-views2:163.253.3.14 137.54.0.0/16 at 2026-07-14 07:24:47.679275035 UTC (11537 40220 225 225 225 225 225 225 225 → 11537 40220 225)",
           "route-views2:163.253.3.14 128.143.0.0/16 at 2026-07-14 07:24:47.679275035 UTC (11537 40220 225 225 225 225 225 225 225 → 11537 40220 225)",
@@ -142,7 +142,7 @@
         ]
       },
       {
-        "description": "Restorations to baseline: 35",
+        "description": "Restorations to baseline (transitions): 35",
         "source_records": [
           "route-views2:203.181.248.195 137.54.0.0/16 at 2026-07-14 07:33:59.936053037 UTC",
           "route-views2:203.181.248.195 199.111.208.0/22 at 2026-07-14 07:33:59.936053037 UTC",
@@ -182,7 +182,7 @@
         ]
       },
       {
-        "description": "Stream lifecycle: total=48 unchanged=0 prepend-only=22 withdrawn=13 departed-I2=2 restored=13 not-restored=0 add-path-ambiguous=0",
+        "description": "Stream lifecycle: total=48 unchanged=0 prepend-only=22 withdrawn=13 departed-transit=2 restored=13 not-restored=0 add-path-ambiguous=0",
         "source_records": []
       }
     ],
@@ -223,55 +223,55 @@
           "covered_terminals": 26,
           "total_terminals": 68,
           "scopes": [
-            "route-views2:203.181.248.195 192.131.232.0/24",
-            "route-views2:137.164.16.84 192.33.115.0/24",
-            "route-views2:137.164.16.84 192.131.232.0/24",
-            "route-views2:163.253.3.14 128.143.0.0/16",
-            "route-views2:163.253.3.14 192.35.48.0/24",
-            "route-views2:203.181.248.195 199.111.208.0/22",
-            "route-views2:163.253.3.14 199.111.192.0/18",
-            "route-views2:137.164.16.84 198.51.208.0/24",
-            "route-views2:203.181.248.195 199.111.224.0/19",
-            "route-views2:203.181.248.195 128.143.0.0/16",
+            "route-views2:163.253.3.14 192.35.49.0/24",
+            "route-views2:163.253.3.14 137.54.0.0/16",
+            "route-views2:203.181.248.195 192.33.115.0/24",
+            "route-views2:163.253.3.14 199.111.208.0/22",
+            "route-views2:203.181.248.195 199.111.192.0/18",
             "route-views2:203.181.248.195 137.54.0.0/16",
-            "route-views2:203.181.248.195 192.35.49.0/24",
+            "route-views2:163.253.3.14 128.143.0.0/16",
+            "route-views2:137.164.16.84 192.33.117.0/24",
+            "route-views2:203.181.248.195 192.131.232.0/24",
             "route-views2:163.253.3.14 192.33.115.0/24",
             "route-views2:203.181.248.195 198.51.208.0/24",
-            "route-views2:163.253.3.14 199.111.208.0/22",
-            "route-views2:163.253.3.14 192.131.232.0/24",
-            "route-views2:163.253.3.14 137.54.0.0/16",
-            "route-views2:163.253.3.14 192.33.117.0/24",
-            "route-views2:203.181.248.195 199.111.192.0/18",
-            "route-views2:203.181.248.195 192.35.48.0/24",
-            "route-views2:163.253.3.14 198.51.208.0/24",
-            "route-views2:163.253.3.14 192.35.49.0/24",
+            "route-views2:137.164.16.84 192.131.232.0/24",
             "route-views2:203.181.248.195 192.33.117.0/24",
-            "route-views2:203.181.248.195 192.33.115.0/24",
-            "route-views2:137.164.16.84 192.33.117.0/24",
-            "route-views2:163.253.3.14 199.111.224.0/19"
+            "route-views2:163.253.3.14 199.111.224.0/19",
+            "route-views2:163.253.3.14 199.111.192.0/18",
+            "route-views2:163.253.3.14 192.131.232.0/24",
+            "route-views2:203.181.248.195 192.35.48.0/24",
+            "route-views2:163.253.3.14 192.35.48.0/24",
+            "route-views2:163.253.3.14 198.51.208.0/24",
+            "route-views2:163.253.3.14 192.33.117.0/24",
+            "route-views2:203.181.248.195 199.111.224.0/19",
+            "route-views2:203.181.248.195 192.35.49.0/24",
+            "route-views2:203.181.248.195 128.143.0.0/16",
+            "route-views2:203.181.248.195 199.111.208.0/22",
+            "route-views2:137.164.16.84 198.51.208.0/24",
+            "route-views2:137.164.16.84 192.33.115.0/24"
           ],
           "evidence_ranges": [
             {
+              "observer": "route-views2:163.253.3.14",
+              "prefix": "192.35.49.0/24",
+              "time_start": "2026-07-14T07:25:17.678615093Z",
+              "time_end": "2026-07-14T07:25:17.678615093Z",
+              "transition_start": 0,
+              "transition_end": 0
+            },
+            {
+              "observer": "route-views2:163.253.3.14",
+              "prefix": "137.54.0.0/16",
+              "time_start": "2026-07-14T07:24:47.679275035Z",
+              "time_end": "2026-07-14T07:24:47.679275035Z",
+              "transition_start": 0,
+              "transition_end": 0
+            },
+            {
               "observer": "route-views2:203.181.248.195",
-              "prefix": "192.131.232.0/24",
+              "prefix": "192.33.115.0/24",
               "time_start": "2026-07-14T07:25:18.009459972Z",
               "time_end": "2026-07-14T07:25:18.009459972Z",
-              "transition_start": 0,
-              "transition_end": 0
-            },
-            {
-              "observer": "route-views2:137.164.16.84",
-              "prefix": "192.33.115.0/24",
-              "time_start": "2026-07-14T07:25:18.124365091Z",
-              "time_end": "2026-07-14T07:25:18.124365091Z",
-              "transition_start": 0,
-              "transition_end": 0
-            },
-            {
-              "observer": "route-views2:137.164.16.84",
-              "prefix": "192.131.232.0/24",
-              "time_start": "2026-07-14T07:25:18.124365091Z",
-              "time_end": "2026-07-14T07:25:18.124365091Z",
               "transition_start": 0,
               "transition_end": 0
             }
@@ -307,49 +307,49 @@
           "route-views2:203.181.248.195"
         ],
         "motif": {
-          "id": "d3e52327b07af9d1",
-          "expanded": "PATH_REPLACEMENT RETURN_TO_BASELINE PATH_REPLACEMENT",
+          "id": "1d4a8d5250d1f738",
+          "expanded": "ATTRIBUTE_CHANGE RETURN_TO_BASELINE PATH_REPLACEMENT",
           "structure": [
-            "ROOT → PATH_REPLACEMENT RETURN_TO_BASELINE PATH_REPLACEMENT"
+            "ROOT → ATTRIBUTE_CHANGE RETURN_TO_BASELINE PATH_REPLACEMENT"
           ],
           "occurrences": 11,
           "covered_terminals": 33,
           "total_terminals": 146,
           "scopes": [
-            "route-views2:203.181.248.195 192.35.49.0/24",
-            "route-views2:203.181.248.195 199.111.192.0/18",
-            "route-views2:203.181.248.195 192.33.115.0/24",
-            "route-views2:203.181.248.195 192.33.117.0/24",
-            "route-views2:203.181.248.195 199.111.208.0/22",
-            "route-views2:203.181.248.195 199.111.224.0/19",
-            "route-views2:203.181.248.195 137.54.0.0/16",
-            "route-views2:203.181.248.195 128.143.0.0/16",
-            "route-views2:203.181.248.195 192.35.48.0/24",
-            "route-views2:203.181.248.195 192.131.232.0/24",
-            "route-views2:203.181.248.195 198.51.208.0/24"
+            "route-views2:137.164.16.84 192.35.48.0/24",
+            "route-views2:137.164.16.84 192.33.115.0/24",
+            "route-views2:137.164.16.84 128.143.0.0/16",
+            "route-views2:137.164.16.84 199.111.208.0/22",
+            "route-views2:137.164.16.84 192.35.49.0/24",
+            "route-views2:137.164.16.84 192.131.232.0/24",
+            "route-views2:137.164.16.84 137.54.0.0/16",
+            "route-views2:137.164.16.84 199.111.224.0/19",
+            "route-views2:137.164.16.84 199.111.192.0/18",
+            "route-views2:137.164.16.84 198.51.208.0/24",
+            "route-views2:137.164.16.84 192.33.117.0/24"
           ],
           "evidence_ranges": [
             {
-              "observer": "route-views2:203.181.248.195",
-              "prefix": "192.35.49.0/24",
-              "time_start": "2026-07-14T07:33:59.632596015Z",
-              "time_end": "2026-07-14T07:36:30.648468017Z",
+              "observer": "route-views2:137.164.16.84",
+              "prefix": "192.35.48.0/24",
+              "time_start": "2026-07-14T07:33:59.998275041Z",
+              "time_end": "2026-07-14T07:36:30.845088005Z",
               "transition_start": 0,
               "transition_end": 2
             },
             {
-              "observer": "route-views2:203.181.248.195",
-              "prefix": "199.111.192.0/18",
-              "time_start": "2026-07-14T07:33:59.632596015Z",
-              "time_end": "2026-07-14T07:36:30.648468017Z",
-              "transition_start": 0,
-              "transition_end": 2
-            },
-            {
-              "observer": "route-views2:203.181.248.195",
+              "observer": "route-views2:137.164.16.84",
               "prefix": "192.33.115.0/24",
-              "time_start": "2026-07-14T07:33:59.632942914Z",
-              "time_end": "2026-07-14T07:36:30.648216009Z",
+              "time_start": "2026-07-14T07:33:59.998564958Z",
+              "time_end": "2026-07-14T07:36:30.845004081Z",
+              "transition_start": 0,
+              "transition_end": 2
+            },
+            {
+              "observer": "route-views2:137.164.16.84",
+              "prefix": "128.143.0.0/16",
+              "time_start": "2026-07-14T07:33:59.998275041Z",
+              "time_end": "2026-07-14T07:36:00.864903926Z",
               "transition_start": 0,
               "transition_end": 2
             }
@@ -357,6 +357,6 @@
         }
       }
     ],
-    "generated_at": "2026-07-31T21:16:22.968609397Z"
+    "generated_at": "2026-07-31T23:08:05.446510134Z"
   }
 }

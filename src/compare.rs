@@ -622,4 +622,36 @@ mod tests {
         assert!(text.contains("selected public collectors"));
         assert!(text.contains("observer-prefix streams"));
     }
+
+    #[test]
+    fn comparison_separates_blocked_and_observed_events() {
+        // The planning-status entry must be separated from observed rows
+        // even when the blocked event is present.
+        let dir = tempfile::tempdir().unwrap();
+        let p1 = dir.path().join("r1.json");
+        let p2 = dir.path().join("r2.json");
+        let pb = dir.path().join("plan.json");
+        std::fs::write(
+            &p1,
+            serde_json::to_string(&sample_report("INC1", "PARTIAL IMPACT")).unwrap(),
+        )
+        .unwrap();
+        std::fs::write(
+            &p2,
+            serde_json::to_string(&sample_report("INC2", "NO OBSERVABLE BGP IMPACT")).unwrap(),
+        )
+        .unwrap();
+        std::fs::write(&pb, serde_json::to_string(&blocked_plan_json()).unwrap()).unwrap();
+        let art = ComparisonArtifact::new(
+            load_event_summary(&p1).unwrap(),
+            load_event_summary(&p2).unwrap(),
+        )
+        .with_blocked(load_blocked_plan_summary(&pb).unwrap());
+        let text = art.render_text();
+        let table_end = text.find("Planning status").unwrap();
+        let observed_rows = &text[..table_end];
+        assert!(!observed_rows.contains("INC0301970"));
+        assert!(observed_rows.contains("INC1") && observed_rows.contains("INC2"));
+        assert!(text[table_end..].contains("INC0301970"));
+    }
 }

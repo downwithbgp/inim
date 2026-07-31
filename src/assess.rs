@@ -81,7 +81,7 @@ fn collect_evidence(
     });
 
     evidence.push(Evidence {
-        description: format!("Withdrawals: {}", withdrawals.len()),
+        description: format!("Withdrawal transitions: {}", withdrawals.len()),
         source_records: withdrawals
             .iter()
             .map(|t| {
@@ -97,7 +97,7 @@ fn collect_evidence(
     });
 
     evidence.push(Evidence {
-        description: format!("Path changes: {}", path_changes.len()),
+        description: format!("Path-replacement transitions: {}", path_changes.len()),
         source_records: path_changes
             .iter()
             .map(|t| {
@@ -119,7 +119,10 @@ fn collect_evidence(
     });
 
     evidence.push(Evidence {
-        description: format!("Restorations to baseline: {}", restorations.len()),
+        description: format!(
+            "Restorations to baseline (transitions): {}",
+            restorations.len()
+        ),
         source_records: restorations
             .iter()
             .map(|t| {
@@ -529,7 +532,7 @@ mod tests {
         assert!(assessment
             .evidence
             .iter()
-            .any(|e| e.description.contains("Path changes: 1")));
+            .any(|e| e.description.contains("Path-replacement transitions: 1")));
     }
 
     #[test]

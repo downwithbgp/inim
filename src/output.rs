@@ -270,8 +270,8 @@ fn join_sentences(items: &[String]) -> String {
         _ => {
             let mut out = String::new();
             for (i, item) in items.iter().enumerate() {
-                if i == items.len() - 1 {
-                    out.push_str(&format!("and {item}"));
+                if i == items.len() - 1 && i > 0 {
+                    out.push_str(&format!(", and {item}"));
                 } else if i > 0 {
                     out.push_str(&format!(", {item}"));
                 } else {
@@ -569,6 +569,27 @@ pub fn render_report_txt(ctx: &OutputContext) -> String {
     );
     push_ln(&mut buf, "");
 
+    // ── Semantic waves ────────────────────────────────────────────
+    if !ctx.semantic_waves.is_empty() {
+        push_ln(&mut buf, "Semantic waves");
+        for w in ctx.semantic_waves {
+            push_ln(
+                &mut buf,
+                &format!(
+                    "    {}: {} — {} ({} – {}, {} observer-prefix streams, {} route instances)",
+                    w.id,
+                    w.label.as_str(),
+                    wave_label_human(&w.label),
+                    w.start.format("%H:%M:%S"),
+                    w.end.format("%H:%M:%S"),
+                    w.stream_count,
+                    w.route_instance_count,
+                ),
+            );
+        }
+        push_ln(&mut buf, "");
+    }
+
     // ── Observable mechanism hints ────────────────────────────────
     push_ln(&mut buf, "Observable mechanism hints");
     let gshut_streams = lcs.iter().filter(|l| l.graceful_shutdown_seen).count();
@@ -687,6 +708,23 @@ pub fn render_report_txt(ctx: &OutputContext) -> String {
     );
 
     buf
+}
+
+/// Ordinary-language description for a semantic wave label.
+pub fn wave_label_human(label: &crate::lifecycle::WaveLabel) -> &'static str {
+    use crate::lifecycle::WaveLabel;
+    match label {
+        WaveLabel::PrependReduction => "widespread reduction in origin-AS prepending",
+        WaveLabel::PrependIncrease => "widespread increase in origin-AS prepending",
+        WaveLabel::StreamWithdrawal => {
+            "clustered temporary observer-stream withdrawals and associated route-state changes"
+        }
+        WaveLabel::TransitDeparture => "observer streams departing the reviewed transit",
+        WaveLabel::StreamRestoration => "observer-stream restoration after absence",
+        WaveLabel::TransitReturn => "observer streams returning to the reviewed transit",
+        WaveLabel::BaselinePolicyRestoration => "return to baseline route policy",
+        WaveLabel::MixedRouteChange => "mixed route-state changes",
+    }
 }
 
 /// Wrap a paragraph at `width` columns with `indent` leading spaces.

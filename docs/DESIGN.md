@@ -1,5 +1,31 @@
 # inim — Design
 
+## Project vision
+
+inim is a reproducible, event-conditioned BGP observation system. It tests
+operator-declared expectations against route behavior visible at selected
+public collectors.
+
+The central analytical unit is an **observer-prefix stream lifecycle
+conditioned on a reviewed event manifest**. The core contribution is not
+that any single component decides outage meaning:
+
+- SEQUITUR is a **descriptive aid** for repeated transition sequences —
+  it never assigns semantic labels and never determines the assessment.
+- The value comes from the composition of:
+  - reviewed operational expectation
+  - deterministic observer cohort
+  - exact route-instance evidence
+  - observer-stream lifecycle reconstruction
+  - event-relative transit interpretation
+  - evidence-scoped assessment
+  - separation of impact from mechanism
+
+Conceptually minimal: one event, one reviewed observation plan, one frozen
+cohort, one reconstructed lifecycle per observer-prefix stream, one
+evidence-scoped assessment. Implementation complexity exists to preserve
+correctness, provenance, and reproducibility.
+
 ## Architecture overview
 
 ```

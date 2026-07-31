@@ -1,16 +1,44 @@
 → Broker discovery: RIB files
   route-views2: caching RIB http://archive.routeviews.org/bgpdata/2026.07/RIBS/rib.20260730.0800.bz2
-  route-views2: parsing RIB (origin filter: [3333])...
-  [route-views2 RIB] done: 114 parsed, 114 origin, 18 transit, 18 frozen streams, 6 prefixes, 3 peers (113.8s)
+  [route-views2 RIB] derived cache hit, skipping parse
+  [route-views2 RIB] cached: 18 frozen streams, 6 prefixes, 3 peers (0.0s)
   route-views6: caching RIB http://archive.routeviews.org/route-views6/bgpdata/2026.07/RIBS/rib.20260730.0800.bz2
-  route-views6: parsing RIB (origin filter: [3333])...
-  [route-views6 RIB] done: 20 parsed, 20 origin, 1 transit, 1 frozen streams, 1 prefixes, 1 peers (41.1s)
+  [route-views6 RIB] derived cache hit, skipping parse
+  [route-views6 RIB] cached: 1 frozen streams, 1 prefixes, 1 peers (0.0s)
 → RIB preflight done: 19 frozen streams over 2 collectors
 → Broker discovery: UPDATE files
   route-views2: querying UPDATE files...
   route-views2: 14 UPDATE files selected
   route-views6: querying UPDATE files...
   route-views6: 14 UPDATE files selected
+  [route-views2 updates 1/28] done: 242036 parsed, 0 prefix, 0 coll+pref, 0 admitted (0 ann, 0 wd) [cache hit]
+  [route-views2 updates 2/28] done: 162421 parsed, 0 prefix, 0 coll+pref, 0 admitted (0 ann, 0 wd) [cache hit]
+  [route-views2 updates 3/28] done: 242795 parsed, 0 prefix, 0 coll+pref, 0 admitted (0 ann, 0 wd) [cache hit]
+  [route-views2 updates 4/28] done: 158862 parsed, 0 prefix, 0 coll+pref, 0 admitted (0 ann, 0 wd) [cache hit]
+  [route-views2 updates 5/28] done: 147289 parsed, 0 prefix, 0 coll+pref, 0 admitted (0 ann, 0 wd) [cache hit]
+  [route-views2 updates 6/28] done: 196598 parsed, 0 prefix, 0 coll+pref, 0 admitted (0 ann, 0 wd) [cache hit]
+  [route-views2 updates 7/28] done: 154388 parsed, 0 prefix, 0 coll+pref, 0 admitted (0 ann, 0 wd) [cache hit]
+  [route-views2 updates 8/28] done: 194666 parsed, 0 prefix, 0 coll+pref, 0 admitted (0 ann, 0 wd) [cache hit]
+  [route-views2 updates 9/28] done: 180577 parsed, 0 prefix, 0 coll+pref, 0 admitted (0 ann, 0 wd) [cache hit]
+  [route-views2 updates 10/28] done: 208226 parsed, 0 prefix, 0 coll+pref, 0 admitted (0 ann, 0 wd) [cache hit]
+  [route-views2 updates 11/28] done: 208633 parsed, 0 prefix, 0 coll+pref, 0 admitted (0 ann, 0 wd) [cache hit]
+  [route-views2 updates 12/28] done: 155462 parsed, 0 prefix, 0 coll+pref, 0 admitted (0 ann, 0 wd) [cache hit]
+  [route-views2 updates 13/28] done: 263331 parsed, 0 prefix, 0 coll+pref, 0 admitted (0 ann, 0 wd) [cache hit]
+  [route-views2 updates 14/28] done: 179461 parsed, 0 prefix, 0 coll+pref, 0 admitted (0 ann, 0 wd) [cache hit]
+  [route-views6 updates 15/28] done: 149686 parsed, 0 prefix, 0 coll+pref, 0 admitted (0 ann, 0 wd) [cache hit]
+  [route-views6 updates 16/28] done: 155475 parsed, 0 prefix, 0 coll+pref, 0 admitted (0 ann, 0 wd) [cache hit]
+  [route-views6 updates 17/28] done: 157558 parsed, 0 prefix, 0 coll+pref, 0 admitted (0 ann, 0 wd) [cache hit]
+  [route-views6 updates 18/28] done: 159319 parsed, 0 prefix, 0 coll+pref, 0 admitted (0 ann, 0 wd) [cache hit]
+  [route-views6 updates 19/28] done: 128977 parsed, 0 prefix, 0 coll+pref, 0 admitted (0 ann, 0 wd) [cache hit]
+  [route-views6 updates 20/28] done: 164249 parsed, 0 prefix, 0 coll+pref, 0 admitted (0 ann, 0 wd) [cache hit]
+  [route-views6 updates 21/28] done: 137833 parsed, 0 prefix, 0 coll+pref, 0 admitted (0 ann, 0 wd) [cache hit]
+  [route-views6 updates 22/28] done: 137776 parsed, 0 prefix, 0 coll+pref, 0 admitted (0 ann, 0 wd) [cache hit]
+  [route-views6 updates 23/28] done: 168771 parsed, 0 prefix, 0 coll+pref, 0 admitted (0 ann, 0 wd) [cache hit]
+  [route-views6 updates 24/28] done: 149953 parsed, 0 prefix, 0 coll+pref, 0 admitted (0 ann, 0 wd) [cache hit]
+  [route-views6 updates 25/28] done: 129626 parsed, 0 prefix, 0 coll+pref, 0 admitted (0 ann, 0 wd) [cache hit]
+  [route-views6 updates 26/28] done: 125608 parsed, 0 prefix, 0 coll+pref, 0 admitted (0 ann, 0 wd) [cache hit]
+  [route-views6 updates 27/28] done: 128925 parsed, 0 prefix, 0 coll+pref, 0 admitted (0 ann, 0 wd) [cache hit]
+  [route-views6 updates 28/28] done: 204944 parsed, 0 prefix, 0 coll+pref, 0 admitted (0 ann, 0 wd) [cache hit]
 → Combining 19 RIB + 0 UPDATE observations...
 → Reconstructing routes...
 → Tokenizing 0 state changes...
@@ -19,13 +47,11 @@
 → Writing outputs to out/INC0302574
 
 ── Stage timings ───────────────────────────
-  broker+cache                        0.8s
-  route-views2 RIB parse            113.8s
-  route-views6 RIB parse             41.1s
-  UPDATE cache+parse                 15.1s
+  broker+cache                        0.5s
+  UPDATE cache+parse                  0.8s
   reconstruction                      0.0s
   tokenize                            0.0s
   waves+motifs                        0.0s
   assess                              0.0s
   outputs                             0.0s
-  TOTAL                             171.6s
+  TOTAL                               2.1s
