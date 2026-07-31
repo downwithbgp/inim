@@ -9,7 +9,7 @@ use chrono::{DateTime, Utc};
 use crate::domain::route::RouteTransition;
 #[allow(unused_imports)]
 use crate::domain::route::TransitionKind;
-use crate::domain::wave::ImpactWave;
+use crate::domain::wave::{ImpactWave, WaveMotif, MotifEvidenceRange, fnv1a_64};
 
 /// Detect impact waves from a sequence of route transitions.
 ///
@@ -83,7 +83,7 @@ fn build_wave(transitions: &[&RouteTransition], wave_start: DateTime<Utc>) -> Im
         end,
         affected_prefixes: prefixes,
         affected_peers: peers,
-        motif: Some(motif),
+        motif,
     }
 }
 
@@ -91,12 +91,16 @@ fn build_wave(transitions: &[&RouteTransition], wave_start: DateTime<Utc>) -> Im
 ///
 /// Groups transitions by route key (observer, prefix), orders each group
 /// chronologically, maps TransitionKind → TransitionSymbol, runs SEQUITUR,
-/// and returns the most frequent root-expansion string across all groups.
-/// Falls back to dominant-kind label if no structured motif is found.
-fn sequitur_motif(transitions: &[&RouteTransition]) -> String {
+/// and builds a WaveMotif with identity, expanded sequence, structure,
+/// occurrence count, coverage, and evidence ranges.
+fn sequitur_motif(transitions: &[&RouteTransition]) -> Option<WaveMotif> {
     use std::collections::HashMap;
     use crate::sequitur;
     use crate::tokenize::TransitionSymbol;
+
+    if transitions.is_empty() {
+        return None;
+    }
 
     // Group transitions by (observer, prefix)
     let mut groups: HashMap<(String, String), Vec<&RouteTransition>> = HashMap::new();
@@ -105,9 +109,18 @@ fn sequitur_motif(transitions: &[&RouteTransition]) -> String {
         groups.entry(key).or_default().push(t);
     }
 
-    // For each group, sort chronologically, build symbol sequence, run SEQUITUR
-    let mut motifs: Vec<String> = Vec::new();
-    for group in groups.values_mut() {
+    // For each group: sort chronologically, build symbol sequence, run SEQUITUR
+    struct GroupMotif {
+        expanded: Vec<String>,
+        structure: Vec<String>,
+        scope: String,
+        time_start: chrono::DateTime<chrono::Utc>,
+        time_end: chrono::DateTime<chrono::Utc>,
+    }
+
+    let mut group_motifs: Vec<GroupMotif> = Vec::new();
+
+    for ((observer, prefix), group) in groups.iter_mut() {
         group.sort_by_key(|t| t.to.timestamp);
         let symbols: Vec<TransitionSymbol> = group
             .iter()
@@ -116,33 +129,113 @@ fn sequitur_motif(transitions: &[&RouteTransition]) -> String {
 
         if symbols.len() >= 2 {
             let grammar = sequitur::build(&symbols);
-            let motif_str = grammar.render_root();
-            if !motif_str.is_empty() {
-                motifs.push(motif_str);
+            let expanded: Vec<String> = grammar.expand().iter().map(|s| s.0.clone()).collect();
+            let structure = motif_structure(&grammar, &symbols);
+
+            if !expanded.is_empty() {
+                group_motifs.push(GroupMotif {
+                    expanded,
+                    structure,
+                    scope: format!("{observer} {prefix}"),
+                    time_start: group.first().map(|t| t.to.timestamp).unwrap(),
+                    time_end: group.last().map(|t| t.to.timestamp).unwrap(),
+                });
             }
         } else if let Some(sym) = symbols.first() {
-            motifs.push(sym.0.clone());
+            group_motifs.push(GroupMotif {
+                expanded: vec![sym.0.clone()],
+                structure: vec![format!("ROOT → {}", sym.0)],
+                scope: format!("{observer} {prefix}"),
+                time_start: group.first().map(|t| t.to.timestamp).unwrap(),
+                time_end: group.last().map(|t| t.to.timestamp).unwrap(),
+            });
         }
     }
 
-    // Most frequent motif across groups
-    let mut counts: HashMap<String, usize> = HashMap::new();
-    for m in &motifs {
-        *counts.entry(m.clone()).or_insert(0) += 1;
+    if group_motifs.is_empty() {
+        return None;
     }
 
-    counts
+    // Find the most frequent expanded sequence
+    let mut motif_counts: HashMap<String, Vec<usize>> = HashMap::new();
+    for (i, gm) in group_motifs.iter().enumerate() {
+        let key = gm.expanded.join(" ");
+        motif_counts.entry(key).or_default().push(i);
+    }
+
+    let (best_expanded, best_indices) = motif_counts
         .into_iter()
-        .max_by_key(|(_, count)| *count)
-        .map(|(label, _)| label)
-        .unwrap_or_else(|| "UNKNOWN".to_string())
+        .max_by_key(|(_, indices)| indices.len())
+        .unwrap();
+
+    let expanded = best_expanded;
+    let best_groups: Vec<&GroupMotif> = best_indices.iter().map(|&i| &group_motifs[i]).collect();
+
+    // Build identity hash from the expanded sequence
+    let motif_id = fnv1a_64(expanded.as_bytes());
+
+    // Collect structure from the first representative group
+    let structure = best_groups.first().map(|g| g.structure.clone()).unwrap_or_default();
+
+    // Scopes
+    let scopes: Vec<String> = best_groups.iter().map(|g| g.scope.clone()).collect();
+
+    // Evidence ranges
+    let total_transitions = transitions.len();
+    let evidence_ranges: Vec<MotifEvidenceRange> = best_groups
+        .iter()
+        .take(3) // representative up to 3
+        .map(|g| {
+            let obs = &g.scope.split_whitespace().next().unwrap_or("unknown");
+            let pfx = g.scope.split_whitespace().nth(1).unwrap_or("unknown");
+            MotifEvidenceRange {
+                observer: obs.to_string(),
+                prefix: pfx.to_string(),
+                time_start: g.time_start,
+                time_end: g.time_end,
+                transition_start: 0,
+                transition_end: g.expanded.len().saturating_sub(1),
+            }
+        })
+        .collect();
+
+    // Coverage
+    let covered_terminals: usize = best_groups.iter().map(|g| g.expanded.len()).sum();
+
+    Some(WaveMotif {
+        id: motif_id,
+        expanded: expanded.clone(),
+        structure,
+        occurrences: best_groups.len(),
+        covered_terminals,
+        total_terminals: total_transitions,
+        scopes,
+        evidence_ranges,
+    })
+}
+
+/// Build hierarchical structure lines from a SEQUITUR grammar.
+fn motif_structure<T: std::fmt::Display + Clone + Eq + std::hash::Hash + std::fmt::Debug>(
+    grammar: &crate::sequitur::Grammar<T>,
+    _symbols: &[crate::tokenize::TransitionSymbol],
+) -> Vec<String> {
+    let mut lines = Vec::new();
+    // Start rule
+    let root: Vec<String> = grammar.start.iter().map(|s| format!("{s}")).collect();
+    lines.push(format!("ROOT → {}", root.join(" ")));
+    // Rules
+    for (&rid, body) in &grammar.rules {
+        let inner: Vec<String> = body.iter().map(|s| format!("{s}")).collect();
+        lines.push(format!("{rid} → {}", inner.join(" ")));
+    }
+    lines
 }
 
 /// Summarize waves with human-readable labels and stability intervals.
 pub fn summarize_waves(waves: &mut [ImpactWave]) {
     for (i, wave) in waves.iter_mut().enumerate() {
         let duration = wave.end - wave.start;
-        let motif_desc = describe_motif(wave.motif.as_deref());
+        let motif_desc = describe_motif(wave.motif.as_ref());
         let label = format!(
             "Wave {} — {} ({:.1}s, {} prefixes, {} peers)",
             i + 1,
@@ -156,16 +249,24 @@ pub fn summarize_waves(waves: &mut [ImpactWave]) {
 }
 
 /// Produce a short human-readable description of a SEQUITUR motif.
-fn describe_motif(motif: Option<&str>) -> &str {
+fn describe_motif(motif: Option<&WaveMotif>) -> &str {
     match motif {
-        Some(m) if m.contains("PATH_CHANGE") && m.contains("RETURN_TO_BASELINE") => {
-            "failover and restoration"
+        Some(m) => {
+            let expanded = &m.expanded;
+            if expanded.contains("PATH_CHANGE") && expanded.contains("RETURN_TO_BASELINE") {
+                "failover and restoration"
+            } else if expanded.contains("RETURN_TO_BASELINE") {
+                "restoration"
+            } else if expanded.contains("PATH_CHANGE") && m.structure.len() > 1 {
+                "structured path change"
+            } else if expanded.contains("PATH_CHANGE") {
+                "path change"
+            } else if expanded.contains("WITHDRAWAL") {
+                "withdrawal"
+            } else {
+                "activity"
+            }
         }
-        Some(m) if m.contains("RETURN_TO_BASELINE") => "restoration",
-        Some(m) if m.contains("PATH_CHANGE") && m.contains('[') => "structured path change",
-        Some(m) if m.contains("PATH_CHANGE") => "path change",
-        Some(m) if m.contains("WITHDRAWAL") => "withdrawal",
-        Some(m) => m,
         None => "activity",
     }
 }
@@ -211,7 +312,7 @@ mod tests {
         );
         let waves = detect_waves(&[t], chrono::Duration::seconds(30));
         assert_eq!(waves.len(), 1);
-        assert!(waves[0].motif.as_deref() == Some("PATH_CHANGE"));
+        assert!(waves[0].motif.as_ref().map(|m| m.expanded.as_str()) == Some("PATH_CHANGE"));
     }
 
     #[test]

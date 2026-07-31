@@ -391,4 +391,53 @@ mod tests {
         // since BgpElem only has ANNOUNCE/WITHDRAW
         assert_eq!(ctx.role, IngestRole::Rib);
     }
+
+    // ── Real MRT fixture test ─────────────────────────────────
+
+    #[test]
+    fn parses_actual_mrt_fixture_into_observations() {
+        let fixture_path =
+            std::path::PathBuf::from("tests/fixtures/mrt/update-example.gz");
+
+        let ctx = IngestContext {
+            role: IngestRole::Updates,
+            collector: CollectorId("route-views2".into()),
+            input_path: fixture_path.clone(),
+        };
+
+        let stream = ObservationStream::from_local_file(fixture_path, ctx)
+            .expect("should open real MRT fixture");
+
+        // Collect first 20 observations for assertion (test-only collection)
+        let observations: Vec<_> = stream.into_iter().take(20).collect();
+
+        // Must have at least one successful observation
+        let ok_count = observations.iter().filter(|r| r.is_ok()).count();
+        assert!(ok_count > 0, "fixture must yield at least one valid observation");
+
+        // Verify structure of first successful observation
+        if let Some(Ok(first)) = observations.iter().find(|r| r.is_ok()) {
+            // Must have a kind
+            assert!(
+                matches!(
+                    first.kind,
+                    ObservationKind::Announcement
+                        | ObservationKind::Withdrawal
+                ),
+                "real MRT observations should be announcements or withdrawals"
+            );
+
+            // Must have a non-empty prefix
+            assert!(!first.prefix.0.is_empty());
+
+            // Provenance must reference the fixture
+            assert!(first.provenance.input.contains("update-example.gz"));
+
+            // Element sequence must be set
+            assert!(
+                first.provenance.element_seq < 20,
+                "element_seq should be within first 20"
+            );
+        }
+    }
 }

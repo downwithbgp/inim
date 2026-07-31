@@ -62,6 +62,10 @@ fn redundant_maintenance_vertical_slice() {
     // ── Reconstruct ────────────────────────────────────────────
     let (store, changes) = routes::reconstruct_routes(obs, event_start, event_end);
 
+    // ── Continuity check (must be before changes is moved) ──────
+    use inim::domain::route::Continuity;
+    let any_unknown = changes.iter().any(|sc| sc.continuity == Continuity::Unknown);
+
     // ── Tokenize ───────────────────────────────────────────────
     let baseline_map: std::collections::HashMap<_, _> = store
         .all_states()
@@ -78,12 +82,17 @@ fn redundant_maintenance_vertical_slice() {
         Some("NEWY32AOA"),
         "Internet2 title convention",
     );
+    assert!(
+        !any_unknown,
+        "Redundant scenario must have known continuity before asserting verdict"
+    );
+
     let assessment = assess::assess(
         EventId::from("CHG0107955"),
         expectation,
         &transitions,
         detected_waves,
-        false,
+        any_unknown,
     );
 
     // ── Assertions ─────────────────────────────────────────────

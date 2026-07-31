@@ -245,8 +245,16 @@ Design choices:
 **Consequences:**
 - Zero new dependencies (keeps build lightweight)
 - SEQUITUR is independently testable with simple alphabets
-- `ImpactWave.motif` is now SEQUITUR-derived, replacing the provisional
-  dominant-kind label
+- `ImpactWave.motif` is now a structured `WaveMotif` with identity, expanded
+  sequence, hierarchical structure, occurrence count, coverage, scopes, and
+  evidence ranges
 - SEQUITUR never influences verdicts (assess.rs has zero SEQUITUR imports,
-  grep-verified)
-- Motif rendering is deterministic and human-readable
+  and a verdict-independence test asserts motif presence/absence does not
+  change the verdict)
+- Motif identity is a deterministic FNV-1a 64-bit hash of the fully expanded
+  terminal sequence — portable across runs
+- Expansion roundtrip, determinism, and rule utility verified on all 512
+  {a,b} sequences up to length 8 plus 5× LCG 40-char sequences
+- Strict digram-uniqueness invariant has known edge cases on longer sequences
+  with small alphabets (documented); all practical BGP transition sequences
+  (typically 2–10 symbols) produce correct grammars

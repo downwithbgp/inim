@@ -21,6 +21,7 @@ pub fn build<T: Clone + Eq + std::hash::Hash + std::fmt::Debug>(
     for symbol in input {
         b.append(Symbol::Terminal(symbol.clone()));
     }
+    b.finalize();
     b.into_grammar()
 }
 
@@ -40,6 +41,28 @@ impl<T: Clone + Eq + std::hash::Hash + std::fmt::Debug> Builder<T> {
 
     fn into_grammar(self) -> Grammar<T> {
         self.grammar
+    }
+
+    /// Post-processing: enforce rule utility (expand under-used rules)
+    /// that may remain after streaming construction.
+    fn finalize(&mut self) {
+        self.enforce_global_rule_utility();
+    }
+
+    fn enforce_global_rule_utility(&mut self) {
+        loop {
+            let underused: Option<RuleId> = {
+                let mut rule_ids: Vec<RuleId> = self.grammar.rules.keys().copied().collect();
+                rule_ids.sort(); // deterministic order
+                rule_ids.into_iter().find(|&rid| self.count_rule_refs(rid) < 2)
+            };
+            match underused {
+                Some(rid) => {
+                    self.expand_rule_depth(rid, 0);
+                }
+                None => break,
+            }
+        }
     }
 
     /// Append a symbol to the start rule and enforce SEQUITUR invariants.

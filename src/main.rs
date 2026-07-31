@@ -102,6 +102,9 @@ fn run_analyze(
 
     let (store, changes) = build_demo_scenario(collector);
 
+    use inim::domain::route::Continuity;
+    let any_unknown = changes.iter().any(|sc| sc.continuity == Continuity::Unknown);
+
     // ── 4. Tokenize transitions ─────────────────────────────────
     // Build baseline map from frozen event baseline
     let baseline_map: std::collections::HashMap<_, _> = store
@@ -120,15 +123,20 @@ fn run_analyze(
         expectation,
         &transitions,
         detected_waves,
-        false, // continuity known
+        any_unknown,
     );
 
     // ── 7. Render reports ───────────────────────────────────────
-    let terminal_report = report::render_terminal(&assessment);
+    let data_note = if _rib_path.is_some() || _updates_dir.is_some() {
+        "not yet wired to ingest; using synthetic data"
+    } else {
+        "SYNTHETIC (no --rib/--updates provided)"
+    };
+    let terminal_report = report::render_terminal(&assessment, data_note);
 
     println!("{terminal_report}");
 
-    let json_report = report::render_json(&assessment);
+    let json_report = report::render_json(&assessment, data_note);
 
     if let Some(out_path) = output_path {
         let json_str = serde_json::to_string_pretty(&json_report).unwrap_or_default();

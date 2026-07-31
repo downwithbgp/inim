@@ -63,3 +63,18 @@ requires:
 - Stable sorting of collections
 - Explicit timestamp ordering
 - No floating-point comparisons in decision logic
+
+## Test fixture provenance
+
+### MRT update-example fixture
+
+- **File:** `tests/fixtures/mrt/update-example.gz`
+- **Source:** `https://spaces.bgpkit.org/parser/update-example.gz`
+- **Fetch date:** 2026-07-31
+- **SHA256:** `9298763bbecbaef2a4378aa8bf58f0c8e911d9afd8e5d4cd1c15f0beb6922d66`
+- **Size:** 68,469 bytes (compressed)
+- **Content:** BGP4MP update records used by bgpkit-parser's own test suite.
+  Contains real (anonymized) RouteViews BGP UPDATE messages suitable for
+  testing the BgpElem → RouteObservation conversion boundary.
+- **Usage:** `ingest::tests::parses_actual_mrt_fixture_into_observations` —
+  parses first 20 records, asserts correct kind/prefix/provenance fields.

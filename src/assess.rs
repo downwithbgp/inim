@@ -338,4 +338,59 @@ mod tests {
             .iter()
             .any(|e| e.description.contains("Path changes: 1")));
     }
+
+    #[test]
+    fn verdict_independent_of_motif() {
+        // Verdict must not change based on whether a motif is present
+        use crate::domain::wave::{WaveMotif, MotifEvidenceRange};
+        use chrono::TimeZone;
+
+        let exp = ImpactExpectation::redundant(Some("NEWY32AOA"), "test");
+        let transitions = vec![
+            path_change(vec![6447, 11537, 1101], vec![6447, 237, 1101], 0),
+            return_to_baseline(10),
+        ];
+
+        let t0 = Utc.with_ymd_and_hms(2025, 6, 15, 5, 25, 0).unwrap();
+
+        let wave_no_motif = ImpactWave::new("test", t0, t0, t0);
+        let wave_with_motif = {
+            let mut w = ImpactWave::new("test", t0, t0, t0);
+            w.motif = Some(WaveMotif {
+                id: "abc123".into(),
+                expanded: "PATH_CHANGE RETURN_TO_BASELINE".into(),
+                structure: vec!["ROOT → PATH_CHANGE RETURN_TO_BASELINE".into()],
+                occurrences: 1,
+                covered_terminals: 2,
+                total_terminals: 2,
+                scopes: vec![],
+                evidence_ranges: vec![MotifEvidenceRange {
+                    observer: "rv2:185.1.8.65".into(),
+                    prefix: "192.0.2.0/24".into(),
+                    time_start: t0,
+                    time_end: t0 + chrono::Duration::seconds(10),
+                    transition_start: 0,
+                    transition_end: 2,
+                }],
+            });
+            w
+        };
+
+        let a1 = assess(
+            EventId::from("TEST"),
+            exp.clone(),
+            &transitions,
+            vec![wave_no_motif],
+            false,
+        );
+        let a2 = assess(
+            EventId::from("TEST"),
+            exp,
+            &transitions,
+            vec![wave_with_motif],
+            false,
+        );
+
+        assert_eq!(a1.verdict, a2.verdict, "verdict must be independent of motif presence");
+    }
 }

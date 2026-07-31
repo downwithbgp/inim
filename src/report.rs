@@ -3,19 +3,19 @@
 //! Renders completed assessments. Must not perform analysis or derive
 //! verdicts.
 
-use serde_json::Value;
 use std::io::Write;
 
 use crate::domain::assessment::EventAssessment;
 
 /// Render a human-readable terminal report.
-pub fn render_terminal(assessment: &EventAssessment) -> String {
+pub fn render_terminal(assessment: &EventAssessment, data_note: &str) -> String {
     let mut buf = Vec::new();
 
     writeln!(buf, "{}", "=".repeat(60)).ok();
     writeln!(buf, "{}", assessment.event_id).ok();
     writeln!(buf, "{}", assessment.expectation.description).ok();
     writeln!(buf, "{}", "=".repeat(60)).ok();
+    writeln!(buf, "Data source: {data_note}").ok();
     writeln!(buf).ok();
 
     writeln!(buf, "Declared expectation").ok();
@@ -37,6 +37,32 @@ pub fn render_terminal(assessment: &EventAssessment) -> String {
 
     for wave in &assessment.waves {
         writeln!(buf, "  {}", wave.label).ok();
+        if let Some(ref motif) = wave.motif {
+            writeln!(buf, "    Motif").ok();
+            writeln!(buf, "      {}", motif.expanded).ok();
+            writeln!(buf, "    Structure").ok();
+            for line in &motif.structure {
+                writeln!(buf, "      {}", line).ok();
+            }
+            writeln!(buf, "    Occurrences").ok();
+            writeln!(buf, "      {}", motif.occurrences).ok();
+            writeln!(buf, "    Covered transitions").ok();
+            writeln!(
+                buf,
+                "      {} of {}",
+                motif.covered_terminals, motif.total_terminals
+            ).ok();
+            writeln!(buf, "    Representative evidence").ok();
+            for er in &motif.evidence_ranges {
+                writeln!(
+                    buf,
+                    "      {} {} [{} → {}]",
+                    er.observer, er.prefix,
+                    er.time_start.format("%H:%M:%S"),
+                    er.time_end.format("%H:%M:%S"),
+                ).ok();
+            }
+        }
     }
     writeln!(buf).ok();
 
@@ -63,8 +89,12 @@ pub fn render_terminal(assessment: &EventAssessment) -> String {
 }
 
 /// Render a structured JSON report.
-pub fn render_json(assessment: &EventAssessment) -> Value {
-    serde_json::to_value(assessment).unwrap_or(Value::Null)
+pub fn render_json(assessment: &EventAssessment, data_note: &str) -> serde_json::Value {
+    let mut val = serde_json::to_value(assessment).unwrap_or(serde_json::Value::Null);
+    if let serde_json::Value::Object(ref mut map) = val {
+        map.insert("data_source".to_string(), serde_json::Value::String(data_note.to_string()));
+    }
+    val
 }
 
 #[cfg(test)]
@@ -102,23 +132,25 @@ mod tests {
 
     #[test]
     fn terminal_report_contains_verdict() {
-        let report = render_terminal(&sample_assessment());
+        let report = render_terminal(&sample_assessment(), "SYNTHETIC (test)");
         assert!(report.contains("CHG0107955"));
         assert!(report.contains("EXPECTED REDUNDANT IMPACT"));
         assert!(report.contains("NEWY32AOA"));
         assert!(report.contains("Total route transitions observed: 3"));
+        assert!(report.contains("Data source: SYNTHETIC"));
     }
 
     #[test]
     fn terminal_report_contains_evidence() {
-        let report = render_terminal(&sample_assessment());
+        let report = render_terminal(&sample_assessment(), "test");
         assert!(report.contains("Total route transitions observed"));
         assert!(report.contains("rv2:AS6447"));
     }
 
     #[test]
     fn json_report_roundtrips() {
-        let json = render_json(&sample_assessment());
+        let json = render_json(&sample_assessment(), "test-fixture");
+        assert!(json.get("data_source").and_then(|v| v.as_str()) == Some("test-fixture"));
         let parsed: EventAssessment = serde_json::from_value(json).unwrap();
         assert_eq!(parsed.event_id.0, "CHG0107955");
         assert_eq!(parsed.verdict, Verdict::ExpectedRedundantImpact);

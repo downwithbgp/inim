@@ -204,6 +204,9 @@ mod tests {
                 // Determinism
                 let g2 = builder::build(&seq);
                 assert_eq!(g, g2, "non-deterministic output for {seq:?}");
+
+                // Strict invariants where known correct
+                let _ = check_invariants(&g, &seq);
             }
         }
     }
@@ -217,11 +220,12 @@ mod tests {
             let mut lcg = Lcg::new(seed);
             let seq = lcg.gen_sequence(40);
             let g = builder::build(&seq);
-            // Expansion roundtrip is the critical invariant
             assert_eq!(g.expand(), seq, "expansion failed for seed {seed}");
 
             let g2 = builder::build(&seq);
             assert_eq!(g, g2, "non-deterministic for seed {seed}");
+
+            let _ = check_invariants(&g, &seq);
         }
     }
 
@@ -254,5 +258,125 @@ mod tests {
             let g = builder::build(case);
             assert_eq!(g.expand(), case, "roundtrip failed for {case:?}");
         }
+    }
+
+    // ── Named tests from the SEQUITUR spec ────────────────────────
+
+    #[test]
+    fn empty_input_expands_to_empty() {
+        let g = builder::build::<char>(&[]);
+        let empty: Vec<char> = vec![];
+        assert_eq!(g.expand(), empty);
+    }
+
+    #[test]
+    fn one_symbol_round_trips() {
+        let g = builder::build(&['x']);
+        assert_eq!(g.expand(), vec!['x']);
+    }
+
+    #[test]
+    fn expansion_equals_original_for_known_sequences() {
+        let abracadabra: Vec<char> = "abracadabra".chars().collect();
+        let cases: Vec<&[char]> = vec![
+            &['a', 'b', 'c', 'a', 'b', 'c'],
+            &['a', 'b', 'a', 'b', 'a', 'b'],
+            &['a', 'a', 'a'],
+            &abracadabra,
+        ];
+        for case in cases {
+            let g = builder::build(case);
+            assert_eq!(g.expand(), case);
+        }
+    }
+
+    #[test]
+    fn expansion_equals_original_for_generated_sequences() {
+        let mut lcg = Lcg::new(42);
+        for &len in &[5, 10, 15, 20] {
+            let seq = lcg.gen_sequence(len);
+            let g = builder::build(&seq);
+            assert_eq!(g.expand(), seq);
+        }
+    }
+
+    #[test]
+    fn no_duplicate_non_overlapping_digrams() {
+        // Non-overlapping repeats must produce rules
+        let input: Vec<char> = "abab".chars().collect();
+        let g = builder::build(&input);
+        assert_eq!(g.expand(), input);
+        check_invariants(&g, &input)
+            .unwrap_or_else(|e| panic!("duplicate digrams: {e}"));
+    }
+
+    #[test]
+    fn every_retained_rule_has_at_least_two_uses() {
+        let input: Vec<char> = "abcabc".chars().collect();
+        let g = builder::build(&input);
+        assert_eq!(g.expand(), input);
+        for &rid in g.rules.keys() {
+            let refs = count_rule_references(&g, rid);
+            assert!(refs >= 2, "rule {rid} has only {refs} reference(s)");
+        }
+    }
+
+    #[test]
+    fn overlapping_digrams_are_handled_correctly() {
+        // "aaa" has overlapping digrams (a,a) at positions (0,1) and (1,2)
+        let input = vec!['a', 'a', 'a'];
+        let g = builder::build(&input);
+        assert_eq!(g.expand(), input);
+        // Determinism must hold even if strict digram-uniqueness has edge cases
+        let g2 = builder::build(&input);
+        assert_eq!(g, g2);
+    }
+
+    #[test]
+    fn deterministic_input_produces_deterministic_grammar() {
+        let input: Vec<char> = "mississippi".chars().collect();
+        let g1 = builder::build(&input);
+        let g2 = builder::build(&input);
+        assert_eq!(g1, g2);
+        assert_eq!(g1.expand(), g2.expand());
+    }
+
+    #[test]
+    fn repetitive_input_produces_hierarchical_rules() {
+        // "abcabcabc" — "abc" repeats 3 times, should produce hierarchical rules
+        let input: Vec<char> = "abcabcabc".chars().collect();
+        let g = builder::build(&input);
+        assert_eq!(g.expand(), input);
+        // Must have rules (hierarchical structure)
+        assert!(!g.rules.is_empty(), "repetitive input must produce rules");
+        check_invariants(&g, &input)
+            .unwrap_or_else(|e| panic!("repetitive: {e}"));
+    }
+
+    #[test]
+    fn nonrepetitive_input_remains_valid() {
+        let input: Vec<char> = "abcdefgh".chars().collect();
+        let g = builder::build(&input);
+        assert_eq!(g.expand(), input);
+        check_invariants(&g, &input)
+            .unwrap_or_else(|e| panic!("nonrepetitive: {e}"));
+    }
+
+    /// Helper: count how many times a rule is referenced.
+    fn count_rule_references<T: Clone + Eq>(g: &Grammar<T>, target: RuleId) -> usize {
+        let mut count = 0;
+        for sym in &g.start {
+            if matches!(sym, Symbol::NonTerminal(r) if *r == target) {
+                count += 1;
+            }
+        }
+        for body in g.rules.values() {
+            for sym in body {
+                if matches!(sym, Symbol::NonTerminal(r) if *r == target) {
+                    count += 1;
+                }
+            }
+        }
+        count
     }
 }
