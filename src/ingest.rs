@@ -32,6 +32,9 @@ pub struct IngestContext {
     pub source_url: Option<String>,
     /// SHA-256 of the source file (for provenance).
     pub source_sha: Option<String>,
+    /// When set and role=Rib, apply bgpkit-parser origin_asn filters.
+    /// This is safe for RIB preflight only — never apply to UPDATEs.
+    pub origin_asn_filters: Vec<u32>,
 }
 
 // ── Error types ────────────────────────────────────────────────────
@@ -152,12 +155,35 @@ impl ObservationStream {
     ) -> Result<Self, InimError> {
         let path_str = path.to_string_lossy().to_string();
 
-        let parser = BgpkitParser::new(&path_str).map_err(|e| {
+        let mut parser = BgpkitParser::new(&path_str).map_err(|e| {
             InimError::ParserInitializationError {
                 path: path_str.clone(),
                 source: e.to_string(),
             }
         })?;
+
+        // Apply origin ASN filter for RIB preflight (parser-level speedup).
+        // We unconditionally consume parser via add_filter; if it fails,
+        // we restart without filter (graceful degradation).
+        if context.role == IngestRole::Rib && !context.origin_asn_filters.is_empty() {
+            let asn = context.origin_asn_filters[0];
+            parser = match parser.add_filter("origin_asn", &asn.to_string()) {
+                Ok(p) => p,
+                Err(_e) => {
+                    eprintln!(
+                        "[{}] warning: origin_asn filter {} not applied, falling back to in-stream filtering",
+                        context.collector.0, asn
+                    );
+                    // Re-create parser without filter
+                    BgpkitParser::new(&path_str).map_err(|e| {
+                        InimError::ParserInitializationError {
+                            path: path_str.clone(),
+                            source: e.to_string(),
+                        }
+                    })?
+                }
+            };
+        }
 
         let input_path = path_str.clone();
         let role = context.role;
@@ -374,6 +400,7 @@ mod tests {
             input_path: PathBuf::from("rib.mrt.bz2"),
             source_url: None,
             source_sha: None,
+            origin_asn_filters: vec![],
         };
         assert_eq!(ctx.collector.0, "route-views2");
     }
@@ -394,6 +421,7 @@ mod tests {
             role: IngestRole::Rib,
             collector: CollectorId("test".into()),
             input_path: PathBuf::from("test.mrt"), source_url: None, source_sha: None,
+            origin_asn_filters: vec![],
         };
         // If role were inferred from elem.elem_type, Rib would be impossible
         // since BgpElem only has ANNOUNCE/WITHDRAW
@@ -411,6 +439,7 @@ mod tests {
             role: IngestRole::Updates,
             collector: CollectorId("route-views2".into()),
             input_path: fixture_path.clone(), source_url: None, source_sha: None,
+            origin_asn_filters: vec![],
         };
 
         let stream = ObservationStream::from_local_file(fixture_path, ctx)

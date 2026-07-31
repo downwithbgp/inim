@@ -13,6 +13,7 @@ use crate::domain::route::Prefix;
 
 /// A frozen set of observer-prefix streams relevant to the event.
 #[derive(Debug, Clone)]
+#[derive(Default)]
 pub struct TargetSet {
     /// Per-collector stream entries.
     pub streams: HashMap<String, Vec<TargetStream>>,
@@ -87,7 +88,15 @@ pub fn scan_rib_and_freeze(
     TargetSet { streams }
 }
 
+
 impl TargetSet {
+    /// Merge another target set into this one.
+    pub fn merge(&mut self, other: &TargetSet) {
+        for (collector, entries) in &other.streams {
+            self.streams.entry(collector.clone()).or_default().extend(entries.iter().cloned());
+        }
+    }
+
     /// Check whether a collector has any relevant streams.
     pub fn has_relevant_streams(&self, collector: &str) -> bool {
         self.streams

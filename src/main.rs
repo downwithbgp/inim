@@ -66,13 +66,6 @@ fn main() {
                 let discovery = inim::discover::LiveArchiveDiscovery;
                 let outcome = inim::orchestrate::run_real_analysis(event, manifest_path, cache, out, &discovery);
 
-                // Always write output artifacts
-                if let Some(dir) = out.to_str() {
-                    if let Err(e) = write_outcome_outputs(&outcome, out) {
-                        eprintln!("Warning: failed to write outputs: {e}");
-                    }
-                }
-
                 let json = serde_json::to_string_pretty(&outcome).unwrap_or_default();
                 println!("{json}");
                 if matches!(outcome, inim::outcome::AnalysisOutcome::Incomplete { .. }) {
@@ -83,38 +76,6 @@ fn main() {
             }
         }
     }
-}
-
-fn write_outcome_outputs(
-    outcome: &inim::outcome::AnalysisOutcome,
-    out_dir: &std::path::Path,
-) -> Result<(), String> {
-    use inim::output::{write_outputs, OutputContext};
-    let collectors: Vec<String> = vec![];
-    let ribs: Vec<inim::discover::CachedArchive> = vec![];
-    let updates: Vec<inim::discover::CachedArchive> = vec![];
-    let transitions: Vec<inim::domain::route::RouteTransition> = vec![];
-    let waves: Vec<inim::domain::wave::ImpactWave> = vec![];
-    let limitations: Vec<String> = vec![];
-    let ctx = OutputContext {
-        outcome,
-        event_id: "see report.json",
-        ticket_title: "see report.json",
-        event_window: "see report.json",
-        warmup_window: "see report.json",
-        cooldown_window: "see report.json",
-        declared_expectation: "see report.json",
-        target_predicate: "see report.json",
-        collectors: &collectors,
-        selected_ribs: &ribs,
-        selected_updates: &updates,
-        preflight: None,
-        continuity: "see report.json",
-        transitions: &transitions,
-        waves: &waves,
-        limitations: &limitations,
-    };
-    write_outputs(&ctx, out_dir).map(|_| ())
 }
 
 fn run_analyze_synthetic(

@@ -8,9 +8,7 @@ use serde::Serialize;
 use std::path::{Path, PathBuf};
 
 use crate::discover::CachedArchive;
-use crate::domain::assessment::{EventAssessment, Evidence, Verdict};
-use crate::domain::event::EventId;
-use crate::domain::route::{AnalysisPhase, RouteTransition, TransitionKind};
+use crate::domain::route::{AnalysisPhase, RouteTransition};
 use crate::domain::wave::ImpactWave;
 use crate::outcome::AnalysisOutcome;
 use crate::target::PreflightCounts;
@@ -146,11 +144,11 @@ fn write_report_txt(ctx: &OutputContext, path: &Path) -> Result<(), String> {
             }
         }
         AnalysisOutcome::InsufficientVisibility { reason } => {
-            push_ln(&mut buf, &format!("  INSUFFICIENT VISIBILITY"));
+            push_ln(&mut buf, "  INSUFFICIENT VISIBILITY");
             push_ln(&mut buf, &format!("  {reason}"));
         }
         AnalysisOutcome::Incomplete { failure } => {
-            push_ln(&mut buf, &format!("  INCOMPLETE"));
+            push_ln(&mut buf, "  INCOMPLETE");
             push_ln(&mut buf, &format!("  {failure}"));
         }
     }
@@ -380,7 +378,8 @@ fn push_ln(buf: &mut String, line: &str) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::domain::assessment::Evidence;
+    use crate::domain::assessment::{EventAssessment, Evidence, Verdict};
+    use crate::domain::event::EventId;
     use crate::outcome::AnalysisOutcome;
 
     fn sample_outcome() -> AnalysisOutcome {
@@ -535,7 +534,7 @@ mod tests {
 
     #[test]
     fn evidence_appendix_contains_baseline_before_after() {
-        use crate::domain::route::{AnalysisPhase, Continuity, RouteKey, StateChange, TransitionKind};
+        use crate::domain::route::{AnalysisPhase, RouteKey, TransitionKind};
         use crate::domain::observation::EvidenceRef;
         use crate::domain::route::Prefix;
         use std::net::IpAddr;
