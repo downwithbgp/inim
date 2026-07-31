@@ -98,6 +98,11 @@ enum Commands {
         #[arg(long, value_name = "DIR")]
         b: PathBuf,
 
+        /// Optional directory containing a blocked analysis_plan.json to
+        /// include as a planning-status entry (never as an observed event).
+        #[arg(long, value_name = "DIR")]
+        blocked: Option<PathBuf>,
+
         /// Output directory for the comparison artifacts.
         #[arg(short = 'o', long, value_name = "DIR")]
         out: PathBuf,
@@ -170,7 +175,9 @@ fn run(cli: &Cli) -> i32 {
             reviewed_by.as_deref(),
             date.as_deref(),
         ),
-        Commands::Compare { a, b, out } => cmd_compare(&mut std::io::stdout(), a, b, out),
+        Commands::Compare { a, b, blocked, out } => {
+            cmd_compare(&mut std::io::stdout(), a, b, blocked.as_deref(), out)
+        }
         Commands::Analyze {
             event,
             manifest,
@@ -321,6 +328,7 @@ fn cmd_compare(
     stdout: &mut dyn Write,
     a_dir: &std::path::Path,
     b_dir: &std::path::Path,
+    blocked_dir: Option<&std::path::Path>,
     out_dir: &std::path::Path,
 ) -> i32 {
     let a = match inim::compare::load_event_summary(&a_dir.join("report.json")) {
@@ -337,7 +345,16 @@ fn cmd_compare(
             return EXIT_INVALID_INPUT;
         }
     };
-    let artifact = inim::compare::ComparisonArtifact::new(a, b);
+    let mut artifact = inim::compare::ComparisonArtifact::new(a, b);
+    if let Some(dir) = blocked_dir {
+        match inim::compare::load_blocked_plan_summary(&dir.join("analysis_plan.json")) {
+            Ok(blocked) => artifact = artifact.with_blocked(blocked),
+            Err(e) => {
+                let _ = writeln!(stdout, "error: {e}");
+                return EXIT_INVALID_INPUT;
+            }
+        }
+    }
     if let Err(e) = artifact.write(out_dir) {
         let _ = writeln!(stdout, "error: {e}");
         return EXIT_INVALID_INPUT;
