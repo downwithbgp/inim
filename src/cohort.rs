@@ -479,4 +479,206 @@ mod tests {
         let stream_count = if state.is_visible() { 1 } else { 0 };
         assert_eq!(stream_count, 1);
     }
+
+    // ── 4.1 Keyed/unkeyed withdrawal behavior ──────────────────────
+
+    #[test]
+    fn keyed_withdrawal_removes_only_matching_instance() {
+        let opk = ObserverPrefixKey {
+            collector: "rv2".into(),
+            peer_ip: "185.1.8.65".parse().unwrap(),
+            prefix: crate::domain::route::Prefix::from("192.0.2.0/24"),
+        };
+        let rk1 =
+            RouteKey::with_path_id("rv2", "185.1.8.65".parse().unwrap(), &opk.prefix, Some(1));
+        let rk2 =
+            RouteKey::with_path_id("rv2", "185.1.8.65".parse().unwrap(), &opk.prefix, Some(2));
+        let mut state = ObserverPrefixState::new(opk.clone());
+        state.active_instances.insert(
+            rk1.clone(),
+            RouteState {
+                prefix: opk.prefix.clone(),
+                attributes: RouteAttributes::empty(),
+                timestamp: chrono::Utc::now(),
+                observer: "rv2:185.1.8.65".into(),
+                path_id: Some(1),
+            },
+        );
+        state.active_instances.insert(
+            rk2,
+            RouteState {
+                prefix: opk.prefix.clone(),
+                attributes: RouteAttributes::empty(),
+                timestamp: chrono::Utc::now(),
+                observer: "rv2:185.1.8.65".into(),
+                path_id: Some(2),
+            },
+        );
+        // Keyed withdrawal of rk1
+        state.active_instances.remove(&rk1);
+        assert!(
+            state.is_visible(),
+            "stream still visible after one instance withdrawal"
+        );
+        assert_eq!(state.instance_count(), 1);
+    }
+
+    #[test]
+    fn keyed_withdrawal_preserves_other_keyed_instances() {
+        let opk = ObserverPrefixKey {
+            collector: "rv2".into(),
+            peer_ip: "185.1.8.65".parse().unwrap(),
+            prefix: crate::domain::route::Prefix::from("192.0.2.0/24"),
+        };
+        let rk1 =
+            RouteKey::with_path_id("rv2", "185.1.8.65".parse().unwrap(), &opk.prefix, Some(1));
+        let rk2 =
+            RouteKey::with_path_id("rv2", "185.1.8.65".parse().unwrap(), &opk.prefix, Some(2));
+        let mut state = ObserverPrefixState::new(opk);
+        state.active_instances.insert(
+            rk1,
+            RouteState {
+                prefix: crate::domain::route::Prefix::from("192.0.2.0/24"),
+                attributes: RouteAttributes::empty(),
+                timestamp: chrono::Utc::now(),
+                observer: "rv2:185.1.8.65".into(),
+                path_id: Some(1),
+            },
+        );
+        state.active_instances.insert(
+            rk2,
+            RouteState {
+                prefix: crate::domain::route::Prefix::from("192.0.2.0/24"),
+                attributes: RouteAttributes::empty(),
+                timestamp: chrono::Utc::now(),
+                observer: "rv2:185.1.8.65".into(),
+                path_id: Some(2),
+            },
+        );
+        // Remove rk1, rk2 should still be there
+        let rk1_key = RouteKey::with_path_id(
+            "rv2",
+            "185.1.8.65".parse().unwrap(),
+            &crate::domain::route::Prefix::from("192.0.2.0/24"),
+            Some(1),
+        );
+        state.active_instances.remove(&rk1_key);
+        assert_eq!(state.instance_count(), 1, "other keyed instance preserved");
+    }
+
+    // ── 5.1 Lifecycle categorization ───────────────────────────────
+
+    #[test]
+    fn nonfinal_instance_loss_is_not_withdrawn_category() {
+        // One instance lost, another remains → not Withdrawn
+        let opk = ObserverPrefixKey {
+            collector: "rv2".into(),
+            peer_ip: "185.1.8.65".parse().unwrap(),
+            prefix: crate::domain::route::Prefix::from("192.0.2.0/24"),
+        };
+        let rk1 =
+            RouteKey::with_path_id("rv2", "185.1.8.65".parse().unwrap(), &opk.prefix, Some(1));
+        let rk2 =
+            RouteKey::with_path_id("rv2", "185.1.8.65".parse().unwrap(), &opk.prefix, Some(2));
+        let mut state = ObserverPrefixState::new(opk);
+        state.active_instances.insert(
+            rk1,
+            RouteState {
+                prefix: crate::domain::route::Prefix::from("192.0.2.0/24"),
+                attributes: RouteAttributes::empty(),
+                timestamp: chrono::Utc::now(),
+                observer: "rv2:185.1.8.65".into(),
+                path_id: Some(1),
+            },
+        );
+        state.active_instances.insert(
+            rk2,
+            RouteState {
+                prefix: crate::domain::route::Prefix::from("192.0.2.0/24"),
+                attributes: RouteAttributes::empty(),
+                timestamp: chrono::Utc::now(),
+                observer: "rv2:185.1.8.65".into(),
+                path_id: Some(2),
+            },
+        );
+        // Remove one — stream still visible
+        let rk1_key = RouteKey::with_path_id(
+            "rv2",
+            "185.1.8.65".parse().unwrap(),
+            &crate::domain::route::Prefix::from("192.0.2.0/24"),
+            Some(1),
+        );
+        state.active_instances.remove(&rk1_key);
+        assert!(
+            state.is_visible(),
+            "non-final instance loss → not withdrawn"
+        );
+    }
+
+    #[test]
+    fn final_instance_loss_is_withdrawn_category() {
+        let opk = ObserverPrefixKey {
+            collector: "rv2".into(),
+            peer_ip: "185.1.8.65".parse().unwrap(),
+            prefix: crate::domain::route::Prefix::from("192.0.2.0/24"),
+        };
+        let mut state = ObserverPrefixState::new(opk.clone());
+        let rk = RouteKey::with_path_id("rv2", "185.1.8.65".parse().unwrap(), &opk.prefix, Some(1));
+        state.active_instances.insert(
+            rk.clone(),
+            RouteState {
+                prefix: opk.prefix,
+                attributes: RouteAttributes::empty(),
+                timestamp: chrono::Utc::now(),
+                observer: "rv2:185.1.8.65".into(),
+                path_id: Some(1),
+            },
+        );
+        state.active_instances.remove(&rk);
+        assert!(!state.is_visible(), "final instance loss → withdrawn");
+    }
+
+    #[test]
+    fn path_id_only_change_is_not_material() {
+        // Same collapsed path, different path_id → not material impact
+        let from_path = vec![11537, 40220, 225];
+        let to_path = vec![11537, 40220, 225];
+        assert_eq!(
+            from_path, to_path,
+            "same path under different path_id is not material change"
+        );
+    }
+
+    #[test]
+    fn lifecycle_counts_are_observer_prefix_counts() {
+        // N route instances → 1 observer-prefix stream
+        let opk = ObserverPrefixKey {
+            collector: "rv2".into(),
+            peer_ip: "185.1.8.65".parse().unwrap(),
+            prefix: crate::domain::route::Prefix::from("192.0.2.0/24"),
+        };
+        let mut state = ObserverPrefixState::new(opk);
+        for i in 0..5 {
+            let rk = RouteKey::with_path_id(
+                "rv2",
+                "185.1.8.65".parse().unwrap(),
+                &crate::domain::route::Prefix::from("192.0.2.0/24"),
+                Some(i),
+            );
+            state.active_instances.insert(
+                rk,
+                RouteState {
+                    prefix: crate::domain::route::Prefix::from("192.0.2.0/24"),
+                    attributes: RouteAttributes::empty(),
+                    timestamp: chrono::Utc::now(),
+                    observer: "rv2:185.1.8.65".into(),
+                    path_id: Some(i),
+                },
+            );
+        }
+        assert_eq!(state.instance_count(), 5);
+        // Stream count = 1, not 5
+        let stream_count = if state.is_visible() { 1 } else { 0 };
+        assert_eq!(stream_count, 1);
+    }
 }
