@@ -2,51 +2,51 @@
   INTERNET IMPACT ANALYSIS
 ══════════════════════════════════════════
 
-Event:        INC0302574
-Title:        Brief Outage - I2 PX Peer RIPE via NYIIX (NEWA)
+Event:        INC0299001
+Title:        Availability - I2 Participant UVA
 Report schema: v1
 
 ── Observed event signature ────────────────
-  Ticket expectation:      Redundant: Parenthesized site code (NEWA) indicates expected redundancy
+  Ticket expectation:      ParticipantRelationshipUnavailable: Non-parenthesized participant title — managed-network participant relationship may be unavailable. Impact may include path departure from the reviewed transit predicate, alternate routing, or partial restorations.
   Ticket lifecycle:        Closed
   Transit predicate:       ContainsAny[11537]
-  Analysis window (UTC):   2026-07-30 09:25:00 UTC – 2026-07-30 09:47:00 UTC
-  Warmup:                  2026-07-30 08:25:00 UTC – 2026-07-30 09:25:00 UTC
-  Cooldown:                2026-07-30 09:47:00 UTC – 2026-07-30 10:47:00 UTC
-  Observer scope:          2 collectors (route-views2, route-views6)
+  Analysis window (UTC):   2026-07-14 06:35:00 UTC – 2026-07-14 07:56:00 UTC
+  Warmup:                  2026-07-14 05:35:00 UTC – 2026-07-14 06:35:00 UTC
+  Cooldown:                2026-07-14 07:56:00 UTC – 2026-07-14 08:56:00 UTC
+  Observer scope:          1 collectors (route-views2)
 
   ── Observer scope (streams and instances) ──
-    Baseline observer-prefix streams: 19
-    Baseline route instances:          19
+    Baseline observer-prefix streams: 48
+    Baseline route instances:          48
     Multiple-instance streams:          0
 
   ── Stream lifecycle ─────────────────────
-    Unchanged streams:                  19
-    Prepend-only streams:               0
-    Material path changes (transitions):0
-    Streams retaining transit:          19
-    Streams departing transit:          0
-    Withdrawn streams:                  0
-    Restored streams:                   0
+    Unchanged streams:                  0
+    Prepend-only streams:               22
+    Material path changes (transitions):29
+    Streams retaining transit:          33
+    Streams departing transit:          2
+    Withdrawn streams:                  13
+    Restored streams:                   13
     Unresolved streams:                 0
     ADD-PATH ambiguous streams:         0
 
-  ── Final impact assessment ───────────────
-    Verdict: NO OBSERVABLE BGP IMPACT
-    - Total route transitions observed: 0
-    - Withdrawals: 0
-    - Path changes: 0
-    - Restorations to baseline: 0
-    - Stream lifecycle: total=19 unchanged=19 prepend-only=0 withdrawn=0 departed-I2=0 restored=0 not-restored=0 add-path-ambiguous=0
+  ── Semantic waves ────────────────────────
+    wave-1 PrependReduction  07:24:47 – 07:25:49 (48 streams, 48 route instances, peak 07:24:47 – 07:25:21)
+    wave-2 PrependReduction  07:33:59 – 07:37:07 (48 streams, 48 route instances, peak 07:33:59 – 07:34:35)
 
-    No route-state changes were observed among the selected RouteViews
-    observer-prefix streams. This is consistent with the
-    redundant-attachment expectation.
+  ── Final impact assessment ───────────────
+    Verdict: PARTIAL IMPACT
+    - Total route transitions observed: 214
+    - Withdrawals: 14
+    - Path changes: 104
+    - Restorations to baseline: 35
+    - Stream lifecycle: total=48 unchanged=0 prepend-only=22 withdrawn=13 departed-I2=2 restored=13 not-restored=0 add-path-ambiguous=0
 
 ── Observable mechanism hints ──────────────
   No RFC 8326 GRACEFUL_SHUTDOWN community reached the selected observers.
   Its absence does not establish that graceful shutdown was not used.
-  Community-only changes (no path change): 0 transition(s).
+  Community-only changes (no path change): 101 transition(s).
   RFC 9003: administrative-shutdown message not observable from these remote collector sessions.
   RFC 8327: operational intent not directly observable.
   Graceful Restart: negotiated session capability/state not directly observable from this dataset.
@@ -59,7 +59,7 @@ Report schema: v1
   • Physical-link state is not observed.
   • Absent communities do not prove a mechanism was unused.
   • Event declarations and BGP changes establish temporal association, not automatic causation.
-  • 2 of 2 requested collectors retained after RIB preflight (["route-views2", "route-views6"])
+  • 1 of 2 requested collectors retained after RIB preflight (["route-views2"])
 
 This analysis uses control-plane observations from selected RouteViews
 collectors only. Conclusions are observer-scoped and do not claim

@@ -357,7 +357,8 @@ fn run_inner(
     }
 
     // ── Check: any collectors retained? ─────────────────────────────
-    let retained_collectors: Vec<String> = target_set.streams.keys().cloned().collect();
+    let mut retained_collectors: Vec<String> = target_set.streams.keys().cloned().collect();
+    retained_collectors.sort();
     if retained_collectors.is_empty() {
         return Ok(AnalysisOutcome::insufficient_visibility(
             "No selected RouteViews observer had a pre-event route matching the reviewed Internet2 path predicate.",

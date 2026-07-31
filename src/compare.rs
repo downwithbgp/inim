@@ -176,126 +176,49 @@ impl ComparisonArtifact {
         ));
         buf.push_str(&format!("Comparison schema: v{}\n", self.schema_version));
         buf.push('\n');
-        buf.push_str(&format!(
-            "{:<34}{:<22}{}\n",
+
+        let rows: Vec<(String, String, String)> = vec![
+            ("Expectation".into(), self.a.expectation_kind.clone(), self.b.expectation_kind.clone()),
+            ("Lifecycle".into(), self.a.ticket_lifecycle.clone(), self.b.ticket_lifecycle.clone()),
+            ("Convention provenance".into(), self.a.expectation_provenance.clone(), self.b.expectation_provenance.clone()),
+            ("TransitPredicate".into(), self.a.transit_predicate.clone(), self.b.transit_predicate.clone()),
+            ("Collectors".into(), self.a.collectors.join(","), self.b.collectors.join(",")),
+            ("Observer-prefix streams".into(), self.a.observer_prefix_streams.to_string(), self.b.observer_prefix_streams.to_string()),
+            ("Route instances".into(), self.a.route_instances.to_string(), self.b.route_instances.to_string()),
+            ("Multiple-instance streams".into(), self.a.multiple_instance_streams.to_string(), self.b.multiple_instance_streams.to_string()),
+            ("Unchanged".into(), self.a.unchanged.to_string(), self.b.unchanged.to_string()),
+            ("Prepend-only".into(), self.a.prepend_only.to_string(), self.b.prepend_only.to_string()),
+            ("Material changes".into(), self.a.material_changes.to_string(), self.b.material_changes.to_string()),
+            ("Withdrawals (selected streams)".into(), self.a.withdrawals.to_string(), self.b.withdrawals.to_string()),
+            ("Transit departures".into(), self.a.transit_departures.to_string(), self.b.transit_departures.to_string()),
+            ("Restorations".into(), self.a.restorations.to_string(), self.b.restorations.to_string()),
+            ("GSHUT streams".into(), self.a.gshut_streams.to_string(), self.b.gshut_streams.to_string()),
+            (
+                "Semantic waves".into(),
+                self.a.semantic_waves.iter().map(|(id, l)| format!("{id}:{l}")).collect::<Vec<_>>().join(","),
+                self.b.semantic_waves.iter().map(|(id, l)| format!("{id}:{l}")).collect::<Vec<_>>().join(","),
+            ),
+            ("Final assessment".into(), self.a.verdict.clone(), self.b.verdict.clone()),
+        ];
+
+        let label_w = rows.iter().map(|(l, _, _)| l.len()).max().unwrap_or(8) + 2;
+        let a_w = rows
+            .iter()
+            .map(|(_, a, _)| a.len())
+            .max()
+            .unwrap_or(self.a.event_id.len())
+            + 2;
+        let header = format!(
+            "{:<label_w$}{:<a_w$}{}",
             "Metric", self.a.event_id, self.b.event_id
-        ));
-        buf.push_str(&format!("{:<34}{:<22}{}\n", "──", "──", "──"));
-        let row = |buf: &mut String, label: &str, a: String, b: String| {
-            buf.push_str(&format!("{label:<34}{a:<22}{b}\n"));
-        };
-        row(
-            &mut buf,
-            "Expectation",
-            self.a.expectation_kind.clone(),
-            self.b.expectation_kind.clone(),
         );
-        row(
-            &mut buf,
-            "Lifecycle",
-            self.a.ticket_lifecycle.clone(),
-            self.b.ticket_lifecycle.clone(),
-        );
-        row(
-            &mut buf,
-            "Convention provenance",
-            self.a.expectation_provenance.clone(),
-            self.b.expectation_provenance.clone(),
-        );
-        row(
-            &mut buf,
-            "TransitPredicate",
-            self.a.transit_predicate.clone(),
-            self.b.transit_predicate.clone(),
-        );
-        row(
-            &mut buf,
-            "Collectors",
-            self.a.collectors.join(","),
-            self.b.collectors.join(","),
-        );
-        row(
-            &mut buf,
-            "Observer-prefix streams",
-            self.a.observer_prefix_streams.to_string(),
-            self.b.observer_prefix_streams.to_string(),
-        );
-        row(
-            &mut buf,
-            "Route instances",
-            self.a.route_instances.to_string(),
-            self.b.route_instances.to_string(),
-        );
-        row(
-            &mut buf,
-            "Multiple-instance streams",
-            self.a.multiple_instance_streams.to_string(),
-            self.b.multiple_instance_streams.to_string(),
-        );
-        row(
-            &mut buf,
-            "Unchanged",
-            self.a.unchanged.to_string(),
-            self.b.unchanged.to_string(),
-        );
-        row(
-            &mut buf,
-            "Prepend-only",
-            self.a.prepend_only.to_string(),
-            self.b.prepend_only.to_string(),
-        );
-        row(
-            &mut buf,
-            "Material changes",
-            self.a.material_changes.to_string(),
-            self.b.material_changes.to_string(),
-        );
-        row(
-            &mut buf,
-            "Withdrawals (selected streams)",
-            self.a.withdrawals.to_string(),
-            self.b.withdrawals.to_string(),
-        );
-        row(
-            &mut buf,
-            "Transit departures",
-            self.a.transit_departures.to_string(),
-            self.b.transit_departures.to_string(),
-        );
-        row(
-            &mut buf,
-            "Restorations",
-            self.a.restorations.to_string(),
-            self.b.restorations.to_string(),
-        );
-        row(
-            &mut buf,
-            "GSHUT streams",
-            self.a.gshut_streams.to_string(),
-            self.b.gshut_streams.to_string(),
-        );
-        row(
-            &mut buf,
-            "Semantic waves",
-            self.a
-                .semantic_waves
-                .iter()
-                .map(|(id, l)| format!("{id}:{l}"))
-                .collect::<Vec<_>>()
-                .join(","),
-            self.b
-                .semantic_waves
-                .iter()
-                .map(|(id, l)| format!("{id}:{l}"))
-                .collect::<Vec<_>>()
-                .join(","),
-        );
-        row(
-            &mut buf,
-            "Final assessment",
-            self.a.verdict.clone(),
-            self.b.verdict.clone(),
-        );
+        buf.push_str(&header);
+        buf.push('\n');
+        buf.push_str(&"-".repeat(header.len()));
+        buf.push('\n');
+        for (label, a, b) in rows {
+            buf.push_str(&format!("{label:<label_w$}{a:<a_w$}{b}\n"));
+        }
         buf.push('\n');
         buf.push_str("Limitations (observer-scoped, no severity score):\n");
         for (label, e) in [("a", &self.a), ("b", &self.b)] {

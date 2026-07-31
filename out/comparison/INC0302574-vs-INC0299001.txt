@@ -1,0 +1,28 @@
+Event comparison: INC0302574 vs INC0299001
+Comparison schema: v1
+
+Metric                          INC0302574                                                                         INC0299001
+-----------------------------------------------------------------------------------------------------------------------------
+Expectation                     Redundant                                                                          ParticipantRelationshipUnavailable
+Lifecycle                       Closed                                                                             Closed
+Convention provenance           Internet2 title convention: parenthesized site code indicates expected redundancy  Internet2 title convention: parenthesized site code indicates expected redundancy
+TransitPredicate                ContainsAny[11537]                                                                 ContainsAny[11537]
+Collectors                      route-views2,route-views6                                                          route-views2
+Observer-prefix streams         19                                                                                 48
+Route instances                 19                                                                                 48
+Multiple-instance streams       0                                                                                  0
+Unchanged                       19                                                                                 0
+Prepend-only                    0                                                                                  22
+Material changes                0                                                                                  29
+Withdrawals (selected streams)  0                                                                                  13
+Transit departures              0                                                                                  2
+Restorations                    0                                                                                  13
+GSHUT streams                   0                                                                                  0
+Semantic waves                                                                                                     wave-1:PrependReduction,wave-2:PrependReduction
+Final assessment                NoObservableBgpImpact                                                              PartialImpact
+
+Limitations (observer-scoped, no severity score):
+  a (INC0302574):
+    • 2 of 2 requested collectors retained after RIB preflight (["route-views2", "route-views6"])
+  b (INC0299001):
+    • 1 of 2 requested collectors retained after RIB preflight (["route-views2"])

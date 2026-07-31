@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "event_id": "INC0302574",
+  "summary": {
+    "unique_withdrawn_streams": 0,
+    "route_instance_withdrawals": 0,
+    "affected_prefixes": 0,
+    "affected_peers": 0,
+    "median_absence_secs": null,
+    "max_absence_secs": null,
+    "restored_count": 0,
+    "unresolved_count": 0,
+    "exact_restorations": 0,
+    "equivalent_restorations": 0,
+    "observer_prefix_restorations": 0,
+    "baseline_set_restorations": 0
+  },
+  "records": []
+}

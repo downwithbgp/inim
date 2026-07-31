@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "a": {
+    "event_id": "INC0302574",
+    "expectation_kind": "Redundant",
+    "expectation_provenance": "Internet2 title convention: parenthesized site code indicates expected redundancy",
+    "ticket_lifecycle": "Closed",
+    "transit_predicate": "ContainsAny[11537]",
+    "collectors": [
+      "route-views2",
+      "route-views6"
+    ],
+    "observer_prefix_streams": 19,
+    "route_instances": 19,
+    "multiple_instance_streams": 0,
+    "unchanged": 19,
+    "prepend_only": 0,
+    "material_changes": 0,
+    "withdrawals": 0,
+    "transit_departures": 0,
+    "restorations": 0,
+    "gshut_streams": 0,
+    "semantic_waves": [],
+    "verdict": "NoObservableBgpImpact",
+    "limitations": [
+      "2 of 2 requested collectors retained after RIB preflight ([\"route-views2\", \"route-views6\"])"
+    ]
+  },
+  "b": {
+    "event_id": "INC0299001",
+    "expectation_kind": "ParticipantRelationshipUnavailable",
+    "expectation_provenance": "Internet2 title convention: parenthesized site code indicates expected redundancy",
+    "ticket_lifecycle": "Closed",
+    "transit_predicate": "ContainsAny[11537]",
+    "collectors": [
+      "route-views2"
+    ],
+    "observer_prefix_streams": 48,
+    "route_instances": 48,
+    "multiple_instance_streams": 0,
+    "unchanged": 0,
+    "prepend_only": 22,
+    "material_changes": 29,
+    "withdrawals": 13,
+    "transit_departures": 2,
+    "restorations": 13,
+    "gshut_streams": 0,
+    "semantic_waves": [
+      [
+        "wave-1",
+        "PrependReduction"
+      ],
+      [
+        "wave-2",
+        "PrependReduction"
+      ]
+    ],
+    "verdict": "PartialImpact",
+    "limitations": [
+      "1 of 2 requested collectors retained after RIB preflight ([\"route-views2\"])"
+    ]
+  }
+}

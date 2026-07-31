@@ -1,0 +1,29 @@
+→ Broker discovery: RIB files
+  route-views2: caching RIB http://archive.routeviews.org/bgpdata/2026.07/RIBS/rib.20260714.0400.bz2
+  route-views2: parsing RIB (origin filter: [225])...
+  [route-views2 RIB] done: 381 parsed, 381 origin, 48 transit, 48 frozen streams, 12 prefixes, 4 peers (110.8s)
+  route-views6: caching RIB http://archive.routeviews.org/route-views6/bgpdata/2026.07/RIBS/rib.20260714.0400.bz2
+  route-views6: parsing RIB (origin filter: [225])...
+  [route-views6 RIB] done: 0 parsed, 0 origin, 0 transit, 0 frozen streams, 0 prefixes, 0 peers (39.1s)
+→ RIB preflight done: 48 frozen streams over 1 collectors
+→ Broker discovery: UPDATE files
+  route-views2: querying UPDATE files...
+  route-views2: 22 UPDATE files selected
+→ Combining 48 RIB + 300 UPDATE observations...
+→ Reconstructing routes...
+→ Tokenizing 214 state changes...
+→ Detecting waves from 214 transitions...
+→ Assessing...
+→ Writing outputs to out/INC0299001
+
+── Stage timings ───────────────────────────
+  broker+cache                        0.6s
+  route-views2 RIB parse            110.8s
+  route-views6 RIB parse             39.1s
+  UPDATE cache+parse                 16.5s
+  reconstruction                      0.0s
+  tokenize                            0.0s
+  waves+motifs                        0.0s
+  assess                              0.0s
+  outputs                             0.0s
+  TOTAL                             168.0s

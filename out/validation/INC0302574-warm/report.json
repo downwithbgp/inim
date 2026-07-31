@@ -33,7 +33,7 @@
           "kind": "Redundant",
           "provenance": "Internet2 title convention: parenthesized site code indicates expected redundancy"
         },
-        "generated_at": "2026-07-31T21:12:21.589622121Z",
+        "generated_at": "2026-07-31T21:12:58.320429406Z",
         "verdict": "NoObservableBgpImpact",
         "waves": []
       },
@@ -109,7 +109,7 @@
         "kind": "Redundant",
         "provenance": "Internet2 title convention: parenthesized site code indicates expected redundancy"
       },
-      "generated_at": "2026-07-31T21:12:21.589622121Z",
+      "generated_at": "2026-07-31T21:12:58.320429406Z",
       "verdict": "NoObservableBgpImpact",
       "waves": []
     },
