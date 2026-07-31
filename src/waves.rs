@@ -248,6 +248,37 @@ pub fn summarize_waves(waves: &mut [ImpactWave]) {
     }
 }
 
+/// Classify a WaveMotif as a genuine multi-terminal motif or a single
+/// dominant transition (no inferred structure).
+pub fn classify_motif(motif: &WaveMotif) -> MotifClass {
+    // Single terminal with no hierarchical rules => dominant transition
+    let terminal_count = motif.expanded.split_whitespace().count();
+    let has_rules = motif.structure.len() > 1;
+    if terminal_count <= 1 && !has_rules {
+        MotifClass::DominantTransition
+    } else {
+        MotifClass::GenuineMotif
+    }
+}
+
+/// Classification of a wave's motif.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MotifClass {
+    /// A single repeated terminal with no inferred grammar structure.
+    DominantTransition,
+    /// A genuine multi-terminal or hierarchical motif.
+    GenuineMotif,
+}
+
+impl MotifClass {
+    pub fn heading(&self) -> &str {
+        match self {
+            MotifClass::DominantTransition => "Dominant transition",
+            MotifClass::GenuineMotif => "Motif",
+        }
+    }
+}
+
 /// Produce a short human-readable description of a SEQUITUR motif.
 fn describe_motif(motif: Option<&WaveMotif>) -> &str {
     match motif {
@@ -365,5 +396,53 @@ mod tests {
         summarize_waves(&mut waves);
         assert!(waves[0].label.contains("Wave 1"));
         assert!(waves[0].label.contains("path change"));
+    }
+
+    #[test]
+    fn single_terminal_result_is_not_labeled_as_motif() {
+        // A wave with a single-terminal motif should classify as DominantTransition
+        use crate::domain::wave::{WaveMotif, MotifEvidenceRange};
+        let t0 = t(0);
+        let motif = WaveMotif {
+            id: "abc".into(),
+            expanded: "PATH_CHANGE".into(),
+            structure: vec!["ROOT → PATH_CHANGE".into()],
+            occurrences: 1,
+            covered_terminals: 1,
+            total_terminals: 1,
+            scopes: vec![],
+            evidence_ranges: vec![MotifEvidenceRange {
+                observer: "rv2:185.1.8.65".into(),
+                prefix: "192.0.2.0/24".into(),
+                time_start: t0,
+                time_end: t0 + chrono::Duration::seconds(1),
+                transition_start: 0,
+                transition_end: 0,
+            }],
+        };
+        let class = classify_motif(&motif);
+        assert_eq!(class, MotifClass::DominantTransition);
+        assert_eq!(class.heading(), "Dominant transition");
+    }
+
+    #[test]
+    fn multi_terminal_rule_is_labeled_as_motif() {
+        use crate::domain::wave::{WaveMotif, MotifEvidenceRange};
+        let t0 = t(0);
+        let motif = WaveMotif {
+            id: "def".into(),
+            expanded: "PATH_CHANGE RETURN_TO_BASELINE".into(),
+            structure: vec![
+                "ROOT → PATH_CHANGE RETURN_TO_BASELINE".into(),
+            ],
+            occurrences: 2,
+            covered_terminals: 4,
+            total_terminals: 4,
+            scopes: vec![],
+            evidence_ranges: vec![],
+        };
+        let class = classify_motif(&motif);
+        assert_eq!(class, MotifClass::GenuineMotif);
+        assert_eq!(class.heading(), "Motif");
     }
 }

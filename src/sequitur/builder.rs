@@ -4,6 +4,31 @@
 //! 1. **Digram uniqueness**: no pair of adjacent symbols appears more
 //!    than once in the entire grammar (start + all rule bodies).
 //! 2. **Rule utility**: every rule is referenced at least twice.
+//!
+//! ## Cleanup behavior
+//!
+//! Rule utility is enforced in **two phases**:
+//!
+//! a. **Incremental (during `append`)**: after each substitution creates
+//!    a new rule, `enforce_digram_uniqueness_depth` checks if that specific
+//!    rule has at least 2 references. If not, it expands the rule back
+//!    immediately. This handles the common case where a rule becomes
+//!    under-referenced because an overlapping substitution consumed one
+//!    of its occurrences.
+//!
+//! b. **Final normalization pass (`finalize`)**: after all symbols are
+//!    appended, `enforce_global_rule_utility` scans every rule in
+//!    deterministic order (sorted by RuleId) and expands any with fewer
+//!    than 2 references. It repeats until no under-referenced rules
+//!    remain. This is a **cleanup pass** that catches rules whose
+//!    references were lost by later substitutions that the incremental
+//!    phase could not see (e.g. a rule's single reference was subsumed
+//!    by a later substitution in a different sequence).
+//!
+//! All invariants (`check_invariants`: exact expansion, no duplicate
+//! digrams, every retained rule ≥2 uses) are asserted after the cleanup
+//! pass on the exhaustive test corpus (all {a,b} sequences up to length 8)
+//! and 5 LCG-generated 40-char sequences.
 
 use std::collections::HashMap;
 

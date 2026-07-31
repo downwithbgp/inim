@@ -1,0 +1,30 @@
+{
+  "event_id": "INC0302574",
+  "event_window_utc": {
+    "start": "2026-07-30T09:25:00Z",
+    "end": "2026-07-30T09:47:00Z"
+  },
+  "ticket_window_local": {
+    "start": "2026-07-30 05:25:00",
+    "end": "2026-07-30 05:47:00",
+    "timezone": "EDT",
+    "timezone_note": "Internet2 GRNOC publishes ticket times in US Eastern time. EDT = UTC−4."
+  },
+  "warmup_minutes": 60,
+  "cooldown_minutes": 60,
+  "target": {
+    "label": "RIPE via NYIIX",
+    "origin_asns": [3333],
+    "internet2_asn": 11537,
+    "prefix_selection": "origin AS3333 AND baseline AS path contains AS11537",
+    "prefix_selection_provenance": "Manual analyst mapping: AS3333 = RIPE NCC (the peer named in the ticket); AS11537 = Internet2 (the network conducting the maintenance). We select only prefixes originated by RIPE whose pre-event baseline path traverses Internet2, as those are the routes that could be affected by the NYIIX/NEWA attachment outage."
+  },
+  "collectors": ["route-views2", "route-views6"],
+  "collectors_provenance": "RouteViews peers with broad global visibility. Selected for IPv4 coverage of AS3333 prefixes.",
+  "analyst_notes": [
+    "The ticket title 'Brief Outage - I2 PX Peer RIPE via NYIIX (NEWA)' indicates a short incident affecting the RIPE peer's New York attachment (site code NEWA). The parenthesized site code convention implies expected redundancy: one attachment may be unavailable, but RIPE reachability through Internet2 should remain via alternate paths.",
+    "Event window is 22 minutes (05:25–05:47 EDT). We add 60 minutes of warm-up before and cool-down after to observe baseline, transition, and restoration.",
+    "Prefixes are selected by scanning the preceding RIB for origin AS3333 routes whose AS path contains AS11537 (Internet2). This is a manual selection — no automatic participant-to-ASN mapping is performed.",
+    "Broker discovery is used to locate RIB and UPDATE files; caching avoids repeated downloads. If broker is unreachable or archives are unavailable, the analysis will report INSUFFICIENT_VISIBILITY or an archive error."
+  ]
+}

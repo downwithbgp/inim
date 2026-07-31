@@ -6,6 +6,7 @@
 use std::io::Write;
 
 use crate::domain::assessment::EventAssessment;
+use crate::waves;
 
 /// Render a human-readable terminal report.
 pub fn render_terminal(assessment: &EventAssessment, data_note: &str) -> String {
@@ -38,7 +39,8 @@ pub fn render_terminal(assessment: &EventAssessment, data_note: &str) -> String 
     for wave in &assessment.waves {
         writeln!(buf, "  {}", wave.label).ok();
         if let Some(ref motif) = wave.motif {
-            writeln!(buf, "    Motif").ok();
+            let class = waves::classify_motif(motif);
+            writeln!(buf, "    {}", class.heading()).ok();
             writeln!(buf, "      {}", motif.expanded).ok();
             writeln!(buf, "    Structure").ok();
             for line in &motif.structure {

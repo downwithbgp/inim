@@ -26,7 +26,7 @@ pub fn parse_ticket_fixture(path: &str) -> Result<Internet2Ticket, String> {
     let fixture: TicketFixture =
         serde_json::from_str(&content).map_err(|e| format!("invalid fixture JSON: {e}"))?;
 
-    let window = parse_time_window(&fixture.start, &fixture.end)?;
+    let window = parse_time_window(&fixture.start, &fixture.end, fixture.timezone.as_deref())?;
 
     let title = fixture.title; // extract before move for raw preservation
 
@@ -146,21 +146,53 @@ struct TicketFixture {
     ticket_type: String,
     #[serde(default)]
     description: String,
+    /// Optional timezone for start/end times (e.g. "EDT", "EST").
+    /// If absent, times are treated as UTC (backward compatibility).
+    #[serde(default)]
+    timezone: Option<String>,
 }
 
 /// Parse a "YYYY-MM-DD HH:MM:SS" timestamp into a DateTime<Utc>.
-/// Appends "UTC" timezone annotation since Internet2 uses Eastern time in
-/// practice, but fixtures use UTC-normalized strings.
-fn parse_time_window(start_str: &str, end_str: &str) -> Result<EventWindow, String> {
+///
+/// If the fixture declares a `timezone` field, the times are interpreted
+/// in that local timezone and normalized to UTC. Common Internet2 values:
+/// "EDT" (Eastern Daylight, UTC−4) and "EST" (Eastern Standard, UTC−5).
+/// Without a timezone, times are treated as UTC for backward compatibility
+/// with older fixtures.
+fn parse_time_window(
+    start_str: &str,
+    end_str: &str,
+    timezone: Option<&str>,
+) -> Result<EventWindow, String> {
     let fmt = "%Y-%m-%d %H:%M:%S";
+
+    let offset_seconds = match timezone {
+        Some("EDT") | Some("Eastern Daylight") => -4 * 3600,
+        Some("EST") | Some("Eastern Standard") => -5 * 3600,
+        Some(tz) => {
+            return Err(format!(
+                "unsupported timezone '{tz}' in fixture; supported: EDT, EST"
+            ));
+        }
+        None => 0, // backward-compatible UTC
+    };
+
+    let offset = chrono::FixedOffset::east_opt(offset_seconds)
+        .ok_or_else(|| format!("invalid offset {offset_seconds}"))?;
 
     let start = NaiveDateTime::parse_from_str(start_str, fmt)
         .map_err(|e| format!("invalid start time '{start_str}': {e}"))?
-        .and_utc();
+        .and_local_timezone(offset)
+        .single()
+        .ok_or_else(|| format!("ambiguous start time '{start_str}' at {timezone:?}"))?
+        .to_utc();
 
     let end = NaiveDateTime::parse_from_str(end_str, fmt)
         .map_err(|e| format!("invalid end time '{end_str}': {e}"))?
-        .and_utc();
+        .and_local_timezone(offset)
+        .single()
+        .ok_or_else(|| format!("ambiguous end time '{end_str}' at {timezone:?}"))?
+        .to_utc();
 
     Ok(EventWindow { start, end })
 }
@@ -337,6 +369,24 @@ mod tests {
         .expect("should parse fixture");
         assert_eq!(ticket.id.0, "INC0302574");
         assert!(ticket.title.contains("NEWA"));
+    }
+
+    #[test]
+    fn ticket_parser_normalizes_edt_to_utc() {
+        let ticket = parse_ticket_fixture(
+            "tests/fixtures/internet2/INC0302574.json",
+        )
+        .expect("should parse fixture");
+        // EDT is UTC-4, so 05:25 EDT = 09:25 UTC
+        assert_eq!(ticket.id.0, "INC0302574");
+        assert_eq!(
+            ticket.window.start.to_rfc3339(),
+            "2026-07-30T09:25:00+00:00"
+        );
+        assert_eq!(
+            ticket.window.end.to_rfc3339(),
+            "2026-07-30T09:47:00+00:00"
+        );
     }
 
     #[test]
