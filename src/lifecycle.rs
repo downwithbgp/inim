@@ -757,3 +757,94 @@ fn build_semantic_wave(
         duration_secs: ((last - first).num_seconds() as f64).max(0.0),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::domain::route::RouteAttributes;
+
+    #[test]
+    fn collapse_removes_consecutive_duplicates() {
+        assert_eq!(collapse_as_path(&[1, 2, 2, 2, 3]), vec![1, 2, 3]);
+        assert_eq!(collapse_as_path(&[1, 2, 3]), vec![1, 2, 3]);
+        assert_eq!(collapse_as_path(&[1, 1, 1]), vec![1]);
+        assert_eq!(collapse_as_path(&[]), Vec::<u32>::new());
+    }
+
+    #[test]
+    fn collapsed_equivalent_detects_prepend_difference() {
+        let a = vec![11537, 40220, 225, 225, 225];
+        let b = vec![11537, 40220, 225];
+        assert!(collapsed_equivalent(&a, &b));
+        assert!(!collapsed_equivalent(&[1, 2, 3], &[1, 3, 2]));
+    }
+
+    #[test]
+    fn prepend_reduction_is_classified_as_prepend_reduced() {
+        let from = make_state(vec![11537, 40220, 225, 225, 225]);
+        let to = make_state(vec![11537, 40220, 225]);
+        let shape = classify_path_change(&from, &to, 11537);
+        assert_eq!(shape, PathShapeChange::PrependReduced);
+    }
+
+    #[test]
+    fn prepend_increase_is_classified_as_prepend_increased() {
+        let from = make_state(vec![11537, 40220, 225]);
+        let to = make_state(vec![11537, 40220, 225, 225, 225]);
+        let shape = classify_path_change(&from, &to, 11537);
+        assert_eq!(shape, PathShapeChange::PrependIncreased);
+    }
+
+    #[test]
+    fn collapsed_as_sequence_distinguishes_prepend_from_path_change() {
+        // Same collapsed sequence = prepend
+        let from = make_state(vec![1, 2, 2, 3]);
+        let to = make_state(vec![1, 2, 3]);
+        assert_eq!(
+            classify_path_change(&from, &to, 99),
+            PathShapeChange::PrependReduced
+        );
+        // Different collapsed sequence with transit = still via
+        let from2 = make_state(vec![1, 99, 2, 3]);
+        let to2 = make_state(vec![1, 99, 4, 3]);
+        assert_eq!(
+            classify_path_change(&from2, &to2, 99),
+            PathShapeChange::PathChangedStillViaRequiredTransit
+        );
+    }
+
+    #[test]
+    fn replacement_retaining_transit_is_not_departure() {
+        let from = make_state(vec![1, 11537, 2]);
+        let to = make_state(vec![1, 11537, 3]);
+        let shape = classify_path_change(&from, &to, 11537);
+        assert_ne!(shape, PathShapeChange::PathDepartedRequiredTransit);
+        assert_eq!(shape, PathShapeChange::PathChangedStillViaRequiredTransit);
+    }
+
+    #[test]
+    fn replacement_without_transit_is_departure() {
+        let from = make_state(vec![1, 11537, 2]);
+        let to = make_state(vec![1, 3, 2]);
+        let shape = classify_path_change(&from, &to, 11537);
+        assert_eq!(shape, PathShapeChange::PathDepartedRequiredTransit);
+    }
+
+    #[test]
+    fn return_to_transit_is_classified() {
+        let from = make_state(vec![1, 3, 2]);
+        let to = make_state(vec![1, 11537, 2]);
+        let shape = classify_path_change(&from, &to, 11537);
+        assert_eq!(shape, PathShapeChange::PathReturnedToRequiredTransit);
+    }
+
+    fn make_state(path: Vec<u32>) -> RouteState {
+        use chrono::TimeZone;
+        RouteState {
+            prefix: crate::domain::route::Prefix::from("192.0.2.0/24"),
+            attributes: RouteAttributes::from_as_path(path),
+            timestamp: chrono::Utc.with_ymd_and_hms(2026, 7, 14, 7, 0, 0).unwrap(),
+            observer: "test:0.0.0.0".into(),
+        }
+    }
+}

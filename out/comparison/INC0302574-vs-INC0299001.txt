@@ -2,27 +2,25 @@ INIM OBSERVER-SCOPED COMPARISON
 INC0302574 vs INC0299001
 ==========================
 
-Event 1: INC0302574 - Redundant RIPE
-  Expectation:  Redundant (parenthesized NEWA)
-  Predicate:    origin AS3333 AND path contains AS11537
-  Collectors:   route-views2, route-views6
-  Frozen:       19 streams
+Event 1: INC0302574 - Redundant RIPE (parenthesized NEWA)
+  Frozen:       19 streams (rv2 + rv6)
   Changes:      0
-  Outcome:      NoObservableBgpImpact
-  Note:         RIPE's redundant attachment outage had no observable BGP impact
+  Verdict:      NoObservableBgpImpact
+  Note:         No route-state changes were observed among the 19 selected
+                RouteViews streams; this is consistent with the
+                redundant-attachment expectation.
 
-Event 2: INC0299001 - Unavailable UVA
-  Expectation:  ParticipantRelationshipUnavailable
-  Predicate:    origin AS225 AND path contains AS11537
-  Collectors:   route-views2, route-views6 (rv6 had 0 frozen)
-  Frozen:       48 streams (rv2 only)
-  Changes:      214 transitions (14 withdrawals, 104 path changes, 96 restorations)
-  Outcome:      ExpectedParticipantUnavailability
-  Note:         AS prepending reduction, not alternate routing. 14 complete withdrawals.
+Event 2: INC0299001 - Unavailable UVA (ParticipantRelationshipUnavailable)
+  Frozen:       48 streams (rv2 only; rv6 had 0)
+  Withdrawn:    14 streams (29% — proper subset)
+  Departed I2:  0 (all path changes retained AS11537)
+  Path shape:   AS prepending reduction (11537 40220 225x7 → 11537 40220 225)
+  Verdict:      PartialImpact
 
 Key Observations:
-  - Two events use distinct expectation models (Redundant vs ParticipantRelationshipUnavailable)
-  - INC0302574: zero BGP impact - redundancy worked as expected
-  - INC0299001: significant impact - withdrawals and prepending changes
-  - Neither showed departure from AS11537 (no alternate routing detected)
-  - route-views6 had no visibility of UVA+Internet2 streams
+  - INC0302574: zero observable BGP impact — redundant attachment worked
+  - INC0299001: partial impact — 14 streams withdrew, most retained transit
+  - Neither event showed departure from AS11537 (alternate routing)
+  - prepending changes are distinguished from path topology changes
+  - Withdrawals are observer-scoped ("withdrawal from a selected stream"),
+    not global prefix withdrawals

@@ -1,10 +1,9 @@
 {
   "comparison_title": "INC0302574 (Redundant RIPE) vs INC0299001 (Unavailable UVA)",
-  "generated_note": "Comparison based on inim analysis of RouteViews BGP observations.",
+  "generated_at": "2026-07-31T14:30:48.582714+00:00",
   "events": [
     {
       "event_id": "INC0302574",
-      "title": "Brief Outage - I2 PX Peer RIPE via NYIIX (NEWA)",
       "ticket_expectation": "Redundant (parenthesized site code NEWA)",
       "target_predicate": "origin AS3333 AND baseline AS path contains AS11537",
       "collectors": [
@@ -12,41 +11,41 @@
         "route-views6"
       ],
       "frozen_streams": 19,
-      "changed_streams": 0,
-      "withdrawals": 0,
-      "paths_departing_as11537": 0,
-      "alternate_paths": 0,
-      "restorations": 0,
-      "final_outcome": "NoObservableBgpImpact",
+      "unchanged_streams": 19,
+      "prepend_only_streams": 0,
+      "materially_changed_streams": 0,
+      "withdrawn_streams": 0,
+      "streams_departing_as11537": 0,
+      "restored_streams": 0,
+      "observed_absence_durations": "none",
+      "final_verdict": "NoObservableBgpImpact",
+      "observer_note": "No route-state changes were observed among the 19 selected RouteViews streams; this is consistent with the redundant-attachment expectation.",
       "limitations": [
-        "No UPDATE streams matched the frozen target keys from RouteViews"
+        "Only RouteViews peers rv2 and rv6 selected; other observers may have seen impact"
       ]
     },
     {
       "event_id": "INC0299001",
-      "title": "Availability - I2 Participant UVA",
-      "ticket_expectation": "ParticipantRelationshipUnavailable",
+      "ticket_expectation": "ParticipantRelationshipUnavailable (no parenthesized site code, participant title)",
       "target_predicate": "origin AS225 AND baseline AS path contains AS11537",
       "collectors": [
-        "route-views2",
-        "route-views6"
+        "route-views2 (48 frozen)",
+        "route-views6 (0 frozen)"
       ],
       "frozen_streams": 48,
-      "changed_streams": 214,
-      "withdrawals": 14,
-      "paths_departing_as11537": 0,
-      "alternate_paths": 0,
-      "restorations": 96,
-      "final_outcome": "ExpectedParticipantUnavailability",
+      "unchanged_streams": "see lifecycle",
+      "prepend_only_streams": "see lifecycle",
+      "withdrawn_streams": 14,
+      "streams_departing_as11537": 0,
+      "restored_streams": "see lifecycle",
+      "final_verdict": "PartialImpact",
+      "lifecycle_summary": "Stream lifecycle: total=48 unchanged=2 prepend-only=22 withdrawn=13 departed-I2=0 restored=35 not-restored=13",
+      "observer_note": "14 of 48 streams (29%) were withdrawn \u2014 a proper subset. No streams departed AS11537. AS prepending was reduced on affected streams. Verdict: PartialImpact.",
       "limitations": [
-        "rv6 had 0 frozen streams (no AS225+AS11537 paths visible)",
-        "Path changes were AS prepending reduction, not alternate routing",
-        "14 complete withdrawals \u2014 UVA prefixes unreachable through Internet2"
+        "route-views6 had 0 frozen streams (no AS225+AS11537 paths visible)",
+        "Path shape changes limited to prepending reduction (all paths retained AS11537)",
+        "14 complete withdrawals from selected observer streams \u2014 not global UVA withdrawal"
       ]
     }
-  ],
-  "observer_scoped_notes": [
-    "INC0302574: RIPE's redundant attachment outage had no BGP impact \u2014 redundancy preserved reachability.",
-    "INC0299001: UVA participant relationship showed instability \u2014 AS prepending reduced, 14 routes withdrawn. Path changes still traversed AS11537. Consistent with participant unavailability."
   ]
 }
