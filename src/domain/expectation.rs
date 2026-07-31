@@ -19,6 +19,8 @@ pub enum ExpectationKind {
     NonRedundant,
     /// Participant relationship may be unavailable (non-parenthesized participant title).
     ParticipantRelationshipUnavailable,
+    /// Peer relationship may be unavailable (non-parenthesized peer title, no attachment qualifier).
+    PeerRelationshipUnavailable,
     /// Open-ended event with no published end time (restoration pending).
     OpenEvent,
     /// Unable to determine expectation from available information.
@@ -73,6 +75,16 @@ impl ImpactExpectation {
         ImpactExpectation {
             kind: ExpectationKind::OpenEvent,
             description: "Open-ended event with no published end time — restoration pending, no final restoration-success/failure verdict possible."
+                .to_string(),
+            provenance: provenance.to_string(),
+        }
+    }
+
+    /// Create an expectation for a peer relationship unavailability event.
+    pub fn peer_relationship_unavailable(provenance: &str) -> Self {
+        ImpactExpectation {
+            kind: ExpectationKind::PeerRelationshipUnavailable,
+            description: "Non-parenthesized peer title — GRNOC peer relationship may be unavailable. No attachment qualifier indicates expected peer unavailability."
                 .to_string(),
             provenance: provenance.to_string(),
         }

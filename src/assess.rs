@@ -198,6 +198,9 @@ fn derive_verdict(
                 Verdict::UnexpectedContinuedInternet2Path
             }
             ExpectationKind::NonRedundant => Verdict::LessImpactThanExpected,
+            ExpectationKind::PeerRelationshipUnavailable => {
+                Verdict::UnexpectedContinuedInternet2Path
+            }
             ExpectationKind::OpenEvent => Verdict::OpenEventNoImpactSoFar,
             _ => Verdict::NoObservableBgpImpact,
         };
@@ -284,6 +287,16 @@ fn derive_verdict(
                 } else {
                     Verdict::UnexpectedContinuedInternet2Path
                 }
+            }
+        }
+        ExpectationKind::PeerRelationshipUnavailable => {
+            // Same as ParticipantRelationshipUnavailable but for peer entities
+            if has_withdrawals {
+                Verdict::ExpectedParticipantUnavailability
+            } else if has_path_changes {
+                Verdict::ExpectedAlternateRouting
+            } else {
+                Verdict::UnexpectedContinuedInternet2Path
             }
         }
         ExpectationKind::OpenEvent => {

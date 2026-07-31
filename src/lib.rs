@@ -4,6 +4,7 @@
 //! unplanned network events affect the globally visible routing system.
 
 pub mod assess;
+pub mod conventions;
 pub mod derived_cache;
 pub mod discover;
 pub mod domain;
