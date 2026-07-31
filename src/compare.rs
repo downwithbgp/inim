@@ -178,27 +178,101 @@ impl ComparisonArtifact {
         buf.push('\n');
 
         let rows: Vec<(String, String, String)> = vec![
-            ("Expectation".into(), self.a.expectation_kind.clone(), self.b.expectation_kind.clone()),
-            ("Lifecycle".into(), self.a.ticket_lifecycle.clone(), self.b.ticket_lifecycle.clone()),
-            ("Convention provenance".into(), self.a.expectation_provenance.clone(), self.b.expectation_provenance.clone()),
-            ("TransitPredicate".into(), self.a.transit_predicate.clone(), self.b.transit_predicate.clone()),
-            ("Collectors".into(), self.a.collectors.join(","), self.b.collectors.join(",")),
-            ("Observer-prefix streams".into(), self.a.observer_prefix_streams.to_string(), self.b.observer_prefix_streams.to_string()),
-            ("Route instances".into(), self.a.route_instances.to_string(), self.b.route_instances.to_string()),
-            ("Multiple-instance streams".into(), self.a.multiple_instance_streams.to_string(), self.b.multiple_instance_streams.to_string()),
-            ("Unchanged".into(), self.a.unchanged.to_string(), self.b.unchanged.to_string()),
-            ("Prepend-only".into(), self.a.prepend_only.to_string(), self.b.prepend_only.to_string()),
-            ("Material changes".into(), self.a.material_changes.to_string(), self.b.material_changes.to_string()),
-            ("Withdrawals (selected streams)".into(), self.a.withdrawals.to_string(), self.b.withdrawals.to_string()),
-            ("Transit departures".into(), self.a.transit_departures.to_string(), self.b.transit_departures.to_string()),
-            ("Restorations".into(), self.a.restorations.to_string(), self.b.restorations.to_string()),
-            ("GSHUT streams".into(), self.a.gshut_streams.to_string(), self.b.gshut_streams.to_string()),
+            (
+                "Expectation".into(),
+                self.a.expectation_kind.clone(),
+                self.b.expectation_kind.clone(),
+            ),
+            (
+                "Lifecycle".into(),
+                self.a.ticket_lifecycle.clone(),
+                self.b.ticket_lifecycle.clone(),
+            ),
+            (
+                "Convention provenance".into(),
+                self.a.expectation_provenance.clone(),
+                self.b.expectation_provenance.clone(),
+            ),
+            (
+                "TransitPredicate".into(),
+                self.a.transit_predicate.clone(),
+                self.b.transit_predicate.clone(),
+            ),
+            (
+                "Collectors".into(),
+                self.a.collectors.join(","),
+                self.b.collectors.join(","),
+            ),
+            (
+                "Observer-prefix streams".into(),
+                self.a.observer_prefix_streams.to_string(),
+                self.b.observer_prefix_streams.to_string(),
+            ),
+            (
+                "Route instances".into(),
+                self.a.route_instances.to_string(),
+                self.b.route_instances.to_string(),
+            ),
+            (
+                "Multiple-instance streams".into(),
+                self.a.multiple_instance_streams.to_string(),
+                self.b.multiple_instance_streams.to_string(),
+            ),
+            (
+                "Unchanged".into(),
+                self.a.unchanged.to_string(),
+                self.b.unchanged.to_string(),
+            ),
+            (
+                "Prepend-only".into(),
+                self.a.prepend_only.to_string(),
+                self.b.prepend_only.to_string(),
+            ),
+            (
+                "Material changes".into(),
+                self.a.material_changes.to_string(),
+                self.b.material_changes.to_string(),
+            ),
+            (
+                "Withdrawals (selected streams)".into(),
+                self.a.withdrawals.to_string(),
+                self.b.withdrawals.to_string(),
+            ),
+            (
+                "Transit departures".into(),
+                self.a.transit_departures.to_string(),
+                self.b.transit_departures.to_string(),
+            ),
+            (
+                "Restorations".into(),
+                self.a.restorations.to_string(),
+                self.b.restorations.to_string(),
+            ),
+            (
+                "GSHUT streams".into(),
+                self.a.gshut_streams.to_string(),
+                self.b.gshut_streams.to_string(),
+            ),
             (
                 "Semantic waves".into(),
-                self.a.semantic_waves.iter().map(|(id, l)| format!("{id}:{l}")).collect::<Vec<_>>().join(","),
-                self.b.semantic_waves.iter().map(|(id, l)| format!("{id}:{l}")).collect::<Vec<_>>().join(","),
+                self.a
+                    .semantic_waves
+                    .iter()
+                    .map(|(id, l)| format!("{id}:{l}"))
+                    .collect::<Vec<_>>()
+                    .join(","),
+                self.b
+                    .semantic_waves
+                    .iter()
+                    .map(|(id, l)| format!("{id}:{l}"))
+                    .collect::<Vec<_>>()
+                    .join(","),
             ),
-            ("Final assessment".into(), self.a.verdict.clone(), self.b.verdict.clone()),
+            (
+                "Final assessment".into(),
+                self.a.verdict.clone(),
+                self.b.verdict.clone(),
+            ),
         ];
 
         let label_w = rows.iter().map(|(l, _, _)| l.len()).max().unwrap_or(8) + 2;

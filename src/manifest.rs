@@ -9,12 +9,14 @@ use serde::{Deserialize, Serialize};
 
 use crate::domain::route::TransitPredicate as Predicate;
 use crate::plan::{Provenance, TransitPredicateMapping};
+use crate::schema::MANIFEST_SCHEMA_VERSION as CURRENT_MANIFEST_SCHEMA_VERSION;
 
-/// Schema version of the reviewed manifest format.
+/// Schema version of the reviewed manifest format — canonical definition
+/// lives in `src/schema.rs` (single registry).
 ///
 /// v1: single-ASN shortcut fields (`managed_network_asn`, `internet2_asn`).
 /// v2: canonical `TransitPredicateMapping`; legacy shortcut fields rejected.
-pub const MANIFEST_SCHEMA_VERSION: u32 = 2;
+pub const MANIFEST_SCHEMA_VERSION: u32 = CURRENT_MANIFEST_SCHEMA_VERSION;
 
 /// Error returned when a legacy (pre-canonical) manifest is loaded.
 pub const LEGACY_MANIFEST_REQUIRES_MIGRATION: &str = "LegacyManifestRequiresMigration";

@@ -939,7 +939,9 @@ fn build_one_lifecycle(
     let mut active_before_absence = 0usize;
     let mut transit_at_withdrawal: Option<bool> = None;
     let mut restorations: Vec<StreamRestoration> = Vec::new();
-    let mut last_withdrawn_keys: Vec<RouteKey> = Vec::new();
+    // Every instance withdrawn since the last stream absence, with its last
+    // known state — used for exact-instance restoration classification.
+    let mut withdrawn_history: Vec<(RouteKey, RouteState)> = Vec::new();
 
     // ── Classification state ─────────────────────────────────────
     let mut first_change: Option<DateTime<Utc>> = None;
@@ -1077,6 +1079,9 @@ fn build_one_lifecycle(
                     }
                 }
                 withdrawn_instances.push(t.key.clone());
+                if let Some(last_state) = t.from.as_ref().and_then(|f| f.state.as_ref()).cloned() {
+                    withdrawn_history.push((t.key.clone(), last_state));
+                }
                 active.remove(&t.key);
                 let now_visible = !active.is_empty();
                 if !now_visible {
@@ -1127,15 +1132,12 @@ fn build_one_lifecycle(
             }
             restorations.push(classify_restoration(
                 t,
-                &last_withdrawn_keys,
+                &withdrawn_history,
                 baseline_instances,
                 &active,
                 restored_at,
             ));
-            last_withdrawn_keys.clear();
-        }
-        if was_visible && active.is_empty() {
-            last_withdrawn_keys.push(t.key.clone());
+            withdrawn_history.clear();
         }
 
         // Path-change classification (material vs prepend vs departure).
@@ -1320,7 +1322,7 @@ fn build_one_lifecycle(
 /// Classify a stream restoration event (absent → visible).
 fn classify_restoration(
     t: &RouteTransition,
-    last_withdrawn_keys: &[RouteKey],
+    withdrawn_history: &[(RouteKey, RouteState)],
     baseline: &BTreeMap<RouteKey, RouteState>,
     active: &BTreeMap<RouteKey, RouteState>,
     timestamp: DateTime<Utc>,
@@ -1333,45 +1335,36 @@ fn classify_restoration(
         path_id: t.key.path_id,
     });
 
-    // Exact-instance: the returning path_id matches a withdrawn/baseline
-    // instance AND the route is semantically equivalent.
+    // Exact-instance: the returning path_id matches a withdrawn or baseline
+    // instance AND the route is semantically equivalent to that instance's
+    // last known state (never path-id equality alone).
     let mut exact_instance = false;
     if let Some(pid) = t.key.path_id {
-        let baseline_match = baseline.keys().any(|k| k.path_id == Some(pid));
-        let withdrawn_match = last_withdrawn_keys.iter().any(|k| k.path_id == Some(pid));
-        let baseline_route = baseline.values().find(|s| s.path_id == Some(pid));
-        let withdrawn_route = last_withdrawn_keys.iter().find(|k| k.path_id == Some(pid));
-        if let Some(base_route) = baseline_route {
-            if baseline_match || withdrawn_match {
-                exact_instance =
-                    route_semantically_equivalent(&base_route.attributes, &new_state.attributes);
-            }
-        } else if withdrawn_route.is_some() {
-            // Withdrawn instance route is in active history; compare with the
-            // last known state of that instance (from `before` when available).
-            exact_instance = t
-                .from
-                .as_ref()
-                .and_then(|f| f.state.as_ref())
-                .map(|s| {
-                    route_semantically_equivalent(&s.attributes, &new_state.attributes)
-                        && s.path_id == Some(pid)
-                })
-                .unwrap_or(false);
+        let withdrawn_match = withdrawn_history
+            .iter()
+            .find(|(k, _)| k.path_id == Some(pid));
+        let baseline_match = baseline.iter().find(|(k, _)| k.path_id == Some(pid));
+        if let Some((_, last_state)) = withdrawn_match {
+            exact_instance =
+                route_semantically_equivalent(&last_state.attributes, &new_state.attributes);
+        } else if let Some((_, base_state)) = baseline_match {
+            exact_instance =
+                route_semantically_equivalent(&base_state.attributes, &new_state.attributes);
         }
-    } else {
-        // Unkeyed restoration matches the unkeyed baseline instance if any.
-        if let Some(base) = baseline.values().find(|s| s.path_id.is_none()) {
-            exact_instance = route_semantically_equivalent(&base.attributes, &new_state.attributes);
-        }
+    } else if let Some((_, last_state)) =
+        withdrawn_history.iter().find(|(k, _)| k.path_id.is_none())
+    {
+        exact_instance =
+            route_semantically_equivalent(&last_state.attributes, &new_state.attributes);
+    } else if let Some((_, base_state)) = baseline.iter().find(|(k, _)| k.path_id.is_none()) {
+        exact_instance =
+            route_semantically_equivalent(&base_state.attributes, &new_state.attributes);
     }
 
     // Equivalent-route: semantically equivalent to ANY baseline instance.
     let equivalent_route = baseline
         .values()
         .any(|b| route_semantically_equivalent(&b.attributes, &new_state.attributes));
-
-    // Observer-prefix restoration: this event is absent → visible by construction.
 
     // Baseline-set restoration: active semantics equal baseline semantics.
     let mut baseline_fps: Vec<String> = baseline
@@ -1386,7 +1379,13 @@ fn classify_restoration(
     active_fps.sort();
     let baseline_set = baseline_fps == active_fps;
 
-    let old_path_ids = last_withdrawn_keys.iter().map(|k| k.path_id).collect();
+    // Old path IDs: every instance withdrawn since the last absence.
+    let mut old_path_ids: Vec<Option<u32>> =
+        withdrawn_history.iter().map(|(k, _)| k.path_id).collect();
+    old_path_ids.sort_by(|a, b| {
+        crate::derived_cache::path_id_key(a).cmp(&crate::derived_cache::path_id_key(b))
+    });
+    old_path_ids.dedup();
     let new_path_ids = vec![t.key.path_id];
 
     StreamRestoration {
@@ -3004,5 +3003,51 @@ mod tests {
         let summary = WithdrawalAuditSummary::from_records(&records);
         assert_eq!(summary.median_absence_secs, Some(35.0));
         assert_eq!(summary.max_absence_secs, Some(60.0));
+    }
+
+    #[test]
+    fn exact_restoration_after_multi_instance_withdrawal() {
+        // Instance A (new, not in baseline) is withdrawn first, then instance
+        // B (baseline) is withdrawn making the stream absent; A returns with
+        // its last known route — must classify as an exact-instance
+        // restoration, and old_path_ids must retain BOTH withdrawn ids.
+        let key = opk("rv2", "185.1.8.65", "192.0.2.0/24");
+        let cohort = cohort_with(&key, &[(Some(1), vec![6447, 65002, 65001])]);
+        let transitions = vec![
+            // Instance 2 announced (new instance, same semantics).
+            mk_transition(
+                &key,
+                Some(2),
+                TransitionKind::Announcement,
+                5,
+                vec![6447, 65002, 65001],
+                vec![],
+            ),
+            // Instance 2 withdrawn first (stream still visible via instance 1).
+            withdrawal(&key, Some(2), 10),
+            // Instance 1 withdrawn — stream becomes absent.
+            withdrawal(&key, Some(1), 20),
+            // Instance 2 returns with its last known route.
+            mk_transition(
+                &key,
+                Some(2),
+                TransitionKind::Restoration,
+                30,
+                vec![6447, 65002, 65001],
+                vec![],
+            ),
+        ];
+        let lifecycles = build_lifecycles(&transitions, &cohort, t_secs(1000), &pred());
+        let lc = &lifecycles[0];
+        assert!(lc.was_withdrawn);
+        assert_eq!(lc.restorations.len(), 1);
+        let r = &lc.restorations[0];
+        assert!(
+            r.exact_instance,
+            "returning instance matches its last known state"
+        );
+        // Old path IDs retain both withdrawn instances (2 then 1, sorted).
+        assert_eq!(r.old_path_ids, vec![Some(1), Some(2)]);
+        assert_eq!(r.new_path_ids, vec![Some(2)]);
     }
 }

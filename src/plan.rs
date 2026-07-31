@@ -130,16 +130,13 @@ pub fn plan_analysis(
             reason: AnalysisBlockReason::MissingReviewedEntityMapping,
         }
     } else if !transit_predicate.is_ready() {
+        // A predicate that is not ready blocks with the same generic reason
+        // regardless of review status: Unresolved mappings have no
+        // executable predicate, and a Reviewed mapping without a predicate
+        // value is a validation error caught by Manifest::validate.
         AnalysisPlanStatus::Blocked {
-            reason: if matches!(transit_predicate.status, PredicateReviewStatus::Unresolved) {
-                AnalysisBlockReason::MissingReviewedTransitPredicate
-            } else {
-                AnalysisBlockReason::InvalidAnalysisWindow
-            },
+            reason: AnalysisBlockReason::MissingReviewedTransitPredicate,
         }
-    } else if lifecycle == TicketLifecycle::Open {
-        // Open tickets need an explicit analysis end; checked at a higher level
-        AnalysisPlanStatus::Ready
     } else {
         AnalysisPlanStatus::Ready
     };
