@@ -35,6 +35,8 @@ pub struct IngestContext {
     /// When set and role=Rib, apply bgpkit-parser origin_asn filters.
     /// This is safe for RIB preflight only — never apply to UPDATEs.
     pub origin_asn_filters: Vec<u32>,
+    /// Deterministic archive order index assigned by the coordinator.
+    pub archive_order: u64,
 }
 
 // ── Error types ────────────────────────────────────────────────────
@@ -173,19 +175,10 @@ impl ObservationStream {
         }
 
         let input_path = path_str.clone();
-        let role = context.role;
-        let collector = context.collector;
         let mut seq: u64 = 0;
 
         let iter = parser.into_elem_iter().map(move |elem| {
-            let result = bgp_elem_to_observation(
-                &elem,
-                ObservationId(seq),
-                &input_path,
-                role,
-                &collector,
-                seq,
-            );
+            let result = bgp_elem_to_observation(&elem, seq, &input_path, &context);
             seq += 1;
             result
         });
@@ -211,11 +204,9 @@ impl Iterator for ObservationStream {
 /// This is the only function that touches bgpkit-parser types.
 fn bgp_elem_to_observation(
     elem: &BgpElem,
-    id: ObservationId,
-    input_path: &str,
-    role: IngestRole,
-    collector: &CollectorId,
     element_seq: u64,
+    input_path: &str,
+    context: &IngestContext,
 ) -> Result<RouteObservation, InimError> {
     // ── Timestamp conversion ──────────────────────────────────
     let timestamp = f64_to_utc(elem.timestamp);
@@ -225,7 +216,7 @@ fn bgp_elem_to_observation(
     let prefix = Prefix::from(prefix_str.as_str());
 
     // ── Kind mapping ⚠️  RibEntry never inferred from BgpElem ─
-    let kind = match role {
+    let kind = match context.role {
         IngestRole::Rib => ObservationKind::RibEntry,
         IngestRole::Updates => match elem.elem_type {
             ElemType::ANNOUNCE => ObservationKind::Announcement,
@@ -234,10 +225,7 @@ fn bgp_elem_to_observation(
     };
 
     // ── Route identity validation ─────────────────────────────
-    // Peer IP and peer ASN must be present to identify the observation.
-    // The prefix path_id (ADD-PATH) is preserved in the prefix key if present.
     let peer_ip = canonical_ip(elem.peer_ip);
-
     let peer_asn = Asn(u32::from(elem.peer_asn));
 
     // ── Attributes (None for withdrawals) ─────────────────────
@@ -249,19 +237,20 @@ fn bgp_elem_to_observation(
     // ── Provenance ────────────────────────────────────────────
     let provenance = ObservationProvenance {
         input: input_path.to_string(),
-        source_url: None,
-        archive_sha256: None,
-        role,
+        source_url: context.source_url.clone(),
+        archive_sha256: context.source_sha.clone(),
+        role: context.role,
         parser_representation: "bgpkit-bgp-elem".to_string(),
         mrt_timestamp: elem.timestamp,
         element_seq,
+        archive_order: context.archive_order,
     };
 
     Ok(RouteObservation {
-        id,
+        id: ObservationId(element_seq),
         source: ObservationSource::LocalFile(input_path.to_string()),
         timestamp,
-        collector: collector.clone(),
+        collector: context.collector.clone(),
         peer_ip,
         peer_asn,
         prefix,
@@ -392,6 +381,7 @@ mod tests {
             source_url: None,
             source_sha: None,
             origin_asn_filters: vec![],
+            archive_order: 0,
         };
         assert_eq!(ctx.collector.0, "route-views2");
     }
@@ -415,6 +405,7 @@ mod tests {
             source_url: None,
             source_sha: None,
             origin_asn_filters: vec![],
+            archive_order: 0,
         };
         // If role were inferred from elem.elem_type, Rib would be impossible
         // since BgpElem only has ANNOUNCE/WITHDRAW
@@ -434,6 +425,7 @@ mod tests {
             source_url: None,
             source_sha: None,
             origin_asn_filters: vec![],
+            archive_order: 0,
         };
 
         let stream = ObservationStream::from_local_file(fixture_path, ctx)

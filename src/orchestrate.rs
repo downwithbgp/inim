@@ -21,6 +21,15 @@ use crate::manifest::Manifest;
 use crate::outcome::AnalysisOutcome;
 use crate::target::{scan_rib_and_freeze, PreflightCounts, TargetSet};
 
+/// Cache control flags for the analysis pipeline.
+#[derive(Debug, Clone, Copy, Default)]
+pub struct CacheControl {
+    /// Disable all derived caches (both RIB and UPDATE).
+    pub no_derived_cache: bool,
+    /// Force rebuild of all derived caches (ignore and overwrite).
+    pub rebuild_derived_cache: bool,
+}
+
 // ── Public entry point ─────────────────────────────────────────────
 
 pub fn run_real_analysis(
@@ -29,6 +38,7 @@ pub fn run_real_analysis(
     cache_dir: &Path,
     out_dir: &Path,
     discovery: &dyn ArchiveDiscovery,
+    cache_control: CacheControl,
 ) -> AnalysisOutcome {
     let mut timings: Vec<(String, f64)> = Vec::new();
     let t0 = Instant::now();
@@ -38,6 +48,7 @@ pub fn run_real_analysis(
         cache_dir,
         out_dir,
         discovery,
+        cache_control,
         &mut timings,
     ) {
         Ok(outcome) => {
@@ -59,6 +70,7 @@ fn run_inner(
     cache_dir: &Path,
     out_dir: &Path,
     discovery: &dyn ArchiveDiscovery,
+    cache_control: CacheControl,
     timings: &mut Vec<(String, f64)>,
 ) -> Result<AnalysisOutcome, String> {
     // ── Parse ticket + manifest ───────────────────────────────────
@@ -140,8 +152,11 @@ fn run_inner(
             transit_asn,
             manifest.revision,
         );
-        let cache_hit =
-            crate::derived_cache::load_rib_cache(cache_dir, &rib_key, &cached_rib.sha256);
+        let cache_hit = if cache_control.no_derived_cache || cache_control.rebuild_derived_cache {
+            None
+        } else {
+            crate::derived_cache::load_rib_cache(cache_dir, &rib_key, &cached_rib.sha256)
+        };
 
         if let Some(cached) = cache_hit {
             eprintln!("  [{collector} RIB] derived cache hit, skipping parse");
@@ -197,6 +212,7 @@ fn run_inner(
             source_url: Some(cached_rib.url.clone()),
             source_sha: Some(cached_rib.sha256.clone()),
             origin_asn_filters: manifest.target.origin_asns.clone(),
+            archive_order: 0,
         };
         let path = Path::new(&cached_rib.local_path);
         let stream = ObservationStream::from_local_file(path.to_path_buf(), ctx)
@@ -345,6 +361,7 @@ fn run_inner(
     eprintln!("→ Broker discovery: UPDATE files");
     let t_updates = Instant::now();
     let update_search_end = cooldown_end + chrono::Duration::hours(1);
+    let mut archive_order: u64 = 0;
 
     for collector in &retained_collectors {
         eprintln!("  {collector}: querying UPDATE files...");
@@ -374,11 +391,51 @@ fn run_inner(
 
         eprintln!("  {collector}: {} UPDATE files selected", selected.len());
 
+        // Compute targetset hash once for all UPDATE cache keys
+        let tshash = crate::derived_cache::targetset_hash(&target_set);
+        let mut update_cache_hits: usize = 0;
+        let mut update_cache_misses: usize = 0;
+
         for (i, item) in selected.iter().enumerate() {
             let t_cache = Instant::now();
             let cu = cache_archive(item, cache_dir)
                 .map_err(|e| format!("failed to cache UPDATE: {e}"))?;
             collected_updates.push(cu.clone());
+
+            let ao = archive_order;
+            archive_order += 1;
+
+            // ── Check UPDATE derived cache ───────────────────────
+            let upd_key = crate::derived_cache::update_cache_key(&cu.sha256, collector, &tshash);
+            let cache_hit = if cache_control.no_derived_cache || cache_control.rebuild_derived_cache
+            {
+                None
+            } else {
+                crate::derived_cache::load_update_cache(cache_dir, &upd_key, &cu.sha256)
+            };
+
+            if let Some(cached) = cache_hit {
+                eprintln!(
+                    "  [{collector} updates {}/{}] derived cache hit ({} obs, skipping parse)",
+                    i + 1,
+                    selected.len(),
+                    cached.observations.len(),
+                );
+                update_cache_hits += 1;
+                // Rehydrate admitted observations
+                update_observations.extend(cached.observations);
+                // Print counter summary for audit parity
+                let ctr = &cached.admission_counters;
+                eprintln!(
+                    "  [{collector} updates {}/{}] cached counters: {} parsed, {} prefix, {} coll+pref, {} admitted ({} ann, {} wd)",
+                    i + 1, selected.len(),
+                    ctr.total_elements_parsed, ctr.target_prefix_matches,
+                    ctr.collector_prefix_matches, ctr.full_targetkey_matches,
+                    ctr.admitted_announcements, ctr.admitted_withdrawals,
+                );
+                continue;
+            }
+            update_cache_misses += 1;
 
             eprintln!(
                 "  [{collector} updates {}/{}] parsing {}...",
@@ -394,6 +451,7 @@ fn run_inner(
                 source_url: Some(cu.url.clone()),
                 source_sha: Some(cu.sha256.clone()),
                 origin_asn_filters: vec![], // never filter UPDATEs
+                archive_order: ao,
             };
             let path = Path::new(&cu.local_path);
             let stream = ObservationStream::from_local_file(path.to_path_buf(), ctx)
@@ -405,6 +463,7 @@ fn run_inner(
             let mut admitted: usize = 0;
             let mut admitted_announcements: usize = 0;
             let mut admitted_withdrawals: usize = 0;
+            let mut file_admitted: Vec<RouteObservation> = Vec::new();
             for result in stream {
                 let obs = result.map_err(|e| format!("UPDATE parse error: {e}"))?;
                 parsed += 1;
@@ -439,7 +498,7 @@ fn run_inner(
                     }
                     _ => {}
                 }
-                update_observations.push(obs);
+                file_admitted.push(obs.clone());
 
                 if parsed.is_multiple_of(1_000_000) {
                     eprintln!("  [{collector} updates {}/{}] {parsed} elements, {prefix_matches} prefix, {coll_pref_matches} coll+pref, {admitted} admitted ({admitted_announcements} ann, {admitted_withdrawals} wd)",
@@ -448,7 +507,45 @@ fn run_inner(
             }
             eprintln!("  [{collector} updates {}/{}] done: {parsed} parsed, {prefix_matches} prefix, {coll_pref_matches} coll+pref, {admitted} admitted ({admitted_announcements} ann, {admitted_withdrawals} wd) ({:.1}s)",
                 i+1, selected.len(), t_cache.elapsed().as_secs_f64());
+
+            // ── Save UPDATE derived cache ─────────────────────────
+            if !cache_control.no_derived_cache {
+                let payload_checksum =
+                    crate::derived_cache::compute_payload_checksum(&file_admitted);
+                let entry = crate::derived_cache::UpdateCacheEntry {
+                    schema_version: crate::derived_cache::UPDATE_CACHE_SCHEMA_VERSION,
+                    observation_schema_version: crate::derived_cache::OBSERVATION_SCHEMA_VERSION,
+                    parser_version: crate::derived_cache::PARSER_VERSION.to_string(),
+                    source_url: cu.url.clone(),
+                    source_sha256: cu.sha256.clone(),
+                    targetset_hash: tshash.clone(),
+                    collector: collector.clone(),
+                    record_count: file_admitted.len() as u64,
+                    admission_counters: crate::derived_cache::UpdateAdmissionCounters {
+                        total_elements_parsed: parsed as u64,
+                        target_prefix_matches: prefix_matches as u64,
+                        collector_prefix_matches: coll_pref_matches as u64,
+                        full_targetkey_matches: admitted as u64,
+                        admitted_announcements: admitted_announcements as u64,
+                        admitted_withdrawals: admitted_withdrawals as u64,
+                    },
+                    payload_checksum,
+                    observations: file_admitted.clone(),
+                };
+                if let Err(e) =
+                    crate::derived_cache::save_update_cache(cache_dir, &cu.sha256, &upd_key, &entry)
+                {
+                    eprintln!("  warning: failed to save UPDATE derived cache: {e}");
+                }
+            }
+
+            // Push admitted observations to global collection
+            update_observations.extend(file_admitted);
         }
+
+        eprintln!(
+            "  [{collector}] UPDATE cache: {update_cache_hits} hits, {update_cache_misses} misses"
+        );
     }
     timings.push((
         "UPDATE cache+parse".to_string(),
@@ -601,6 +698,7 @@ mod tests {
             dir.path(),
             &dir.path().join("out"),
             &FailingDiscovery,
+            CacheControl::default(),
         );
         match outcome {
             AnalysisOutcome::Incomplete { failure } => {

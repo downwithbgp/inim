@@ -199,6 +199,9 @@ pub struct ObservationProvenance {
     pub mrt_timestamp: f64,
     /// Deterministic element sequence number within the input.
     pub element_seq: u64,
+    /// Deterministic archive order index (assigned before parsing, preserved in cache).
+    #[serde(default)]
+    pub archive_order: u64,
 }
 
 impl ObservationProvenance {
@@ -212,6 +215,7 @@ impl ObservationProvenance {
             parser_representation: "synthetic".into(),
             mrt_timestamp: 0.0,
             element_seq: seq,
+            archive_order: 0,
         }
     }
 
@@ -276,6 +280,7 @@ mod tests {
                 parser_representation: "bgpkit-bgp-elem".into(),
                 mrt_timestamp: 1749990300.0,
                 element_seq: 42,
+                archive_order: 0,
             },
         }
     }
@@ -353,6 +358,7 @@ mod tests {
             parser_representation: "bgpkit-bgp-elem".into(),
             mrt_timestamp: 1749990000.0,
             element_seq: 0,
+            archive_order: 0,
         };
         let json = serde_json::to_string(&p).unwrap();
         let parsed: ObservationProvenance = serde_json::from_str(&json).unwrap();

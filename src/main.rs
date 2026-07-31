@@ -49,6 +49,14 @@ enum Commands {
         /// Default: ./out
         #[arg(short = 'o', long, value_name = "DIR", default_value = "./out")]
         out: PathBuf,
+
+        /// Disable all derived caches (both RIB and UPDATE).
+        #[arg(long, default_value_t = false)]
+        no_derived_cache: bool,
+
+        /// Force rebuild of all derived caches (ignore and overwrite).
+        #[arg(long, default_value_t = false)]
+        rebuild_derived_cache: bool,
     },
 }
 
@@ -61,15 +69,22 @@ fn main() {
             manifest,
             cache,
             out,
+            no_derived_cache,
+            rebuild_derived_cache,
         } => {
             if let Some(manifest_path) = manifest {
                 let discovery = inim::discover::LiveArchiveDiscovery;
+                let cache_control = inim::orchestrate::CacheControl {
+                    no_derived_cache: *no_derived_cache,
+                    rebuild_derived_cache: *rebuild_derived_cache,
+                };
                 let outcome = inim::orchestrate::run_real_analysis(
                     event,
                     manifest_path,
                     cache,
                     out,
                     &discovery,
+                    cache_control,
                 );
 
                 let json = serde_json::to_string_pretty(&outcome).unwrap_or_default();
@@ -251,6 +266,7 @@ mod tests {
                 manifest,
                 cache,
                 out,
+                ..
             } => {
                 assert_eq!(event.to_string_lossy(), "event.json");
                 assert!(manifest.is_none());
