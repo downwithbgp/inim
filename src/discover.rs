@@ -326,26 +326,12 @@ fn sha_sidecar_path(path: &Path) -> PathBuf {
     p
 }
 
-/// Check whether a cached file matches expected integrity.
-///
-/// Returns `true` if:
-/// - The file exists with matching size
-/// - A sidecar exists with matching SHA-256
-/// - The current file's recomputed SHA-256 matches the sidecar
-///
-/// This guards against:
-/// - Truncated downloads (size mismatch)
-/// - Corrupted cache (checksum mismatch)
-/// - Missing sidecar (treated as corrupt)
-
-// ── Caching with integrity ─────────────────────────────────────────
-
 /// Download an archive item to a deterministic local cache path.
 ///
 /// Downloads to a temporary `.part` file, verifies size against the
 /// broker-reported size (if available), computes SHA-256, writes a
 /// `.sha256` sidecar, then atomically renames into the cache directory.
-/// Reuses a cached file only after validated integrity (size + SHA-256 sidecar).
+/// Reuses a cached file only after validated integrity (SHA-256 sidecar).
 ///
 /// Returns an `InimArchiveError` on failure — never an analysis verdict.
 pub fn cache_archive(
