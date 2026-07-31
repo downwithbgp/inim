@@ -85,7 +85,7 @@ impl RouteAttributes {
 }
 
 /// A unique key identifying a route instance: collector + peer + prefix + path_id.
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct RouteKey {
     pub collector: String,
     pub peer_ip: IpAddr,
@@ -126,7 +126,7 @@ impl RouteKey {
 }
 
 /// Aggregate identity: collector + peer + prefix (no path_id).
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct ObserverPrefixKey {
     pub collector: String,
     pub peer_ip: IpAddr,
