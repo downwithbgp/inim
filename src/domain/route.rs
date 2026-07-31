@@ -68,6 +68,20 @@ impl RouteAttributes {
             communities: vec![],
         }
     }
+
+    /// Create empty route attributes (for absent/withdrawn routes).
+    pub fn empty() -> Self {
+        RouteAttributes {
+            as_path: AsPath(vec![]),
+            origin_asns: vec![],
+            next_hop: None,
+            origin: None,
+            med: None,
+            local_pref: None,
+            atomic_aggregate: false,
+            communities: vec![],
+        }
+    }
 }
 
 /// A unique key identifying a route: collector + peer + prefix.
@@ -167,35 +181,40 @@ impl EvidencedRouteState {
         }
     }
 
-    /// Access the prefix (panics if state is None — only call on present states).
-    pub fn prefix(&self) -> &Prefix {
-        &self
-            .state
+    /// Access the prefix.
+    /// Returns a sentinel prefix for absent states.
+    pub fn prefix(&self) -> Prefix {
+        self.state
             .as_ref()
-            .expect("prefix() called on absent state")
-            .prefix
+            .map(|s| s.prefix.clone())
+            .unwrap_or_else(|| Prefix::from("0.0.0.0/0"))
     }
 
     /// Access the timestamp.
+    /// Falls back to evidence timestamp for absent states (withdrawals).
     pub fn timestamp(&self) -> chrono::DateTime<chrono::Utc> {
         self.state
             .as_ref()
-            .expect("timestamp() on absent")
-            .timestamp
+            .map(|s| s.timestamp)
+            .unwrap_or(self.evidence.timestamp)
     }
 
     /// Access the observer string.
+    /// Returns "absent" for absent states (withdrawals).
     pub fn observer(&self) -> &str {
-        &self.state.as_ref().expect("observer() on absent").observer
+        self.state
+            .as_ref()
+            .map(|s| s.observer.as_str())
+            .unwrap_or("absent")
     }
 
     /// Access route attributes.
-    pub fn attributes(&self) -> &RouteAttributes {
-        &self
-            .state
+    /// Returns an empty-attributes sentinel for absent states.
+    pub fn attributes(&self) -> RouteAttributes {
+        self.state
             .as_ref()
-            .expect("attributes() on absent")
-            .attributes
+            .map(|s| s.attributes.clone())
+            .unwrap_or(RouteAttributes::empty())
     }
 }
 

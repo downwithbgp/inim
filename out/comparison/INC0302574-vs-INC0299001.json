@@ -1,0 +1,52 @@
+{
+  "comparison_title": "INC0302574 (Redundant RIPE) vs INC0299001 (Unavailable UVA)",
+  "generated_note": "Comparison based on inim analysis of RouteViews BGP observations.",
+  "events": [
+    {
+      "event_id": "INC0302574",
+      "title": "Brief Outage - I2 PX Peer RIPE via NYIIX (NEWA)",
+      "ticket_expectation": "Redundant (parenthesized site code NEWA)",
+      "target_predicate": "origin AS3333 AND baseline AS path contains AS11537",
+      "collectors": [
+        "route-views2",
+        "route-views6"
+      ],
+      "frozen_streams": 19,
+      "changed_streams": 0,
+      "withdrawals": 0,
+      "paths_departing_as11537": 0,
+      "alternate_paths": 0,
+      "restorations": 0,
+      "final_outcome": "NoObservableBgpImpact",
+      "limitations": [
+        "No UPDATE streams matched the frozen target keys from RouteViews"
+      ]
+    },
+    {
+      "event_id": "INC0299001",
+      "title": "Availability - I2 Participant UVA",
+      "ticket_expectation": "ParticipantRelationshipUnavailable",
+      "target_predicate": "origin AS225 AND baseline AS path contains AS11537",
+      "collectors": [
+        "route-views2",
+        "route-views6"
+      ],
+      "frozen_streams": 48,
+      "changed_streams": 214,
+      "withdrawals": 14,
+      "paths_departing_as11537": 0,
+      "alternate_paths": 0,
+      "restorations": 96,
+      "final_outcome": "ExpectedParticipantUnavailability",
+      "limitations": [
+        "rv6 had 0 frozen streams (no AS225+AS11537 paths visible)",
+        "Path changes were AS prepending reduction, not alternate routing",
+        "14 complete withdrawals \u2014 UVA prefixes unreachable through Internet2"
+      ]
+    }
+  ],
+  "observer_scoped_notes": [
+    "INC0302574: RIPE's redundant attachment outage had no BGP impact \u2014 redundancy preserved reachability.",
+    "INC0299001: UVA participant relationship showed instability \u2014 AS prepending reduced, 14 routes withdrawn. Path changes still traversed AS11537. Consistent with participant unavailability."
+  ]
+}
