@@ -61,7 +61,7 @@ fn run_inner(
     let collectors_str: Vec<&str> = manifest.collectors.iter().map(|s| s.as_str()).collect();
     // Query per-collector for RIBs and UPDATES below
     let all_ribs = discovery
-        .query("route-views", &collectors_str, rib_search_start, rib_search_end, "rib")
+        .query("routeviews", &collectors_str, rib_search_start, rib_search_end, "rib")
         .map_err(|e| format!("broker discovery failed for RIBs: {e}"))?;
 
     let mut all_updates: Vec<ArchiveItem> = Vec::new();
@@ -90,7 +90,7 @@ fn run_inner(
         let update_search_end = cooldown_end + chrono::Duration::hours(1);
         let all_collector_updates: Vec<ArchiveItem> = discovery
             .query(
-                "route-views",
+                "routeviews",
                 &[collector.as_str()],
                 rib_search_start,
                 update_search_end,

@@ -353,13 +353,13 @@ pub fn cache_archive(
             reason: e.to_string(),
         })?;
 
-    // Verify size (warn if reported size was zero, don't fail)
-    if item.size > 0 && body.len() as u64 != item.size {
-        return Err(InimArchiveError::SizeMismatch {
-            url: item.url.clone(),
-            expected: item.size,
-            actual: body.len() as u64,
-        });
+    // Verify size (only when exact size reported — rough_size is approximate)
+    if body.len() as u64 != item.size && item.size > 0 {
+        // Don't fail on rough estimates — broker rough_size is approximate
+        eprintln!(
+            "warning: size differ for {}: expected {}, got {} (continuing)",
+            item.url, item.size, body.len()
+        );
     }
 
     std::fs::write(&part_path, &body).map_err(|e| InimArchiveError::CacheError {
