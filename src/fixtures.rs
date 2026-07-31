@@ -5,8 +5,8 @@ use chrono::{DateTime, Utc};
 use std::net::IpAddr;
 
 use crate::domain::observation::{
-    Asn, CollectorId, Communities, IngestRole, ObservationAttributes, ObservationId,
-    ObservationKind, ObservationProvenance, ObservationSource, RouteObservation,
+    Asn, CollectorId, Communities, EvidenceRef, IngestRole, ObservationAttributes,
+    ObservationId, ObservationKind, ObservationProvenance, ObservationSource, RouteObservation,
 };
 use crate::domain::route::Prefix;
 
@@ -39,13 +39,7 @@ pub fn make_synthetic_rib(
             atomic_aggregate: false,
             communities: Communities::new(),
         }),
-        provenance: ObservationProvenance {
-            input: "synthetic".into(),
-            role: IngestRole::Rib,
-            parser_representation: "synthetic".into(),
-            mrt_timestamp: 0.0,
-            element_seq: id,
-        },
+        provenance: ObservationProvenance::synthetic(IngestRole::Rib, id),
     }
 }
 
@@ -78,13 +72,7 @@ pub fn make_synthetic_announcement(
             atomic_aggregate: false,
             communities: Communities::new(),
         }),
-        provenance: ObservationProvenance {
-            input: "synthetic".into(),
-            role: IngestRole::Updates,
-            parser_representation: "synthetic".into(),
-            mrt_timestamp: 0.0,
-            element_seq: id,
-        },
+        provenance: ObservationProvenance::synthetic(IngestRole::Updates, id),
     }
 }
 
@@ -107,14 +95,13 @@ pub fn make_synthetic_withdrawal(
         prefix: Prefix::from(prefix),
         kind: ObservationKind::Withdrawal,
         attributes: None,
-        provenance: ObservationProvenance {
-            input: "synthetic".into(),
-            role: IngestRole::Updates,
-            parser_representation: "synthetic".into(),
-            mrt_timestamp: 0.0,
-            element_seq: id,
-        },
+        provenance: ObservationProvenance::synthetic(IngestRole::Updates, id),
     }
+}
+
+/// Build a synthetic evidence reference for testing.
+pub fn synthetic_evidence(id: u64) -> EvidenceRef {
+    EvidenceRef::synthetic(id, "synthetic://test", "0000000000000000")
 }
 
 #[cfg(test)]
@@ -144,5 +131,12 @@ mod tests {
         let obs = make_synthetic_withdrawal("192.0.2.0/24", "rv2", "185.1.8.65", 6447, t(), 2);
         assert_eq!(obs.kind, ObservationKind::Withdrawal);
         assert!(obs.attributes.is_none());
+    }
+
+    #[test]
+    fn synthetic_evidence_has_url_and_sha() {
+        let ev = synthetic_evidence(42);
+        assert_eq!(ev.observation_id, ObservationId(42));
+        assert_eq!(ev.source_url, Some("synthetic://test".into()));
     }
 }

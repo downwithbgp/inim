@@ -132,6 +132,54 @@ impl std::fmt::Display for ObservationId {
     }
 }
 
+// ── Evidence reference ─────────────────────────────────────────────
+
+/// A stable reference to a source observation, suitable for audit trails
+/// and evidence appendix records. Carried independently by each part of
+/// a StateChange (baseline, before, after).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct EvidenceRef {
+    pub observation_id: ObservationId,
+    pub source_url: Option<String>,
+    pub archive_sha256: Option<String>,
+    pub collector: CollectorId,
+    pub peer_ip: std::net::IpAddr,
+    pub peer_asn: Asn,
+    pub prefix: super::route::Prefix,
+    pub timestamp: chrono::DateTime<chrono::Utc>,
+    pub element_seq: u64,
+}
+
+impl EvidenceRef {
+    /// Build an evidence reference from a route observation.
+    pub fn from_observation(obs: &RouteObservation) -> Self {
+        obs.provenance.to_evidence_ref(
+            obs.id,
+            &obs.collector,
+            obs.peer_ip,
+            obs.peer_asn,
+            &obs.prefix,
+            obs.timestamp,
+        )
+    }
+
+    /// Build a synthetic evidence reference for testing.
+    pub fn synthetic(id: u64, url: &str, sha: &str) -> Self {
+        use chrono::TimeZone;
+        EvidenceRef {
+            observation_id: ObservationId(id),
+            source_url: Some(url.to_string()),
+            archive_sha256: Some(sha.to_string()),
+            collector: CollectorId("test".into()),
+            peer_ip: "0.0.0.0".parse().unwrap(),
+            peer_asn: Asn(0),
+            prefix: super::route::Prefix::from("0.0.0.0/0"),
+            timestamp: chrono::Utc.with_ymd_and_hms(2026, 7, 30, 9, 0, 0).unwrap(),
+            element_seq: 0,
+        }
+    }
+}
+
 // ── Provenance ─────────────────────────────────────────────────────
 
 /// Provenance metadata for audit trail and reproducibility.
@@ -139,6 +187,10 @@ impl std::fmt::Display for ObservationId {
 pub struct ObservationProvenance {
     /// Input file path or URL.
     pub input: String,
+    /// Canonical source URL (from broker discovery).
+    pub source_url: Option<String>,
+    /// SHA-256 of the cached archive file.
+    pub archive_sha256: Option<String>,
     /// Role of the input (RIB or updates).
     pub role: IngestRole,
     /// Parser representation used (always "bgpkit-bgp-elem" in MVP).
@@ -147,6 +199,44 @@ pub struct ObservationProvenance {
     pub mrt_timestamp: f64,
     /// Deterministic element sequence number within the input.
     pub element_seq: u64,
+}
+
+impl ObservationProvenance {
+    /// Convenience constructor for synthetic test data.
+    pub fn synthetic(role: IngestRole, seq: u64) -> Self {
+        ObservationProvenance {
+            input: "synthetic".into(),
+            source_url: None,
+            archive_sha256: None,
+            role,
+            parser_representation: "synthetic".into(),
+            mrt_timestamp: 0.0,
+            element_seq: seq,
+        }
+    }
+
+    /// Build an EvidenceRef from this provenance and a RouteObservation.
+    pub fn to_evidence_ref(
+        &self,
+        obs_id: ObservationId,
+        collector: &CollectorId,
+        peer_ip: std::net::IpAddr,
+        peer_asn: Asn,
+        prefix: &super::route::Prefix,
+        timestamp: chrono::DateTime<chrono::Utc>,
+    ) -> EvidenceRef {
+        EvidenceRef {
+            observation_id: obs_id,
+            source_url: self.source_url.clone(),
+            archive_sha256: self.archive_sha256.clone(),
+            collector: collector.clone(),
+            peer_ip,
+            peer_asn,
+            prefix: prefix.clone(),
+            timestamp,
+            element_seq: self.element_seq,
+        }
+    }
 }
 
 #[cfg(test)]
@@ -179,6 +269,8 @@ mod tests {
                 communities: Communities::new(),
             }),
             provenance: ObservationProvenance {
+            source_url: None,
+            archive_sha256: None,
                 input: "test.mrt".into(),
                 role: IngestRole::Updates,
                 parser_representation: "bgpkit-bgp-elem".into(),

@@ -153,6 +153,8 @@ mod tests {
                 communities: Communities::new(),
             }),
             provenance: ObservationProvenance {
+            source_url: None,
+            archive_sha256: None,
                 input: "rib.mrt".into(),
                 role: crate::domain::observation::IngestRole::Rib,
                 parser_representation: "bgpkit-bgp-elem".into(),

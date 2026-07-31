@@ -4,7 +4,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::net::IpAddr;
 
-use super::observation::Asn;
+use super::observation::{Asn, EvidenceRef};
 
 /// A BGP prefix (e.g. "192.0.2.0/24").
 #[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
@@ -145,20 +145,54 @@ pub enum TransitionKind {
     ReturnToBaseline,
 }
 
-/// A transition from one route state to another.
+// ── Evidenced route state ──────────────────────────────────────────
+
+/// A route state with provenance: the state itself plus the source
+/// observation that established it.
+///
+/// `state = None` means explicit absence (withdrawal). The `evidence`
+/// records the observation that caused or confirmed it.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct RouteTransition {
-    /// The previous state, if any (None = no prior state known).
-    pub from: Option<RouteState>,
-    /// The new state.
-    pub to: RouteState,
-    /// The kind of transition that occurred.
-    pub kind: TransitionKind,
+pub struct EvidencedRouteState {
+    pub state: Option<RouteState>,
+    pub evidence: EvidenceRef,
 }
 
-impl RouteTransition {
-    pub fn new(from: Option<RouteState>, to: RouteState, kind: TransitionKind) -> Self {
-        RouteTransition { from, to, kind }
+impl EvidencedRouteState {
+    /// Present route with announcement/RIB evidence.
+    pub fn present(state: RouteState, evidence: EvidenceRef) -> Self {
+        EvidencedRouteState {
+            state: Some(state),
+            evidence,
+        }
+    }
+
+    /// Explicit absence (withdrawal) with the withdrawal observation evidence.
+    pub fn absent(evidence: EvidenceRef) -> Self {
+        EvidencedRouteState {
+            state: None,
+            evidence,
+        }
+    }
+
+    /// Access the prefix (panics if state is None — only call on present states).
+    pub fn prefix(&self) -> &Prefix {
+        &self.state.as_ref().expect("prefix() called on absent state").prefix
+    }
+
+    /// Access the timestamp.
+    pub fn timestamp(&self) -> chrono::DateTime<chrono::Utc> {
+        self.state.as_ref().expect("timestamp() on absent").timestamp
+    }
+
+    /// Access the observer string.
+    pub fn observer(&self) -> &str {
+        &self.state.as_ref().expect("observer() on absent").observer
+    }
+
+    /// Access route attributes.
+    pub fn attributes(&self) -> &RouteAttributes {
+        &self.state.as_ref().expect("attributes() on absent").attributes
     }
 }
 
@@ -175,28 +209,71 @@ pub enum Continuity {
 
 /// A kind-less state change emitted by route reconstruction.
 ///
-/// Contains only before/after states and continuity status.
-/// Classification happens downstream in tokenize::diff.
+/// Carries independently evidenced baseline, before, and after states —
+/// plus the triggering observation. Classification happens downstream
+/// in tokenize::diff.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct StateChange {
     pub key: RouteKey,
-    pub from: Option<RouteState>,
-    pub to: RouteState,
+    pub event_baseline: Option<EvidencedRouteState>,
+    pub before: Option<EvidencedRouteState>,
+    pub after: EvidencedRouteState,
+    pub triggering: EvidenceRef,
     pub continuity: Continuity,
 }
 
 impl StateChange {
     pub fn new(
         key: RouteKey,
-        from: Option<RouteState>,
-        to: RouteState,
+        event_baseline: Option<EvidencedRouteState>,
+        before: Option<EvidencedRouteState>,
+        after: EvidencedRouteState,
+        triggering: EvidenceRef,
         continuity: Continuity,
     ) -> Self {
         StateChange {
             key,
+            event_baseline,
+            before,
+            after,
+            triggering,
+            continuity,
+        }
+    }
+}
+
+/// A transition from one route state to another.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RouteTransition {
+    pub key: RouteKey,
+    /// The event-baseline state, if a baseline was frozen.
+    pub event_baseline: Option<EvidencedRouteState>,
+    /// The previous state.
+    pub from: Option<EvidencedRouteState>,
+    /// The new state.
+    pub to: EvidencedRouteState,
+    /// The kind of transition that occurred.
+    pub kind: TransitionKind,
+    /// The triggering observation.
+    pub triggering: EvidenceRef,
+}
+
+impl RouteTransition {
+    pub fn new(
+        key: RouteKey,
+        event_baseline: Option<EvidencedRouteState>,
+        from: Option<EvidencedRouteState>,
+        to: EvidencedRouteState,
+        triggering: EvidenceRef,
+        kind: TransitionKind,
+    ) -> Self {
+        RouteTransition {
+            key,
+            event_baseline,
             from,
             to,
-            continuity,
+            kind,
+            triggering,
         }
     }
 }
