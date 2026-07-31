@@ -59,6 +59,32 @@ enum Commands {
         #[arg(short = 'o', long, value_name = "DIR")]
         out: Option<PathBuf>,
     },
+    /// Migrate a legacy manifest (schema v1) to the canonical schema.
+    ///
+    /// Converts `managed_network_asn` / `internet2_asn` to a
+    /// `TransitPredicateMapping`. A Reviewed predicate requires
+    /// analyst-confirmed provenance. Never executes analysis.
+    MigrateManifest {
+        /// Path to the legacy manifest JSON file.
+        #[arg(long, value_name = "PATH")]
+        input: PathBuf,
+
+        /// Output path for the migrated manifest.
+        #[arg(long, value_name = "PATH")]
+        output: PathBuf,
+
+        /// Provenance statement confirming the transit predicate review.
+        #[arg(long, value_name = "TEXT")]
+        statement: Option<String>,
+
+        /// Reviewer identity for the provenance record.
+        #[arg(long, value_name = "NAME")]
+        reviewed_by: Option<String>,
+
+        /// Review date (ISO-8601) for the provenance record.
+        #[arg(long, value_name = "DATE")]
+        date: Option<String>,
+    },
     /// Analyze a single operational event against BGP observations.
     ///
     /// Without --manifest: runs a built-in synthetic demonstration.
@@ -113,6 +139,20 @@ fn run(cli: &Cli) -> i32 {
             manifest,
             out,
         } => cmd_plan(&mut std::io::stdout(), event, manifest, out.as_deref()),
+        Commands::MigrateManifest {
+            input,
+            output,
+            statement,
+            reviewed_by,
+            date,
+        } => cmd_migrate_manifest(
+            &mut std::io::stdout(),
+            input,
+            output,
+            statement.as_deref(),
+            reviewed_by.as_deref(),
+            date.as_deref(),
+        ),
         Commands::Analyze {
             event,
             manifest,
@@ -152,14 +192,15 @@ fn cmd_plan(
     manifest_path: &std::path::Path,
     out_dir: Option<&std::path::Path>,
 ) -> i32 {
-    let ticket = match i2ticket::parse_ticket_fixture(event_path.to_string_lossy().as_ref()) {
-        Ok(t) => t,
-        Err(e) => {
-            let _ = writeln!(stdout, "error: failed to parse ticket fixture: {e}");
-            return EXIT_INVALID_INPUT;
-        }
-    };
-    let expectation = i2ticket::derive_expectation(&ticket);
+    let (event_id, expectation) =
+        match inim::sources::derive_expectation_from_fixture(event_path.to_string_lossy().as_ref())
+        {
+            Ok(pair) => pair,
+            Err(e) => {
+                let _ = writeln!(stdout, "error: failed to parse ticket fixture: {e}");
+                return EXIT_INVALID_INPUT;
+            }
+        };
     let manifest = match inim::manifest::Manifest::load(manifest_path) {
         Ok(m) => m,
         Err(e) => {
@@ -167,7 +208,7 @@ fn cmd_plan(
             return EXIT_INVALID_INPUT;
         }
     };
-    let plan = match inim::plan::plan_from_manifest(&manifest.event_id, expectation, &manifest) {
+    let plan = match inim::plan::plan_from_manifest(&event_id.0, expectation, &manifest) {
         Ok(p) => p,
         Err(e) => {
             let _ = writeln!(stdout, "error: {e}");
@@ -191,7 +232,71 @@ fn cmd_plan(
     EXIT_SUCCESS
 }
 
-/// `inim analyze` with a manifest: plan first, then analyze when Ready.
+/// `inim migrate-manifest`: convert a legacy manifest to the canonical schema.
+///
+/// Never executes analysis. Requires provenance when the conversion would
+/// produce a Reviewed predicate.
+fn cmd_migrate_manifest(
+    stdout: &mut dyn Write,
+    input: &std::path::Path,
+    output: &std::path::Path,
+    statement: Option<&str>,
+    reviewed_by: Option<&str>,
+    date: Option<&str>,
+) -> i32 {
+    let legacy = match inim::manifest::Manifest::load_legacy(input) {
+        Ok(m) => m,
+        Err(e) => {
+            let _ = writeln!(stdout, "error: {e}");
+            return EXIT_INVALID_INPUT;
+        }
+    };
+
+    let provenance = match (statement, reviewed_by, date) {
+        (Some(s), Some(r), Some(d)) => Some(inim::plan::Provenance {
+            statement: s.to_string(),
+            reviewed_by: r.to_string(),
+            date: d.to_string(),
+        }),
+        (None, None, None) => None,
+        _ => {
+            let _ = writeln!(
+                stdout,
+                "error: provenance must be provided fully (--statement, --reviewed-by, --date) or not at all"
+            );
+            return EXIT_INVALID_INPUT;
+        }
+    };
+
+    match inim::manifest::migrate_manifest(&legacy, provenance) {
+        Ok(migrated) => {
+            let json = match serde_json::to_string_pretty(&migrated) {
+                Ok(j) => j,
+                Err(e) => {
+                    let _ = writeln!(stdout, "error: serialization failed: {e}");
+                    return EXIT_INVALID_INPUT;
+                }
+            };
+            if let Err(e) = std::fs::write(output, json) {
+                let _ = writeln!(stdout, "error: cannot write {}: {e}", output.display());
+                return EXIT_INVALID_INPUT;
+            }
+            let _ = writeln!(
+                stdout,
+                "migrated {} to canonical schema v{} (revision {}) at {}",
+                migrated.event_id,
+                migrated.schema_version,
+                migrated.revision,
+                output.display()
+            );
+            EXIT_SUCCESS
+        }
+        Err(e) => {
+            let _ = writeln!(stdout, "error: {e}");
+            EXIT_INVALID_INPUT
+        }
+    }
+}
 ///
 /// A Blocked plan prints the plan and exits EXIT_ANALYSIS_BLOCKED without
 /// any Broker query, archive download, or MRT parse. Incomplete analysis
@@ -212,14 +317,15 @@ fn cmd_analyze(
     };
 
     // ── Plan first: no broker/cache/MRT work before planning ──
-    let ticket = match i2ticket::parse_ticket_fixture(event_path.to_string_lossy().as_ref()) {
-        Ok(t) => t,
-        Err(e) => {
-            let _ = writeln!(stderr, "error: failed to parse ticket fixture: {e}");
-            return EXIT_INVALID_INPUT;
-        }
-    };
-    let expectation = i2ticket::derive_expectation(&ticket);
+    let (event_id, expectation) =
+        match inim::sources::derive_expectation_from_fixture(event_path.to_string_lossy().as_ref())
+        {
+            Ok(pair) => pair,
+            Err(e) => {
+                let _ = writeln!(stderr, "error: failed to parse ticket fixture: {e}");
+                return EXIT_INVALID_INPUT;
+            }
+        };
     let manifest = match inim::manifest::Manifest::load(manifest_path) {
         Ok(m) => m,
         Err(e) => {
@@ -227,7 +333,7 @@ fn cmd_analyze(
             return EXIT_INVALID_INPUT;
         }
     };
-    let plan = match inim::plan::plan_from_manifest(&manifest.event_id, expectation, &manifest) {
+    let plan = match inim::plan::plan_from_manifest(&event_id.0, expectation, &manifest) {
         Ok(p) => p,
         Err(e) => {
             let _ = writeln!(stderr, "error: {e}");
@@ -439,6 +545,7 @@ mod tests {
                 assert_eq!(out.to_string_lossy(), "./out");
             }
             Commands::Plan { .. } => unreachable!("plan not expected"),
+            Commands::MigrateManifest { .. } => unreachable!("migrate not expected"),
         }
     }
 
@@ -458,6 +565,7 @@ mod tests {
                 assert!(manifest.is_some());
             }
             Commands::Plan { .. } => unreachable!("plan not expected"),
+            Commands::MigrateManifest { .. } => unreachable!("migrate not expected"),
         }
     }
 
@@ -473,6 +581,7 @@ mod tests {
                 assert_eq!(out.to_string_lossy(), "/tmp/o");
             }
             Commands::Plan { .. } => unreachable!("plan not expected"),
+            Commands::MigrateManifest { .. } => unreachable!("migrate not expected"),
         }
     }
 
@@ -496,6 +605,7 @@ mod tests {
                 assert!(manifest.is_some());
             }
             Commands::Plan { .. } => unreachable!("plan not expected"),
+            Commands::MigrateManifest { .. } => unreachable!("migrate not expected"),
         }
     }
 

@@ -1,35 +1,45 @@
 {
   "event_id": "INC0301970",
-  "revision": 1,
+  "revision": 2,
+  "schema_version": 2,
   "event_window_utc": {
     "start": "2026-07-28T04:35:00Z",
     "end": ""
   },
-  "open": true,
-  "analysis_end_utc": "2026-07-29T04:35:00Z",
   "ticket_window_local": {
     "start": "2026-07-28 00:35:00",
     "end": "",
     "timezone": "EDT",
-    "timezone_note": "Indiana is US Eastern time. EDT = UTC−4."
+    "timezone_note": "Indiana is US Eastern time. EDT = UTC\u22124."
   },
+  "open": true,
+  "analysis_end_utc": "2026-07-29T04:35:00Z",
   "warmup_minutes": 60,
   "cooldown_minutes": 60,
   "target": {
     "label": "Smithville via Indiana GigaPOP",
-    "origin_asns": [11550],
-    "internet2_asn": 0,
-    "prefix_selection": "origin AS11550 AND baseline AS path contains <Indiana GigaPOP transit ASN — PENDING REVIEW>",
-    "prefix_selection_provenance": "Manual analyst mapping: AS11550 = Smithville (the peer named in the ticket). Indiana GigaPOP transit ASN set requires review — not yet confirmed."
+    "origin_asns": [
+      11550
+    ],
+    "transit_predicate": {
+      "status": "Unresolved",
+      "predicate": null,
+      "provenance": null
+    },
+    "prefix_selection": "origin AS11550 AND baseline AS path contains <Indiana GigaPOP transit ASN \u2014 PENDING REVIEW>",
+    "prefix_selection_provenance": "Manual analyst mapping: AS11550 = Smithville (the peer named in the ticket). Indiana GigaPOP transit ASN set requires review \u2014 not yet confirmed."
   },
-  "collectors": ["route-views2", "route-views6"],
+  "collectors": [
+    "route-views2",
+    "route-views6"
+  ],
   "collectors_provenance": "RouteViews peers with broad global visibility. Selected for coverage of AS11550 prefixes.",
   "analyst_notes": [
-    "The ticket 'Outage - Indiana GigaPOP Peer Smithville' has no parenthesized site code and no end time — open event.",
+    "The ticket 'Outage - Indiana GigaPOP Peer Smithville' has no parenthesized site code and no end time \u2014 open event.",
     "Indiana GigaPOP does NOT use the Internet2 parenthesized site-code convention.",
     "Participant Smithville maps to AS11550 (pending verification).",
     "Indiana GigaPOP transit ASN set requires review before real analysis can proceed.",
-    "Open event: no published end time. Analysis bounded to analysis_end_utc. Restoration pending — no final restoration verdict possible.",
-    "This manifest is a draft — the transit ASN field is 0 and must be reviewed before running real analysis."
+    "Open event: no published end time. Analysis bounded to analysis_end_utc. Restoration pending \u2014 no final restoration verdict possible.",
+    "Schema v2 migration: legacy internet2_asn=0 shortcut removed; TransitPredicate remains Unresolved with no executable predicate. Planning blocks until a reviewed predicate exists."
   ]
 }

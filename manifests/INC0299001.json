@@ -1,6 +1,7 @@
 {
   "event_id": "INC0299001",
-  "revision": 1,
+  "revision": 2,
+  "schema_version": 2,
   "event_window_utc": {
     "start": "2026-07-14T06:35:00Z",
     "end": "2026-07-14T07:56:00Z"
@@ -11,16 +12,35 @@
     "timezone": "EDT",
     "timezone_note": "Internet2 GRNOC publishes ticket times in US Eastern time. EDT = UTC−4."
   },
+  "open": false,
+  "analysis_end_utc": null,
   "warmup_minutes": 60,
   "cooldown_minutes": 60,
   "target": {
     "label": "UVA via Internet2",
-    "origin_asns": [225],
-    "managed_network_asn": 11537,
+    "origin_asns": [
+      225
+    ],
+    "transit_predicate": {
+      "status": "Reviewed",
+      "predicate": {
+        "ContainsAny": [
+          11537
+        ]
+      },
+      "provenance": {
+        "statement": "Reviewed transit mapping: AS11537 = Internet2 (the network through which UVA connects). Single-ASN legacy shortcut converted to canonical ContainsAny predicate.",
+        "reviewed_by": "analyst",
+        "date": "2026-07-31"
+      }
+    },
     "prefix_selection": "origin AS225 AND baseline AS path contains AS11537",
     "prefix_selection_provenance": "Manual analyst mapping: AS225 = University of Virginia (the participant named in the ticket); AS11537 = Internet2 (the network through which UVA connects). We select only prefixes originated by UVA whose pre-event baseline path traverses Internet2, as those are the routes that could be affected by the I2 participant relationship unavailability."
   },
-  "collectors": ["route-views2", "route-views6"],
+  "collectors": [
+    "route-views2",
+    "route-views6"
+  ],
   "collectors_provenance": "RouteViews peers with broad global visibility. Selected for IPv4/IPv6 coverage of AS225 prefixes.",
   "analyst_notes": [
     "The ticket title 'Availability - I2 Participant UVA' has no parenthesized site code. This is expected to derive a ParticipantRelationshipUnavailable (NonRedundant) expectation distinct from the Redundant RIPE event (INC0302574).",

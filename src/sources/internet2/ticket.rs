@@ -421,7 +421,12 @@ mod tests {
         let content = std::fs::read_to_string(manifest_path).unwrap();
         let manifest: serde_json::Value = serde_json::from_str(&content).unwrap();
         assert_eq!(manifest["target"]["origin_asns"][0], 225);
-        assert_eq!(manifest["target"]["managed_network_asn"], 11537);
+        // Canonical schema: legacy managed_network_asn shortcut must be gone.
+        assert!(manifest["target"].get("managed_network_asn").is_none());
+        assert!(manifest["target"].get("internet2_asn").is_none());
+        let tp = &manifest["target"]["transit_predicate"];
+        assert_eq!(tp["status"], "Reviewed");
+        assert_eq!(tp["predicate"]["ContainsAny"][0], 11537);
         assert!(manifest["target"]["prefix_selection"]
             .as_str()
             .unwrap()

@@ -1,6 +1,7 @@
 {
   "event_id": "INC0302574",
-  "revision": 1,
+  "revision": 2,
+  "schema_version": 2,
   "event_window_utc": {
     "start": "2026-07-30T09:25:00Z",
     "end": "2026-07-30T09:47:00Z"
@@ -11,16 +12,35 @@
     "timezone": "EDT",
     "timezone_note": "Internet2 GRNOC publishes ticket times in US Eastern time. EDT = UTC−4."
   },
+  "open": false,
+  "analysis_end_utc": null,
   "warmup_minutes": 60,
   "cooldown_minutes": 60,
   "target": {
     "label": "RIPE via NYIIX",
-    "origin_asns": [3333],
-    "managed_network_asn": 11537,
+    "origin_asns": [
+      3333
+    ],
+    "transit_predicate": {
+      "status": "Reviewed",
+      "predicate": {
+        "ContainsAny": [
+          11537
+        ]
+      },
+      "provenance": {
+        "statement": "Reviewed transit mapping: AS11537 = Internet2 (the network conducting the maintenance). Single-ASN legacy shortcut converted to canonical ContainsAny predicate.",
+        "reviewed_by": "analyst",
+        "date": "2026-07-31"
+      }
+    },
     "prefix_selection": "origin AS3333 AND baseline AS path contains AS11537",
     "prefix_selection_provenance": "Manual analyst mapping: AS3333 = RIPE NCC (the peer named in the ticket); AS11537 = Internet2 (the network conducting the maintenance). We select only prefixes originated by RIPE whose pre-event baseline path traverses Internet2, as those are the routes that could be affected by the NYIIX/NEWA attachment outage."
   },
-  "collectors": ["route-views2", "route-views6"],
+  "collectors": [
+    "route-views2",
+    "route-views6"
+  ],
   "collectors_provenance": "RouteViews peers with broad global visibility. Selected for IPv4 coverage of AS3333 prefixes.",
   "analyst_notes": [
     "The ticket title 'Brief Outage - I2 PX Peer RIPE via NYIIX (NEWA)' indicates a short incident affecting the RIPE peer's New York attachment (site code NEWA). The parenthesized site code convention implies expected redundancy: one attachment may be unavailable, but RIPE reachability through Internet2 should remain via alternate paths.",
