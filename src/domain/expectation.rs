@@ -19,6 +19,8 @@ pub enum ExpectationKind {
     NonRedundant,
     /// Participant relationship may be unavailable (non-parenthesized participant title).
     ParticipantRelationshipUnavailable,
+    /// Open-ended event with no published end time (restoration pending).
+    OpenEvent,
     /// Unable to determine expectation from available information.
     Unknown,
 }
@@ -61,6 +63,16 @@ impl ImpactExpectation {
         ImpactExpectation {
             kind: ExpectationKind::ParticipantRelationshipUnavailable,
             description: "Non-parenthesized participant title — Internet2 participant relationship may be unavailable. Impact may include path departure from AS11537, alternate routing, or partial restorations."
+                .to_string(),
+            provenance: provenance.to_string(),
+        }
+    }
+
+    /// Create an expectation for an open-ended event (no published end time).
+    pub fn open_event(provenance: &str) -> Self {
+        ImpactExpectation {
+            kind: ExpectationKind::OpenEvent,
+            description: "Open-ended event with no published end time — restoration pending, no final restoration-success/failure verdict possible."
                 .to_string(),
             provenance: provenance.to_string(),
         }

@@ -1,0 +1,12 @@
+{
+  "number": "INC0301970",
+  "task_type": "Incident",
+  "short_description": "Outage - Indiana GigaPOP Peer Smithville",
+  "category": "Undetermined",
+  "start": "2026-07-28T04:35:00Z",
+  "opened": "2026-07-28T04:56:00Z",
+  "state": "In Progress",
+  "priority": "Moderate",
+  "description": "Outage affecting the Indiana GigaPOP peer Smithville. Published with no end time — restoration pending.",
+  "source_url": "https://grnoc.iu.edu/tasks/INC0301970"
+}

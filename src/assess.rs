@@ -198,6 +198,7 @@ fn derive_verdict(
                 Verdict::UnexpectedContinuedInternet2Path
             }
             ExpectationKind::NonRedundant => Verdict::LessImpactThanExpected,
+            ExpectationKind::OpenEvent => Verdict::OpenEventNoImpactSoFar,
             _ => Verdict::NoObservableBgpImpact,
         };
     }
@@ -283,6 +284,14 @@ fn derive_verdict(
                 } else {
                     Verdict::UnexpectedContinuedInternet2Path
                 }
+            }
+        }
+        ExpectationKind::OpenEvent => {
+            // Open events get conservative verdicts — never final restoration verdicts
+            if has_withdrawals || has_path_changes {
+                Verdict::OpenEventImpactObserved
+            } else {
+                Verdict::OpenEventNoImpactSoFar
             }
         }
         ExpectationKind::Unknown => Verdict::Indeterminate,
