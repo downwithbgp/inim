@@ -39,9 +39,7 @@ use super::grammar::{Grammar, RuleId, Symbol};
 type Position = (Option<RuleId>, usize);
 
 /// Build a SEQUITUR grammar from a terminal sequence.
-pub fn build<T: Clone + Eq + std::hash::Hash + std::fmt::Debug>(
-    input: &[T],
-) -> Grammar<T> {
+pub fn build<T: Clone + Eq + std::hash::Hash + std::fmt::Debug>(input: &[T]) -> Grammar<T> {
     let mut b = Builder::new();
     for symbol in input {
         b.append(Symbol::Terminal(symbol.clone()));
@@ -79,7 +77,9 @@ impl<T: Clone + Eq + std::hash::Hash + std::fmt::Debug> Builder<T> {
             let underused: Option<RuleId> = {
                 let mut rule_ids: Vec<RuleId> = self.grammar.rules.keys().copied().collect();
                 rule_ids.sort(); // deterministic order
-                rule_ids.into_iter().find(|&rid| self.count_rule_refs(rid) < 2)
+                rule_ids
+                    .into_iter()
+                    .find(|&rid| self.count_rule_refs(rid) < 2)
             };
             match underused {
                 Some(rid) => {
@@ -151,7 +151,12 @@ impl<T: Clone + Eq + std::hash::Hash + std::fmt::Debug> Builder<T> {
         self.enforce_digram_uniqueness_depth(rule_id, pos, 0);
     }
 
-    fn enforce_digram_uniqueness_depth(&mut self, rule_id: Option<RuleId>, pos: usize, depth: usize) {
+    fn enforce_digram_uniqueness_depth(
+        &mut self,
+        rule_id: Option<RuleId>,
+        pos: usize,
+        depth: usize,
+    ) {
         // Recursion guard: avoid infinite loops from expand↔enforce cycles
         const MAX_DEPTH: usize = 20;
         if depth > MAX_DEPTH {
@@ -170,10 +175,9 @@ impl<T: Clone + Eq + std::hash::Hash + std::fmt::Debug> Builder<T> {
 
         // Create a new rule for this digram
         let new_rule_id = self.grammar.fresh_rule_id();
-        self.grammar.rules.insert(
-            new_rule_id,
-            vec![d.0.clone(), d.1.clone()],
-        );
+        self.grammar
+            .rules
+            .insert(new_rule_id, vec![d.0.clone(), d.1.clone()]);
 
         // Substitute all occurrences. Iterate in reverse and re-check
         // that the digram at the stored position still matches — overlapping
@@ -272,15 +276,23 @@ impl<T: Clone + Eq + std::hash::Hash + std::fmt::Debug> Builder<T> {
 
     fn seq_remove(&mut self, rule_id: Option<RuleId>, pos: usize) {
         match rule_id {
-            None => { self.grammar.start.remove(pos); }
-            Some(rid) => { self.grammar.rules.get_mut(&rid).unwrap().remove(pos); }
+            None => {
+                self.grammar.start.remove(pos);
+            }
+            Some(rid) => {
+                self.grammar.rules.get_mut(&rid).unwrap().remove(pos);
+            }
         }
     }
 
     fn seq_insert(&mut self, rule_id: Option<RuleId>, pos: usize, sym: Symbol<T>) {
         match rule_id {
-            None => { self.grammar.start.insert(pos, sym); }
-            Some(rid) => { self.grammar.rules.get_mut(&rid).unwrap().insert(pos, sym); }
+            None => {
+                self.grammar.start.insert(pos, sym);
+            }
+            Some(rid) => {
+                self.grammar.rules.get_mut(&rid).unwrap().insert(pos, sym);
+            }
         }
     }
 

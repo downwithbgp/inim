@@ -85,10 +85,7 @@ mod tests {
             format!("{}", Verdict::RedundancyFailureObserved),
             "REDUNDANCY FAILURE"
         );
-        assert_eq!(
-            format!("{}", Verdict::Indeterminate),
-            "INDETERMINATE"
-        );
+        assert_eq!(format!("{}", Verdict::Indeterminate), "INDETERMINATE");
     }
 
     #[test]

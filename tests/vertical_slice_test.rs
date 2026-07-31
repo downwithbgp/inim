@@ -8,9 +8,9 @@
 use chrono::{TimeZone, Utc};
 
 use inim::assess;
+use inim::domain::assessment::Verdict;
 use inim::domain::event::EventId;
 use inim::domain::expectation::ImpactExpectation;
-use inim::domain::assessment::Verdict;
 use inim::fixtures;
 use inim::routes;
 use inim::tokenize;
@@ -26,36 +26,60 @@ fn redundant_maintenance_vertical_slice() {
     let obs = vec![
         // RIB: baseline state for two peers
         fixtures::make_synthetic_rib(
-            "192.0.2.0/24", collector, "185.1.8.65", 6447,
+            "192.0.2.0/24",
+            collector,
+            "185.1.8.65",
+            6447,
             vec![6447, 11537, 1101],
-            Utc.with_ymd_and_hms(2025, 6, 15, 0, 50, 0).unwrap(), 0,
+            Utc.with_ymd_and_hms(2025, 6, 15, 0, 50, 0).unwrap(),
+            0,
         ),
         fixtures::make_synthetic_rib(
-            "192.0.2.0/24", collector, "2001:7f8:4::1", 6447,
+            "192.0.2.0/24",
+            collector,
+            "2001:7f8:4::1",
+            6447,
             vec![6447, 11537, 1101],
-            Utc.with_ymd_and_hms(2025, 6, 15, 0, 50, 0).unwrap(), 1,
+            Utc.with_ymd_and_hms(2025, 6, 15, 0, 50, 0).unwrap(),
+            1,
         ),
         // Event: failover to alternate path
         fixtures::make_synthetic_announcement(
-            "192.0.2.0/24", collector, "185.1.8.65", 6447,
+            "192.0.2.0/24",
+            collector,
+            "185.1.8.65",
+            6447,
             vec![6447, 237, 1101],
-            Utc.with_ymd_and_hms(2025, 6, 15, 1, 2, 14).unwrap(), 2,
+            Utc.with_ymd_and_hms(2025, 6, 15, 1, 2, 14).unwrap(),
+            2,
         ),
         fixtures::make_synthetic_announcement(
-            "192.0.2.0/24", collector, "2001:7f8:4::1", 6447,
+            "192.0.2.0/24",
+            collector,
+            "2001:7f8:4::1",
+            6447,
             vec![6447, 237, 1101],
-            Utc.with_ymd_and_hms(2025, 6, 15, 1, 2, 18).unwrap(), 3,
+            Utc.with_ymd_and_hms(2025, 6, 15, 1, 2, 18).unwrap(),
+            3,
         ),
         // Restoration to baseline
         fixtures::make_synthetic_announcement(
-            "192.0.2.0/24", collector, "185.1.8.65", 6447,
+            "192.0.2.0/24",
+            collector,
+            "185.1.8.65",
+            6447,
             vec![6447, 11537, 1101],
-            Utc.with_ymd_and_hms(2025, 6, 15, 5, 51, 44).unwrap(), 4,
+            Utc.with_ymd_and_hms(2025, 6, 15, 5, 51, 44).unwrap(),
+            4,
         ),
         fixtures::make_synthetic_announcement(
-            "192.0.2.0/24", collector, "2001:7f8:4::1", 6447,
+            "192.0.2.0/24",
+            collector,
+            "2001:7f8:4::1",
+            6447,
             vec![6447, 11537, 1101],
-            Utc.with_ymd_and_hms(2025, 6, 15, 5, 53, 11).unwrap(), 5,
+            Utc.with_ymd_and_hms(2025, 6, 15, 5, 53, 11).unwrap(),
+            5,
         ),
     ];
 
@@ -65,7 +89,9 @@ fn redundant_maintenance_vertical_slice() {
 
     // ── Continuity check (must be before changes is moved) ──────
     use inim::domain::route::Continuity;
-    let any_unknown = changes.iter().any(|sc| sc.continuity == Continuity::Unknown);
+    let any_unknown = changes
+        .iter()
+        .any(|sc| sc.continuity == Continuity::Unknown);
 
     // ── Tokenize ───────────────────────────────────────────────
     let baseline_map: std::collections::HashMap<_, _> = store
@@ -79,10 +105,7 @@ fn redundant_maintenance_vertical_slice() {
     waves::summarize_waves(&mut detected_waves);
 
     // ── Assess ─────────────────────────────────────────────────
-    let expectation = ImpactExpectation::redundant(
-        Some("NEWY32AOA"),
-        "Internet2 title convention",
-    );
+    let expectation = ImpactExpectation::redundant(Some("NEWY32AOA"), "Internet2 title convention");
     assert!(
         !any_unknown,
         "Redundant scenario must have known continuity before asserting verdict"
@@ -105,9 +128,9 @@ fn redundant_maintenance_vertical_slice() {
     );
 
     // No withdrawals should be detected
-    let has_withdrawals = transitions.iter().any(|t| {
-        matches!(t.kind, inim::domain::route::TransitionKind::Withdrawal)
-    });
+    let has_withdrawals = transitions
+        .iter()
+        .any(|t| matches!(t.kind, inim::domain::route::TransitionKind::Withdrawal));
     assert!(
         !has_withdrawals,
         "Redundant scenario must have no withdrawals"
@@ -126,9 +149,10 @@ fn redundant_maintenance_vertical_slice() {
     );
 
     // Evidence should reference the path changes
-    let has_path_change_evidence = assessment.evidence.iter().any(|e| {
-        e.description.contains("Path changes")
-    });
+    let has_path_change_evidence = assessment
+        .evidence
+        .iter()
+        .any(|e| e.description.contains("Path changes"));
     assert!(
         has_path_change_evidence,
         "Evidence must mention path changes"

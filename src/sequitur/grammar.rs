@@ -76,12 +76,7 @@ impl<T: Clone + Eq> Grammar<T> {
         result
     }
 
-    fn expand_seq(
-        &self,
-        seq: &[Symbol<T>],
-        out: &mut Vec<T>,
-        stack: &mut Vec<RuleId>,
-    ) {
+    fn expand_seq(&self, seq: &[Symbol<T>], out: &mut Vec<T>, stack: &mut Vec<RuleId>) {
         for sym in seq {
             match sym {
                 Symbol::Terminal(t) => out.push(t.clone()),
@@ -115,10 +110,7 @@ impl<T: Clone + Eq + std::fmt::Display> Grammar<T> {
                 }
                 Symbol::NonTerminal(rid) => {
                     if let Some(body) = self.rules.get(rid) {
-                        let inner: Vec<String> = body
-                            .iter()
-                            .map(|s| format!("{s}"))
-                            .collect();
+                        let inner: Vec<String> = body.iter().map(|s| format!("{s}")).collect();
                         parts.push(format!("[{}]", inner.join(" ")));
                     } else {
                         parts.push(format!("{rid}"));
@@ -152,7 +144,8 @@ mod tests {
     fn single_rule_expansion() {
         let mut g = Grammar::new();
         let r0 = g.fresh_rule_id();
-        g.rules.insert(r0, vec![Symbol::Terminal('a'), Symbol::Terminal('b')]);
+        g.rules
+            .insert(r0, vec![Symbol::Terminal('a'), Symbol::Terminal('b')]);
         g.start = vec![Symbol::NonTerminal(r0), Symbol::Terminal('c')];
         assert_eq!(g.expand(), vec!['a', 'b', 'c']);
     }
@@ -162,11 +155,10 @@ mod tests {
         let mut g = Grammar::new();
         let r0 = g.fresh_rule_id();
         let r1 = g.fresh_rule_id();
-        g.rules.insert(r0, vec![Symbol::Terminal('b'), Symbol::Terminal('c')]);
-        g.rules.insert(
-            r1,
-            vec![Symbol::Terminal('a'), Symbol::NonTerminal(r0)],
-        );
+        g.rules
+            .insert(r0, vec![Symbol::Terminal('b'), Symbol::Terminal('c')]);
+        g.rules
+            .insert(r1, vec![Symbol::Terminal('a'), Symbol::NonTerminal(r0)]);
         g.start = vec![Symbol::NonTerminal(r1), Symbol::Terminal('d')];
         assert_eq!(g.expand(), vec!['a', 'b', 'c', 'd']);
     }
@@ -182,7 +174,8 @@ mod tests {
     fn render_root_with_rule() {
         let mut g = Grammar::new();
         let r0 = g.fresh_rule_id();
-        g.rules.insert(r0, vec![Symbol::Terminal('x'), Symbol::Terminal('y')]);
+        g.rules
+            .insert(r0, vec![Symbol::Terminal('x'), Symbol::Terminal('y')]);
         g.start = vec![Symbol::NonTerminal(r0), Symbol::Terminal('z')];
         assert_eq!(g.render_root(), "[x y] z");
     }

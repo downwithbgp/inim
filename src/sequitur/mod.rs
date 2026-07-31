@@ -13,9 +13,9 @@
 //! - `invariants`: validation (`check_invariants()`) and property-based
 //!   tests (exhaustive small-alphabet + LCG-generated sequences).
 
-pub mod grammar;
 pub mod builder;
+pub mod grammar;
 pub mod invariants;
 
-pub use grammar::{Grammar, RuleId, Symbol};
 pub use builder::build;
+pub use grammar::{Grammar, RuleId, Symbol};

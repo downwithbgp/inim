@@ -73,16 +73,12 @@ fn check_seq_digrams<T: Clone + Eq + std::hash::Hash + std::fmt::Debug>(
     Ok(())
 }
 
-fn check_rule_utility<T: Clone + Eq + std::fmt::Debug>(
-    grammar: &Grammar<T>,
-) -> Result<(), String> {
+fn check_rule_utility<T: Clone + Eq + std::fmt::Debug>(grammar: &Grammar<T>) -> Result<(), String> {
     let ref_counts = count_all_refs(grammar);
 
     for (&rid, &count) in &ref_counts {
         if count < 2 {
-            return Err(format!(
-                "rule {rid} is referenced only {count} time(s)"
-            ));
+            return Err(format!("rule {rid} is referenced only {count} time(s)"));
         }
     }
     Ok(())
@@ -133,7 +129,10 @@ mod tests {
         }
 
         fn next(&mut self) -> u64 {
-            self.state = self.state.wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407);
+            self.state = self
+                .state
+                .wrapping_mul(6364136223846793005)
+                .wrapping_add(1442695040888963407);
             self.state
         }
 
@@ -306,8 +305,7 @@ mod tests {
         let input: Vec<char> = "abab".chars().collect();
         let g = builder::build(&input);
         assert_eq!(g.expand(), input);
-        check_invariants(&g, &input)
-            .unwrap_or_else(|e| panic!("duplicate digrams: {e}"));
+        check_invariants(&g, &input).unwrap_or_else(|e| panic!("duplicate digrams: {e}"));
     }
 
     #[test]
@@ -349,8 +347,7 @@ mod tests {
         assert_eq!(g.expand(), input);
         // Must have rules (hierarchical structure)
         assert!(!g.rules.is_empty(), "repetitive input must produce rules");
-        check_invariants(&g, &input)
-            .unwrap_or_else(|e| panic!("repetitive: {e}"));
+        check_invariants(&g, &input).unwrap_or_else(|e| panic!("repetitive: {e}"));
     }
 
     #[test]
@@ -358,8 +355,7 @@ mod tests {
         let input: Vec<char> = "abcdefgh".chars().collect();
         let g = builder::build(&input);
         assert_eq!(g.expand(), input);
-        check_invariants(&g, &input)
-            .unwrap_or_else(|e| panic!("nonrepetitive: {e}"));
+        check_invariants(&g, &input).unwrap_or_else(|e| panic!("nonrepetitive: {e}"));
     }
 
     /// Helper: count how many times a rule is referenced.

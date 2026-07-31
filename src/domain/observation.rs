@@ -269,8 +269,8 @@ mod tests {
                 communities: Communities::new(),
             }),
             provenance: ObservationProvenance {
-            source_url: None,
-            archive_sha256: None,
+                source_url: None,
+                archive_sha256: None,
                 input: "test.mrt".into(),
                 role: IngestRole::Updates,
                 parser_representation: "bgpkit-bgp-elem".into(),
@@ -361,10 +361,7 @@ mod tests {
 
     #[test]
     fn ingest_role_serialization() {
-        assert_eq!(
-            serde_json::to_string(&IngestRole::Rib).unwrap(),
-            "\"Rib\""
-        );
+        assert_eq!(serde_json::to_string(&IngestRole::Rib).unwrap(), "\"Rib\"");
         assert_eq!(
             serde_json::to_string(&IngestRole::Updates).unwrap(),
             "\"Updates\""

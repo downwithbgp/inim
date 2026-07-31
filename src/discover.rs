@@ -114,18 +114,21 @@ impl ArchiveDiscovery for LiveArchiveDiscovery {
                 .project(project)
                 .data_type(data_type);
 
-            let broker_items = broker.query().map_err(|e| {
-                InimArchiveError::BrokerQueryError {
+            let broker_items = broker
+                .query()
+                .map_err(|e| InimArchiveError::BrokerQueryError {
                     reason: format!("broker query failed for collector {collector}: {e}"),
-                }
-            })?;
+                })?;
 
             for item in broker_items {
                 all_items.push(ArchiveItem {
                     project: project.to_string(),
                     collector_id: item.collector_id.clone(), // authoritative
                     data_type: item.data_type.clone(),
-                    ts_start: chrono::DateTime::from_naive_utc_and_offset(item.ts_start, chrono::Utc),
+                    ts_start: chrono::DateTime::from_naive_utc_and_offset(
+                        item.ts_start,
+                        chrono::Utc,
+                    ),
                     ts_end: chrono::DateTime::from_naive_utc_and_offset(item.ts_end, chrono::Utc),
                     url: item.url.clone(),
                     // Use exact_size if available, otherwise rough_size
@@ -155,33 +158,118 @@ pub fn select_rib(
         .max_by_key(|item| item.ts_start)
 }
 
-/// Select every UPDATE file whose time interval overlaps
-/// `[rib_timestamp, cooldown_end]`, ordered by `ts_start`.
+/// Cadence tolerance: RouteViews UPDATE files are emitted at ~15-min
+/// intervals. We allow up to 30 min slack for broker ts_start discrepancies.
+const UPDATE_CADENCE_TOLERANCE_MINUTES: i64 = 30;
+
+/// Select every UPDATE file whose coverage overlaps the analysis interval.
+///
+/// Anchored on `ts_start`, not `ts_end`, because broker `ts_end` values
+/// are unreliable for RouteViews archives (some report end-of-day rather
+/// than actual coverage end).  A file is selected iff:
+///
+///   `ts_start` ≥ `rib_timestamp − tolerance` (allows pre-RIB overlap)
+///   AND `ts_start` ≤ `cooldown_end`
+///
+/// When `ts_start` itself is suspicious, we fall back to extracting
+/// a timestamp from the RouteViews filename convention
+/// (`updates.YYYYMMDD.HHMM.bz2`).
+///
+/// Results are ordered by `ts_start`, deduplicated by URL.
 pub fn select_updates(
     items: &[ArchiveItem],
     rib_timestamp: chrono::DateTime<chrono::Utc>,
     cooldown_end: chrono::DateTime<chrono::Utc>,
 ) -> Vec<&ArchiveItem> {
+    let tolerance = chrono::Duration::minutes(UPDATE_CADENCE_TOLERANCE_MINUTES);
+    let lower = rib_timestamp - tolerance;
+
     let mut updates: Vec<_> = items
         .iter()
         .filter(|item| {
-            item.data_type == "updates"
-                && item.ts_end >= rib_timestamp
-                && item.ts_start <= cooldown_end
+            if item.data_type != "updates" {
+                return false;
+            }
+            // Anchor on ts_start — ts_end is unreliable from broker
+            let ts = canonical_ts_start(item, lower);
+            ts >= lower && ts <= cooldown_end
         })
         .collect();
-    updates.sort_by_key(|item| item.ts_start);
+
+    // Sort by canonical ts_start, then dedupe by URL (keep first)
+    updates.sort_by_key(|item| canonical_ts_start(item, lower));
+    let mut seen = std::collections::HashSet::new();
+    let mut dups: Vec<String> = Vec::new();
+    updates.retain(|item| {
+        if seen.contains(&item.url) {
+            dups.push(item.url.clone());
+            false
+        } else {
+            seen.insert(item.url.clone());
+            true
+        }
+    });
+    if !dups.is_empty() {
+        eprintln!("  note: {} duplicate UPDATE URLs excluded", dups.len());
+    }
+
     updates
+}
+
+/// Get the best available start timestamp for an archive item.
+///
+/// Preference order:
+/// 1. Broker `ts_start` (usually reliable)
+/// 2. Filename-derived timestamp (RouteViews naming convention)
+///
+/// If broker `ts_start` looks unreasonable (e.g. far future), fall back
+/// to filename parsing and emit a diagnostic.
+fn canonical_ts_start(
+    item: &ArchiveItem,
+    lower_bound: chrono::DateTime<chrono::Utc>,
+) -> chrono::DateTime<chrono::Utc> {
+    // If broker ts_start is far in the future (> cooldown_end + 24h),
+    // try filename fallback
+    if item.ts_start > lower_bound + chrono::Duration::hours(48) {
+        if let Some(ft) = filename_timestamp(&item.url) {
+            eprintln!(
+                "  warning: broker ts_start for {} is anomalous ({}), using filename-derived {}",
+                item.url, item.ts_start, ft
+            );
+            return ft;
+        }
+    }
+    item.ts_start
+}
+
+/// Extract a timestamp from a RouteViews-format URL filename.
+///
+/// Pattern: `.../updates.YYYYMMDD.HHMM.bz2`
+fn filename_timestamp(url: &str) -> Option<chrono::DateTime<chrono::Utc>> {
+    let name = std::path::Path::new(url).file_name()?.to_str()?;
+    // Match updates.YYYYMMDD.HHMM or rib.YYYYMMDD.HHMM
+    let parts: Vec<&str> = name.split('.').collect();
+    if parts.len() < 3 {
+        return None;
+    }
+    let date_str = parts.get(parts.len() - 3)?;
+    let time_str = parts.get(parts.len() - 2)?;
+    if date_str.len() != 8 || time_str.len() != 4 {
+        return None;
+    }
+    let year: i32 = date_str[0..4].parse().ok()?;
+    let month: u32 = date_str[4..6].parse().ok()?;
+    let day: u32 = date_str[6..8].parse().ok()?;
+    let hour: u32 = time_str[0..2].parse().ok()?;
+    let min: u32 = time_str[2..4].parse().ok()?;
+    chrono::TimeZone::with_ymd_and_hms(&chrono::Utc, year, month, day, hour, min, 0).single()
 }
 
 /// Validate that consecutive UPDATE files have no unexplained gaps.
 ///
 /// A gap exists if the next file's `ts_start` > previous file's `ts_end`
 /// beyond a tolerance.
-pub fn validate_update_gaps(
-    updates: &[&ArchiveItem],
-    tolerance: chrono::Duration,
-) -> Vec<String> {
+pub fn validate_update_gaps(updates: &[&ArchiveItem], tolerance: chrono::Duration) -> Vec<String> {
     let mut gaps = Vec::new();
     for window in updates.windows(2) {
         let prev = window[0];
@@ -331,12 +419,11 @@ pub fn cache_archive(
     // Download to temp file
     let part_path = local_dir.join(format!(".{}.part", basename));
 
-    let mut response = reqwest::blocking::get(&item.url).map_err(|e| {
-        InimArchiveError::DownloadError {
+    let mut response =
+        reqwest::blocking::get(&item.url).map_err(|e| InimArchiveError::DownloadError {
             url: item.url.clone(),
             reason: e.to_string(),
-        }
-    })?;
+        })?;
 
     if !response.status().is_success() {
         return Err(InimArchiveError::DownloadError {
@@ -358,7 +445,9 @@ pub fn cache_archive(
         // Don't fail on rough estimates — broker rough_size is approximate
         eprintln!(
             "warning: size differ for {}: expected {}, got {} (continuing)",
-            item.url, item.size, body.len()
+            item.url,
+            item.size,
+            body.len()
         );
     }
 
@@ -387,11 +476,9 @@ pub fn cache_archive(
 
     // Atomic rename of sidecar
     let final_sidecar = sha_sidecar_path(&final_path);
-    std::fs::rename(&part_sidecar, &final_sidecar).map_err(|e| {
-        InimArchiveError::CacheError {
-            path: part_sidecar.to_string_lossy().to_string(),
-            reason: e.to_string(),
-        }
+    std::fs::rename(&part_sidecar, &final_sidecar).map_err(|e| InimArchiveError::CacheError {
+        path: part_sidecar.to_string_lossy().to_string(),
+        reason: e.to_string(),
     })?;
 
     Ok(CachedArchive {
@@ -409,11 +496,10 @@ pub fn cache_archive(
 
 /// Compute the SHA-256 checksum of a file.
 fn compute_sha256(path: &Path) -> Result<String, InimArchiveError> {
-    let mut file =
-        std::fs::File::open(path).map_err(|e| InimArchiveError::CacheError {
-            path: path.to_string_lossy().to_string(),
-            reason: e.to_string(),
-        })?;
+    let mut file = std::fs::File::open(path).map_err(|e| InimArchiveError::CacheError {
+        path: path.to_string_lossy().to_string(),
+        reason: e.to_string(),
+    })?;
     let mut hasher = Sha256::new();
     std::io::copy(&mut file, &mut hasher).map_err(|e| InimArchiveError::CacheError {
         path: path.to_string_lossy().to_string(),
@@ -435,14 +521,22 @@ fn bytes_to_hex(bytes: &[u8]) -> String {
 /// verdict like `INSUFFICIENT_VISIBILITY`.
 #[derive(Debug)]
 pub enum InimArchiveError {
-    DownloadError { url: String, reason: String },
+    DownloadError {
+        url: String,
+        reason: String,
+    },
     SizeMismatch {
         url: String,
         expected: u64,
         actual: u64,
     },
-    CacheError { path: String, reason: String },
-    BrokerQueryError { reason: String },
+    CacheError {
+        path: String,
+        reason: String,
+    },
+    BrokerQueryError {
+        reason: String,
+    },
 }
 
 impl std::fmt::Display for InimArchiveError {
@@ -503,9 +597,7 @@ mod tests {
             data_type: "updates".into(),
             ts_start: t(ts_start),
             ts_end: t(ts_end),
-            url: format!(
-                "http://archive.routeviews.org/{collector}/updates.{ts_start}.bz2"
-            ),
+            url: format!("http://archive.routeviews.org/{collector}/updates.{ts_start}.bz2"),
             size: 5_000_000,
         }
     }
@@ -638,7 +730,10 @@ mod tests {
         let updates = select_updates(&items, rib_ts, cooldown_end);
         // All three overlap [rib_ts, cooldown_end]
         assert_eq!(updates.len(), 3);
-        assert!(updates.first().unwrap().ts_start <= rib_ts || updates.first().unwrap().ts_end >= rib_ts);
+        assert!(
+            updates.first().unwrap().ts_start <= rib_ts
+                || updates.first().unwrap().ts_end >= rib_ts
+        );
     }
 
     #[test]
@@ -743,5 +838,136 @@ mod tests {
         };
         // Metadata says route-views6, even if URL suggests route-views2
         assert_eq!(item.collector_id, "route-views6");
+    }
+
+    // ── Phase 0 regression: selection bounds + canonical timestamps ──
+
+    #[test]
+    fn update_selection_has_lower_and_upper_bounds() {
+        let items = vec![
+            make_update("2026-07-29T08:00:00Z", "2026-07-29T08:15:00Z", "rv2"), // day before, excluded
+            make_update("2026-07-30T07:45:00Z", "2026-07-30T08:00:00Z", "rv2"), // pre-RIB, within tolerance
+            make_update("2026-07-30T08:15:00Z", "2026-07-30T08:30:00Z", "rv2"), // in range
+            make_update("2026-07-30T10:45:00Z", "2026-07-30T11:00:00Z", "rv2"), // cooldown edge
+            make_update("2026-07-30T11:00:00Z", "2026-07-30T11:15:00Z", "rv2"), // after cooldown, excluded
+        ];
+        let rib_ts = t("2026-07-30T08:00:00Z");
+        let cooldown_end = t("2026-07-30T10:47:00Z");
+        let updates = select_updates(&items, rib_ts, cooldown_end);
+        // Items: the day-before one is before lower bound (rib_ts - 30min = 07:30)
+        // The 07:45 one is >= 07:30 and <= 10:47 → included
+        // The 08:15 one → included
+        // The 10:45 one → included
+        // The 11:00 one starts after cooldown_end → excluded
+        assert_eq!(
+            updates.len(),
+            3,
+            "should select 3 files, got {}: {:?}",
+            updates.len(),
+            updates.iter().map(|u| &u.url).collect::<Vec<_>>()
+        );
+        let urls: Vec<&str> = updates.iter().map(|u| u.url.as_str()).collect();
+        assert!(urls
+            .iter()
+            .any(|u| u.contains("0745") || u.contains("07:45")));
+        assert!(urls
+            .iter()
+            .any(|u| u.contains("0815") || u.contains("08:15")));
+        assert!(urls
+            .iter()
+            .any(|u| u.contains("1045") || u.contains("10:45")));
+    }
+
+    #[test]
+    fn update_selection_excludes_files_before_selected_rib() {
+        let items = vec![
+            make_update("2026-07-30T07:00:00Z", "2026-07-30T07:15:00Z", "rv2"), // 1h before RIB
+            make_update("2026-07-30T07:15:00Z", "2026-07-30T07:30:00Z", "rv2"), // 45min before
+            make_update("2026-07-30T07:25:00Z", "2026-07-30T07:40:00Z", "rv2"), // 35min before (outside 30min tolerance)
+            make_update("2026-07-30T07:35:00Z", "2026-07-30T07:50:00Z", "rv2"), // 25min before (inside tolerance)
+            make_update("2026-07-30T08:00:00Z", "2026-07-30T08:15:00Z", "rv2"), // at RIB
+        ];
+        let rib_ts = t("2026-07-30T08:00:00Z");
+        let cooldown_end = t("2026-07-30T10:00:00Z");
+        let updates = select_updates(&items, rib_ts, cooldown_end);
+        // Lower bound = 08:00 - 30min = 07:30
+        // Only files with ts_start >= 07:30 are included
+        assert_eq!(
+            updates.len(),
+            2,
+            "only 07:35 and 08:00 files should be selected"
+        );
+        let urls: Vec<_> = updates.iter().map(|u| u.url.as_str()).collect();
+        assert!(
+            urls.iter()
+                .any(|u| u.contains("0735") || u.contains("07:35")),
+            "07:35 file at 25min before RIB must be included"
+        );
+        assert!(
+            urls.iter()
+                .any(|u| u.contains("0800") || u.contains("08:00")),
+            "08:00 file at RIB must be included"
+        );
+        assert!(
+            !urls
+                .iter()
+                .any(|u| u.contains("0700") || u.contains("07:00")),
+            "07:00 file far before RIB must be excluded"
+        );
+    }
+
+    #[test]
+    fn update_selection_excludes_files_after_cooldown() {
+        let items = vec![
+            make_update("2026-07-30T09:00:00Z", "2026-07-30T09:15:00Z", "rv2"),
+            make_update("2026-07-30T10:30:00Z", "2026-07-30T10:45:00Z", "rv2"),
+            make_update("2026-07-30T10:50:00Z", "2026-07-30T11:05:00Z", "rv2"), // starts after cooldown
+        ];
+        let rib_ts = t("2026-07-30T08:00:00Z");
+        let cooldown_end = t("2026-07-30T10:47:00Z");
+        let updates = select_updates(&items, rib_ts, cooldown_end);
+        assert_eq!(
+            updates.len(),
+            2,
+            "file starting after cooldown must be excluded"
+        );
+    }
+
+    #[test]
+    fn update_selection_deduplicates_urls() {
+        let rib_ts = t("2026-07-30T08:00:00Z");
+        let cooldown_end = t("2026-07-30T10:00:00Z");
+        let items = vec![
+            ArchiveItem {
+                project: "routeviews".into(),
+                collector_id: "rv2".into(),
+                data_type: "updates".into(),
+                ts_start: t("2026-07-30T09:00:00Z"),
+                ts_end: t("2026-07-30T09:15:00Z"),
+                url: "http://example.com/update.20260730.0900.bz2".into(),
+                size: 100,
+            },
+            ArchiveItem {
+                project: "routeviews".into(),
+                collector_id: "rv2".into(),
+                data_type: "updates".into(),
+                ts_start: t("2026-07-30T09:00:00Z"),
+                ts_end: t("2026-07-30T09:15:00Z"),
+                url: "http://example.com/update.20260730.0900.bz2".into(),
+                size: 100,
+            },
+        ];
+        let updates = select_updates(&items, rib_ts, cooldown_end);
+        assert_eq!(updates.len(), 1, "duplicate URLs must be deduplicated");
+    }
+
+    #[test]
+    fn filename_timestamp_parses_routeviews_convention() {
+        let ts = filename_timestamp(
+            "http://archive.routeviews.org/bgpdata/2026.07/UPDATES/updates.20260730.0815.bz2",
+        );
+        assert!(ts.is_some());
+        let ts = ts.unwrap();
+        assert_eq!(ts.timestamp(), t("2026-07-30T08:15:00Z").timestamp());
     }
 }

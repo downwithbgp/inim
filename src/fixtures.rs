@@ -5,8 +5,8 @@ use chrono::{DateTime, Utc};
 use std::net::IpAddr;
 
 use crate::domain::observation::{
-    Asn, CollectorId, Communities, EvidenceRef, IngestRole, ObservationAttributes,
-    ObservationId, ObservationKind, ObservationProvenance, ObservationSource, RouteObservation,
+    Asn, CollectorId, Communities, EvidenceRef, IngestRole, ObservationAttributes, ObservationId,
+    ObservationKind, ObservationProvenance, ObservationSource, RouteObservation,
 };
 use crate::domain::route::Prefix;
 
@@ -115,14 +115,30 @@ mod tests {
 
     #[test]
     fn rib_observation_has_attributes() {
-        let obs = make_synthetic_rib("192.0.2.0/24", "rv2", "185.1.8.65", 6447, vec![6447, 11537, 1101], t(), 0);
+        let obs = make_synthetic_rib(
+            "192.0.2.0/24",
+            "rv2",
+            "185.1.8.65",
+            6447,
+            vec![6447, 11537, 1101],
+            t(),
+            0,
+        );
         assert_eq!(obs.kind, ObservationKind::RibEntry);
         assert!(obs.attributes.is_some());
     }
 
     #[test]
     fn announcement_has_correct_kind() {
-        let obs = make_synthetic_announcement("192.0.2.0/24", "rv2", "185.1.8.65", 6447, vec![6447, 11537, 1101], t(), 1);
+        let obs = make_synthetic_announcement(
+            "192.0.2.0/24",
+            "rv2",
+            "185.1.8.65",
+            6447,
+            vec![6447, 11537, 1101],
+            t(),
+            1,
+        );
         assert_eq!(obs.kind, ObservationKind::Announcement);
     }
 

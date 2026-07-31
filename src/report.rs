@@ -21,20 +21,20 @@ pub fn render_terminal(assessment: &EventAssessment, data_note: &str) -> String 
 
     writeln!(buf, "Declared expectation").ok();
     writeln!(buf, "  Kind:       {:?}", assessment.expectation.kind).ok();
-    writeln!(
-        buf,
-        "  Provenance: {}",
-        assessment.expectation.provenance
-    )
-    .ok();
+    writeln!(buf, "  Provenance: {}", assessment.expectation.provenance).ok();
     writeln!(buf).ok();
 
     writeln!(buf, "Observed").ok();
     writeln!(
         buf,
         "  Transitions:  {}",
-        assessment.evidence.first().map(|e| e.description.as_str()).unwrap_or("0")
-    ).ok();
+        assessment
+            .evidence
+            .first()
+            .map(|e| e.description.as_str())
+            .unwrap_or("0")
+    )
+    .ok();
 
     for wave in &assessment.waves {
         writeln!(buf, "  {}", wave.label).ok();
@@ -53,16 +53,19 @@ pub fn render_terminal(assessment: &EventAssessment, data_note: &str) -> String 
                 buf,
                 "      {} of {}",
                 motif.covered_terminals, motif.total_terminals
-            ).ok();
+            )
+            .ok();
             writeln!(buf, "    Representative evidence").ok();
             for er in &motif.evidence_ranges {
                 writeln!(
                     buf,
                     "      {} {} [{} → {}]",
-                    er.observer, er.prefix,
+                    er.observer,
+                    er.prefix,
                     er.time_start.format("%H:%M:%S"),
                     er.time_end.format("%H:%M:%S"),
-                ).ok();
+                )
+                .ok();
             }
         }
     }
@@ -81,11 +84,7 @@ pub fn render_terminal(assessment: &EventAssessment, data_note: &str) -> String 
     }
     writeln!(buf).ok();
 
-    writeln!(
-        buf,
-        "Generated at: {}",
-        assessment.generated_at
-    ).ok();
+    writeln!(buf, "Generated at: {}", assessment.generated_at).ok();
 
     String::from_utf8(buf).unwrap_or_else(|_| "report encoding error".into())
 }
@@ -94,7 +93,10 @@ pub fn render_terminal(assessment: &EventAssessment, data_note: &str) -> String 
 pub fn render_json(assessment: &EventAssessment, data_note: &str) -> serde_json::Value {
     let mut val = serde_json::to_value(assessment).unwrap_or(serde_json::Value::Null);
     if let serde_json::Value::Object(ref mut map) = val {
-        map.insert("data_source".to_string(), serde_json::Value::String(data_note.to_string()));
+        map.insert(
+            "data_source".to_string(),
+            serde_json::Value::String(data_note.to_string()),
+        );
     }
     val
 }

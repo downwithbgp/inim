@@ -10,18 +10,15 @@ use std::path::Path;
 use std::time::Instant;
 
 use crate::discover::{
-    cache_archive, select_updates, validate_update_gaps,
-    ArchiveDiscovery, CachedArchive,
+    cache_archive, select_updates, validate_update_gaps, ArchiveDiscovery, CachedArchive,
 };
 use crate::domain::event::{EventId, EventWindow, OperationalEvent};
-use crate::domain::observation::{
-    IngestRole, RouteObservation,
-};
+use crate::domain::observation::{IngestRole, RouteObservation};
 use crate::domain::route::{RouteKey, RouteState};
 use crate::ingest::{IngestContext, ObservationStream};
 use crate::manifest::Manifest;
 use crate::outcome::AnalysisOutcome;
-use crate::target::{admit_observation, scan_rib_and_freeze, PreflightCounts, TargetSet};
+use crate::target::{scan_rib_and_freeze, PreflightCounts, TargetSet};
 
 // ── Public entry point ─────────────────────────────────────────────
 
@@ -34,7 +31,14 @@ pub fn run_real_analysis(
 ) -> AnalysisOutcome {
     let mut timings: Vec<(String, f64)> = Vec::new();
     let t0 = Instant::now();
-    match run_inner(event_path, manifest_path, cache_dir, out_dir, discovery, &mut timings) {
+    match run_inner(
+        event_path,
+        manifest_path,
+        cache_dir,
+        out_dir,
+        discovery,
+        &mut timings,
+    ) {
         Ok(outcome) => {
             print_timings(&timings, t0.elapsed().as_secs_f64());
             outcome
@@ -84,16 +88,26 @@ fn run_inner(
     eprintln!("→ Broker discovery: RIB files");
     let t_broker = Instant::now();
     let all_ribs = discovery
-        .query("routeviews", &manifest.collectors.iter().map(|s| s.as_str()).collect::<Vec<_>>(),
-               rib_search_start, rib_search_end, "rib")
+        .query(
+            "routeviews",
+            &manifest
+                .collectors
+                .iter()
+                .map(|s| s.as_str())
+                .collect::<Vec<_>>(),
+            rib_search_start,
+            rib_search_end,
+            "rib",
+        )
         .map_err(|e| format!("broker discovery failed for RIBs: {e}"))?;
     let _ = timings; // timing recorded at end
 
-    
-
     for collector in &manifest.collectors {
-        let best_rib = all_ribs.iter()
-            .filter(|i| i.collector_id == *collector && i.data_type == "rib" && i.ts_start <= warmup_start)
+        let best_rib = all_ribs
+            .iter()
+            .filter(|i| {
+                i.collector_id == *collector && i.data_type == "rib" && i.ts_start <= warmup_start
+            })
             .max_by_key(|i| i.ts_start)
             .cloned()
             .ok_or_else(|| {
@@ -107,11 +121,18 @@ fn run_inner(
         let t_cache = Instant::now();
         let cached_rib = cache_archive(&best_rib, cache_dir)
             .map_err(|e| format!("failed to cache RIB for {collector}: {e}"))?;
-        if timings.is_empty() { // rough broker timing
-            timings.push(("broker+cache".to_string(), t_cache.duration_since(t_broker).as_secs_f64()));
+        if timings.is_empty() {
+            // rough broker timing
+            timings.push((
+                "broker+cache".to_string(),
+                t_cache.duration_since(t_broker).as_secs_f64(),
+            ));
         }
 
-        eprintln!("  {collector}: parsing RIB (origin filter: {:?})...", manifest.target.origin_asns);
+        eprintln!(
+            "  {collector}: parsing RIB (origin filter: {:?})...",
+            manifest.target.origin_asns
+        );
         let t_parse = Instant::now();
         let ctx = IngestContext {
             role: IngestRole::Rib,
@@ -166,14 +187,14 @@ fn run_inner(
         timings.push((format!("{collector} RIB parse"), t_parse_elapsed));
 
         // Compute per-collector preflight
-        let collector_target = scan_rib_and_freeze(
-            rib_observations.as_slice(),
-            &origin_asns,
-            transit_asn,
-        );
+        let collector_target =
+            scan_rib_and_freeze(rib_observations.as_slice(), &origin_asns, transit_asn);
 
-        let streams = collector_target.streams.get(&collector_id)
-            .map(|v| v.len()).unwrap_or(0);
+        let streams = collector_target
+            .streams
+            .get(&collector_id)
+            .map(|v| v.len())
+            .unwrap_or(0);
         let c_pref = collector_target.frozen_prefixes().len();
         let c_peers = collector_target.distinct_peers();
 
@@ -182,7 +203,13 @@ fn run_inner(
             t_parse_elapsed
         );
 
-        per_collector_counts.push((collector_id.clone(), parsed, origin_match, transit_match, streams));
+        per_collector_counts.push((
+            collector_id.clone(),
+            parsed,
+            origin_match,
+            transit_match,
+            streams,
+        ));
 
         // Merge into global target set
         target_set.merge(&collector_target);
@@ -205,14 +232,23 @@ fn run_inner(
     ));
 
     let frozen_prefixes = target_set.frozen_prefixes();
+
+    // Aggregate per-collector counts for preflight
+    let total_origin: usize = per_collector_counts.iter().map(|(_, _, o, _, _)| o).sum();
+    let total_transit: usize = per_collector_counts.iter().map(|(_, _, _, t, _)| t).sum();
+
     let preflight = PreflightCounts::from_target_set(
         &target_set,
         manifest.collectors.len(),
-        rib_observations.len(), // transit matches
-        rib_observations.len(), // approx
+        total_origin,
+        total_transit,
     );
 
-    eprintln!("→ RIB preflight done: {} frozen streams over {} collectors", target_set.total_streams(), retained_collectors.len());
+    eprintln!(
+        "→ RIB preflight done: {} frozen streams over {} collectors",
+        target_set.total_streams(),
+        retained_collectors.len()
+    );
 
     // ── Phase B: UPDATE discovery + cache + ingest (retained only) ──
     eprintln!("→ Broker discovery: UPDATE files");
@@ -222,12 +258,17 @@ fn run_inner(
     for collector in &retained_collectors {
         eprintln!("  {collector}: querying UPDATE files...");
         let all_updates: Vec<_> = discovery
-            .query("routeviews", &[collector.as_str()],
-                   warmup_start - chrono::Duration::hours(24),
-                   update_search_end, "updates")
+            .query(
+                "routeviews",
+                &[collector.as_str()],
+                warmup_start - chrono::Duration::hours(24),
+                update_search_end,
+                "updates",
+            )
             .map_err(|e| format!("broker discovery failed for updates ({collector}): {e}"))?;
 
-        let rib_ts = all_ribs.iter()
+        let rib_ts = all_ribs
+            .iter()
             .find(|i| i.collector_id == *collector)
             .map(|i| i.ts_start)
             .unwrap_or(warmup_start);
@@ -247,7 +288,12 @@ fn run_inner(
                 .map_err(|e| format!("failed to cache UPDATE: {e}"))?;
             collected_updates.push(cu.clone());
 
-            eprintln!("  [{collector} updates {}/{}] parsing {}...", i+1, selected.len(), item.url);
+            eprintln!(
+                "  [{collector} updates {}/{}] parsing {}...",
+                i + 1,
+                selected.len(),
+                item.url
+            );
 
             let ctx = IngestContext {
                 role: IngestRole::Updates,
@@ -262,32 +308,72 @@ fn run_inner(
                 .map_err(|e| format!("failed to open UPDATE {}: {e}", path.display()))?;
 
             let mut parsed: usize = 0;
+            let mut prefix_matches: usize = 0;
+            let mut coll_pref_matches: usize = 0;
             let mut admitted: usize = 0;
+            let mut admitted_announcements: usize = 0;
+            let mut admitted_withdrawals: usize = 0;
             for result in stream {
                 let obs = result.map_err(|e| format!("UPDATE parse error: {e}"))?;
                 parsed += 1;
 
-                if admit_observation(&obs, &target_set, &frozen_prefixes) {
-                    update_observations.push(obs);
-                    admitted += 1;
+                // Filter boundary 1: prefix in frozen set
+                if !frozen_prefixes.contains(&obs.prefix) {
+                    continue;
                 }
+                prefix_matches += 1;
+
+                // Filter boundary 2: collector + prefix
+                if !target_set.streams.contains_key(&obs.collector.0) {
+                    continue;
+                }
+                let collector_entries = &target_set.streams[&obs.collector.0];
+                if !collector_entries.iter().any(|s| s.prefix == obs.prefix) {
+                    continue;
+                }
+                coll_pref_matches += 1;
+
+                // Filter boundary 3: full key
+                if !target_set.contains(&obs.collector.0, obs.peer_ip, &obs.prefix) {
+                    continue;
+                }
+                admitted += 1;
+                match obs.kind {
+                    crate::domain::observation::ObservationKind::Announcement => {
+                        admitted_announcements += 1
+                    }
+                    crate::domain::observation::ObservationKind::Withdrawal => {
+                        admitted_withdrawals += 1
+                    }
+                    _ => {}
+                }
+                update_observations.push(obs);
 
                 if parsed.is_multiple_of(1_000_000) {
-                    eprintln!("  [{collector} updates {}/{}] {parsed} elements, {admitted} admitted", i+1, selected.len());
+                    eprintln!("  [{collector} updates {}/{}] {parsed} elements, {prefix_matches} prefix, {coll_pref_matches} coll+pref, {admitted} admitted ({admitted_announcements} ann, {admitted_withdrawals} wd)",
+                        i+1, selected.len());
                 }
             }
-            eprintln!("  [{collector} updates {}/{}] done: {parsed} parsed, {admitted} admitted ({:.1}s)",
+            eprintln!("  [{collector} updates {}/{}] done: {parsed} parsed, {prefix_matches} prefix, {coll_pref_matches} coll+pref, {admitted} admitted ({admitted_announcements} ann, {admitted_withdrawals} wd) ({:.1}s)",
                 i+1, selected.len(), t_cache.elapsed().as_secs_f64());
         }
     }
-    timings.push(("UPDATE cache+parse".to_string(), t_updates.elapsed().as_secs_f64()));
+    timings.push((
+        "UPDATE cache+parse".to_string(),
+        t_updates.elapsed().as_secs_f64(),
+    ));
 
     // ── Combine and sort ───────────────────────────────────────────
-    eprintln!("→ Combining {rib} RIB + {upd} UPDATE observations...", rib = rib_observations.len(), upd = update_observations.len());
+    eprintln!(
+        "→ Combining {rib} RIB + {upd} UPDATE observations...",
+        rib = rib_observations.len(),
+        upd = update_observations.len()
+    );
     let mut all_obs = rib_observations;
     all_obs.extend(update_observations);
     all_obs.sort_by(|a, b| {
-        a.timestamp.cmp(&b.timestamp)
+        a.timestamp
+            .cmp(&b.timestamp)
             .then_with(|| a.collector.0.cmp(&b.collector.0))
             .then_with(|| a.provenance.element_seq.cmp(&b.provenance.element_seq))
     });
@@ -295,10 +381,12 @@ fn run_inner(
     // ── Reconstruct routes ─────────────────────────────────────────
     eprintln!("→ Reconstructing routes...");
     let t_recon = Instant::now();
-    let (store, changes) = crate::routes::reconstruct_routes(
-        all_obs, event_start, event_end, cooldown_end,
-    );
-    timings.push(("reconstruction".to_string(), t_recon.elapsed().as_secs_f64()));
+    let (store, changes) =
+        crate::routes::reconstruct_routes(all_obs, event_start, event_end, cooldown_end);
+    timings.push((
+        "reconstruction".to_string(),
+        t_recon.elapsed().as_secs_f64(),
+    ));
 
     // Build baseline map from store for ReturnToBaseline classification
     let baseline_map: HashMap<RouteKey, RouteState> = store
@@ -313,14 +401,20 @@ fn run_inner(
     timings.push(("tokenize".to_string(), t_tok.elapsed().as_secs_f64()));
 
     // ── Detect + summarize waves ───────────────────────────────────
-    eprintln!("→ Detecting waves from {} transitions...", transitions.len());
+    eprintln!(
+        "→ Detecting waves from {} transitions...",
+        transitions.len()
+    );
     let t_waves = Instant::now();
     let mut waves = crate::waves::detect_waves(&transitions, chrono::Duration::minutes(2));
     crate::waves::summarize_waves(&mut waves);
     timings.push(("waves+motifs".to_string(), t_waves.elapsed().as_secs_f64()));
 
     // ── Assess ─────────────────────────────────────────────────────
-    let event_window = EventWindow { start: event_start, end: event_end };
+    let event_window = EventWindow {
+        start: event_start,
+        end: event_end,
+    };
     let event = OperationalEvent {
         id: EventId::from(manifest.event_id.as_str()),
         source: "internet2-grnoc".to_string(),
@@ -359,13 +453,16 @@ fn run_inner(
         selected_ribs: &collected_ribs,
         selected_updates: &collected_updates,
         preflight: Some(&preflight),
-        continuity: if any_continuity_unknown { "Unknown (gaps detected)" } else { "Known" },
+        continuity: if any_continuity_unknown {
+            "Unknown (gaps detected)"
+        } else {
+            "Known"
+        },
         transitions: &transitions,
         waves: &waves,
         limitations: &limitations,
     };
-    crate::output::write_outputs(&ctx, out_dir)
-        .map_err(|e| format!("output error: {e}"))?;
+    crate::output::write_outputs(&ctx, out_dir).map_err(|e| format!("output error: {e}"))?;
     timings.push(("outputs".to_string(), t_out.elapsed().as_secs_f64()));
 
     Ok(AnalysisOutcome::completed(assessment))
@@ -385,18 +482,21 @@ fn print_timings(timings: &[(String, f64)], total: f64) {
 mod tests {
     use super::*;
     use crate::discover::{ArchiveItem, InimArchiveError};
-    
 
     /// Failing discovery.
     struct FailingDiscovery;
     impl ArchiveDiscovery for FailingDiscovery {
         fn query(
-            &self, _project: &str, _collectors: &[&str],
+            &self,
+            _project: &str,
+            _collectors: &[&str],
             _ts_start: chrono::DateTime<chrono::Utc>,
             _ts_end: chrono::DateTime<chrono::Utc>,
             _data_type: &str,
         ) -> Result<Vec<ArchiveItem>, InimArchiveError> {
-            Err(InimArchiveError::BrokerQueryError { reason: "simulated".into() })
+            Err(InimArchiveError::BrokerQueryError {
+                reason: "simulated".into(),
+            })
         }
     }
 
@@ -404,12 +504,18 @@ mod tests {
     fn broker_failure_returns_incomplete() {
         let dir = tempfile::tempdir().unwrap();
         let outcome = run_real_analysis(
-            Path::new("nonexistent.json"), Path::new("nonexistent.json"),
-            dir.path(), &dir.path().join("out"), &FailingDiscovery,
+            Path::new("nonexistent.json"),
+            Path::new("nonexistent.json"),
+            dir.path(),
+            &dir.path().join("out"),
+            &FailingDiscovery,
         );
         match outcome {
             AnalysisOutcome::Incomplete { failure } => {
-                assert!(failure.contains("parse") || failure.contains("broker"), "{failure}");
+                assert!(
+                    failure.contains("parse") || failure.contains("broker"),
+                    "{failure}"
+                );
             }
             _ => panic!("expected Incomplete"),
         }
@@ -422,7 +528,10 @@ mod tests {
         let outcome = AnalysisOutcome::insufficient_visibility(
             "No selected RouteViews observer had a pre-event route matching the reviewed Internet2 path predicate.",
         );
-        assert!(matches!(outcome, AnalysisOutcome::InsufficientVisibility { .. }));
+        assert!(matches!(
+            outcome,
+            AnalysisOutcome::InsufficientVisibility { .. }
+        ));
     }
 
     #[test]

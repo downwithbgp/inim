@@ -55,8 +55,8 @@ impl Manifest {
         let content = std::fs::read_to_string(path)
             .map_err(|e| format!("cannot read manifest {}: {e}", path.display()))?;
 
-        let manifest: Manifest = serde_json::from_str(&content)
-            .map_err(|e| format!("invalid manifest JSON: {e}"))?;
+        let manifest: Manifest =
+            serde_json::from_str(&content).map_err(|e| format!("invalid manifest JSON: {e}"))?;
 
         // Validate fields
         if manifest.event_id.is_empty() {
@@ -79,7 +79,9 @@ impl Manifest {
     }
 
     /// Parse and return the UTC event window as chrono DateTime.
-    pub fn event_window(&self) -> Result<(chrono::DateTime<chrono::Utc>, chrono::DateTime<chrono::Utc>), String> {
+    pub fn event_window(
+        &self,
+    ) -> Result<(chrono::DateTime<chrono::Utc>, chrono::DateTime<chrono::Utc>), String> {
         let start = chrono::DateTime::parse_from_rfc3339(&self.event_window_utc.start)
             .map_err(|e| format!("invalid event start: {e}"))?
             .with_timezone(&chrono::Utc);
@@ -93,7 +95,6 @@ impl Manifest {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
 
     fn write_manifest(dir: &std::path::Path, json: &str) -> std::path::PathBuf {
         let p = dir.join("manifest.json");
@@ -117,8 +118,18 @@ mod tests {
         let m = Manifest::load(&path).unwrap();
         assert_eq!(m.event_id, "INC0302574");
         let (start, end) = m.event_window().unwrap();
-        assert_eq!(start.timestamp(), chrono::DateTime::parse_from_rfc3339("2026-07-30T09:25:00Z").unwrap().timestamp());
-        assert_eq!(end.timestamp(), chrono::DateTime::parse_from_rfc3339("2026-07-30T09:47:00Z").unwrap().timestamp());
+        assert_eq!(
+            start.timestamp(),
+            chrono::DateTime::parse_from_rfc3339("2026-07-30T09:25:00Z")
+                .unwrap()
+                .timestamp()
+        );
+        assert_eq!(
+            end.timestamp(),
+            chrono::DateTime::parse_from_rfc3339("2026-07-30T09:47:00Z")
+                .unwrap()
+                .timestamp()
+        );
     }
 
     #[test]

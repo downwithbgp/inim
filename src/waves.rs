@@ -9,7 +9,7 @@ use chrono::{DateTime, Utc};
 use crate::domain::route::RouteTransition;
 #[allow(unused_imports)]
 use crate::domain::route::TransitionKind;
-use crate::domain::wave::{ImpactWave, WaveMotif, MotifEvidenceRange, fnv1a_64};
+use crate::domain::wave::{fnv1a_64, ImpactWave, MotifEvidenceRange, WaveMotif};
 
 /// Detect impact waves from a sequence of route transitions.
 ///
@@ -18,10 +18,7 @@ use crate::domain::wave::{ImpactWave, WaveMotif, MotifEvidenceRange, fnv1a_64};
 /// into the same wave; a gap exceeding `max_gap` starts a new wave.
 ///
 /// This is a deterministic clustering, not ML-based anomaly detection.
-pub fn detect_waves(
-    transitions: &[RouteTransition],
-    max_gap: chrono::Duration,
-) -> Vec<ImpactWave> {
+pub fn detect_waves(transitions: &[RouteTransition], max_gap: chrono::Duration) -> Vec<ImpactWave> {
     if transitions.is_empty() {
         return vec![];
     }
@@ -57,14 +54,18 @@ pub fn detect_waves(
     waves
 }
 
-fn build_wave(id: usize, transitions: &[&RouteTransition], wave_start: DateTime<Utc>) -> ImpactWave {
+fn build_wave(
+    id: usize,
+    transitions: &[&RouteTransition],
+    wave_start: DateTime<Utc>,
+) -> ImpactWave {
     let peak = transitions[transitions.len() / 2].to.timestamp();
-    let end = transitions.last().map(|t| t.to.timestamp()).unwrap_or(wave_start);
+    let end = transitions
+        .last()
+        .map(|t| t.to.timestamp())
+        .unwrap_or(wave_start);
 
-    let mut prefixes: Vec<_> = transitions
-        .iter()
-        .map(|t| t.to.prefix().clone())
-        .collect();
+    let mut prefixes: Vec<_> = transitions.iter().map(|t| t.to.prefix().clone()).collect();
     prefixes.sort();
     prefixes.dedup();
 
@@ -97,9 +98,9 @@ fn build_wave(id: usize, transitions: &[&RouteTransition], wave_start: DateTime<
 /// and builds a WaveMotif with identity, expanded sequence, structure,
 /// occurrence count, coverage, and evidence ranges.
 fn sequitur_motif(transitions: &[&RouteTransition]) -> Option<WaveMotif> {
-    use std::collections::HashMap;
     use crate::sequitur;
     use crate::tokenize::TransitionSymbol;
+    use std::collections::HashMap;
 
     if transitions.is_empty() {
         return None;
@@ -178,7 +179,10 @@ fn sequitur_motif(transitions: &[&RouteTransition]) -> Option<WaveMotif> {
     let motif_id = fnv1a_64(expanded.as_bytes());
 
     // Collect structure from the first representative group
-    let structure = best_groups.first().map(|g| g.structure.clone()).unwrap_or_default();
+    let structure = best_groups
+        .first()
+        .map(|g| g.structure.clone())
+        .unwrap_or_default();
 
     // Scopes
     let scopes: Vec<String> = best_groups.iter().map(|g| g.scope.clone()).collect();
@@ -308,16 +312,14 @@ fn describe_motif(motif: Option<&WaveMotif>) -> &str {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::domain::route::{
-        AsPath, AnalysisPhase, EvidencedRouteState, Prefix, RouteAttributes, RouteKey, RouteState,
-    };
     use crate::domain::observation::EvidenceRef;
+    use crate::domain::route::{
+        AnalysisPhase, AsPath, EvidencedRouteState, Prefix, RouteAttributes, RouteKey, RouteState,
+    };
     use chrono::TimeZone;
 
     fn t(secs: i64) -> DateTime<Utc> {
-        Utc.with_ymd_and_hms(2025, 6, 15, 5, 25, 0)
-            .unwrap()
-            + chrono::Duration::seconds(secs)
+        Utc.with_ymd_and_hms(2025, 6, 15, 5, 25, 0).unwrap() + chrono::Duration::seconds(secs)
     }
 
     fn transition(kind: TransitionKind, at: i64) -> RouteTransition {
@@ -408,7 +410,7 @@ mod tests {
     #[test]
     fn single_terminal_result_is_not_labeled_as_motif() {
         // A wave with a single-terminal motif should classify as DominantTransition
-        use crate::domain::wave::{WaveMotif, MotifEvidenceRange};
+        use crate::domain::wave::{MotifEvidenceRange, WaveMotif};
         let t0 = t(0);
         let motif = WaveMotif {
             id: "abc".into(),
@@ -439,9 +441,7 @@ mod tests {
         let motif = WaveMotif {
             id: "def".into(),
             expanded: "PATH_CHANGE RETURN_TO_BASELINE".into(),
-            structure: vec![
-                "ROOT → PATH_CHANGE RETURN_TO_BASELINE".into(),
-            ],
+            structure: vec!["ROOT → PATH_CHANGE RETURN_TO_BASELINE".into()],
             occurrences: 2,
             covered_terminals: 4,
             total_terminals: 4,

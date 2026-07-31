@@ -108,12 +108,7 @@ impl RouteState {
             .and_then(|s| s.parse().ok())
             .unwrap_or_else(|| "0.0.0.0".parse().unwrap());
 
-        let collector = self
-            .observer
-            .split(':')
-            .next()
-            .unwrap_or("")
-            .to_string();
+        let collector = self.observer.split(':').next().unwrap_or("").to_string();
 
         RouteKey::new(&collector, peer_ip, &self.prefix)
     }
@@ -131,10 +126,7 @@ pub enum TransitionKind {
     /// An exact duplicate of the previous state (no change).
     ExactDuplicate,
     /// The AS path changed (e.g. failover to alternate).
-    PathChange {
-        old: AsPath,
-        new: AsPath,
-    },
+    PathChange { old: AsPath, new: AsPath },
     /// Non-path attributes changed (no path difference).
     AttributeChange,
     /// Observer session discontinuity — not a real route change.
@@ -177,12 +169,19 @@ impl EvidencedRouteState {
 
     /// Access the prefix (panics if state is None — only call on present states).
     pub fn prefix(&self) -> &Prefix {
-        &self.state.as_ref().expect("prefix() called on absent state").prefix
+        &self
+            .state
+            .as_ref()
+            .expect("prefix() called on absent state")
+            .prefix
     }
 
     /// Access the timestamp.
     pub fn timestamp(&self) -> chrono::DateTime<chrono::Utc> {
-        self.state.as_ref().expect("timestamp() on absent").timestamp
+        self.state
+            .as_ref()
+            .expect("timestamp() on absent")
+            .timestamp
     }
 
     /// Access the observer string.
@@ -192,7 +191,11 @@ impl EvidencedRouteState {
 
     /// Access route attributes.
     pub fn attributes(&self) -> &RouteAttributes {
-        &self.state.as_ref().expect("attributes() on absent").attributes
+        &self
+            .state
+            .as_ref()
+            .expect("attributes() on absent")
+            .attributes
     }
 }
 
@@ -323,7 +326,15 @@ mod tests {
         let evidence = synth_evidence();
         let from_ev = from.map(|s| EvidencedRouteState::present(s, evidence.clone()));
         let to_ev = EvidencedRouteState::present(to, evidence.clone());
-        RouteTransition::new(key, None, from_ev, to_ev, evidence, kind, AnalysisPhase::Event)
+        RouteTransition::new(
+            key,
+            None,
+            from_ev,
+            to_ev,
+            evidence,
+            kind,
+            AnalysisPhase::Event,
+        )
     }
 
     #[test]
@@ -433,7 +444,15 @@ mod tests {
         let key = RouteKey::new("rv2", "185.1.8.65".parse().unwrap(), &state.prefix);
         let ev = synth_evidence();
         let after = EvidencedRouteState::present(state, ev.clone());
-        let sc = StateChange::new(key, None, None, after, ev, Continuity::Known, AnalysisPhase::Event);
+        let sc = StateChange::new(
+            key,
+            None,
+            None,
+            after,
+            ev,
+            Continuity::Known,
+            AnalysisPhase::Event,
+        );
         assert_eq!(sc.continuity, Continuity::Known);
     }
 

@@ -8,10 +8,7 @@
 
 use std::collections::HashMap;
 
-use crate::domain::route::{
-    Continuity, RouteState, RouteTransition, StateChange,
-    TransitionKind,
-};
+use crate::domain::route::{Continuity, RouteState, RouteTransition, StateChange, TransitionKind};
 
 /// Classify a state change into a transition kind.
 ///
@@ -138,11 +135,11 @@ impl TransitionSymbol {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use chrono::{TimeZone, Utc};
-    use crate::domain::route::{
-        AsPath, AnalysisPhase, EvidencedRouteState, Prefix, RouteAttributes, RouteKey,
-    };
     use crate::domain::observation::EvidenceRef;
+    use crate::domain::route::{
+        AnalysisPhase, AsPath, EvidencedRouteState, Prefix, RouteAttributes, RouteKey,
+    };
+    use chrono::{TimeZone, Utc};
     use std::net::IpAddr;
 
     fn t() -> chrono::DateTime<Utc> {
@@ -248,7 +245,15 @@ mod tests {
         let ev = EvidenceRef::synthetic(0, "test", "0000");
         let before_ev = EvidencedRouteState::present(from_state, ev.clone());
         let after_ev = EvidencedRouteState::present(to_state, ev.clone());
-        let sc = StateChange::new(k.clone(), None, Some(before_ev), after_ev, ev, Continuity::Known, AnalysisPhase::Event);
+        let sc = StateChange::new(
+            k.clone(),
+            None,
+            Some(before_ev),
+            after_ev,
+            ev,
+            Continuity::Known,
+            AnalysisPhase::Event,
+        );
         let transitions = tokenize(vec![sc], &baseline_map);
         assert_eq!(transitions.len(), 1);
         assert!(matches!(

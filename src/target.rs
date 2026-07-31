@@ -12,8 +12,7 @@ use crate::domain::observation::{ObservationKind, RouteObservation};
 use crate::domain::route::Prefix;
 
 /// A frozen set of observer-prefix streams relevant to the event.
-#[derive(Debug, Clone)]
-#[derive(Default)]
+#[derive(Debug, Clone, Default)]
 pub struct TargetSet {
     /// Per-collector stream entries.
     pub streams: HashMap<String, Vec<TargetStream>>,
@@ -66,12 +65,15 @@ pub fn scan_rib_and_freeze(
         }
 
         let collector = &obs.collector.0;
-        streams.entry(collector.clone()).or_default().push(TargetStream {
-            peer_ip: obs.peer_ip,
-            prefix: obs.prefix.clone(),
-            origin_as: origin,
-            as_path: attrs.as_path.clone(),
-        });
+        streams
+            .entry(collector.clone())
+            .or_default()
+            .push(TargetStream {
+                peer_ip: obs.peer_ip,
+                prefix: obs.prefix.clone(),
+                origin_as: origin,
+                as_path: attrs.as_path.clone(),
+            });
     }
 
     // Deduplicate per collector
@@ -88,12 +90,14 @@ pub fn scan_rib_and_freeze(
     TargetSet { streams }
 }
 
-
 impl TargetSet {
     /// Merge another target set into this one.
     pub fn merge(&mut self, other: &TargetSet) {
         for (collector, entries) in &other.streams {
-            self.streams.entry(collector.clone()).or_default().extend(entries.iter().cloned());
+            self.streams
+                .entry(collector.clone())
+                .or_default()
+                .extend(entries.iter().cloned());
         }
     }
 
@@ -203,8 +207,8 @@ impl PreflightCounts {
 mod tests {
     use super::*;
     use crate::domain::observation::{
-        Asn, CollectorId, Communities, ObservationAttributes, ObservationId,
-        ObservationProvenance, ObservationSource,
+        Asn, CollectorId, Communities, ObservationAttributes, ObservationId, ObservationProvenance,
+        ObservationSource,
     };
     use chrono::{TimeZone, Utc};
 
@@ -309,13 +313,26 @@ mod tests {
             make_rib("rv2", "185.1.8.65", "193.0.0.0/21", vec![6447, 11537, 3333]),
             make_rib("rv2", "185.1.8.65", "193.0.8.0/21", vec![6447, 3356, 3333]),
             make_rib("rv2", "185.1.8.65", "192.0.2.0/24", vec![6447, 11537, 1101]),
-            make_rib("rv6", "2001:7f8:4::1", "193.0.0.0/21", vec![6447, 11537, 3333]),
+            make_rib(
+                "rv6",
+                "2001:7f8:4::1",
+                "193.0.0.0/21",
+                vec![6447, 11537, 3333],
+            ),
         ];
         let target = scan_rib_and_freeze(&obs, &[3333], 11537);
         assert_eq!(target.total_streams(), 2);
         assert!(target.has_relevant_streams("rv2"));
-        assert!(target.contains("rv2", "185.1.8.65".parse().unwrap(), &Prefix::from("193.0.0.0/21")));
-        assert!(!target.contains("rv2", "185.1.8.65".parse().unwrap(), &Prefix::from("193.0.8.0/21")));
+        assert!(target.contains(
+            "rv2",
+            "185.1.8.65".parse().unwrap(),
+            &Prefix::from("193.0.0.0/21")
+        ));
+        assert!(!target.contains(
+            "rv2",
+            "185.1.8.65".parse().unwrap(),
+            &Prefix::from("193.0.8.0/21")
+        ));
         assert!(target.has_relevant_streams("rv6"));
         assert!(!target.has_relevant_streams("rrc00"));
     }
@@ -323,7 +340,10 @@ mod tests {
     #[test]
     fn rib_only_preflight_skips_collectors_without_relevant_streams() {
         let obs = vec![make_rib(
-            "rv2", "185.1.8.65", "192.0.2.0/24", vec![6447, 3356, 1101],
+            "rv2",
+            "185.1.8.65",
+            "192.0.2.0/24",
+            vec![6447, 3356, 1101],
         )];
         let target = scan_rib_and_freeze(&obs, &[3333], 11537);
         assert_eq!(target.total_streams(), 0);
@@ -352,8 +372,12 @@ mod tests {
     fn update_origin_change_survives_prefix_filter() {
         let target = make_target();
         let frozen = target.frozen_prefixes();
-        let obs = make_update_obs("rv2", "185.1.8.65", "193.0.0.0/21",
-            Some(vec![6447, 3356, 1101]));
+        let obs = make_update_obs(
+            "rv2",
+            "185.1.8.65",
+            "193.0.0.0/21",
+            Some(vec![6447, 3356, 1101]),
+        );
         assert!(admit_observation(&obs, &target, &frozen));
     }
 
@@ -361,8 +385,12 @@ mod tests {
     fn unrelated_peer_for_target_prefix_is_rejected() {
         let target = make_target();
         let frozen = target.frozen_prefixes();
-        let obs = make_update_obs("rv2", "192.168.1.1", "193.0.0.0/21",
-            Some(vec![6447, 11537, 3333]));
+        let obs = make_update_obs(
+            "rv2",
+            "192.168.1.1",
+            "193.0.0.0/21",
+            Some(vec![6447, 11537, 3333]),
+        );
         assert!(!admit_observation(&obs, &target, &frozen));
     }
 
@@ -381,5 +409,55 @@ mod tests {
         assert_eq!(counts.collectors_requested, 2);
         assert_eq!(counts.frozen_streams, 1);
         assert!(counts.distinct_prefixes > 0);
+    }
+
+    #[test]
+    fn rib_and_update_peer_ips_normalize_identically() {
+        let v6_mapped: std::net::IpAddr = "::ffff:185.1.8.65".parse().unwrap();
+        let v4: std::net::IpAddr = "185.1.8.65".parse().unwrap();
+        assert!(v6_mapped != v4, "raw values differ");
+        let norm_v6 = if let std::net::IpAddr::V6(v6) = v6_mapped {
+            if let Some(v4) = v6.to_ipv4_mapped() {
+                std::net::IpAddr::V4(v4)
+            } else {
+                v6_mapped
+            }
+        } else {
+            v6_mapped
+        };
+        assert_eq!(norm_v6, v4, "IPv4-mapped must normalize to IPv4");
+    }
+
+    #[test]
+    fn target_prefix_match_precedes_full_stream_match() {
+        let target = make_target();
+        let frozen = target.frozen_prefixes();
+        let obs = make_update_obs("rrc00", "185.1.8.65", "193.0.0.0/21", None);
+        assert!(frozen.contains(&obs.prefix));
+        assert!(!target.contains(&obs.collector.0, obs.peer_ip, &obs.prefix));
+    }
+
+    #[test]
+    fn unrelated_peer_for_target_prefix_is_rejected_again() {
+        let target = make_target();
+        let frozen = target.frozen_prefixes();
+        let obs = make_update_obs(
+            "rv2",
+            "192.168.1.1",
+            "193.0.0.0/21",
+            Some(vec![6447, 11537, 3333]),
+        );
+        assert!(!admit_observation(&obs, &target, &frozen));
+    }
+
+    #[test]
+    fn matching_withdrawal_without_attributes_is_admitted() {
+        let target = make_target();
+        let frozen = target.frozen_prefixes();
+        let obs = make_update_obs("rv2", "185.1.8.65", "193.0.0.0/21", None);
+        assert!(
+            admit_observation(&obs, &target, &frozen),
+            "withdrawals must be admitted by key alone"
+        );
     }
 }

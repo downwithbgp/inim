@@ -107,7 +107,9 @@ fn collect_evidence(
 
     if any_unknown_continuity {
         evidence.push(Evidence {
-            description: "⚠️  Observer continuity could not be confirmed — verdict reliability reduced".into(),
+            description:
+                "⚠️  Observer continuity could not be confirmed — verdict reliability reduced"
+                    .into(),
             source_records: vec![],
         });
     }
@@ -172,18 +174,16 @@ fn derive_verdict(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use chrono::{TimeZone, Utc};
     use crate::domain::event::EventId;
     use crate::domain::expectation::ImpactExpectation;
+    use crate::domain::observation::EvidenceRef;
     use crate::domain::route::{
         AnalysisPhase, AsPath, EvidencedRouteState, Prefix, RouteAttributes, RouteKey, RouteState,
     };
-    use crate::domain::observation::EvidenceRef;
+    use chrono::{TimeZone, Utc};
 
     fn t(secs: i64) -> chrono::DateTime<Utc> {
-        Utc.with_ymd_and_hms(2025, 6, 15, 5, 25, 0)
-            .unwrap()
-            + chrono::Duration::seconds(secs)
+        Utc.with_ymd_and_hms(2025, 6, 15, 5, 25, 0).unwrap() + chrono::Duration::seconds(secs)
     }
 
     fn se() -> EvidenceRef {
@@ -216,7 +216,8 @@ mod tests {
             observer: "rv2:185.1.8.65".into(),
         };
         make_transition(
-            Some(from), to,
+            Some(from),
+            to,
             TransitionKind::PathChange {
                 old: AsPath(vec![]),
                 new: AsPath(vec![]),
@@ -263,13 +264,7 @@ mod tests {
             path_change(vec![6447, 11537, 1101], vec![6447, 237, 1101], 0),
             return_to_baseline(10),
         ];
-        let assessment = assess(
-            EventId::from("TEST"),
-            exp,
-            &transitions,
-            vec![],
-            false,
-        );
+        let assessment = assess(EventId::from("TEST"), exp, &transitions, vec![], false);
         assert_eq!(assessment.verdict, Verdict::ExpectedRedundantImpact);
     }
 
@@ -277,55 +272,33 @@ mod tests {
     fn redundant_with_withdrawals_is_failure() {
         let exp = ImpactExpectation::redundant(Some("NEWY32AOA"), "test");
         let transitions = vec![withdrawal(0)];
-        let assessment = assess(
-            EventId::from("TEST"),
-            exp,
-            &transitions,
-            vec![],
-            false,
-        );
+        let assessment = assess(EventId::from("TEST"), exp, &transitions, vec![], false);
         assert_eq!(assessment.verdict, Verdict::RedundancyFailureObserved);
     }
 
     #[test]
     fn non_redundant_with_withdrawal_is_expected() {
         let exp = ImpactExpectation::non_redundant("test");
-        let transitions = vec![
-            withdrawal(0),
-            return_to_baseline(10),
-        ];
-        let assessment = assess(
-            EventId::from("TEST"),
-            exp,
-            &transitions,
-            vec![],
-            false,
-        );
-        assert_eq!(
-            assessment.verdict,
-            Verdict::ExpectedLossOfReachability
-        );
+        let transitions = vec![withdrawal(0), return_to_baseline(10)];
+        let assessment = assess(EventId::from("TEST"), exp, &transitions, vec![], false);
+        assert_eq!(assessment.verdict, Verdict::ExpectedLossOfReachability);
     }
 
     #[test]
     fn empty_transitions_is_no_impact() {
         let exp = ImpactExpectation::redundant(Some("NEWY32AOA"), "test");
-        let assessment = assess(
-            EventId::from("TEST"),
-            exp,
-            &[],
-            vec![],
-            false,
-        );
+        let assessment = assess(EventId::from("TEST"), exp, &[], vec![], false);
         assert_eq!(assessment.verdict, Verdict::NoObservableBgpImpact);
     }
 
     #[test]
     fn unknown_continuity_suppresses_strong_verdict() {
         let exp = ImpactExpectation::redundant(Some("NEWY32AOA"), "test");
-        let transitions = vec![
-            path_change(vec![6447, 11537, 1101], vec![6447, 237, 1101], 0),
-        ];
+        let transitions = vec![path_change(
+            vec![6447, 11537, 1101],
+            vec![6447, 237, 1101],
+            0,
+        )];
         let assessment = assess(
             EventId::from("TEST"),
             exp,
@@ -339,16 +312,12 @@ mod tests {
     #[test]
     fn assessment_includes_evidence() {
         let exp = ImpactExpectation::redundant(Some("NEWY32AOA"), "test");
-        let transitions = vec![
-            path_change(vec![6447, 11537, 1101], vec![6447, 237, 1101], 0),
-        ];
-        let assessment = assess(
-            EventId::from("TEST"),
-            exp,
-            &transitions,
-            vec![],
-            false,
-        );
+        let transitions = vec![path_change(
+            vec![6447, 11537, 1101],
+            vec![6447, 237, 1101],
+            0,
+        )];
+        let assessment = assess(EventId::from("TEST"), exp, &transitions, vec![], false);
         assert!(!assessment.evidence.is_empty());
         assert!(assessment
             .evidence
@@ -359,7 +328,7 @@ mod tests {
     #[test]
     fn verdict_independent_of_motif() {
         // Verdict must not change based on whether a motif is present
-        use crate::domain::wave::{WaveMotif, MotifEvidenceRange};
+        use crate::domain::wave::{MotifEvidenceRange, WaveMotif};
         use chrono::TimeZone;
 
         let exp = ImpactExpectation::redundant(Some("NEWY32AOA"), "test");
@@ -408,6 +377,9 @@ mod tests {
             false,
         );
 
-        assert_eq!(a1.verdict, a2.verdict, "verdict must be independent of motif presence");
+        assert_eq!(
+            a1.verdict, a2.verdict,
+            "verdict must be independent of motif presence"
+        );
     }
 }

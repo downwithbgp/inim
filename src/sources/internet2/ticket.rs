@@ -22,7 +22,8 @@ pub struct Internet2Ticket {
 
 /// Parse an Internet2 ticket from a JSON fixture file on disk.
 pub fn parse_ticket_fixture(path: &str) -> Result<Internet2Ticket, String> {
-    let content = std::fs::read_to_string(path).map_err(|e| format!("failed to read fixture: {e}"))?;
+    let content =
+        std::fs::read_to_string(path).map_err(|e| format!("failed to read fixture: {e}"))?;
     let fixture: TicketFixture =
         serde_json::from_str(&content).map_err(|e| format!("invalid fixture JSON: {e}"))?;
 
@@ -55,7 +56,8 @@ pub fn parse_ticket_fixture(path: &str) -> Result<Internet2Ticket, String> {
 /// This is Internet2-specific and should be documented as such with provenance.
 pub fn derive_expectation(ticket: &Internet2Ticket) -> ImpactExpectation {
     let indicator = detect_redundancy_indicator(&ticket.title);
-    let provenance = "Internet2 title convention: parenthesized site code indicates expected redundancy";
+    let provenance =
+        "Internet2 title convention: parenthesized site code indicates expected redundancy";
 
     if indicator.has_parenthesized_site {
         ImpactExpectation::redundant(indicator.site_code.as_deref(), provenance)
@@ -128,8 +130,7 @@ pub fn extract_participants(ticket: &Internet2Ticket) -> Vec<String> {
 /// Extract the exchange name from the ticket title, if present.
 pub fn extract_exchange(ticket: &Internet2Ticket) -> Option<String> {
     let re = Regex::new(r"via (\S+)").unwrap();
-    re.captures(&ticket.title)
-        .map(|caps| caps[1].to_string())
+    re.captures(&ticket.title).map(|caps| caps[1].to_string())
 }
 
 // ── Internal helpers ────────────────────────────────────────────────
@@ -216,18 +217,14 @@ mod tests {
 
     #[test]
     fn detect_short_site_code() {
-        let ind = detect_redundancy_indicator(
-            "Brief Outage - I2 PX Peer RIPE via NYIIX (NEWA)",
-        );
+        let ind = detect_redundancy_indicator("Brief Outage - I2 PX Peer RIPE via NYIIX (NEWA)");
         assert!(ind.has_parenthesized_site);
         assert_eq!(ind.site_code, Some("NEWA".into()));
     }
 
     #[test]
     fn detect_no_parenthesized_site() {
-        let ind = detect_redundancy_indicator(
-            "Maintenance - I2 Backbone Circuit ATLA-LOSA",
-        );
+        let ind = detect_redundancy_indicator("Maintenance - I2 Backbone Circuit ATLA-LOSA");
         assert!(!ind.has_parenthesized_site);
         assert_eq!(ind.site_code, None);
     }
@@ -240,18 +237,14 @@ mod tests {
 
     #[test]
     fn detect_multiple_parentheses_takes_first() {
-        let ind = detect_redundancy_indicator(
-            "Maint (NEWY32AOA) and also (LOSA)",
-        );
+        let ind = detect_redundancy_indicator("Maint (NEWY32AOA) and also (LOSA)");
         assert!(ind.has_parenthesized_site);
         assert_eq!(ind.site_code, Some("NEWY32AOA".into()));
     }
 
     #[test]
     fn detect_lowercase_not_matched() {
-        let ind = detect_redundancy_indicator(
-            "Maint (newy32aoa) — lowercase not a site code",
-        );
+        let ind = detect_redundancy_indicator("Maint (newy32aoa) — lowercase not a site code");
         assert!(!ind.has_parenthesized_site);
     }
 
@@ -353,40 +346,31 @@ mod tests {
 
     #[test]
     fn parse_redundant_maintenance_fixture() {
-        let ticket = parse_ticket_fixture(
-            "tests/fixtures/internet2/CHG0107955.json",
-        )
-        .expect("should parse fixture");
+        let ticket = parse_ticket_fixture("tests/fixtures/internet2/CHG0107955.json")
+            .expect("should parse fixture");
         assert_eq!(ticket.id.0, "CHG0107955");
         assert!(ticket.title.contains("NEWY32AOA"));
     }
 
     #[test]
     fn parse_redundant_incident_fixture() {
-        let ticket = parse_ticket_fixture(
-            "tests/fixtures/internet2/INC0302574.json",
-        )
-        .expect("should parse fixture");
+        let ticket = parse_ticket_fixture("tests/fixtures/internet2/INC0302574.json")
+            .expect("should parse fixture");
         assert_eq!(ticket.id.0, "INC0302574");
         assert!(ticket.title.contains("NEWA"));
     }
 
     #[test]
     fn ticket_parser_normalizes_edt_to_utc() {
-        let ticket = parse_ticket_fixture(
-            "tests/fixtures/internet2/INC0302574.json",
-        )
-        .expect("should parse fixture");
+        let ticket = parse_ticket_fixture("tests/fixtures/internet2/INC0302574.json")
+            .expect("should parse fixture");
         // EDT is UTC-4, so 05:25 EDT = 09:25 UTC
         assert_eq!(ticket.id.0, "INC0302574");
         assert_eq!(
             ticket.window.start.to_rfc3339(),
             "2026-07-30T09:25:00+00:00"
         );
-        assert_eq!(
-            ticket.window.end.to_rfc3339(),
-            "2026-07-30T09:47:00+00:00"
-        );
+        assert_eq!(ticket.window.end.to_rfc3339(), "2026-07-30T09:47:00+00:00");
     }
 
     #[test]
@@ -399,20 +383,14 @@ mod tests {
 
     #[test]
     fn fixture_to_redundant_expectation() {
-        let ticket = parse_ticket_fixture(
-            "tests/fixtures/internet2/CHG0107955.json",
-        )
-        .unwrap();
+        let ticket = parse_ticket_fixture("tests/fixtures/internet2/CHG0107955.json").unwrap();
         let exp = derive_expectation(&ticket);
         assert_eq!(exp.kind, ExpectationKind::Redundant);
     }
 
     #[test]
     fn fixture_to_redundant_incident_expectation() {
-        let ticket = parse_ticket_fixture(
-            "tests/fixtures/internet2/INC0302574.json",
-        )
-        .unwrap();
+        let ticket = parse_ticket_fixture("tests/fixtures/internet2/INC0302574.json").unwrap();
         let exp = derive_expectation(&ticket);
         assert_eq!(exp.kind, ExpectationKind::Redundant);
     }

@@ -55,8 +55,8 @@ pub fn write_outputs(ctx: &OutputContext, out_dir: &Path) -> Result<Vec<PathBuf>
         files.push(manifest_path);
     }
 
-    // Evidence appendix (only for Completed outcomes)
-    if matches!(ctx.outcome, AnalysisOutcome::Completed { .. }) && !ctx.transitions.is_empty() {
+    // Evidence appendix — always written for Completed outcomes
+    if matches!(ctx.outcome, AnalysisOutcome::Completed { .. }) {
         let appendix_path = out_dir.join("evidence_appendix.jsonl");
         write_evidence_appendix(ctx, &appendix_path)?;
         files.push(appendix_path);
@@ -102,13 +102,49 @@ fn write_report_txt(ctx: &OutputContext, path: &Path) -> Result<(), String> {
 
     if let Some(preflight) = ctx.preflight {
         push_ln(&mut buf, "── RIB preflight ─────────────────────────");
-        push_ln(&mut buf, &format!("  Collectors requested:      {}", preflight.collectors_requested));
-        push_ln(&mut buf, &format!("  Collectors with usable RIBs: {}", preflight.collectors_with_usable_ribs));
-        push_ln(&mut buf, &format!("  Origin-matching routes:    {}", preflight.origin_matching_routes));
-        push_ln(&mut buf, &format!("  Transit-matching routes:   {}", preflight.transit_matching_routes));
-        push_ln(&mut buf, &format!("  Frozen streams:            {}", preflight.frozen_streams));
-        push_ln(&mut buf, &format!("  Distinct prefixes:         {}", preflight.distinct_prefixes));
-        push_ln(&mut buf, &format!("  Distinct peers:            {}", preflight.distinct_peers));
+        push_ln(
+            &mut buf,
+            &format!(
+                "  Collectors requested:      {}",
+                preflight.collectors_requested
+            ),
+        );
+        push_ln(
+            &mut buf,
+            &format!(
+                "  Collectors with usable RIBs: {}",
+                preflight.collectors_with_usable_ribs
+            ),
+        );
+        push_ln(
+            &mut buf,
+            &format!(
+                "  Origin-matching routes:    {}",
+                preflight.origin_matching_routes
+            ),
+        );
+        push_ln(
+            &mut buf,
+            &format!(
+                "  Transit-matching routes:   {}",
+                preflight.transit_matching_routes
+            ),
+        );
+        push_ln(
+            &mut buf,
+            &format!("  Frozen streams:            {}", preflight.frozen_streams),
+        );
+        push_ln(
+            &mut buf,
+            &format!(
+                "  Distinct prefixes:         {}",
+                preflight.distinct_prefixes
+            ),
+        );
+        push_ln(
+            &mut buf,
+            &format!("  Distinct peers:            {}", preflight.distinct_peers),
+        );
         push_ln(&mut buf, "");
     }
 
@@ -116,21 +152,43 @@ fn write_report_txt(ctx: &OutputContext, path: &Path) -> Result<(), String> {
     push_ln(&mut buf, ctx.continuity);
     push_ln(&mut buf, "");
 
-    let event_transitions: Vec<_> = ctx.transitions.iter().filter(|t| matches!(t.phase, AnalysisPhase::Event)).collect();
-    let cooldown_transitions: Vec<_> = ctx.transitions.iter().filter(|t| matches!(t.phase, AnalysisPhase::Cooldown)).collect();
+    let event_transitions: Vec<_> = ctx
+        .transitions
+        .iter()
+        .filter(|t| matches!(t.phase, AnalysisPhase::Event))
+        .collect();
+    let cooldown_transitions: Vec<_> = ctx
+        .transitions
+        .iter()
+        .filter(|t| matches!(t.phase, AnalysisPhase::Cooldown))
+        .collect();
 
     push_ln(&mut buf, "── Transitions ───────────────────────────");
     push_ln(&mut buf, &format!("  Total:     {}", ctx.transitions.len()));
-    push_ln(&mut buf, &format!("  Event:     {}", event_transitions.len()));
-    push_ln(&mut buf, &format!("  Cooldown:  {}", cooldown_transitions.len()));
+    push_ln(
+        &mut buf,
+        &format!("  Event:     {}", event_transitions.len()),
+    );
+    push_ln(
+        &mut buf,
+        &format!("  Cooldown:  {}", cooldown_transitions.len()),
+    );
     push_ln(&mut buf, "");
 
     push_ln(&mut buf, "── Impact waves ──────────────────────────");
     push_ln(&mut buf, &format!("  Detected:  {}", ctx.waves.len()));
     for wave in ctx.waves {
-        push_ln(&mut buf, &format!("  Wave {}: {}  {}-{} ({})",
-            wave.id, wave.label, wave.start, wave.end,
-            wave.affected_prefixes.len()));
+        push_ln(
+            &mut buf,
+            &format!(
+                "  Wave {}: {}  {}-{} ({})",
+                wave.id,
+                wave.label,
+                wave.start,
+                wave.end,
+                wave.affected_prefixes.len()
+            ),
+        );
     }
     push_ln(&mut buf, "");
 
@@ -141,6 +199,34 @@ fn write_report_txt(ctx: &OutputContext, path: &Path) -> Result<(), String> {
             push_ln(&mut buf, &format!("  Verdict: {}", assessment.verdict));
             for ev in &assessment.evidence {
                 push_ln(&mut buf, &format!("  - {}", ev.description));
+            }
+            // For NoObservableBgpImpact, explicitly scope the finding
+            if matches!(
+                assessment.verdict,
+                crate::domain::assessment::Verdict::NoObservableBgpImpact
+            ) {
+                push_ln(&mut buf, "");
+                push_ln(
+                    &mut buf,
+                    "  No observable BGP impact was found among the selected RouteViews",
+                );
+                push_ln(&mut buf, "  observer-route streams.");
+                push_ln(&mut buf, "");
+                push_ln(
+                    &mut buf,
+                    "  This is consistent with the redundant-impact expectation encoded",
+                );
+                push_ln(&mut buf, "  in the Internet2 ticket title.");
+                push_ln(&mut buf, "");
+                push_ln(
+                    &mut buf,
+                    "  This result does not establish: global reachability, absence of",
+                );
+                push_ln(
+                    &mut buf,
+                    "  traffic impact, successful physical failover, or absence of changes",
+                );
+                push_ln(&mut buf, "  outside the selected observer streams.");
             }
         }
         AnalysisOutcome::InsufficientVisibility { reason } => {
@@ -160,9 +246,18 @@ fn write_report_txt(ctx: &OutputContext, path: &Path) -> Result<(), String> {
     }
     push_ln(&mut buf, "");
 
-    push_ln(&mut buf, "This analysis uses control-plane observations from selected RouteViews");
-    push_ln(&mut buf, "collectors only. Conclusions are observer-scoped and do not claim");
-    push_ln(&mut buf, "global reachability or physical-layer attribution.");
+    push_ln(
+        &mut buf,
+        "This analysis uses control-plane observations from selected RouteViews",
+    );
+    push_ln(
+        &mut buf,
+        "collectors only. Conclusions are observer-scoped and do not claim",
+    );
+    push_ln(
+        &mut buf,
+        "global reachability or physical-layer attribution.",
+    );
 
     std::fs::write(path, buf).map_err(|e| format!("cannot write {}: {e}", path.display()))
 }
@@ -197,8 +292,16 @@ struct JsonWaveSummary {
 
 fn write_report_json(ctx: &OutputContext, path: &Path) -> Result<(), String> {
     let outcome_json = serde_json::to_value(ctx.outcome).unwrap_or_default();
-    let event_count = ctx.transitions.iter().filter(|t| matches!(t.phase, AnalysisPhase::Event)).count();
-    let cooldown_count = ctx.transitions.iter().filter(|t| matches!(t.phase, AnalysisPhase::Cooldown)).count();
+    let event_count = ctx
+        .transitions
+        .iter()
+        .filter(|t| matches!(t.phase, AnalysisPhase::Event))
+        .count();
+    let cooldown_count = ctx
+        .transitions
+        .iter()
+        .filter(|t| matches!(t.phase, AnalysisPhase::Cooldown))
+        .count();
 
     let report = JsonReport {
         event_id: ctx.event_id.to_string(),
@@ -208,14 +311,18 @@ fn write_report_json(ctx: &OutputContext, path: &Path) -> Result<(), String> {
             event_window: event_count,
             cooldown: cooldown_count,
         },
-        waves: ctx.waves.iter().map(|w| JsonWaveSummary {
-            id: w.id,
-            label: w.label.clone(),
-            start: format!("{}", w.start),
-            end: format!("{}", w.end),
-            affected_prefix_count: w.affected_prefixes.len(),
-            motif_id: w.motif.as_ref().map(|m| m.id.clone()),
-        }).collect(),
+        waves: ctx
+            .waves
+            .iter()
+            .map(|w| JsonWaveSummary {
+                id: w.id,
+                label: w.label.clone(),
+                start: format!("{}", w.start),
+                end: format!("{}", w.end),
+                affected_prefix_count: w.affected_prefixes.len(),
+                motif_id: w.motif.as_ref().map(|m| m.id.clone()),
+            })
+            .collect(),
         limitations: ctx.limitations.to_vec(),
     };
 
@@ -246,25 +353,32 @@ struct JsonCachedFile {
 fn write_archive_manifest(ctx: &OutputContext, path: &Path) -> Result<(), String> {
     let manifest = ArchiveManifest {
         event_id: ctx.event_id.to_string(),
-        ribs: ctx.selected_ribs.iter().map(|a| JsonCachedFile {
-            url: a.url.clone(),
-            local_path: a.local_path.clone(),
-            collector_id: a.collector_id.clone(),
-            data_type: a.data_type.clone(),
-            size_bytes: a.size,
-            sha256: a.sha256.clone(),
-        }).collect(),
-        updates: ctx.selected_updates.iter().map(|a| JsonCachedFile {
-            url: a.url.clone(),
-            local_path: a.local_path.clone(),
-            collector_id: a.collector_id.clone(),
-            data_type: a.data_type.clone(),
-            size_bytes: a.size,
-            sha256: a.sha256.clone(),
-        }).collect(),
+        ribs: ctx
+            .selected_ribs
+            .iter()
+            .map(|a| JsonCachedFile {
+                url: a.url.clone(),
+                local_path: a.local_path.clone(),
+                collector_id: a.collector_id.clone(),
+                data_type: a.data_type.clone(),
+                size_bytes: a.size,
+                sha256: a.sha256.clone(),
+            })
+            .collect(),
+        updates: ctx
+            .selected_updates
+            .iter()
+            .map(|a| JsonCachedFile {
+                url: a.url.clone(),
+                local_path: a.local_path.clone(),
+                collector_id: a.collector_id.clone(),
+                data_type: a.data_type.clone(),
+                size_bytes: a.size,
+                sha256: a.sha256.clone(),
+            })
+            .collect(),
     };
-    let json = serde_json::to_string_pretty(&manifest)
-        .map_err(|e| format!("JSON error: {e}"))?;
+    let json = serde_json::to_string_pretty(&manifest).map_err(|e| format!("JSON error: {e}"))?;
     std::fs::write(path, json).map_err(|e| format!("cannot write {}: {e}", path.display()))
 }
 
@@ -292,15 +406,24 @@ struct EvidenceLine {
 fn write_evidence_appendix(ctx: &OutputContext, path: &Path) -> Result<(), String> {
     let mut sorted: Vec<&RouteTransition> = ctx.transitions.iter().collect();
     sorted.sort_by_key(|t| {
-        (t.to.timestamp(), t.key.collector.clone(), t.key.peer_ip.to_string(), t.key.prefix.0.to_string())
+        (
+            t.to.timestamp(),
+            t.key.collector.clone(),
+            t.key.peer_ip.to_string(),
+            t.key.prefix.0.to_string(),
+        )
     });
 
     let mut lines = Vec::new();
     for t in &sorted {
-        let wave_id = ctx.waves.iter()
+        let wave_id = ctx
+            .waves
+            .iter()
             .find(|w| t.to.timestamp() >= w.start && t.to.timestamp() <= w.end)
             .map(|w| w.id);
-        let motif_id = ctx.waves.iter()
+        let motif_id = ctx
+            .waves
+            .iter()
             .find(|w| w.id == wave_id.unwrap_or(0))
             .and_then(|w| w.motif.as_ref().map(|m| m.id.clone()));
 
@@ -363,8 +486,7 @@ fn write_limitations(ctx: &OutputContext, path: &Path) -> Result<(), String> {
             "Global reachability cannot be asserted from a limited set of observer streams.".into(),
         ],
     };
-    let json = serde_json::to_string_pretty(&lim)
-        .map_err(|e| format!("JSON error: {e}"))?;
+    let json = serde_json::to_string_pretty(&lim).map_err(|e| format!("JSON error: {e}"))?;
     std::fs::write(path, json).map_err(|e| format!("cannot write {}: {e}", path.display()))
 }
 
@@ -441,9 +563,20 @@ mod tests {
         let updates = vec![];
         let transitions = vec![];
         let waves = vec![];
-        let limitations = vec!["Test limitation 1".to_string(), "Test limitation 2".to_string()];
+        let limitations = vec![
+            "Test limitation 1".to_string(),
+            "Test limitation 2".to_string(),
+        ];
 
-        let ctx = make_ctx(&outcome, &collectors, &ribs, &updates, &transitions, &waves, &limitations);
+        let ctx = make_ctx(
+            &outcome,
+            &collectors,
+            &ribs,
+            &updates,
+            &transitions,
+            &waves,
+            &limitations,
+        );
 
         let files_a = write_outputs(&ctx, dir_a.path()).unwrap();
         let files_b = write_outputs(&ctx, dir_b.path()).unwrap();
@@ -452,7 +585,12 @@ mod tests {
         for (fa, fb) in files_a.iter().zip(files_b.iter()) {
             let content_a = std::fs::read_to_string(fa).unwrap();
             let content_b = std::fs::read_to_string(fb).unwrap();
-            assert_eq!(content_a, content_b, "output must be deterministic: {}", fa.display());
+            assert_eq!(
+                content_a,
+                content_b,
+                "output must be deterministic: {}",
+                fa.display()
+            );
         }
     }
 
@@ -465,7 +603,15 @@ mod tests {
         let transitions = vec![];
         let waves = vec![];
         let limitations = vec!["gap detected".to_string()];
-        let ctx = make_ctx(&outcome, &collectors, &ribs, &updates, &transitions, &waves, &limitations);
+        let ctx = make_ctx(
+            &outcome,
+            &collectors,
+            &ribs,
+            &updates,
+            &transitions,
+            &waves,
+            &limitations,
+        );
         let dir = tempfile::tempdir().unwrap();
         write_outputs(&ctx, dir.path()).unwrap();
 
@@ -485,7 +631,15 @@ mod tests {
         let transitions = vec![];
         let waves = vec![];
         let limitations = vec![];
-        let ctx = make_ctx(&outcome, &collectors, &ribs, &updates, &transitions, &waves, &limitations);
+        let ctx = make_ctx(
+            &outcome,
+            &collectors,
+            &ribs,
+            &updates,
+            &transitions,
+            &waves,
+            &limitations,
+        );
         let dir = tempfile::tempdir().unwrap();
         write_outputs(&ctx, dir.path()).unwrap();
 
@@ -503,7 +657,15 @@ mod tests {
         let transitions = vec![];
         let waves = vec![];
         let limitations = vec![];
-        let ctx = make_ctx(&outcome, &collectors, &ribs, &updates, &transitions, &waves, &limitations);
+        let ctx = make_ctx(
+            &outcome,
+            &collectors,
+            &ribs,
+            &updates,
+            &transitions,
+            &waves,
+            &limitations,
+        );
         let dir = tempfile::tempdir().unwrap();
         write_outputs(&ctx, dir.path()).unwrap();
 
@@ -521,7 +683,15 @@ mod tests {
         let transitions = vec![];
         let waves = vec![];
         let limitations = vec![];
-        let ctx = make_ctx(&outcome, &collectors, &ribs, &updates, &transitions, &waves, &limitations);
+        let ctx = make_ctx(
+            &outcome,
+            &collectors,
+            &ribs,
+            &updates,
+            &transitions,
+            &waves,
+            &limitations,
+        );
         let dir = tempfile::tempdir().unwrap();
         write_outputs(&ctx, dir.path()).unwrap();
 
@@ -534,9 +704,9 @@ mod tests {
 
     #[test]
     fn evidence_appendix_contains_baseline_before_after() {
-        use crate::domain::route::{AnalysisPhase, RouteKey, TransitionKind};
         use crate::domain::observation::EvidenceRef;
         use crate::domain::route::Prefix;
+        use crate::domain::route::{AnalysisPhase, RouteKey, TransitionKind};
         use std::net::IpAddr;
 
         // Build a minimal transition for the appendix test
@@ -579,7 +749,15 @@ mod tests {
         let transitions = vec![transition];
         let waves = vec![wave];
         let limitations = vec![];
-        let ctx = make_ctx(&outcome, &collectors, &ribs, &updates, &transitions, &waves, &limitations);
+        let ctx = make_ctx(
+            &outcome,
+            &collectors,
+            &ribs,
+            &updates,
+            &transitions,
+            &waves,
+            &limitations,
+        );
         let dir = tempfile::tempdir().unwrap();
         write_outputs(&ctx, dir.path()).unwrap();
 

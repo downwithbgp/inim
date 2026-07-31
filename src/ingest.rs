@@ -6,10 +6,10 @@
 
 use std::path::PathBuf;
 
-use bgpkit_parser::BgpElem;
-use bgpkit_parser::BgpkitParser;
 use bgpkit_parser::models::AsPathSegment;
 use bgpkit_parser::models::ElemType;
+use bgpkit_parser::BgpElem;
+use bgpkit_parser::BgpkitParser;
 use chrono::TimeZone;
 use chrono::Utc;
 
@@ -43,20 +43,11 @@ pub struct IngestContext {
 #[derive(Debug)]
 pub enum InimError {
     /// Could not open or read the input file.
-    InputOpenError {
-        path: String,
-        source: String,
-    },
+    InputOpenError { path: String, source: String },
     /// bgpkit-parser failed to initialise.
-    ParserInitializationError {
-        path: String,
-        source: String,
-    },
+    ParserInitializationError { path: String, source: String },
     /// An invalid filter was supplied.
-    InvalidFilterError {
-        filter: String,
-        source: String,
-    },
+    InvalidFilterError { filter: String, source: String },
     /// An individual record could not be decoded.
     RecordDecodeError {
         path: String,
@@ -149,18 +140,14 @@ impl ObservationStream {
     /// Create a new observation stream from a local MRT file.
     ///
     /// Returns an error if the file cannot be opened or the parser fails.
-    pub fn from_local_file(
-        path: PathBuf,
-        context: IngestContext,
-    ) -> Result<Self, InimError> {
+    pub fn from_local_file(path: PathBuf, context: IngestContext) -> Result<Self, InimError> {
         let path_str = path.to_string_lossy().to_string();
 
-        let mut parser = BgpkitParser::new(&path_str).map_err(|e| {
-            InimError::ParserInitializationError {
+        let mut parser =
+            BgpkitParser::new(&path_str).map_err(|e| InimError::ParserInitializationError {
                 path: path_str.clone(),
                 source: e.to_string(),
-            }
-        })?;
+            })?;
 
         // Apply origin ASN filter for RIB preflight (parser-level speedup).
         // We unconditionally consume parser via add_filter; if it fails,
@@ -190,20 +177,18 @@ impl ObservationStream {
         let collector = context.collector;
         let mut seq: u64 = 0;
 
-        let iter = parser
-            .into_elem_iter()
-            .map(move |elem| {
-                let result = bgp_elem_to_observation(
-                    &elem,
-                    ObservationId(seq),
-                    &input_path,
-                    role,
-                    &collector,
-                    seq,
-                );
-                seq += 1;
-                result
-            });
+        let iter = parser.into_elem_iter().map(move |elem| {
+            let result = bgp_elem_to_observation(
+                &elem,
+                ObservationId(seq),
+                &input_path,
+                role,
+                &collector,
+                seq,
+            );
+            seq += 1;
+            result
+        });
 
         Ok(ObservationStream {
             inner: Box::new(iter),
@@ -251,15 +236,13 @@ fn bgp_elem_to_observation(
     // ── Route identity validation ─────────────────────────────
     // Peer IP and peer ASN must be present to identify the observation.
     // The prefix path_id (ADD-PATH) is preserved in the prefix key if present.
-    let peer_ip = elem.peer_ip;
+    let peer_ip = canonical_ip(elem.peer_ip);
 
     let peer_asn = Asn(u32::from(elem.peer_asn));
 
     // ── Attributes (None for withdrawals) ─────────────────────
     let attributes = match kind {
-        ObservationKind::Announcement | ObservationKind::RibEntry => {
-            Some(build_attributes(elem))
-        }
+        ObservationKind::Announcement | ObservationKind::RibEntry => Some(build_attributes(elem)),
         ObservationKind::Withdrawal | ObservationKind::SessionBoundary => None,
     };
 
@@ -316,9 +299,7 @@ fn build_attributes(elem: &BgpElem) -> ObservationAttributes {
         communities: elem
             .communities
             .as_ref()
-            .map(|v| {
-                Communities::from_strings(v.iter().map(|c| format!("{c}")).collect())
-            })
+            .map(|v| Communities::from_strings(v.iter().map(|c| format!("{c}")).collect()))
             .unwrap_or_default(),
     }
 }
@@ -334,6 +315,16 @@ fn segment_asns(seg: &AsPathSegment) -> Vec<bgpkit_parser::models::Asn> {
 }
 
 // ── Utility ────────────────────────────────────────────────────────
+
+/// Normalize an IP address: IPv4-mapped IPv6 → plain IPv4.
+fn canonical_ip(ip: std::net::IpAddr) -> std::net::IpAddr {
+    match ip {
+        std::net::IpAddr::V6(v6) if v6.to_ipv4_mapped().is_some() => {
+            std::net::IpAddr::V4(v6.to_ipv4_mapped().unwrap())
+        }
+        _ => ip,
+    }
+}
 
 fn f64_to_utc(epoch: f64) -> chrono::DateTime<Utc> {
     let secs = epoch.trunc() as i64;
@@ -420,7 +411,9 @@ mod tests {
         let ctx = IngestContext {
             role: IngestRole::Rib,
             collector: CollectorId("test".into()),
-            input_path: PathBuf::from("test.mrt"), source_url: None, source_sha: None,
+            input_path: PathBuf::from("test.mrt"),
+            source_url: None,
+            source_sha: None,
             origin_asn_filters: vec![],
         };
         // If role were inferred from elem.elem_type, Rib would be impossible
@@ -432,13 +425,14 @@ mod tests {
 
     #[test]
     fn parses_actual_mrt_fixture_into_observations() {
-        let fixture_path =
-            std::path::PathBuf::from("tests/fixtures/mrt/update-example.gz");
+        let fixture_path = std::path::PathBuf::from("tests/fixtures/mrt/update-example.gz");
 
         let ctx = IngestContext {
             role: IngestRole::Updates,
             collector: CollectorId("route-views2".into()),
-            input_path: fixture_path.clone(), source_url: None, source_sha: None,
+            input_path: fixture_path.clone(),
+            source_url: None,
+            source_sha: None,
             origin_asn_filters: vec![],
         };
 
@@ -450,7 +444,10 @@ mod tests {
 
         // Must have at least one successful observation
         let ok_count = observations.iter().filter(|r| r.is_ok()).count();
-        assert!(ok_count > 0, "fixture must yield at least one valid observation");
+        assert!(
+            ok_count > 0,
+            "fixture must yield at least one valid observation"
+        );
 
         // Verify structure of first successful observation
         if let Some(Ok(first)) = observations.iter().find(|r| r.is_ok()) {
@@ -458,8 +455,7 @@ mod tests {
             assert!(
                 matches!(
                     first.kind,
-                    ObservationKind::Announcement
-                        | ObservationKind::Withdrawal
+                    ObservationKind::Announcement | ObservationKind::Withdrawal
                 ),
                 "real MRT observations should be announcements or withdrawals"
             );

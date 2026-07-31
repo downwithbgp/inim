@@ -70,10 +70,7 @@ mod tests {
 
     #[test]
     fn redundant_expectation_with_site_code() {
-        let exp = ImpactExpectation::redundant(
-            Some("NEWY32AOA"),
-            "Internet2 title convention",
-        );
+        let exp = ImpactExpectation::redundant(Some("NEWY32AOA"), "Internet2 title convention");
         assert_eq!(exp.kind, ExpectationKind::Redundant);
         assert!(exp.description.contains("NEWY32AOA"));
         assert!(exp.description.contains("redundancy"));
@@ -100,10 +97,7 @@ mod tests {
 
     #[test]
     fn expectation_serialization_roundtrip() {
-        let exp = ImpactExpectation::redundant(
-            Some("NEWA"),
-            "Internet2 title convention",
-        );
+        let exp = ImpactExpectation::redundant(Some("NEWA"), "Internet2 title convention");
         let json = serde_json::to_string(&exp).unwrap();
         let parsed: ImpactExpectation = serde_json::from_str(&json).unwrap();
         assert_eq!(exp, parsed);

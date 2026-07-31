@@ -64,7 +64,13 @@ fn main() {
         } => {
             if let Some(manifest_path) = manifest {
                 let discovery = inim::discover::LiveArchiveDiscovery;
-                let outcome = inim::orchestrate::run_real_analysis(event, manifest_path, cache, out, &discovery);
+                let outcome = inim::orchestrate::run_real_analysis(
+                    event,
+                    manifest_path,
+                    cache,
+                    out,
+                    &discovery,
+                );
 
                 let json = serde_json::to_string_pretty(&outcome).unwrap_or_default();
                 println!("{json}");
@@ -78,15 +84,9 @@ fn main() {
     }
 }
 
-fn run_analyze_synthetic(
-    event_path: &std::path::Path,
-    _cache: &PathBuf,
-    _out: &PathBuf,
-) {
+fn run_analyze_synthetic(event_path: &std::path::Path, _cache: &PathBuf, _out: &PathBuf) {
     // ── 1. Parse the Internet2 ticket fixture ────────────────────
-    let ticket = match i2ticket::parse_ticket_fixture(
-        event_path.to_string_lossy().as_ref(),
-    ) {
+    let ticket = match i2ticket::parse_ticket_fixture(event_path.to_string_lossy().as_ref()) {
         Ok(t) => t,
         Err(e) => {
             eprintln!("Error parsing ticket: {e}");
@@ -113,7 +113,9 @@ fn run_analyze_synthetic(
     let (store, changes) = build_demo_scenario("route-views2");
 
     use inim::domain::route::Continuity;
-    let any_unknown = changes.iter().any(|sc| sc.continuity == Continuity::Unknown);
+    let any_unknown = changes
+        .iter()
+        .any(|sc| sc.continuity == Continuity::Unknown);
 
     // ── 4. Tokenize transitions ─────────────────────────────────
     // Build baseline map from frozen event baseline
@@ -152,7 +154,10 @@ fn run_analyze_synthetic(
 /// redundant maintenance — baseline → alternate → stable → restore.
 fn build_demo_scenario(
     collector: &str,
-) -> (inim::routes::RouteStateStore, Vec<inim::domain::route::StateChange>) {
+) -> (
+    inim::routes::RouteStateStore,
+    Vec<inim::domain::route::StateChange>,
+) {
     use chrono::{TimeZone, Utc};
 
     let event_start = Utc.with_ymd_and_hms(2025, 6, 15, 1, 0, 0).unwrap();
@@ -161,42 +166,70 @@ fn build_demo_scenario(
     let obs = vec![
         // Two observer perspectives (rv2:AS6447 and rv6:AS6447)
         fixtures::make_synthetic_rib(
-            "192.0.2.0/24", collector, "185.1.8.65", 6447,
+            "192.0.2.0/24",
+            collector,
+            "185.1.8.65",
+            6447,
             vec![6447, 11537, 1101], // baseline: via AS11537
-            Utc.with_ymd_and_hms(2025, 6, 15, 0, 50, 0).unwrap(), 0,
+            Utc.with_ymd_and_hms(2025, 6, 15, 0, 50, 0).unwrap(),
+            0,
         ),
         fixtures::make_synthetic_rib(
-            "192.0.2.0/24", collector, "2001:7f8:4::1", 6447,
+            "192.0.2.0/24",
+            collector,
+            "2001:7f8:4::1",
+            6447,
             vec![6447, 11537, 1101],
-            Utc.with_ymd_and_hms(2025, 6, 15, 0, 50, 0).unwrap(), 1,
+            Utc.with_ymd_and_hms(2025, 6, 15, 0, 50, 0).unwrap(),
+            1,
         ),
         // Warm-up: pre-event alternate announcement (should not emit transition)
         fixtures::make_synthetic_announcement(
-            "192.0.2.0/24", collector, "185.1.8.65", 6447,
+            "192.0.2.0/24",
+            collector,
+            "185.1.8.65",
+            6447,
             vec![6447, 11537, 1101], // same as baseline, warm-up
-            Utc.with_ymd_and_hms(2025, 6, 15, 0, 55, 0).unwrap(), 2,
+            Utc.with_ymd_and_hms(2025, 6, 15, 0, 55, 0).unwrap(),
+            2,
         ),
         // Event: failover to alternate path (path change)
         fixtures::make_synthetic_announcement(
-            "192.0.2.0/24", collector, "185.1.8.65", 6447,
+            "192.0.2.0/24",
+            collector,
+            "185.1.8.65",
+            6447,
             vec![6447, 237, 1101], // alternate: via AS237
-            Utc.with_ymd_and_hms(2025, 6, 15, 1, 2, 14).unwrap(), 3,
+            Utc.with_ymd_and_hms(2025, 6, 15, 1, 2, 14).unwrap(),
+            3,
         ),
         fixtures::make_synthetic_announcement(
-            "192.0.2.0/24", collector, "2001:7f8:4::1", 6447,
+            "192.0.2.0/24",
+            collector,
+            "2001:7f8:4::1",
+            6447,
             vec![6447, 237, 1101], // second peer sees same alternate
-            Utc.with_ymd_and_hms(2025, 6, 15, 1, 2, 18).unwrap(), 4,
+            Utc.with_ymd_and_hms(2025, 6, 15, 1, 2, 18).unwrap(),
+            4,
         ),
         // Restoration: back to baseline path
         fixtures::make_synthetic_announcement(
-            "192.0.2.0/24", collector, "185.1.8.65", 6447,
+            "192.0.2.0/24",
+            collector,
+            "185.1.8.65",
+            6447,
             vec![6447, 11537, 1101], // restore to baseline
-            Utc.with_ymd_and_hms(2025, 6, 15, 5, 51, 44).unwrap(), 5,
+            Utc.with_ymd_and_hms(2025, 6, 15, 5, 51, 44).unwrap(),
+            5,
         ),
         fixtures::make_synthetic_announcement(
-            "192.0.2.0/24", collector, "2001:7f8:4::1", 6447,
+            "192.0.2.0/24",
+            collector,
+            "2001:7f8:4::1",
+            6447,
             vec![6447, 11537, 1101], // second peer restores
-            Utc.with_ymd_and_hms(2025, 6, 15, 5, 53, 11).unwrap(), 6,
+            Utc.with_ymd_and_hms(2025, 6, 15, 5, 53, 11).unwrap(),
+            6,
         ),
     ];
 
@@ -213,7 +246,12 @@ mod tests {
         let args = vec!["inim", "analyze", "--event", "event.json"];
         let cli = Cli::try_parse_from(args).unwrap();
         match cli.command {
-            Commands::Analyze { event, manifest, cache, out } => {
+            Commands::Analyze {
+                event,
+                manifest,
+                cache,
+                out,
+            } => {
                 assert_eq!(event.to_string_lossy(), "event.json");
                 assert!(manifest.is_none());
                 assert_eq!(cache.to_string_lossy(), "./cache");
@@ -224,7 +262,14 @@ mod tests {
 
     #[test]
     fn cli_parse_analyze_with_manifest() {
-        let args = vec!["inim", "analyze", "--event", "event.json", "--manifest", "manifest.json"];
+        let args = vec![
+            "inim",
+            "analyze",
+            "--event",
+            "event.json",
+            "--manifest",
+            "manifest.json",
+        ];
         let cli = Cli::try_parse_from(args).unwrap();
         match cli.command {
             Commands::Analyze { manifest, .. } => {
@@ -235,7 +280,9 @@ mod tests {
 
     #[test]
     fn cli_parse_analyze_with_cache_and_out() {
-        let args = vec!["inim", "analyze", "--event", "ev.json", "--cache", "/tmp/c", "--out", "/tmp/o"];
+        let args = vec![
+            "inim", "analyze", "--event", "ev.json", "--cache", "/tmp/c", "--out", "/tmp/o",
+        ];
         let cli = Cli::try_parse_from(args).unwrap();
         match cli.command {
             Commands::Analyze { cache, out, .. } => {
@@ -253,10 +300,14 @@ mod tests {
 
     #[test]
     fn cli_short_flags_work() {
-        let args = vec!["inim", "analyze", "-e", "e.json", "-m", "m.json", "-c", "c", "-o", "o"];
+        let args = vec![
+            "inim", "analyze", "-e", "e.json", "-m", "m.json", "-c", "c", "-o", "o",
+        ];
         let cli = Cli::try_parse_from(args).unwrap();
         match cli.command {
-            Commands::Analyze { event, manifest, .. } => {
+            Commands::Analyze {
+                event, manifest, ..
+            } => {
                 assert_eq!(event.to_string_lossy(), "e.json");
                 assert!(manifest.is_some());
             }

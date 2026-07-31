@@ -14,22 +14,16 @@ use crate::domain::assessment::EventAssessment;
 pub enum AnalysisOutcome {
     /// Analysis completed normally with an evidence-backed assessment.
     #[serde(rename = "completed")]
-    Completed {
-        assessment: EventAssessment,
-    },
+    Completed { assessment: EventAssessment },
     /// Available observers could not evaluate the event.
     /// (e.g. empty RIB preflight, no relevant baseline visibility).
     #[serde(rename = "insufficient_visibility")]
-    InsufficientVisibility {
-        reason: String,
-    },
+    InsufficientVisibility { reason: String },
     /// Infrastructure failure prevented analysis.
     /// (e.g. broker unreachable, download failed, checksum mismatch).
     /// Never rendered as a statement about routing visibility.
     #[serde(rename = "incomplete")]
-    Incomplete {
-        failure: String,
-    },
+    Incomplete { failure: String },
 }
 
 impl AnalysisOutcome {

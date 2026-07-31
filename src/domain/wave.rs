@@ -75,12 +75,7 @@ pub struct ImpactWave {
 }
 
 impl ImpactWave {
-    pub fn new(
-        label: &str,
-        start: DateTime<Utc>,
-        peak: DateTime<Utc>,
-        end: DateTime<Utc>,
-    ) -> Self {
+    pub fn new(label: &str, start: DateTime<Utc>, peak: DateTime<Utc>, end: DateTime<Utc>) -> Self {
         ImpactWave {
             id: 0,
             label: label.to_string(),
