@@ -6,7 +6,9 @@
 
 use chrono::{DateTime, Utc};
 
-use crate::domain::route::{RouteTransition, TransitionKind};
+use crate::domain::route::RouteTransition;
+#[allow(unused_imports)]
+use crate::domain::route::TransitionKind;
 use crate::domain::wave::ImpactWave;
 
 /// Detect impact waves from a sequence of route transitions.
@@ -71,8 +73,8 @@ fn build_wave(transitions: &[&RouteTransition], wave_start: DateTime<Utc>) -> Im
     peers.sort();
     peers.dedup();
 
-    // Provisional motif: most common transition kind
-    let motif = dominant_kind_label(transitions);
+    // SEQUITUR-derived motif
+    let motif = sequitur_motif(transitions);
 
     ImpactWave {
         label: String::new(), // filled by summarize later
@@ -85,16 +87,50 @@ fn build_wave(transitions: &[&RouteTransition], wave_start: DateTime<Utc>) -> Im
     }
 }
 
-/// Derive a provisional motif from the dominant transition kind.
-/// This is a placeholder until SEQUITUR integration.
-fn dominant_kind_label(transitions: &[&RouteTransition]) -> String {
+/// Derive a SEQUITUR-based motif from route transitions.
+///
+/// Groups transitions by route key (observer, prefix), orders each group
+/// chronologically, maps TransitionKind → TransitionSymbol, runs SEQUITUR,
+/// and returns the most frequent root-expansion string across all groups.
+/// Falls back to dominant-kind label if no structured motif is found.
+fn sequitur_motif(transitions: &[&RouteTransition]) -> String {
     use std::collections::HashMap;
+    use crate::sequitur;
+    use crate::tokenize::TransitionSymbol;
 
-    let mut counts: HashMap<String, usize> = HashMap::new();
+    // Group transitions by (observer, prefix)
+    let mut groups: HashMap<(String, String), Vec<&RouteTransition>> = HashMap::new();
     for t in transitions {
-        let label = kind_label(&t.kind);
-        *counts.entry(label).or_insert(0) += 1;
+        let key = (t.to.observer.clone(), t.to.prefix.0.clone());
+        groups.entry(key).or_default().push(t);
     }
+
+    // For each group, sort chronologically, build symbol sequence, run SEQUITUR
+    let mut motifs: Vec<String> = Vec::new();
+    for group in groups.values_mut() {
+        group.sort_by_key(|t| t.to.timestamp);
+        let symbols: Vec<TransitionSymbol> = group
+            .iter()
+            .map(|t| TransitionSymbol::from_kind(&t.kind))
+            .collect();
+
+        if symbols.len() >= 2 {
+            let grammar = sequitur::build(&symbols);
+            let motif_str = grammar.render_root();
+            if !motif_str.is_empty() {
+                motifs.push(motif_str);
+            }
+        } else if let Some(sym) = symbols.first() {
+            motifs.push(sym.0.clone());
+        }
+    }
+
+    // Most frequent motif across groups
+    let mut counts: HashMap<String, usize> = HashMap::new();
+    for m in &motifs {
+        *counts.entry(m.clone()).or_insert(0) += 1;
+    }
+
     counts
         .into_iter()
         .max_by_key(|(_, count)| *count)
@@ -102,46 +138,35 @@ fn dominant_kind_label(transitions: &[&RouteTransition]) -> String {
         .unwrap_or_else(|| "UNKNOWN".to_string())
 }
 
-fn kind_label(kind: &TransitionKind) -> String {
-    match kind {
-        TransitionKind::Announcement => "ANNOUNCEMENT".into(),
-        TransitionKind::Withdrawal => "WITHDRAWAL".into(),
-        TransitionKind::ExactDuplicate => "DUPLICATE".into(),
-        TransitionKind::PathChange { .. } => "PATH_CHANGE".into(),
-        TransitionKind::AttributeChange => "ATTRIBUTE_CHANGE".into(),
-        TransitionKind::SessionReset => "SESSION_RESET".into(),
-        TransitionKind::Restoration => "RESTORATION".into(),
-        TransitionKind::ReturnToBaseline => "RETURN_TO_BASELINE".into(),
-    }
-}
-
 /// Summarize waves with human-readable labels and stability intervals.
 pub fn summarize_waves(waves: &mut [ImpactWave]) {
     for (i, wave) in waves.iter_mut().enumerate() {
         let duration = wave.end - wave.start;
-        let label = if wave.motif.as_deref() == Some("PATH_CHANGE") {
-            format!(
-                "Wave {} — path change ({:.1}s, {} prefixes, {} peers)",
-                i + 1,
-                duration.num_milliseconds() as f64 / 1000.0,
-                wave.affected_prefixes.len(),
-                wave.affected_peers.len(),
-            )
-        } else if wave.motif.as_deref() == Some("RETURN_TO_BASELINE") {
-            format!(
-                "Wave {} — restoration ({:.1}s)",
-                i + 1,
-                duration.num_milliseconds() as f64 / 1000.0,
-            )
-        } else {
-            format!(
-                "Wave {} — {} ({:.1}s)",
-                i + 1,
-                wave.motif.as_deref().unwrap_or("activity"),
-                duration.num_milliseconds() as f64 / 1000.0,
-            )
-        };
+        let motif_desc = describe_motif(wave.motif.as_deref());
+        let label = format!(
+            "Wave {} — {} ({:.1}s, {} prefixes, {} peers)",
+            i + 1,
+            motif_desc,
+            duration.num_milliseconds() as f64 / 1000.0,
+            wave.affected_prefixes.len(),
+            wave.affected_peers.len(),
+        );
         wave.label = label;
+    }
+}
+
+/// Produce a short human-readable description of a SEQUITUR motif.
+fn describe_motif(motif: Option<&str>) -> &str {
+    match motif {
+        Some(m) if m.contains("PATH_CHANGE") && m.contains("RETURN_TO_BASELINE") => {
+            "failover and restoration"
+        }
+        Some(m) if m.contains("RETURN_TO_BASELINE") => "restoration",
+        Some(m) if m.contains("PATH_CHANGE") && m.contains('[') => "structured path change",
+        Some(m) if m.contains("PATH_CHANGE") => "path change",
+        Some(m) if m.contains("WITHDRAWAL") => "withdrawal",
+        Some(m) => m,
+        None => "activity",
     }
 }
 

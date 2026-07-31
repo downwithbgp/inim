@@ -9,7 +9,7 @@ use chrono::{TimeZone, Utc};
 
 use inim::assess;
 use inim::domain::event::EventId;
-use inim::domain::expectation::{ExpectationKind, ImpactExpectation};
+use inim::domain::expectation::ImpactExpectation;
 use inim::domain::assessment::Verdict;
 use inim::fixtures;
 use inim::routes;

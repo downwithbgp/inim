@@ -95,6 +95,12 @@ pub fn tokenize(
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub struct TransitionSymbol(pub String);
 
+impl std::fmt::Display for TransitionSymbol {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
 impl TransitionSymbol {
     pub fn from_kind(kind: &TransitionKind) -> Self {
         let s = match kind {

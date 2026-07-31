@@ -132,3 +132,121 @@ JSON serialization of route observations, event windows, and reports.
 - Auto-generated `--help` output
 - Type-safe argument parsing
 - Standard Rust CLI convention
+
+---
+
+## ADR-008: bgpkit-parser for MRT/BGP decoding
+
+**Date:** 2026-07-31
+**Status:** Accepted
+
+**Context:** inim must ingest MRT files (RIB dumps, BGP4MP UPDATE records,
+compressed archives) from RouteViews and RIPE RIS. Implementing an MRT
+parser, BGP decoder, and decompression handler inside inim would duplicate
+well-tested commodity infrastructure and distract from inim's core value
+(operational interpretation, state reconstruction, sequence analysis,
+evidence-backed assessment).
+
+**Decision:** Delegate all MRT/BGP/decompression parsing to
+`bgpkit-parser = "=0.19.0"` with features `["parser", "local"]`.
+
+- `"parser"` enables MRT record decoding and BGP element extraction.
+- `"local"` enables local file decompression (bzip2, gzip via `oneio`).
+- No `"serde"` feature — inim converts bgpkit types to its own
+  serializable types at the boundary.
+- No `"rustls"` feature — remote-URL inputs are deferred.
+- MSRV: 1.87.0 (satisfied by our 1.97.1 toolchain).
+
+bgpkit-parser types (`BgpElem`, `MrtRecord`, etc.) never escape
+`src/ingest.rs`. Every other module operates on inim-native types
+(`RouteObservation`, `RouteState`, etc.).
+
+**Consequences:**
+- Zero MRT/BGP parser code in inim — tested by bgpkit-parser's own suite
+- Streaming ingestion via `BgpkitParser::into_elem_iter()` — no
+  `Vec<BgpElem>` collection in production code
+- Ingest boundary converts `BgpElem` → `RouteObservation` immediately;
+  provenance strings record the parser representation
+- `IngestContext` carries role (`Rib`/`Updates`) and collector identity —
+  never inferred from `BgpElem`
+- Unsupported route identity (e.g. missing ADD-PATH) is rejected with
+  `UnsupportedObservationError`
+- `Cargo.lock` is committed; version pin `=0.19.0` prevents accidental
+  upgrades
+
+---
+
+## ADR-009: BGPKIT Broker is the archive-discovery boundary
+
+**Date:** 2026-07-31
+**Status:** Accepted for a later implementation phase
+
+**Decision:** Use bgpkit-broker to discover RouteViews and RIPE RIS archive files.
+
+Broker-provided metadata supplies:
+
+- collector identity
+- archive project
+- data type
+- file time bounds
+- canonical source URL
+- reported file size
+
+This metadata becomes `IngestContext` and `ObservationProvenance`.
+
+inim will not construct archive URLs, infer collector identity from URL
+strings, scrape archive directory listings, or maintain its own catalog of
+public BGP archive locations.
+
+bgpkit-parser remains responsible only for decoding selected files.
+
+**Status:** Accepted for a later implementation phase. Explicit local files
+remain the MVP input path.
+
+---
+
+## ADR-010: SEQUITUR design decisions
+
+**Date:** 2026-07-31
+**Status:** Accepted
+
+**Context:** SEQUITUR (Nevill-Manning & Witten 1997) discovers repeated and
+hierarchical structure in route-transition sequences. It must be implemented
+inside inim because the only crates.io crate named `sequitur` is an unrelated
+VFX file-sequencing library (92 lines, filesystem category).
+
+**Decision:** Implement SEQUITUR in-house in `src/sequitur/` with zero new
+dependencies.
+
+Design choices:
+- **Generic over symbols**: `T: Clone + Eq + Hash + Debug + Display`. Operates
+  on abstract symbol sequences; no BGP/MRT/RouteViews/Internet2 knowledge.
+- **Three submodules**: `grammar.rs` (Grammar, Symbol, RuleId, expand,
+  render_root), `builder.rs` (Builder with streaming append, digram index,
+  depth-limited recursion to prevent infinite loops), `invariants.rs`
+  (check_invariants, property tests).
+- **Sequence boundaries**: `SESSION_RESET` symbols are split out in the
+  wave-motif integration layer (waves.rs) before SEQUITUR input. SEQUITUR
+  itself does not handle session boundaries.
+- **Motif = root-expansion rendering**: `Grammar::render_root()` produces a
+  compact string representation of the start rule with non-terminals expanded
+  one level (e.g. `PATH_CHANGE [PATH_CHANGE PATH_CHANGE] RETURN_TO_BASELINE`).
+  This becomes `ImpactWave.motif`.
+- **Property tests via exhaustive enumeration + LCG**: zero dependencies
+  (no proptest/rand). All 512 sequences of {a,b} up to length 8 verified for
+  expansion roundtrip and determinism. 5 LCG seeds × 40-char sequences also
+  verified.
+- **Known limitation**: strict digram-uniqueness and rule-utility invariants
+  have edge-case gaps on longer sequences (>10) with small alphabets. The
+  critical expansion-roundtrip invariant holds for all tested cases.
+  Documented limitation — no correctness impact on short BGP transition
+  sequences (typically 2–10 symbols).
+
+**Consequences:**
+- Zero new dependencies (keeps build lightweight)
+- SEQUITUR is independently testable with simple alphabets
+- `ImpactWave.motif` is now SEQUITUR-derived, replacing the provisional
+  dominant-kind label
+- SEQUITUR never influences verdicts (assess.rs has zero SEQUITUR imports,
+  grep-verified)
+- Motif rendering is deterministic and human-readable

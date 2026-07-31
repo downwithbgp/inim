@@ -1,33 +1,21 @@
-//! SEQUITUR module — grammar inference for route-transition sequences.
+//! SEQUITUR module — grammar inference for symbol sequences.
 //!
-//! TODO: Implement the SEQUITUR algorithm for discovering repeated and
-//! hierarchical structure in token sequences. This module must have no
-//! BGP-specific knowledge.
+//! Implements the classic Nevill-Manning & Witten (1997) algorithm
+//! for discovering repeated and hierarchical structure in token
+//! sequences. This module has **no** BGP, MRT, RouteViews, or
+//! Internet2 knowledge — it operates on abstract symbol sequences.
+//!
+//! ## Submodules
+//! - `grammar`: data structures (`Grammar<T>`, `Symbol<T>`, `RuleId`),
+//!   expansion, and rendering.
+//! - `builder`: the SEQUITUR algorithm (`build()`), enforcing digram
+//!   uniqueness and rule utility.
+//! - `invariants`: validation (`check_invariants()`) and property-based
+//!   tests (exhaustive small-alphabet + LCG-generated sequences).
 
-/// A SEQUITUR grammar that can compress and analyze symbol sequences.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Grammar;
+pub mod grammar;
+pub mod builder;
+pub mod invariants;
 
-impl Grammar {
-    /// Create a new empty grammar.
-    pub fn new() -> Self {
-        Grammar
-    }
-}
-
-impl Default for Grammar {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn stub_grammar_exists() {
-        let g = Grammar::new();
-        assert_eq!(g, Grammar::default());
-    }
-}
+pub use grammar::{Grammar, RuleId, Symbol};
+pub use builder::build;
