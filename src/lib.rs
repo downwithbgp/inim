@@ -15,6 +15,7 @@ pub mod report;
 pub mod manifest;
 pub mod discover;
 pub mod target;
+pub mod output;
 pub mod outcome;
 pub mod orchestrate;
 pub mod fixtures;

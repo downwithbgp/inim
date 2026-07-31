@@ -65,6 +65,14 @@ fn main() {
             if let Some(manifest_path) = manifest {
                 let discovery = inim::discover::LiveArchiveDiscovery;
                 let outcome = inim::orchestrate::run_real_analysis(event, manifest_path, cache, out, &discovery);
+
+                // Always write output artifacts
+                if let Some(dir) = out.to_str() {
+                    if let Err(e) = write_outcome_outputs(&outcome, out) {
+                        eprintln!("Warning: failed to write outputs: {e}");
+                    }
+                }
+
                 let json = serde_json::to_string_pretty(&outcome).unwrap_or_default();
                 println!("{json}");
                 if matches!(outcome, inim::outcome::AnalysisOutcome::Incomplete { .. }) {
@@ -75,6 +83,38 @@ fn main() {
             }
         }
     }
+}
+
+fn write_outcome_outputs(
+    outcome: &inim::outcome::AnalysisOutcome,
+    out_dir: &std::path::Path,
+) -> Result<(), String> {
+    use inim::output::{write_outputs, OutputContext};
+    let collectors: Vec<String> = vec![];
+    let ribs: Vec<inim::discover::CachedArchive> = vec![];
+    let updates: Vec<inim::discover::CachedArchive> = vec![];
+    let transitions: Vec<inim::domain::route::RouteTransition> = vec![];
+    let waves: Vec<inim::domain::wave::ImpactWave> = vec![];
+    let limitations: Vec<String> = vec![];
+    let ctx = OutputContext {
+        outcome,
+        event_id: "see report.json",
+        ticket_title: "see report.json",
+        event_window: "see report.json",
+        warmup_window: "see report.json",
+        cooldown_window: "see report.json",
+        declared_expectation: "see report.json",
+        target_predicate: "see report.json",
+        collectors: &collectors,
+        selected_ribs: &ribs,
+        selected_updates: &updates,
+        preflight: None,
+        continuity: "see report.json",
+        transitions: &transitions,
+        waves: &waves,
+        limitations: &limitations,
+    };
+    write_outputs(&ctx, out_dir).map(|_| ())
 }
 
 fn run_analyze_synthetic(
@@ -201,4 +241,64 @@ fn build_demo_scenario(
 
     let cooldown_end = event_end + chrono::Duration::hours(1);
     routes::reconstruct_routes(obs, event_start, event_end, cooldown_end)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn cli_parse_analyze_with_event_only() {
+        let args = vec!["inim", "analyze", "--event", "event.json"];
+        let cli = Cli::try_parse_from(args).unwrap();
+        match cli.command {
+            Commands::Analyze { event, manifest, cache, out } => {
+                assert_eq!(event.to_string_lossy(), "event.json");
+                assert!(manifest.is_none());
+                assert_eq!(cache.to_string_lossy(), "./cache");
+                assert_eq!(out.to_string_lossy(), "./out");
+            }
+        }
+    }
+
+    #[test]
+    fn cli_parse_analyze_with_manifest() {
+        let args = vec!["inim", "analyze", "--event", "event.json", "--manifest", "manifest.json"];
+        let cli = Cli::try_parse_from(args).unwrap();
+        match cli.command {
+            Commands::Analyze { manifest, .. } => {
+                assert!(manifest.is_some());
+            }
+        }
+    }
+
+    #[test]
+    fn cli_parse_analyze_with_cache_and_out() {
+        let args = vec!["inim", "analyze", "--event", "ev.json", "--cache", "/tmp/c", "--out", "/tmp/o"];
+        let cli = Cli::try_parse_from(args).unwrap();
+        match cli.command {
+            Commands::Analyze { cache, out, .. } => {
+                assert_eq!(cache.to_string_lossy(), "/tmp/c");
+                assert_eq!(out.to_string_lossy(), "/tmp/o");
+            }
+        }
+    }
+
+    #[test]
+    fn cli_rejects_missing_event() {
+        let args = vec!["inim", "analyze"];
+        assert!(Cli::try_parse_from(args).is_err());
+    }
+
+    #[test]
+    fn cli_short_flags_work() {
+        let args = vec!["inim", "analyze", "-e", "e.json", "-m", "m.json", "-c", "c", "-o", "o"];
+        let cli = Cli::try_parse_from(args).unwrap();
+        match cli.command {
+            Commands::Analyze { event, manifest, .. } => {
+                assert_eq!(event.to_string_lossy(), "e.json");
+                assert!(manifest.is_some());
+            }
+        }
+    }
 }
