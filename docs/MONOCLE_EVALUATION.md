@@ -1,8 +1,28 @@
 # Monocle Evaluation for inim
 
-**Date:** 2026-07-31
+**Date:** 2026-07-31 (finalized Session 17)
 **Monocle version:** 1.4.0 (pinned `=1.4.0`, features: `["lib"]`)
-**Evaluator:** inim Session 16
+**Decision:** **REJECTED** — removed from production dependency graph
+**ADR:** See [ADR-001](ADRs/MONOCLE-DATAPLANE.md)
+
+## Executive Summary
+
+Monocle 1.4.0 was evaluated as a potential BGP data plane for inim.
+After source-level audit, the following hard blockers were identified:
+
+1. **Raw MRT caching is CLI-only** — `--use-cache`/`--cache-dir` implementation
+   lives in `src/bin/commands/search.rs` and is not exposed through the `lib`
+   feature. inim would need to retain its own archive caching.
+2. **Broker query caching is CLI-only** — `broker-cache.sqlite3` is managed by
+   the CLI binary, not the library API.
+3. **Dependency cost is significant** — duplicate bgpkit-parser (0.18 vs 0.19),
+   duplicate bgpkit-broker (0.10.1 vs 0.12), triple reqwest versions.
+4. **No parity proof** — without network-backed runs demonstrating identical
+   observations, replacing a working pipeline is unjustified.
+
+The decision is to **remove the Monocle dependency** and retain inim's existing
+BGP data plane. The evaluation document and ADR are preserved for future
+reference should a later Monocle release expose library caching.
 
 ## Dependency Impact
 

@@ -4,8 +4,6 @@
 //! parsed BGP elements (BgpElem) into inim-native RouteObservation
 //! values using an explicit IngestContext.
 
-pub mod monocle;
-
 use std::path::PathBuf;
 
 use bgpkit_parser::models::AsPathSegment;
