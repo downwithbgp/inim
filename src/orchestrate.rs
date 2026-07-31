@@ -10,7 +10,8 @@ use std::path::Path;
 use std::time::Instant;
 
 use crate::discover::{
-    cache_archive, select_updates, validate_update_gaps, ArchiveDiscovery, CachedArchive,
+    cache_archive, filename_timestamp, select_updates, validate_update_gaps, ArchiveDiscovery,
+    CachedArchive,
 };
 use crate::domain::event::{EventId, EventWindow, OperationalEvent};
 use crate::domain::observation::{IngestRole, RouteObservation};
@@ -267,10 +268,11 @@ fn run_inner(
             )
             .map_err(|e| format!("broker discovery failed for updates ({collector}): {e}"))?;
 
-        let rib_ts = all_ribs
+        // Use the cached RIB's ts_start as the UPDATE lower bound
+        let rib_ts = collected_ribs
             .iter()
-            .find(|i| i.collector_id == *collector)
-            .map(|i| i.ts_start)
+            .find(|r| r.collector_id == *collector)
+            .and_then(|r| filename_timestamp(&r.url))
             .unwrap_or(warmup_start);
 
         let selected: Vec<_> = select_updates(&all_updates, rib_ts, cooldown_end);

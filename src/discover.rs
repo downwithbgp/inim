@@ -218,24 +218,19 @@ pub fn select_updates(
 
 /// Get the best available start timestamp for an archive item.
 ///
-/// Preference order:
-/// 1. Broker `ts_start` (usually reliable)
-/// 2. Filename-derived timestamp (RouteViews naming convention)
-///
-/// If broker `ts_start` looks unreasonable (e.g. far future), fall back
-/// to filename parsing and emit a diagnostic.
+/// RouteViews archives follow a deterministic filename convention
+/// (`updates.YYYYMMDD.HHMM.bz2`).  Broker `ts_start` metadata can
+/// be ambiguous (some items aggregate a day's worth under one timestamp).
+/// When the filename-derived timestamp differs from the broker
+/// `ts_start` by more than the cadence tolerance, prefer the filename.
 fn canonical_ts_start(
     item: &ArchiveItem,
-    lower_bound: chrono::DateTime<chrono::Utc>,
+    _lower_bound: chrono::DateTime<chrono::Utc>,
 ) -> chrono::DateTime<chrono::Utc> {
-    // If broker ts_start is far in the future (> cooldown_end + 24h),
-    // try filename fallback
-    if item.ts_start > lower_bound + chrono::Duration::hours(48) {
-        if let Some(ft) = filename_timestamp(&item.url) {
-            eprintln!(
-                "  warning: broker ts_start for {} is anomalous ({}), using filename-derived {}",
-                item.url, item.ts_start, ft
-            );
+    // Always try filename parsing — RouteViews filenames are deterministic
+    if let Some(ft) = filename_timestamp(&item.url) {
+        let delta = (ft - item.ts_start).num_minutes().abs();
+        if delta > UPDATE_CADENCE_TOLERANCE_MINUTES {
             return ft;
         }
     }
@@ -244,8 +239,8 @@ fn canonical_ts_start(
 
 /// Extract a timestamp from a RouteViews-format URL filename.
 ///
-/// Pattern: `.../updates.YYYYMMDD.HHMM.bz2`
-fn filename_timestamp(url: &str) -> Option<chrono::DateTime<chrono::Utc>> {
+/// Pattern: `.../updates.YYYYMMDD.HHMM.bz2` or `.../rib.YYYYMMDD.HHMM.bz2`
+pub fn filename_timestamp(url: &str) -> Option<chrono::DateTime<chrono::Utc>> {
     let name = std::path::Path::new(url).file_name()?.to_str()?;
     // Match updates.YYYYMMDD.HHMM or rib.YYYYMMDD.HHMM
     let parts: Vec<&str> = name.split('.').collect();
