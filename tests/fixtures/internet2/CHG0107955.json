@@ -1,0 +1,8 @@
+{
+  "id": "CHG0107955",
+  "title": "Maintenance - I2 Various Participants via DE-CIX (NEWY32AOA)",
+  "start": "2025-06-15 01:00:00",
+  "end": "2025-06-15 06:00:00",
+  "type": "maintenance",
+  "description": "Internet2 will perform maintenance affecting the New York 32AOA attachment at DE-CIX. Participants are expected to remain reachable through redundant connectivity."
+}

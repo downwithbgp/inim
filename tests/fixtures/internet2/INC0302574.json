@@ -1,0 +1,8 @@
+{
+  "id": "INC0302574",
+  "title": "Brief Outage - I2 PX Peer RIPE via NYIIX (NEWA)",
+  "start": "2025-06-15 05:25:00",
+  "end": "2025-06-15 05:47:00",
+  "type": "incident",
+  "description": "Brief outage affecting the RIPE peer's New York attachment via NYIIX. RIPE connectivity through Internet2 should remain available through redundancy."
+}
