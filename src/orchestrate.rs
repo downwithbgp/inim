@@ -185,6 +185,7 @@ fn run_inner(
                     prefix: s.prefix.clone(),
                     origin_as: 0,
                     as_path: s.baseline_as_path.clone(),
+                    path_id: None,
                 };
                 cts.streams
                     .entry(collector.clone())

@@ -27,6 +27,7 @@ pub struct TargetStream {
     pub origin_as: u32,
     /// The full AS path seen in the RIB.
     pub as_path: Vec<u32>,
+    pub path_id: Option<u32>,
 }
 
 /// Scan RIB observations and freeze the target set.
@@ -73,6 +74,7 @@ pub fn scan_rib_and_freeze(
                 prefix: obs.prefix.clone(),
                 origin_as: origin,
                 as_path: attrs.as_path.clone(),
+                path_id: obs.path_id,
             });
     }
 

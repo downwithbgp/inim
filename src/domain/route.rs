@@ -84,12 +84,14 @@ impl RouteAttributes {
     }
 }
 
-/// A unique key identifying a route: collector + peer + prefix.
+/// A unique key identifying a route instance: collector + peer + prefix + path_id.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub struct RouteKey {
     pub collector: String,
     pub peer_ip: IpAddr,
     pub prefix: Prefix,
+    #[serde(default)]
+    pub path_id: Option<u32>,
 }
 
 impl RouteKey {
@@ -98,33 +100,59 @@ impl RouteKey {
             collector: collector.to_string(),
             peer_ip,
             prefix: prefix.clone(),
+            path_id: None,
+        }
+    }
+    pub fn with_path_id(
+        collector: &str,
+        peer_ip: IpAddr,
+        prefix: &Prefix,
+        path_id: Option<u32>,
+    ) -> Self {
+        RouteKey {
+            collector: collector.to_string(),
+            peer_ip,
+            prefix: prefix.clone(),
+            path_id,
+        }
+    }
+    pub fn observer_prefix_key(&self) -> ObserverPrefixKey {
+        ObserverPrefixKey {
+            collector: self.collector.clone(),
+            peer_ip: self.peer_ip,
+            prefix: self.prefix.clone(),
         }
     }
 }
 
-/// The state of a route as observed by a specific collector/peer at a specific time.
+/// Aggregate identity: collector + peer + prefix (no path_id).
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct ObserverPrefixKey {
+    pub collector: String,
+    pub peer_ip: IpAddr,
+    pub prefix: Prefix,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RouteState {
     pub prefix: Prefix,
     pub attributes: RouteAttributes,
     pub timestamp: DateTime<Utc>,
-    /// The observer that reported this state (collector:peer, e.g. "route-views2:AS6447").
     pub observer: String,
+    #[serde(default)]
+    pub path_id: Option<u32>,
 }
 
 impl RouteState {
     pub fn to_key(&self) -> RouteKey {
-        // Parse peer IP from observer string like "route-views2:185.1.8.65"
         let peer_ip: IpAddr = self
             .observer
             .split(':')
             .nth(1)
             .and_then(|s| s.parse().ok())
             .unwrap_or_else(|| "0.0.0.0".parse().unwrap());
-
         let collector = self.observer.split(':').next().unwrap_or("").to_string();
-
-        RouteKey::new(&collector, peer_ip, &self.prefix)
+        RouteKey::with_path_id(&collector, peer_ip, &self.prefix, self.path_id)
     }
 }
 

@@ -194,7 +194,7 @@ pub fn reconstruct_routes(
 }
 
 fn observation_key(obs: &RouteObservation) -> RouteKey {
-    RouteKey::new(&obs.collector.0, obs.peer_ip, &obs.prefix)
+    RouteKey::with_path_id(&obs.collector.0, obs.peer_ip, &obs.prefix, obs.path_id)
 }
 
 fn observation_to_state(obs: &RouteObservation) -> RouteState {
@@ -218,6 +218,7 @@ fn observation_to_state(obs: &RouteObservation) -> RouteState {
         attributes,
         timestamp: obs.timestamp,
         observer: format!("{}:{}", obs.collector.0, obs.peer_ip),
+        path_id: obs.path_id,
     }
 }
 
