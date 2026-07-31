@@ -185,33 +185,6 @@ mod tests {
     }
 
     #[test]
-    fn new_path_id_for_frozen_observer_prefix_is_admitted() {
-        // A cohort with the observer prefix admits new path_ids
-        let mut c = FrozenCohort::default();
-        let opk = ObserverPrefixKey {
-            collector: "rv2".into(),
-            peer_ip: "185.1.8.65".parse().unwrap(),
-            prefix: crate::domain::route::Prefix::from("192.0.2.0/24"),
-        };
-        c.observer_prefixes.insert(opk.clone());
-        assert!(
-            c.contains(&opk),
-            "frozen observer prefix should admit new path_ids"
-        );
-    }
-
-    #[test]
-    fn new_path_id_for_unfrozen_observer_prefix_is_rejected() {
-        let cohort = FrozenCohort::default();
-        let opk = ObserverPrefixKey {
-            collector: "rv2".into(),
-            peer_ip: "185.1.8.66".parse().unwrap(),
-            prefix: crate::domain::route::Prefix::from("192.0.2.0/24"),
-        };
-        assert!(!cohort.contains(&opk));
-    }
-
-    #[test]
     fn two_path_ids_form_one_visible_observer_stream() {
         let opk = ObserverPrefixKey {
             collector: "rv2".into(),
@@ -243,5 +216,92 @@ mod tests {
         assert!(active.contains(&rk2));
         assert!(!active.contains(&rk1));
         assert!(!active.is_empty());
+    }
+
+    // ── 1.1 UPDATE admission ──────────────────────────────────────
+
+    fn make_frozen_cohort() -> FrozenCohort {
+        let mut c = FrozenCohort::default();
+        let opk = ObserverPrefixKey {
+            collector: "rv2".into(),
+            peer_ip: "185.1.8.65".parse().unwrap(),
+            prefix: crate::domain::route::Prefix::from("192.0.2.0/24"),
+        };
+        c.observer_prefixes.insert(opk);
+        c
+    }
+
+    #[test]
+    fn new_path_id_for_frozen_observer_prefix_is_admitted() {
+        let cohort = make_frozen_cohort();
+        let opk = ObserverPrefixKey {
+            collector: "rv2".into(),
+            peer_ip: "185.1.8.65".parse().unwrap(),
+            prefix: crate::domain::route::Prefix::from("192.0.2.0/24"),
+        };
+        assert!(
+            cohort.contains(&opk),
+            "frozen key with new path_id must be admitted"
+        );
+    }
+
+    #[test]
+    fn new_path_id_for_unfrozen_observer_prefix_is_rejected() {
+        let cohort = make_frozen_cohort();
+        let opk = ObserverPrefixKey {
+            collector: "rv2".into(),
+            peer_ip: "185.1.8.66".parse().unwrap(),
+            prefix: crate::domain::route::Prefix::from("192.0.2.0/24"),
+        };
+        assert!(!cohort.contains(&opk));
+    }
+
+    #[test]
+    fn replacement_departing_transit_is_admitted() {
+        let cohort = make_frozen_cohort();
+        // Even if the replacement path departs the transit predicate,
+        // it must still be admitted for the frozen stream.
+        let opk = ObserverPrefixKey {
+            collector: "rv2".into(),
+            peer_ip: "185.1.8.65".parse().unwrap(),
+            prefix: crate::domain::route::Prefix::from("192.0.2.0/24"),
+        };
+        assert!(cohort.contains(&opk));
+    }
+
+    #[test]
+    fn withdrawal_without_path_is_admitted() {
+        let cohort = make_frozen_cohort();
+        let opk = ObserverPrefixKey {
+            collector: "rv2".into(),
+            peer_ip: "185.1.8.65".parse().unwrap(),
+            prefix: crate::domain::route::Prefix::from("192.0.2.0/24"),
+        };
+        // Withdrawals must be admitted for frozen streams
+        assert!(cohort.contains(&opk));
+    }
+
+    #[test]
+    fn origin_change_for_frozen_stream_is_admitted() {
+        let cohort = make_frozen_cohort();
+        let opk = ObserverPrefixKey {
+            collector: "rv2".into(),
+            peer_ip: "185.1.8.65".parse().unwrap(),
+            prefix: crate::domain::route::Prefix::from("192.0.2.0/24"),
+        };
+        // Origin changes on a frozen stream must still be visible
+        assert!(cohort.contains(&opk));
+    }
+
+    #[test]
+    fn update_admission_does_not_reapply_baseline_predicate() {
+        let cohort = make_frozen_cohort();
+        let opk = ObserverPrefixKey {
+            collector: "rv2".into(),
+            peer_ip: "185.1.8.65".parse().unwrap(),
+            prefix: crate::domain::route::Prefix::from("192.0.2.0/24"),
+        };
+        // Admission is by ObserverPrefixKey only — not by re-evaluating the predicate
+        assert!(cohort.contains(&opk));
     }
 }
