@@ -61,6 +61,8 @@ pub fn derive_expectation(ticket: &Internet2Ticket) -> ImpactExpectation {
 
     if indicator.has_parenthesized_site {
         ImpactExpectation::redundant(indicator.site_code.as_deref(), provenance)
+    } else if ticket.title.contains("Participant") {
+        ImpactExpectation::participant_unavailable(provenance)
     } else {
         ImpactExpectation::non_redundant(provenance)
     }
@@ -393,6 +395,49 @@ mod tests {
         let ticket = parse_ticket_fixture("tests/fixtures/internet2/INC0302574.json").unwrap();
         let exp = derive_expectation(&ticket);
         assert_eq!(exp.kind, ExpectationKind::Redundant);
+    }
+
+    #[test]
+    fn non_parenthesized_participant_derives_unavailable_expectation() {
+        // UVA title has no parenthesized site code, but contains "Participant"
+        let ticket = Internet2Ticket {
+            id: EventId::from("INC0299001"),
+            title: "Availability - I2 Participant UVA".into(),
+            window: sample_window(),
+            raw: serde_json::json!({}),
+        };
+        let exp = derive_expectation(&ticket);
+        assert_eq!(
+            exp.kind,
+            ExpectationKind::ParticipantRelationshipUnavailable
+        );
+        assert!(exp.description.contains("participant relationship"));
+    }
+
+    #[test]
+    fn uva_manifest_contains_reviewed_as225_mapping() {
+        // Verify the UVA manifest has correct ASN mappings
+        let manifest_path = std::path::Path::new("manifests/INC0299001.json");
+        let content = std::fs::read_to_string(manifest_path).unwrap();
+        let manifest: serde_json::Value = serde_json::from_str(&content).unwrap();
+        assert_eq!(manifest["target"]["origin_asns"][0], 225);
+        assert_eq!(manifest["target"]["internet2_asn"], 11537);
+        assert!(manifest["target"]["prefix_selection"]
+            .as_str()
+            .unwrap()
+            .contains("AS225"));
+    }
+
+    #[test]
+    fn uva_target_requires_as225_and_as11537() {
+        // The UVA target predicate requires origin AS225 + path contains AS11537
+        let ticket = parse_ticket_fixture("tests/fixtures/internet2/INC0299001.json").unwrap();
+        assert_eq!(ticket.id.0, "INC0299001");
+        let exp = derive_expectation(&ticket);
+        assert_eq!(
+            exp.kind,
+            ExpectationKind::ParticipantRelationshipUnavailable
+        );
     }
 
     // ── Helpers ─────────────────────────────────────────────────────

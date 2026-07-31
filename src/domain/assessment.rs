@@ -14,6 +14,14 @@ pub enum Verdict {
     ExpectedRedundantImpact,
     /// Impact matches the loss-of-reachability expectation.
     ExpectedLossOfReachability,
+    /// Participant relationship unavailability was observed.
+    ExpectedParticipantUnavailability,
+    /// Alternate routing preserved reachability for some streams.
+    ExpectedAlternateRouting,
+    /// Partial impact — some streams affected, others unchanged.
+    PartialImpact,
+    /// Internet2 path persisted unexpectedly through the event window.
+    UnexpectedContinuedInternet2Path,
     /// Unexpected withdrawals occurred contrary to declared redundancy.
     UnexpectedWithdrawals,
     /// Redundancy failed — reachability was lost when it should have been preserved.
@@ -35,6 +43,14 @@ impl std::fmt::Display for Verdict {
         match self {
             Verdict::ExpectedRedundantImpact => write!(f, "EXPECTED REDUNDANT IMPACT"),
             Verdict::ExpectedLossOfReachability => write!(f, "EXPECTED LOSS OF REACHABILITY"),
+            Verdict::ExpectedParticipantUnavailability => {
+                write!(f, "EXPECTED PARTICIPANT UNAVAILABILITY")
+            }
+            Verdict::ExpectedAlternateRouting => write!(f, "EXPECTED ALTERNATE ROUTING"),
+            Verdict::PartialImpact => write!(f, "PARTIAL IMPACT"),
+            Verdict::UnexpectedContinuedInternet2Path => {
+                write!(f, "UNEXPECTED CONTINUED INTERNET2 PATH")
+            }
             Verdict::UnexpectedWithdrawals => write!(f, "UNEXPECTED WITHDRAWALS"),
             Verdict::RedundancyFailureObserved => write!(f, "REDUNDANCY FAILURE"),
             Verdict::UnexpectedBlastRadius => write!(f, "UNEXPECTED BLAST RADIUS"),

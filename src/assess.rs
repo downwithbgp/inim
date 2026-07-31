@@ -140,9 +140,16 @@ fn derive_verdict(
         .iter()
         .any(|t| matches!(t.kind, TransitionKind::SessionReset));
 
-    // No observable impact at all
+    // No observable impact at all — only for expectations that expect impact.
+    // For participant unavailability, no transitions means the path persisted.
     if transitions.is_empty() {
-        return Verdict::NoObservableBgpImpact;
+        return match expectation.kind {
+            ExpectationKind::ParticipantRelationshipUnavailable => {
+                Verdict::UnexpectedContinuedInternet2Path
+            }
+            ExpectationKind::NonRedundant => Verdict::LessImpactThanExpected,
+            _ => Verdict::NoObservableBgpImpact,
+        };
     }
 
     // Continuity gate: suppress strong verdicts
@@ -165,6 +172,31 @@ fn derive_verdict(
                 Verdict::ExpectedLossOfReachability
             } else {
                 Verdict::LessImpactThanExpected
+            }
+        }
+        ExpectationKind::ParticipantRelationshipUnavailable => {
+            // For participant unavailability, the expected behavior is nuanced:
+            // - Complete withdrawals → participant unreachable (ExpectedParticipantUnavailability)
+            // - Path changes away from AS11537 → alternate routing (ExpectedAlternateRouting)
+            // - Mix of withdrawals and alternates → PartialImpact
+            // - No changes at all → UnexpectedContinuedInternet2Path
+            let departures_from_i2 = transitions.iter().any(|t| {
+                matches!(t.kind, TransitionKind::PathChange { .. })
+                    && t.from
+                        .as_ref()
+                        .and_then(|e| e.state.as_ref())
+                        .map(|s| s.attributes.as_path.0.contains(&11537))
+                        .unwrap_or(false)
+                    && !t.to.attributes().as_path.0.contains(&11537)
+            });
+            if has_withdrawals && !departures_from_i2 {
+                Verdict::ExpectedParticipantUnavailability
+            } else if departures_from_i2 && !has_withdrawals {
+                Verdict::ExpectedAlternateRouting
+            } else if has_withdrawals && departures_from_i2 {
+                Verdict::PartialImpact
+            } else {
+                Verdict::UnexpectedContinuedInternet2Path
             }
         }
         ExpectationKind::Unknown => Verdict::Indeterminate,
@@ -381,5 +413,91 @@ mod tests {
             a1.verdict, a2.verdict,
             "verdict must be independent of motif presence"
         );
+    }
+
+    #[test]
+    fn participant_unavailable_withdrawal_is_detected() {
+        let exp = ImpactExpectation::participant_unavailable("test");
+        let transitions = vec![withdrawal(0)];
+        let assessment = assess(EventId::from("TEST"), exp, &transitions, vec![], false);
+        assert_eq!(
+            assessment.verdict,
+            Verdict::ExpectedParticipantUnavailability
+        );
+    }
+
+    #[test]
+    fn path_departure_from_as11537_is_alternate_routing() {
+        let exp = ImpactExpectation::participant_unavailable("test");
+        let transitions = vec![path_change(
+            vec![6447, 11537, 3333],
+            vec![6447, 237, 3333],
+            0,
+        )];
+        let assessment = assess(EventId::from("TEST"), exp, &transitions, vec![], false);
+        assert_eq!(assessment.verdict, Verdict::ExpectedAlternateRouting);
+    }
+
+    #[test]
+    fn alternate_path_without_as11537_is_not_global_withdrawal() {
+        // A path departure from AS11537 is alternate routing, not a withdrawal
+        let exp = ImpactExpectation::participant_unavailable("test");
+        let transitions = vec![path_change(
+            vec![6447, 11537, 225],
+            vec![6447, 3356, 225],
+            0,
+        )];
+        let assessment = assess(EventId::from("TEST"), exp, &transitions, vec![], false);
+        assert_ne!(
+            assessment.verdict,
+            Verdict::ExpectedParticipantUnavailability
+        );
+        assert_eq!(assessment.verdict, Verdict::ExpectedAlternateRouting);
+    }
+
+    #[test]
+    fn partial_stream_impact_is_distinguished() {
+        let exp = ImpactExpectation::participant_unavailable("test");
+        let transitions = vec![
+            withdrawal(0),
+            path_change(vec![6447, 11537, 225], vec![6447, 3356, 225], 1),
+        ];
+        let assessment = assess(EventId::from("TEST"), exp, &transitions, vec![], false);
+        assert_eq!(assessment.verdict, Verdict::PartialImpact);
+    }
+
+    #[test]
+    fn unchanged_selected_streams_can_yield_unexpected_continued() {
+        let exp = ImpactExpectation::participant_unavailable("test");
+        // No transitions → no impact → but expectation was unavailability
+        let assessment = assess(EventId::from("TEST"), exp, &[], vec![], false);
+        assert_eq!(
+            assessment.verdict,
+            Verdict::UnexpectedContinuedInternet2Path
+        );
+    }
+
+    #[test]
+    fn redundant_and_participant_unavailable_use_distinct_assessment_rules() {
+        let redundant_exp = ImpactExpectation::redundant(Some("NEWA"), "test");
+        let participant_exp = ImpactExpectation::participant_unavailable("test");
+        let transitions = vec![withdrawal(0)];
+        let a1 = assess(
+            EventId::from("T1"),
+            redundant_exp,
+            &transitions,
+            vec![],
+            false,
+        );
+        let a2 = assess(
+            EventId::from("T2"),
+            participant_exp,
+            &transitions,
+            vec![],
+            false,
+        );
+        assert_ne!(a1.verdict, a2.verdict);
+        assert_eq!(a1.verdict, Verdict::RedundancyFailureObserved);
+        assert_eq!(a2.verdict, Verdict::ExpectedParticipantUnavailability);
     }
 }

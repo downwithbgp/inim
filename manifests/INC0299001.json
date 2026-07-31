@@ -1,0 +1,33 @@
+{
+  "event_id": "INC0299001",
+  "revision": 1,
+  "event_window_utc": {
+    "start": "2026-07-14T06:35:00Z",
+    "end": "2026-07-14T07:56:00Z"
+  },
+  "ticket_window_local": {
+    "start": "2026-07-14 02:35:00",
+    "end": "2026-07-14 03:56:00",
+    "timezone": "EDT",
+    "timezone_note": "Internet2 GRNOC publishes ticket times in US Eastern time. EDT = UTC−4."
+  },
+  "warmup_minutes": 60,
+  "cooldown_minutes": 60,
+  "target": {
+    "label": "UVA via Internet2",
+    "origin_asns": [225],
+    "internet2_asn": 11537,
+    "prefix_selection": "origin AS225 AND baseline AS path contains AS11537",
+    "prefix_selection_provenance": "Manual analyst mapping: AS225 = University of Virginia (the participant named in the ticket); AS11537 = Internet2 (the network through which UVA connects). We select only prefixes originated by UVA whose pre-event baseline path traverses Internet2, as those are the routes that could be affected by the I2 participant relationship unavailability."
+  },
+  "collectors": ["route-views2", "route-views6"],
+  "collectors_provenance": "RouteViews peers with broad global visibility. Selected for IPv4/IPv6 coverage of AS225 prefixes.",
+  "analyst_notes": [
+    "The ticket title 'Availability - I2 Participant UVA' has no parenthesized site code. This is expected to derive a ParticipantRelationshipUnavailable (NonRedundant) expectation distinct from the Redundant RIPE event (INC0302574).",
+    "Event window is 1h21m (02:35–03:56 EDT ≡ 06:35–07:56 UTC). We add 60 minutes of warm-up before and cool-down after to observe baseline, transition, and restoration.",
+    "Prefixes are selected by scanning the preceding RIB for origin AS225 routes whose AS path contains AS11537 (Internet2). This is a manual selection — no automatic participant-to-ASN mapping is performed.",
+    "Possible verdicts: ExpectedParticipantUnavailability, ExpectedAlternateRouting, PartialImpact, UnexpectedContinuedInternet2Path alongside existing NoObservableBgpImpact, InsufficientVisibility, Indeterminate.",
+    "Broker discovery is used to locate RIB and UPDATE files; caching avoids repeated downloads. If broker is unreachable or archives are unavailable, the analysis will report INSUFFICIENT_VISIBILITY or an archive error.",
+    "UVA (AS225) is a university network with limited global BGP visibility. InsufficientVisibility is a legitimate outcome if AS225 prefixes are not observed by the selected RouteViews collectors."
+  ]
+}

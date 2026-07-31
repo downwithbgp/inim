@@ -17,6 +17,8 @@ pub enum ExpectationKind {
     Redundant,
     /// Loss of reachability is expected (no parenthesized site).
     NonRedundant,
+    /// Participant relationship may be unavailable (non-parenthesized participant title).
+    ParticipantRelationshipUnavailable,
     /// Unable to determine expectation from available information.
     Unknown,
 }
@@ -49,6 +51,16 @@ impl ImpactExpectation {
         ImpactExpectation {
             kind: ExpectationKind::NonRedundant,
             description: "No parenthesized site code — loss of reachability may be expected"
+                .to_string(),
+            provenance: provenance.to_string(),
+        }
+    }
+
+    /// Create an expectation for a participant relationship unavailability event.
+    pub fn participant_unavailable(provenance: &str) -> Self {
+        ImpactExpectation {
+            kind: ExpectationKind::ParticipantRelationshipUnavailable,
+            description: "Non-parenthesized participant title — Internet2 participant relationship may be unavailable. Impact may include path departure from AS11537, alternate routing, or partial restorations."
                 .to_string(),
             provenance: provenance.to_string(),
         }

@@ -1,0 +1,9 @@
+{
+  "id": "INC0299001",
+  "title": "Availability - I2 Participant UVA",
+  "start": "2026-07-14 02:35:00",
+  "end": "2026-07-14 03:56:00",
+  "type": "incident",
+  "timezone": "EDT",
+  "description": "Availability incident for Internet2 participant University of Virginia. No parenthesized site code suggests the relationship itself may be unavailable rather than a single redundant attachment."
+}
