@@ -601,6 +601,9 @@ fn run_inner(
         semantic_waves: &semantic_waves,
         lifecycles: &lifecycles,
         ticket_lifecycle: if manifest.open { "Open" } else { "Closed" },
+        transit_predicate_identity: &crate::derived_cache::transit_predicate_identity(
+            &transit_predicate,
+        ),
         limitations: &limitations,
         no_observable_impact: matches!(
             assessment.verdict,

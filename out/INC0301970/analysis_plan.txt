@@ -1,0 +1,9 @@
+Analysis plan: INC0301970
+  Expectation:     PeerRelationshipUnavailable
+  Lifecycle:       Open
+  Entity mapping:  Reviewed
+  TransitPredicate:Unresolved
+  Plan:            Blocked
+  Reason:          MissingReviewedTransitPredicate
+  Broker calls:    0
+  MRT files:       0

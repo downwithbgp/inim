@@ -1,0 +1,9 @@
+{
+  "blocked": [
+    "Analysis is blocked: MissingReviewedTransitPredicate. No Broker calls and no MRT parses were performed."
+  ],
+  "observer": [
+    "Planning precedes acquisition: no archives were downloaded or examined."
+  ],
+  "schema_version": 1
+}

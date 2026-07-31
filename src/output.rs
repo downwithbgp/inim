@@ -36,6 +36,8 @@ pub struct OutputContext<'a> {
     pub lifecycles: &'a [crate::lifecycle::StreamLifecycle],
     /// Ticket lifecycle (Open/Closed) for the report.
     pub ticket_lifecycle: &'a str,
+    /// Canonical TransitPredicate identity used for the analysis.
+    pub transit_predicate_identity: &'a str,
     pub limitations: &'a [String],
     /// Whether the report may use the NoObservableBgpImpact wording.
     pub no_observable_impact: bool,
@@ -122,6 +124,13 @@ fn write_report_txt(ctx: &OutputContext, path: &Path) -> Result<(), String> {
     push_ln(
         &mut buf,
         &format!("  Ticket lifecycle:        {}", ctx.ticket_lifecycle),
+    );
+    push_ln(
+        &mut buf,
+        &format!(
+            "  Transit predicate:       {}",
+            ctx.transit_predicate_identity
+        ),
     );
     push_ln(
         &mut buf,
@@ -448,6 +457,7 @@ fn write_report_json(ctx: &OutputContext, path: &Path) -> Result<(), String> {
     let signature = serde_json::json!({
         "ticket_expectation": ctx.declared_expectation,
         "ticket_lifecycle": ctx.ticket_lifecycle,
+        "transit_predicate": ctx.transit_predicate_identity,
         "analysis_window_utc": ctx.event_window,
         "observer_scope": {
             "collectors": ctx.collectors,
@@ -830,6 +840,7 @@ mod tests {
             semantic_waves,
             lifecycles,
             ticket_lifecycle: "Closed",
+            transit_predicate_identity: "ContainsAny[11537]",
             limitations,
             no_observable_impact: true,
         }

@@ -85,6 +85,23 @@ enum Commands {
         #[arg(long, value_name = "DATE")]
         date: Option<String>,
     },
+    /// Compare two completed event analyses.
+    ///
+    /// Reads each event's report.json (current schema) and writes
+    /// comparison.json + comparison.txt. Observer-scoped, no severity score.
+    Compare {
+        /// First event output directory (contains report.json).
+        #[arg(long, value_name = "DIR")]
+        a: PathBuf,
+
+        /// Second event output directory (contains report.json).
+        #[arg(long, value_name = "DIR")]
+        b: PathBuf,
+
+        /// Output directory for the comparison artifacts.
+        #[arg(short = 'o', long, value_name = "DIR")]
+        out: PathBuf,
+    },
     /// Analyze a single operational event against BGP observations.
     ///
     /// Without --manifest: runs a built-in synthetic demonstration.
@@ -153,6 +170,7 @@ fn run(cli: &Cli) -> i32 {
             reviewed_by.as_deref(),
             date.as_deref(),
         ),
+        Commands::Compare { a, b, out } => cmd_compare(&mut std::io::stdout(), a, b, out),
         Commands::Analyze {
             event,
             manifest,
@@ -296,6 +314,40 @@ fn cmd_migrate_manifest(
             EXIT_INVALID_INPUT
         }
     }
+}
+
+/// `inim compare`: build the comparison artifact from two event reports.
+fn cmd_compare(
+    stdout: &mut dyn Write,
+    a_dir: &std::path::Path,
+    b_dir: &std::path::Path,
+    out_dir: &std::path::Path,
+) -> i32 {
+    let a = match inim::compare::load_event_summary(&a_dir.join("report.json")) {
+        Ok(s) => s,
+        Err(e) => {
+            let _ = writeln!(stdout, "error: {e}");
+            return EXIT_INVALID_INPUT;
+        }
+    };
+    let b = match inim::compare::load_event_summary(&b_dir.join("report.json")) {
+        Ok(s) => s,
+        Err(e) => {
+            let _ = writeln!(stdout, "error: {e}");
+            return EXIT_INVALID_INPUT;
+        }
+    };
+    let artifact = inim::compare::ComparisonArtifact::new(a, b);
+    if let Err(e) = artifact.write(out_dir) {
+        let _ = writeln!(stdout, "error: {e}");
+        return EXIT_INVALID_INPUT;
+    }
+    let _ = writeln!(
+        stdout,
+        "comparison written to {} (comparison.json, comparison.txt)",
+        out_dir.display()
+    );
+    EXIT_SUCCESS
 }
 ///
 /// A Blocked plan prints the plan and exits EXIT_ANALYSIS_BLOCKED without
@@ -546,6 +598,7 @@ mod tests {
             }
             Commands::Plan { .. } => unreachable!("plan not expected"),
             Commands::MigrateManifest { .. } => unreachable!("migrate not expected"),
+            Commands::Compare { .. } => unreachable!("compare not expected"),
         }
     }
 
@@ -566,6 +619,7 @@ mod tests {
             }
             Commands::Plan { .. } => unreachable!("plan not expected"),
             Commands::MigrateManifest { .. } => unreachable!("migrate not expected"),
+            Commands::Compare { .. } => unreachable!("compare not expected"),
         }
     }
 
@@ -582,6 +636,7 @@ mod tests {
             }
             Commands::Plan { .. } => unreachable!("plan not expected"),
             Commands::MigrateManifest { .. } => unreachable!("migrate not expected"),
+            Commands::Compare { .. } => unreachable!("compare not expected"),
         }
     }
 
@@ -606,6 +661,7 @@ mod tests {
             }
             Commands::Plan { .. } => unreachable!("plan not expected"),
             Commands::MigrateManifest { .. } => unreachable!("migrate not expected"),
+            Commands::Compare { .. } => unreachable!("compare not expected"),
         }
     }
 

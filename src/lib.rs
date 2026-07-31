@@ -5,6 +5,7 @@
 
 pub mod assess;
 pub mod cohort;
+pub mod compare;
 pub mod conventions;
 pub mod derived_cache;
 pub mod discover;
