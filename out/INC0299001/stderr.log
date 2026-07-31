@@ -1,11 +1,11 @@
    Compiling inim v0.1.0 (/home/vadim/inim)
-    Finished `release` profile [optimized] target(s) in 14.19s
+    Finished `release` profile [optimized] target(s) in 15.18s
      Running `target/release/inim analyze --event tests/fixtures/internet2/INC0299001.json --manifest manifests/INC0299001.json --cache cache/ --out out/INC0299001/ --jobs 0`
 → Broker discovery: RIB files
   route-views2: caching RIB http://archive.routeviews.org/bgpdata/2026.07/RIBS/rib.20260714.0400.bz2
 warning: size differ for http://archive.routeviews.org/bgpdata/2026.07/RIBS/rib.20260714.0400.bz2: expected 75497472, got 75352845 (continuing)
-  [route-views2 RIB] derived cache hit, skipping parse
-  [route-views2 RIB] cached: 48 frozen streams, 12 prefixes, 4 peers (0.0s)
+  route-views2: parsing RIB (origin filter: [225])...
+  [route-views2 RIB] done: 381 parsed, 381 origin, 48 transit, 48 frozen streams, 12 prefixes, 4 peers (115.5s)
   route-views6: caching RIB http://archive.routeviews.org/route-views6/bgpdata/2026.07/RIBS/rib.20260714.0400.bz2
 warning: size differ for http://archive.routeviews.org/route-views6/bgpdata/2026.07/RIBS/rib.20260714.0400.bz2: expected 26214400, got 25868097 (continuing)
   [route-views6 RIB] derived cache hit, skipping parse
@@ -44,11 +44,12 @@ warning: size differ for http://archive.routeviews.org/bgpdata/2026.07/UPDATES/u
 → Writing outputs to out/INC0299001/
 
 ── Stage timings ───────────────────────────
-  broker+cache                        0.7s
-  UPDATE cache+parse                 27.5s
+  broker+cache                        0.8s
+  route-views2 RIB parse            115.5s
+  UPDATE cache+parse                 25.6s
   reconstruction                      0.0s
   tokenize                            0.0s
   waves+motifs                        0.0s
   assess                              0.0s
   outputs                             0.0s
-  TOTAL                              33.6s
+  TOTAL                             149.7s

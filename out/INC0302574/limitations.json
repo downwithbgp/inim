@@ -1,0 +1,19 @@
+{
+  "observer": [
+    "Analysis uses selected RouteViews collectors only. Other observation points may yield different results."
+  ],
+  "continuity_gaps": [],
+  "add_path": [
+    "ADD-PATH identity is not preserved. Multiple paths from the same peer for the same prefix may be collapsed."
+  ],
+  "manual_mappings": [
+    "Participant-to-ASN mapping is manually supplied in the reviewed manifest. It is not derived automatically from ticket text."
+  ],
+  "archive_parser": [
+    "Parsed via bgpkit-parser. Parser limitations apply."
+  ],
+  "unsupported_conclusions": [
+    "Physical-layer attribution (e.g. 'the NYIIX circuit failed') is not supported by control-plane observations alone.",
+    "Global reachability cannot be asserted from a limited set of observer streams."
+  ]
+}

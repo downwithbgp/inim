@@ -182,11 +182,11 @@
         }
       ],
       "expectation": {
-        "description": "Non-parenthesized participant title — Internet2 participant relationship may be unavailable. Impact may include path departure from AS11537, alternate routing, or partial restorations.",
+        "description": "Non-parenthesized participant title — managed-network participant relationship may be unavailable. Impact may include path departure from the reviewed transit predicate, alternate routing, or partial restorations.",
         "kind": "ParticipantRelationshipUnavailable",
         "provenance": "Internet2 title convention: parenthesized site code indicates expected redundancy"
       },
-      "generated_at": "2026-07-31T14:28:49.618289113Z",
+      "generated_at": "2026-07-31T18:04:48.674397369Z",
       "verdict": "PartialImpact",
       "waves": [
         {
@@ -212,10 +212,26 @@
           ],
           "end": "2026-07-14T07:25:49.382287979Z",
           "id": 1,
-          "label": "Wave 1 — path change (61.7s, 12 prefixes, 4 peers)",
+          "label": "Wave 1 — path replacement (61.7s, 12 prefixes, 4 peers)",
           "motif": {
             "covered_terminals": 26,
             "evidence_ranges": [
+              {
+                "observer": "route-views2:203.181.248.195",
+                "prefix": "192.35.48.0/24",
+                "time_end": "2026-07-14T07:25:18.009253025Z",
+                "time_start": "2026-07-14T07:25:18.009253025Z",
+                "transition_end": 0,
+                "transition_start": 0
+              },
+              {
+                "observer": "route-views2:203.181.248.195",
+                "prefix": "192.35.49.0/24",
+                "time_end": "2026-07-14T07:25:18.009253025Z",
+                "time_start": "2026-07-14T07:25:18.009253025Z",
+                "transition_end": 0,
+                "transition_start": 0
+              },
               {
                 "observer": "route-views2:163.253.3.14",
                 "prefix": "128.143.0.0/16",
@@ -223,57 +239,41 @@
                 "time_start": "2026-07-14T07:24:47.679275035Z",
                 "transition_end": 0,
                 "transition_start": 0
-              },
-              {
-                "observer": "route-views2:163.253.3.14",
-                "prefix": "198.51.208.0/24",
-                "time_end": "2026-07-14T07:25:17.678420066Z",
-                "time_start": "2026-07-14T07:25:17.678420066Z",
-                "transition_end": 0,
-                "transition_start": 0
-              },
-              {
-                "observer": "route-views2:163.253.3.14",
-                "prefix": "199.111.192.0/18",
-                "time_end": "2026-07-14T07:25:17.678615093Z",
-                "time_start": "2026-07-14T07:25:17.678615093Z",
-                "transition_end": 0,
-                "transition_start": 0
               }
             ],
-            "expanded": "PATH_CHANGE",
-            "id": "7c9f7da6a9d5416f",
+            "expanded": "PATH_REPLACEMENT",
+            "id": "12f3f9d9387b082d",
             "occurrences": 26,
             "scopes": [
+              "route-views2:203.181.248.195 192.35.48.0/24",
+              "route-views2:203.181.248.195 192.35.49.0/24",
               "route-views2:163.253.3.14 128.143.0.0/16",
-              "route-views2:163.253.3.14 198.51.208.0/24",
-              "route-views2:163.253.3.14 199.111.192.0/18",
-              "route-views2:163.253.3.14 192.33.117.0/24",
-              "route-views2:203.181.248.195 192.33.117.0/24",
-              "route-views2:163.253.3.14 137.54.0.0/16",
-              "route-views2:163.253.3.14 192.35.48.0/24",
-              "route-views2:137.164.16.84 192.131.232.0/24",
-              "route-views2:163.253.3.14 199.111.208.0/22",
-              "route-views2:163.253.3.14 192.33.115.0/24",
-              "route-views2:137.164.16.84 192.33.117.0/24",
+              "route-views2:203.181.248.195 137.54.0.0/16",
               "route-views2:163.253.3.14 192.131.232.0/24",
-              "route-views2:203.181.248.195 199.111.208.0/22",
+              "route-views2:203.181.248.195 192.131.232.0/24",
+              "route-views2:137.164.16.84 192.33.117.0/24",
+              "route-views2:137.164.16.84 192.33.115.0/24",
+              "route-views2:163.253.3.14 192.33.115.0/24",
               "route-views2:163.253.3.14 199.111.224.0/19",
               "route-views2:203.181.248.195 199.111.192.0/18",
-              "route-views2:137.164.16.84 192.33.115.0/24",
-              "route-views2:203.181.248.195 137.54.0.0/16",
-              "route-views2:203.181.248.195 199.111.224.0/19",
               "route-views2:203.181.248.195 198.51.208.0/24",
-              "route-views2:163.253.3.14 192.35.49.0/24",
+              "route-views2:137.164.16.84 192.131.232.0/24",
+              "route-views2:203.181.248.195 192.33.117.0/24",
+              "route-views2:203.181.248.195 192.33.115.0/24",
               "route-views2:203.181.248.195 128.143.0.0/16",
-              "route-views2:203.181.248.195 192.131.232.0/24",
-              "route-views2:203.181.248.195 192.35.49.0/24",
-              "route-views2:203.181.248.195 192.35.48.0/24",
-              "route-views2:137.164.16.84 198.51.208.0/24",
-              "route-views2:203.181.248.195 192.33.115.0/24"
+              "route-views2:163.253.3.14 199.111.208.0/22",
+              "route-views2:163.253.3.14 199.111.192.0/18",
+              "route-views2:163.253.3.14 192.35.49.0/24",
+              "route-views2:163.253.3.14 137.54.0.0/16",
+              "route-views2:203.181.248.195 199.111.208.0/22",
+              "route-views2:163.253.3.14 198.51.208.0/24",
+              "route-views2:163.253.3.14 192.33.117.0/24",
+              "route-views2:163.253.3.14 192.35.48.0/24",
+              "route-views2:203.181.248.195 199.111.224.0/19",
+              "route-views2:137.164.16.84 198.51.208.0/24"
             ],
             "structure": [
-              "ROOT → PATH_CHANGE"
+              "ROOT → PATH_REPLACEMENT"
             ],
             "total_terminals": 68
           },
@@ -305,21 +305,21 @@
           ],
           "end": "2026-07-14T07:37:07.244383096Z",
           "id": 2,
-          "label": "Wave 2 — path change (187.8s, 13 prefixes, 5 peers)",
+          "label": "Wave 2 — path replacement (187.8s, 13 prefixes, 5 peers)",
           "motif": {
             "covered_terminals": 22,
             "evidence_ranges": [
               {
                 "observer": "route-views2:163.253.3.14",
-                "prefix": "199.111.192.0/18",
-                "time_end": "2026-07-14T07:36:30.456892013Z",
+                "prefix": "128.143.0.0/16",
+                "time_end": "2026-07-14T07:36:00.455272912Z",
                 "time_start": "2026-07-14T07:33:59.516258955Z",
                 "transition_end": 1,
                 "transition_start": 0
               },
               {
                 "observer": "route-views2:163.253.3.14",
-                "prefix": "192.131.232.0/24",
+                "prefix": "198.51.208.0/24",
                 "time_end": "2026-07-14T07:36:30.456653118Z",
                 "time_start": "2026-07-14T07:33:59.516063928Z",
                 "transition_end": 1,
@@ -327,31 +327,31 @@
               },
               {
                 "observer": "route-views2:163.253.3.14",
-                "prefix": "199.111.208.0/22",
+                "prefix": "192.35.48.0/24",
                 "time_end": "2026-07-14T07:36:30.456892013Z",
                 "time_start": "2026-07-14T07:33:59.516258955Z",
                 "transition_end": 1,
                 "transition_start": 0
               }
             ],
-            "expanded": "ANNOUNCEMENT PATH_CHANGE",
-            "id": "3b04deeaa7c5fc9a",
+            "expanded": "ANNOUNCEMENT PATH_REPLACEMENT",
+            "id": "29c14c4b5c2df84a",
             "occurrences": 11,
             "scopes": [
-              "route-views2:163.253.3.14 199.111.192.0/18",
-              "route-views2:163.253.3.14 192.131.232.0/24",
-              "route-views2:163.253.3.14 199.111.208.0/22",
-              "route-views2:163.253.3.14 198.51.208.0/24",
-              "route-views2:163.253.3.14 192.33.115.0/24",
               "route-views2:163.253.3.14 128.143.0.0/16",
-              "route-views2:163.253.3.14 192.33.117.0/24",
+              "route-views2:163.253.3.14 198.51.208.0/24",
+              "route-views2:163.253.3.14 192.35.48.0/24",
+              "route-views2:163.253.3.14 192.131.232.0/24",
+              "route-views2:163.253.3.14 199.111.192.0/18",
               "route-views2:163.253.3.14 192.35.49.0/24",
               "route-views2:163.253.3.14 137.54.0.0/16",
+              "route-views2:163.253.3.14 199.111.208.0/22",
               "route-views2:163.253.3.14 199.111.224.0/19",
-              "route-views2:163.253.3.14 192.35.48.0/24"
+              "route-views2:163.253.3.14 192.33.115.0/24",
+              "route-views2:163.253.3.14 192.33.117.0/24"
             ],
             "structure": [
-              "ROOT → ANNOUNCEMENT PATH_CHANGE"
+              "ROOT → ANNOUNCEMENT PATH_REPLACEMENT"
             ],
             "total_terminals": 146
           },
@@ -370,19 +370,19 @@
   "waves": [
     {
       "id": 1,
-      "label": "Wave 1 — path change (61.7s, 12 prefixes, 4 peers)",
+      "label": "Wave 1 — path replacement (61.7s, 12 prefixes, 4 peers)",
       "start": "2026-07-14 07:24:47.679275035 UTC",
       "end": "2026-07-14 07:25:49.382287979 UTC",
       "affected_prefix_count": 12,
-      "motif_id": "7c9f7da6a9d5416f"
+      "motif_id": "12f3f9d9387b082d"
     },
     {
       "id": 2,
-      "label": "Wave 2 — path change (187.8s, 13 prefixes, 5 peers)",
+      "label": "Wave 2 — path replacement (187.8s, 13 prefixes, 5 peers)",
       "start": "2026-07-14 07:33:59.462019920 UTC",
       "end": "2026-07-14 07:37:07.244383096 UTC",
       "affected_prefix_count": 13,
-      "motif_id": "3b04deeaa7c5fc9a"
+      "motif_id": "29c14c4b5c2df84a"
     }
   ],
   "limitations": [
