@@ -27,23 +27,23 @@ pub fn detect_waves(
     }
 
     let mut sorted: Vec<&RouteTransition> = transitions.iter().collect();
-    sorted.sort_by_key(|t| t.to.timestamp);
+    sorted.sort_by_key(|t| t.to.timestamp());
 
     let mut waves: Vec<ImpactWave> = Vec::new();
     let mut current_group: Vec<&RouteTransition> = vec![sorted[0]];
-    let mut wave_start = sorted[0].to.timestamp;
+    let mut wave_start = sorted[0].to.timestamp();
 
     for window in sorted.windows(2) {
         let prev = window[0];
         let next = window[1];
-        let gap = next.to.timestamp - prev.to.timestamp;
+        let gap = next.to.timestamp() - prev.to.timestamp();
 
         if gap <= max_gap {
             current_group.push(next);
         } else {
             waves.push(build_wave(&current_group, wave_start));
             current_group = vec![next];
-            wave_start = next.to.timestamp;
+            wave_start = next.to.timestamp();
         }
     }
 
@@ -56,19 +56,19 @@ pub fn detect_waves(
 }
 
 fn build_wave(transitions: &[&RouteTransition], wave_start: DateTime<Utc>) -> ImpactWave {
-    let peak = transitions[transitions.len() / 2].to.timestamp;
-    let end = transitions.last().map(|t| t.to.timestamp).unwrap_or(wave_start);
+    let peak = transitions[transitions.len() / 2].to.timestamp();
+    let end = transitions.last().map(|t| t.to.timestamp()).unwrap_or(wave_start);
 
     let mut prefixes: Vec<_> = transitions
         .iter()
-        .map(|t| t.to.prefix.clone())
+        .map(|t| t.to.prefix().clone())
         .collect();
     prefixes.sort();
     prefixes.dedup();
 
     let mut peers: Vec<_> = transitions
         .iter()
-        .map(|t| t.to.observer.clone())
+        .map(|t| t.to.observer().to_string())
         .collect();
     peers.sort();
     peers.dedup();
@@ -105,7 +105,7 @@ fn sequitur_motif(transitions: &[&RouteTransition]) -> Option<WaveMotif> {
     // Group transitions by (observer, prefix)
     let mut groups: HashMap<(String, String), Vec<&RouteTransition>> = HashMap::new();
     for t in transitions {
-        let key = (t.to.observer.clone(), t.to.prefix.0.clone());
+        let key = (t.to.observer().to_string(), t.to.prefix().0.clone());
         groups.entry(key).or_default().push(t);
     }
 
@@ -121,7 +121,7 @@ fn sequitur_motif(transitions: &[&RouteTransition]) -> Option<WaveMotif> {
     let mut group_motifs: Vec<GroupMotif> = Vec::new();
 
     for ((observer, prefix), group) in groups.iter_mut() {
-        group.sort_by_key(|t| t.to.timestamp);
+        group.sort_by_key(|t| t.to.timestamp());
         let symbols: Vec<TransitionSymbol> = group
             .iter()
             .map(|t| TransitionSymbol::from_kind(&t.kind))
@@ -137,8 +137,8 @@ fn sequitur_motif(transitions: &[&RouteTransition]) -> Option<WaveMotif> {
                     expanded,
                     structure,
                     scope: format!("{observer} {prefix}"),
-                    time_start: group.first().map(|t| t.to.timestamp).unwrap(),
-                    time_end: group.last().map(|t| t.to.timestamp).unwrap(),
+                    time_start: group.first().map(|t| t.to.timestamp()).unwrap(),
+                    time_end: group.last().map(|t| t.to.timestamp()).unwrap(),
                 });
             }
         } else if let Some(sym) = symbols.first() {
@@ -146,8 +146,8 @@ fn sequitur_motif(transitions: &[&RouteTransition]) -> Option<WaveMotif> {
                 expanded: vec![sym.0.clone()],
                 structure: vec![format!("ROOT → {}", sym.0)],
                 scope: format!("{observer} {prefix}"),
-                time_start: group.first().map(|t| t.to.timestamp).unwrap(),
-                time_end: group.last().map(|t| t.to.timestamp).unwrap(),
+                time_start: group.first().map(|t| t.to.timestamp()).unwrap(),
+                time_end: group.last().map(|t| t.to.timestamp()).unwrap(),
             });
         }
     }

@@ -60,7 +60,8 @@ fn redundant_maintenance_vertical_slice() {
     ];
 
     // ── Reconstruct ────────────────────────────────────────────
-    let (store, changes) = routes::reconstruct_routes(obs, event_start, event_end);
+    let cooldown_end = event_end + chrono::Duration::hours(1);
+    let (store, changes) = routes::reconstruct_routes(obs, event_start, event_end, cooldown_end);
 
     // ── Continuity check (must be before changes is moved) ──────
     use inim::domain::route::Continuity;

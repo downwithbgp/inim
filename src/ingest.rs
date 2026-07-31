@@ -236,6 +236,8 @@ fn bgp_elem_to_observation(
     // ── Provenance ────────────────────────────────────────────
     let provenance = ObservationProvenance {
         input: input_path.to_string(),
+        source_url: None,
+        archive_sha256: None,
         role,
         parser_representation: "bgpkit-bgp-elem".to_string(),
         mrt_timestamp: elem.timestamp,

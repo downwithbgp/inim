@@ -210,5 +210,6 @@ fn build_demo_scenario(
         ),
     ];
 
-    routes::reconstruct_routes(obs, event_start, event_end)
+    let cooldown_end = event_end + chrono::Duration::hours(1);
+    routes::reconstruct_routes(obs, event_start, event_end, cooldown_end)
 }

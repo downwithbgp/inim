@@ -73,7 +73,7 @@ fn collect_evidence(
         description: format!("Withdrawals: {}", withdrawals.len()),
         source_records: withdrawals
             .iter()
-            .map(|t| format!("{} at {}", t.to.prefix, t.to.timestamp))
+            .map(|t| format!("{} at {}", t.to.prefix(), t.to.timestamp()))
             .collect(),
     });
 
@@ -84,13 +84,14 @@ fn collect_evidence(
             .map(|t| {
                 format!(
                     "{} at {} ({} → {})",
-                    t.to.prefix,
-                    t.to.timestamp,
+                    t.to.prefix(),
+                    t.to.timestamp(),
                     t.from
                         .as_ref()
+                        .and_then(|e| e.state.as_ref())
                         .map(|f| f.attributes.as_path.to_string())
                         .unwrap_or_else(|| "none".into()),
-                    t.to.attributes.as_path,
+                    t.to.attributes().as_path,
                 )
             })
             .collect(),
@@ -100,7 +101,7 @@ fn collect_evidence(
         description: format!("Restorations to baseline: {}", restorations.len()),
         source_records: restorations
             .iter()
-            .map(|t| format!("{} at {}", t.to.prefix, t.to.timestamp))
+            .map(|t| format!("{} at {}", t.to.prefix(), t.to.timestamp()))
             .collect(),
     });
 

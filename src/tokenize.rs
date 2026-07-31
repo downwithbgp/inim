@@ -75,14 +75,31 @@ pub fn diff_states(
 /// classification using `diff_states`.
 pub fn tokenize(
     changes: Vec<StateChange>,
-    baseline_store: &HashMap<crate::domain::route::RouteKey, crate::domain::route::RouteState>,
+    _baseline_store: &HashMap<crate::domain::route::RouteKey, crate::domain::route::RouteState>,
 ) -> Vec<RouteTransition> {
     changes
         .into_iter()
         .map(|sc| {
-            let baseline = baseline_store.get(&sc.key);
-            let kind = diff_states(baseline, sc.from.as_ref(), &sc.to, sc.continuity);
-            RouteTransition::new(sc.from, sc.to, kind)
+            let from_state = sc.before.as_ref().and_then(|e| e.state.as_ref());
+            let to_state = sc.after.state.as_ref();
+            let baseline_state = sc.event_baseline.as_ref().and_then(|e| e.state.as_ref());
+
+            let kind = match (from_state, to_state) {
+                (_, None) => TransitionKind::Withdrawal,
+                (None, Some(_)) => TransitionKind::Announcement,
+                (Some(_), Some(to_rs)) => {
+                    diff_states(baseline_state, from_state, to_rs, sc.continuity)
+                }
+            };
+
+            RouteTransition::new(
+                sc.key,
+                sc.event_baseline,
+                sc.before,
+                sc.after,
+                sc.triggering,
+                kind,
+            )
         })
         .collect()
 }
