@@ -224,6 +224,7 @@ fn run_inner(
         let collector_id = collector.clone();
         let transit_asn = manifest.target.internet2_asn;
         let origin_asns = manifest.target.origin_asns.clone();
+        let mut collector_obs: Vec<RouteObservation> = Vec::new();
 
         for result in stream {
             let obs = result.map_err(|e| format!("RIB parse error: {e}"))?;
@@ -245,7 +246,7 @@ fn run_inner(
             }
             transit_match += 1;
 
-            rib_observations.push(obs);
+            collector_obs.push(obs);
 
             // Progress every 1M elements or if last
             if parsed.is_multiple_of(1_000_000) {
@@ -258,9 +259,9 @@ fn run_inner(
         let t_parse_elapsed = t_parse.elapsed().as_secs_f64();
         timings.push((format!("{collector} RIB parse"), t_parse_elapsed));
 
-        // Compute per-collector preflight
+        // Compute per-collector preflight (only from this collector's observations)
         let collector_target =
-            scan_rib_and_freeze(rib_observations.as_slice(), &origin_asns, transit_asn);
+            scan_rib_and_freeze(collector_obs.as_slice(), &origin_asns, transit_asn);
 
         let streams = collector_target
             .streams
@@ -315,8 +316,10 @@ fn run_inner(
                 transit_match,
             ),
             frozen_streams: frozen,
-            baseline_observations: rib_observations.clone(),
+            baseline_observations: collector_obs.clone(),
         };
+        // Add to global observations after saving (save is per-collector)
+        rib_observations.extend(collector_obs);
         if let Err(e) = crate::derived_cache::save_rib_cache(cache_dir, &rib_key, &entry) {
             eprintln!("  warning: failed to save derived cache: {e}");
         }

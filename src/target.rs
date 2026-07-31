@@ -250,6 +250,7 @@ mod tests {
                 parser_representation: "bgpkit-bgp-elem".into(),
                 mrt_timestamp: 0.0,
                 element_seq: 0,
+                archive_order: 0,
             },
         }
     }
@@ -293,6 +294,7 @@ mod tests {
                 parser_representation: "bgpkit-bgp-elem".into(),
                 mrt_timestamp: 0.0,
                 element_seq: 0,
+                archive_order: 0,
             },
         }
     }
