@@ -316,6 +316,10 @@ fn run_inner(
                     .collect()
             })
             .unwrap_or_default();
+        let baseline_route_keys: Vec<RouteKey> = collector_obs
+            .iter()
+            .map(|o| RouteKey::with_path_id(&o.collector.0, o.peer_ip, &o.prefix, o.path_id))
+            .collect();
         let entry = crate::derived_cache::RibCacheEntry {
             schema_version: crate::derived_cache::RIB_CACHE_SCHEMA_VERSION,
             parser_version: crate::derived_cache::PARSER_VERSION.to_string(),
@@ -327,6 +331,12 @@ fn run_inner(
                 origin_asns,
                 crate::derived_cache::transit_predicate_identity(&transit_predicate)
             ),
+            entity_origin_asns: origin_asns.clone(),
+            transit_predicate_identity: crate::derived_cache::transit_predicate_identity(
+                &transit_predicate,
+            ),
+            cohort_identity: crate::derived_cache::targetset_hash(&collector_target),
+            baseline_route_keys,
             preflight: PreflightCounts::from_target_set(
                 &collector_target,
                 1,
@@ -335,6 +345,7 @@ fn run_inner(
             ),
             frozen_streams: frozen,
             baseline_observations: collector_obs.clone(),
+            payload_checksum: crate::derived_cache::compute_payload_checksum(&collector_obs),
         };
         // Add to global observations after saving (save is per-collector)
         rib_observations.extend(collector_obs);
@@ -487,12 +498,11 @@ fn run_inner(
     );
     let mut all_obs = rib_observations;
     all_obs.extend(update_observations);
-    all_obs.sort_by(|a, b| {
-        a.timestamp
-            .cmp(&b.timestamp)
-            .then_with(|| a.collector.0.cmp(&b.collector.0))
-            .then_with(|| a.provenance.element_seq.cmp(&b.provenance.element_seq))
-    });
+    // Deterministic identity order: collector, timestamp, archive order,
+    // element sequence, peer IP, prefix, path_id. IDs are assigned after
+    // sorting so serial and parallel completion produce identical artifacts.
+    crate::derived_cache::sort_deterministic(&mut all_obs);
+    crate::derived_cache::assign_deterministic_ids(&mut all_obs);
 
     // ── Reconstruct routes ─────────────────────────────────────────
     eprintln!("→ Reconstructing routes...");
@@ -765,6 +775,7 @@ fn process_one_update_file(
             source_url: task.url.clone(),
             source_sha256: task.sha256.clone(),
             targetset_hash: tshash.to_string(),
+            cohort_identity: tshash.to_string(),
             collector: task.collector.clone(),
             record_count: file_admitted.len() as u64,
             admission_counters: counters.clone(),

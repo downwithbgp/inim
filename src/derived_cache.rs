@@ -15,14 +15,11 @@ use std::net::IpAddr;
 use std::path::{Path, PathBuf};
 
 use crate::domain::observation::RouteObservation;
-use crate::domain::route::{Prefix, TransitPredicate};
+use crate::domain::route::{Prefix, RouteKey, TransitPredicate};
+pub use crate::schema::{
+    OBSERVATION_SCHEMA_VERSION, RIB_CACHE_SCHEMA_VERSION, UPDATE_CACHE_SCHEMA_VERSION,
+};
 use crate::target::{PreflightCounts, TargetSet};
-
-/// Schema versions — bump on any format change.
-pub const RIB_CACHE_SCHEMA_VERSION: u32 = 1;
-pub const UPDATE_CACHE_SCHEMA_VERSION: u32 = 1;
-/// Observation schema version — bump when RouteObservation fields change.
-pub const OBSERVATION_SCHEMA_VERSION: u32 = 1;
 
 /// Parser version pinned (bgpkit-parser not exposing a version const).
 pub const PARSER_VERSION: &str = "0.19.0";
@@ -37,9 +34,20 @@ pub struct RibCacheEntry {
     pub source_sha256: String,
     pub collector: String,
     pub predicate_repr: String,
+    /// Reviewed entity identity (origin ASNs) used for the preflight.
+    pub entity_origin_asns: Vec<u32>,
+    /// Canonical TransitPredicate identity used for the preflight.
+    pub transit_predicate_identity: String,
+    /// Frozen sorted ObserverPrefixKey cohort identity.
+    pub cohort_identity: String,
+    /// Every baseline RouteKey including path_id.
+    pub baseline_route_keys: Vec<RouteKey>,
     pub preflight: PreflightCounts,
     pub frozen_streams: Vec<CachedTargetStream>,
+    /// Evidenced baseline route states (admitted RIB observations).
     pub baseline_observations: Vec<RouteObservation>,
+    /// Payload checksum over the baseline observations.
+    pub payload_checksum: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -130,6 +138,13 @@ pub fn load_rib_cache(cache_dir: &Path, key: &str, source_sha: &str) -> Option<R
         let _ = std::fs::remove_file(&path);
         return None;
     }
+    // Payload checksum over the baseline observations
+    let payload_json = serde_json::to_string(&entry.baseline_observations).ok()?;
+    let computed_hash = bytes_to_hex(&Sha256::digest(payload_json.as_bytes())[..16]);
+    if computed_hash != entry.payload_checksum {
+        let _ = std::fs::remove_file(&path);
+        return None;
+    }
     Some(entry)
 }
 
@@ -175,6 +190,8 @@ pub struct UpdateCacheEntry {
     pub source_url: String,
     pub source_sha256: String,
     pub targetset_hash: String,
+    /// Frozen cohort identity (ObserverPrefixKey values) for this cache.
+    pub cohort_identity: String,
     pub collector: String,
     pub record_count: u64,
     pub admission_counters: UpdateAdmissionCounters,
@@ -205,6 +222,82 @@ pub fn targetset_hash(target: &TargetSet) -> String {
         hasher.update(b"|");
     }
     bytes_to_hex(&hasher.finalize()[..16])
+}
+
+/// Compute the frozen cohort identity hash.
+///
+/// Hashes the sorted ObserverPrefixKey values ONLY. The hash must not vary
+/// because baseline path IDs are ordered differently — instance assignment
+/// does not change the stream set.
+pub fn cohort_hash(cohort: &crate::cohort::FrozenCohort) -> String {
+    let mut entries: Vec<(String, String, String)> = cohort
+        .observer_prefixes
+        .iter()
+        .map(|k| {
+            (
+                k.collector.clone(),
+                k.peer_ip.to_string(),
+                k.prefix.0.clone(),
+            )
+        })
+        .collect();
+    entries.sort();
+    let mut hasher = Sha256::new();
+    for (collector, peer, prefix) in &entries {
+        hasher.update(collector.as_bytes());
+        hasher.update(b"|");
+        hasher.update(peer.as_bytes());
+        hasher.update(b"|");
+        hasher.update(prefix.as_bytes());
+        hasher.update(b"|");
+    }
+    bytes_to_hex(&hasher.finalize()[..16])
+}
+
+// ── Deterministic observation identity ─────────────────────────────
+
+/// Deterministic comparator implementing the documented identity ordering:
+/// collector, timestamp, archive order, element sequence, peer IP, prefix,
+/// path_id (None < Some(id)).
+///
+/// Completion order (serial vs parallel) never changes the identity order.
+pub fn deterministic_observation_order(
+    a: &RouteObservation,
+    b: &RouteObservation,
+) -> std::cmp::Ordering {
+    a.collector
+        .0
+        .cmp(&b.collector.0)
+        .then_with(|| a.timestamp.cmp(&b.timestamp))
+        .then_with(|| a.provenance.archive_order.cmp(&b.provenance.archive_order))
+        .then_with(|| a.provenance.element_seq.cmp(&b.provenance.element_seq))
+        .then_with(|| a.peer_ip.to_string().cmp(&b.peer_ip.to_string()))
+        .then_with(|| a.prefix.0.cmp(&b.prefix.0))
+        .then_with(|| path_id_key(&a.path_id).cmp(&path_id_key(&b.path_id)))
+}
+
+/// Path ID ordering key: None < Some(id).
+pub fn path_id_key(path_id: &Option<u32>) -> (u8, u32) {
+    match path_id {
+        None => (0, 0),
+        Some(id) => (1, *id),
+    }
+}
+
+/// Sort observations in deterministic identity order.
+pub fn sort_deterministic(observations: &mut [RouteObservation]) {
+    observations.sort_by(deterministic_observation_order);
+}
+
+/// Assign deterministic sequential ObservationIds in identity order.
+///
+/// IDs are assigned AFTER sorting, so serial and parallel completion
+/// produce identical IDs. Different route instances (e.g. different
+/// path_id) receive different IDs.
+pub fn assign_deterministic_ids(observations: &mut [RouteObservation]) {
+    for (i, obs) in observations.iter_mut().enumerate() {
+        obs.id = crate::domain::observation::ObservationId(i as u64);
+    }
 }
 
 /// Build an UPDATE cache key from archive SHA, collector, TargetSet hash,
@@ -323,6 +416,7 @@ mod tests {
     };
     use crate::target::TargetStream;
     use chrono::{TimeZone, Utc};
+    use std::collections::BTreeMap;
 
     // ── RIB cache tests ──────────────────────────────────────────
 
@@ -423,7 +517,11 @@ mod tests {
             source_url: "http://example.com/rib.bz2".into(),
             source_sha256: "test_sha".into(),
             collector: "rv2".into(),
-            predicate_repr: "origin=3333 transit=11537".into(),
+            predicate_repr: "origin=3333 transit=ContainsAny[11537]".into(),
+            entity_origin_asns: vec![3333],
+            transit_predicate_identity: "ContainsAny[11537]".into(),
+            cohort_identity: "cohort-test".into(),
+            baseline_route_keys: vec![],
             preflight: PreflightCounts {
                 collectors_requested: 1,
                 collectors_with_usable_ribs: 1,
@@ -435,6 +533,7 @@ mod tests {
             },
             frozen_streams: vec![],
             baseline_observations: vec![],
+            payload_checksum: crate::derived_cache::compute_payload_checksum(&[]),
         };
         save_rib_cache(dir.path(), &key, &entry).unwrap();
         assert!(load_rib_cache(dir.path(), &key, "test_sha").is_some());
@@ -460,6 +559,10 @@ mod tests {
             source_sha256: "sha".into(),
             collector: "rv2".into(),
             predicate_repr: "x".into(),
+            entity_origin_asns: vec![],
+            transit_predicate_identity: "x".into(),
+            cohort_identity: "x".into(),
+            baseline_route_keys: vec![],
             preflight: PreflightCounts {
                 collectors_requested: 0,
                 collectors_with_usable_ribs: 0,
@@ -471,6 +574,7 @@ mod tests {
             },
             frozen_streams: vec![],
             baseline_observations: vec![],
+            payload_checksum: crate::derived_cache::compute_payload_checksum(&[]),
         };
         save_rib_cache(dir.path(), &key, &entry).unwrap();
         assert!(load_rib_cache(dir.path(), &key, "sha").is_none());
@@ -625,6 +729,7 @@ mod tests {
             source_url: "http://example.com/updates.bz2".into(),
             source_sha256: sha.into(),
             targetset_hash: tshash.into(),
+            cohort_identity: tshash.into(),
             collector: collector.into(),
             record_count,
             admission_counters: UpdateAdmissionCounters {
@@ -778,5 +883,485 @@ mod tests {
 
         let loaded = load_update_cache(dir.path(), &key, "test_sha").unwrap();
         assert_eq!(loaded.observations, obs);
+    }
+
+    // ── Part 4: schema versioning + deterministic identity ────────
+
+    #[test]
+    fn old_rib_schema_is_rejected() {
+        let dir = tempfile::tempdir().unwrap();
+        let key = rib_cache_key(
+            "sha",
+            "rv2",
+            &[3333],
+            &TransitPredicate::ContainsAny(vec![11537]),
+            1,
+        );
+        let mut entry = RibCacheEntry {
+            schema_version: RIB_CACHE_SCHEMA_VERSION,
+            parser_version: PARSER_VERSION.into(),
+            source_url: "u".into(),
+            source_sha256: "sha".into(),
+            collector: "rv2".into(),
+            predicate_repr: "x".into(),
+            entity_origin_asns: vec![3333],
+            transit_predicate_identity: "ContainsAny[11537]".into(),
+            cohort_identity: "c".into(),
+            baseline_route_keys: vec![],
+            preflight: PreflightCounts {
+                collectors_requested: 0,
+                collectors_with_usable_ribs: 0,
+                origin_matching_routes: 0,
+                transit_matching_routes: 0,
+                frozen_streams: 0,
+                distinct_prefixes: 0,
+                distinct_peers: 0,
+            },
+            frozen_streams: vec![],
+            baseline_observations: vec![],
+            payload_checksum: compute_payload_checksum(&[]),
+        };
+        entry.schema_version = 1; // pre-ADD-PATH schema
+        save_rib_cache(dir.path(), &key, &entry).unwrap();
+        assert!(
+            load_rib_cache(dir.path(), &key, "sha").is_none(),
+            "old RIB schema must be rejected"
+        );
+    }
+
+    #[test]
+    fn rib_cache_preserves_multiple_instances_per_stream() {
+        let dir = tempfile::tempdir().unwrap();
+        let key = rib_cache_key(
+            "sha",
+            "rv2",
+            &[3333],
+            &TransitPredicate::ContainsAny(vec![11537]),
+            1,
+        );
+        let mut obs1 = make_test_obs(0);
+        obs1.path_id = Some(1);
+        let mut obs2 = make_test_obs(1);
+        obs2.path_id = Some(2);
+        let mut entry = RibCacheEntry {
+            schema_version: RIB_CACHE_SCHEMA_VERSION,
+            parser_version: PARSER_VERSION.into(),
+            source_url: "u".into(),
+            source_sha256: "sha".into(),
+            collector: "rv2".into(),
+            predicate_repr: "x".into(),
+            entity_origin_asns: vec![3333],
+            transit_predicate_identity: "ContainsAny[11537]".into(),
+            cohort_identity: "c".into(),
+            baseline_route_keys: vec![
+                RouteKey::with_path_id(
+                    "rv2",
+                    "185.1.8.65".parse().unwrap(),
+                    &Prefix::from("193.0.0.0/21"),
+                    Some(1),
+                ),
+                RouteKey::with_path_id(
+                    "rv2",
+                    "185.1.8.65".parse().unwrap(),
+                    &Prefix::from("193.0.0.0/21"),
+                    Some(2),
+                ),
+            ],
+            preflight: PreflightCounts {
+                collectors_requested: 0,
+                collectors_with_usable_ribs: 0,
+                origin_matching_routes: 0,
+                transit_matching_routes: 0,
+                frozen_streams: 1,
+                distinct_prefixes: 1,
+                distinct_peers: 1,
+            },
+            frozen_streams: vec![],
+            baseline_observations: vec![obs1, obs2],
+            payload_checksum: compute_payload_checksum(&[]),
+        };
+        entry.payload_checksum = compute_payload_checksum(&entry.baseline_observations);
+        save_rib_cache(dir.path(), &key, &entry).unwrap();
+        let loaded = load_rib_cache(dir.path(), &key, "sha").unwrap();
+        // Two instances preserved for one stream.
+        assert_eq!(loaded.baseline_observations.len(), 2);
+        assert_eq!(loaded.baseline_route_keys.len(), 2);
+        let pids: Vec<Option<u32>> = loaded
+            .baseline_observations
+            .iter()
+            .map(|o| o.path_id)
+            .collect();
+        assert_eq!(pids, vec![Some(1), Some(2)]);
+    }
+
+    #[test]
+    fn rib_cache_preserves_path_id() {
+        let dir = tempfile::tempdir().unwrap();
+        let key = rib_cache_key(
+            "sha",
+            "rv2",
+            &[3333],
+            &TransitPredicate::ContainsAny(vec![11537]),
+            1,
+        );
+        let mut obs = make_test_obs(7);
+        obs.path_id = Some(4242);
+        let entry = RibCacheEntry {
+            schema_version: RIB_CACHE_SCHEMA_VERSION,
+            parser_version: PARSER_VERSION.into(),
+            source_url: "u".into(),
+            source_sha256: "sha".into(),
+            collector: "rv2".into(),
+            predicate_repr: "x".into(),
+            entity_origin_asns: vec![3333],
+            transit_predicate_identity: "ContainsAny[11537]".into(),
+            cohort_identity: "c".into(),
+            baseline_route_keys: vec![],
+            preflight: PreflightCounts {
+                collectors_requested: 0,
+                collectors_with_usable_ribs: 0,
+                origin_matching_routes: 0,
+                transit_matching_routes: 0,
+                frozen_streams: 0,
+                distinct_prefixes: 0,
+                distinct_peers: 0,
+            },
+            frozen_streams: vec![],
+            baseline_observations: vec![obs],
+            payload_checksum: compute_payload_checksum(&[]),
+        };
+        // recompute checksum properly for the save
+        let mut entry = entry;
+        entry.payload_checksum = compute_payload_checksum(&entry.baseline_observations);
+        save_rib_cache(dir.path(), &key, &entry).unwrap();
+        let loaded = load_rib_cache(dir.path(), &key, "sha").unwrap();
+        assert_eq!(loaded.baseline_observations[0].path_id, Some(4242));
+    }
+
+    #[test]
+    fn rib_cache_preserves_all_evidence() {
+        let dir = tempfile::tempdir().unwrap();
+        let key = rib_cache_key(
+            "sha",
+            "rv2",
+            &[3333],
+            &TransitPredicate::ContainsAny(vec![11537]),
+            1,
+        );
+        let obs = make_test_obs(3);
+        let mut entry = RibCacheEntry {
+            schema_version: RIB_CACHE_SCHEMA_VERSION,
+            parser_version: PARSER_VERSION.into(),
+            source_url: "http://example.com/rib.bz2".into(),
+            source_sha256: "sha".into(),
+            collector: "rv2".into(),
+            predicate_repr: "x".into(),
+            entity_origin_asns: vec![3333],
+            transit_predicate_identity: "ContainsAny[11537]".into(),
+            cohort_identity: "c".into(),
+            baseline_route_keys: vec![],
+            preflight: PreflightCounts {
+                collectors_requested: 1,
+                collectors_with_usable_ribs: 1,
+                origin_matching_routes: 1,
+                transit_matching_routes: 1,
+                frozen_streams: 1,
+                distinct_prefixes: 1,
+                distinct_peers: 1,
+            },
+            frozen_streams: vec![],
+            baseline_observations: vec![obs.clone()],
+            payload_checksum: compute_payload_checksum(&[]),
+        };
+        entry.payload_checksum = compute_payload_checksum(&entry.baseline_observations);
+        save_rib_cache(dir.path(), &key, &entry).unwrap();
+        let loaded = load_rib_cache(dir.path(), &key, "sha").unwrap();
+        // Source URL, SHA, collector, entity, predicate identity preserved.
+        assert_eq!(loaded.source_url, "http://example.com/rib.bz2");
+        assert_eq!(loaded.source_sha256, "sha");
+        assert_eq!(loaded.collector, "rv2");
+        assert_eq!(loaded.entity_origin_asns, vec![3333]);
+        assert_eq!(loaded.transit_predicate_identity, "ContainsAny[11537]");
+        assert_eq!(loaded.preflight.frozen_streams, 1);
+    }
+
+    #[test]
+    fn cohort_hash_ignores_instance_order() {
+        // Same ObserverPrefixKey set, different baseline instance path-ID
+        // ordering → identical cohort hash.
+        let mut c1 = crate::cohort::FrozenCohort::default();
+        let k = crate::domain::route::ObserverPrefixKey {
+            collector: "rv2".into(),
+            peer_ip: "185.1.8.65".parse().unwrap(),
+            prefix: Prefix::from("193.0.0.0/21"),
+        };
+        c1.observer_prefixes.insert(k.clone());
+        let mut c2 = crate::cohort::FrozenCohort::default();
+        c2.observer_prefixes.insert(k.clone());
+        // Instance ordering differs (baseline_instances not populated in c2
+        // would change nothing for the stream-set hash).
+        let mut b1 = BTreeMap::new();
+        b1.insert(
+            RouteKey::with_path_id("rv2", "185.1.8.65".parse().unwrap(), &k.prefix, Some(2)),
+            crate::domain::route::RouteState {
+                prefix: k.prefix.clone(),
+                attributes: crate::domain::route::RouteAttributes::from_as_path(vec![1, 2, 3]),
+                timestamp: chrono::Utc::now(),
+                observer: "rv2:185.1.8.65".into(),
+                path_id: Some(2),
+            },
+        );
+        c1.baseline_instances.insert(k.clone(), b1.clone());
+        let mut b2 = BTreeMap::new();
+        b2.insert(
+            RouteKey::with_path_id("rv2", "185.1.8.65".parse().unwrap(), &k.prefix, Some(1)),
+            crate::domain::route::RouteState {
+                prefix: k.prefix.clone(),
+                attributes: crate::domain::route::RouteAttributes::from_as_path(vec![1, 2, 3]),
+                timestamp: chrono::Utc::now(),
+                observer: "rv2:185.1.8.65".into(),
+                path_id: Some(1),
+            },
+        );
+        c2.baseline_instances.insert(k.clone(), b2);
+        assert_eq!(
+            cohort_hash(&c1),
+            cohort_hash(&c2),
+            "cohort hash must not vary with baseline path-ID ordering"
+        );
+    }
+
+    #[test]
+    fn cohort_hash_changes_when_stream_set_changes() {
+        let mut c1 = crate::cohort::FrozenCohort::default();
+        c1.observer_prefixes
+            .insert(crate::domain::route::ObserverPrefixKey {
+                collector: "rv2".into(),
+                peer_ip: "185.1.8.65".parse().unwrap(),
+                prefix: Prefix::from("193.0.0.0/21"),
+            });
+        let mut c2 = c1.clone();
+        c2.observer_prefixes
+            .insert(crate::domain::route::ObserverPrefixKey {
+                collector: "rv2".into(),
+                peer_ip: "185.1.8.66".parse().unwrap(),
+                prefix: Prefix::from("193.0.0.0/21"),
+            });
+        assert_ne!(cohort_hash(&c1), cohort_hash(&c2));
+    }
+
+    #[test]
+    fn predicate_identity_change_invalidates_rib_cache() {
+        // Different predicate → different cache key → the old cache is a miss.
+        let dir = tempfile::tempdir().unwrap();
+        let key_old = rib_cache_key(
+            "sha",
+            "rv2",
+            &[3333],
+            &TransitPredicate::ContainsAny(vec![11537]),
+            1,
+        );
+        let key_new = rib_cache_key(
+            "sha",
+            "rv2",
+            &[3333],
+            &TransitPredicate::ContainsAny(vec![11538]),
+            1,
+        );
+        assert_ne!(key_old, key_new);
+        let mut entry = RibCacheEntry {
+            schema_version: RIB_CACHE_SCHEMA_VERSION,
+            parser_version: PARSER_VERSION.into(),
+            source_url: "u".into(),
+            source_sha256: "sha".into(),
+            collector: "rv2".into(),
+            predicate_repr: "x".into(),
+            entity_origin_asns: vec![3333],
+            transit_predicate_identity: "ContainsAny[11537]".into(),
+            cohort_identity: "c".into(),
+            baseline_route_keys: vec![],
+            preflight: PreflightCounts {
+                collectors_requested: 0,
+                collectors_with_usable_ribs: 0,
+                origin_matching_routes: 0,
+                transit_matching_routes: 0,
+                frozen_streams: 0,
+                distinct_prefixes: 0,
+                distinct_peers: 0,
+            },
+            frozen_streams: vec![],
+            baseline_observations: vec![],
+            payload_checksum: compute_payload_checksum(&[]),
+        };
+        entry.payload_checksum = compute_payload_checksum(&entry.baseline_observations);
+        save_rib_cache(dir.path(), &key_old, &entry).unwrap();
+        assert!(
+            load_rib_cache(dir.path(), &key_new, "sha").is_none(),
+            "predicate identity change must invalidate the RIB cache"
+        );
+    }
+
+    #[test]
+    fn old_update_schema_is_rejected() {
+        let dir = tempfile::tempdir().unwrap();
+        let key = update_cache_key("test_sha", "rv2", "tshash");
+        let mut entry = make_test_entry("test_sha", "tshash", "rv2", vec![make_test_obs(0)]);
+        entry.schema_version = 1; // pre-ADD-PATH schema
+        save_update_cache(dir.path(), "test_sha", &key, &entry).unwrap();
+        assert!(load_update_cache(dir.path(), &key, "test_sha").is_none());
+    }
+
+    #[test]
+    fn update_cache_preserves_path_id() {
+        let dir = tempfile::tempdir().unwrap();
+        let key = update_cache_key("test_sha", "rv2", "tshash");
+        let mut obs = make_test_obs(1);
+        obs.path_id = Some(77);
+        let entry = make_test_entry("test_sha", "tshash", "rv2", vec![obs]);
+        save_update_cache(dir.path(), "test_sha", &key, &entry).unwrap();
+        let loaded = load_update_cache(dir.path(), &key, "test_sha").unwrap();
+        assert_eq!(loaded.observations[0].path_id, Some(77));
+        assert_eq!(loaded.cohort_identity, "tshash");
+    }
+
+    #[test]
+    fn update_cache_preserves_communities() {
+        let dir = tempfile::tempdir().unwrap();
+        let key = update_cache_key("test_sha", "rv2", "tshash");
+        let mut obs = make_test_obs(2);
+        obs.attributes.as_mut().unwrap().communities =
+            Communities::from_strings(vec!["65535:0".into(), "11537:100".into()]);
+        let entry = make_test_entry("test_sha", "tshash", "rv2", vec![obs]);
+        save_update_cache(dir.path(), "test_sha", &key, &entry).unwrap();
+        let loaded = load_update_cache(dir.path(), &key, "test_sha").unwrap();
+        assert_eq!(
+            loaded.observations[0]
+                .attributes
+                .as_ref()
+                .unwrap()
+                .communities
+                .values,
+            vec!["65535:0".to_string(), "11537:100".to_string()]
+        );
+    }
+
+    #[test]
+    fn update_cache_preserves_complete_attributes() {
+        let dir = tempfile::tempdir().unwrap();
+        let key = update_cache_key("test_sha", "rv2", "tshash");
+        let obs = make_test_obs(3);
+        let entry = make_test_entry("test_sha", "tshash", "rv2", vec![obs.clone()]);
+        save_update_cache(dir.path(), "test_sha", &key, &entry).unwrap();
+        let loaded = load_update_cache(dir.path(), &key, "test_sha").unwrap();
+        let attrs = loaded.observations[0].attributes.as_ref().unwrap();
+        assert_eq!(attrs.as_path, vec![6447, 11537, 3333]);
+        assert_eq!(attrs.origin_asns, vec![Asn(3333)]);
+        assert_eq!(attrs.next_hop, Some("185.1.8.65".parse().unwrap()));
+        assert_eq!(attrs.origin.as_deref(), Some("IGP"));
+        assert_eq!(attrs.local_pref, Some(100));
+        assert_eq!(attrs.med, None);
+        // archive order + element sequence preserved.
+        assert_eq!(loaded.observations[0].provenance.archive_order, 0);
+        assert_eq!(loaded.observations[0].provenance.element_seq, 3);
+    }
+
+    // ── Deterministic identity ────────────────────────────────────
+
+    fn make_identity_obs(seq: u64, path_id: Option<u32>) -> RouteObservation {
+        let mut obs = make_test_obs(seq);
+        obs.path_id = path_id;
+        obs
+    }
+
+    #[test]
+    fn observation_id_changes_with_path_id() {
+        let a = make_identity_obs(1, Some(1));
+        let b = make_identity_obs(1, Some(2));
+        let mut list = vec![a.clone(), b.clone()];
+        sort_deterministic(&mut list);
+        assign_deterministic_ids(&mut list);
+        // Identical except path_id → distinct positions → distinct IDs.
+        assert_ne!(list[0].id, list[1].id);
+        assert_ne!(a.path_id, b.path_id);
+        // The path-id tiebreaker orders Some(1) before Some(2).
+        assert_eq!(list[0].path_id, Some(1));
+        assert_eq!(list[1].path_id, Some(2));
+    }
+
+    #[test]
+    fn evidence_id_changes_with_path_id() {
+        let a = make_identity_obs(1, Some(1));
+        let b = make_identity_obs(1, Some(2));
+        let mut list = vec![a.clone(), b.clone()];
+        sort_deterministic(&mut list);
+        assign_deterministic_ids(&mut list);
+        let ea = crate::domain::observation::EvidenceRef::from_observation(&list[0]);
+        let eb = crate::domain::observation::EvidenceRef::from_observation(&list[1]);
+        assert_ne!(ea.observation_id, eb.observation_id);
+        assert_ne!(ea.path_id, eb.path_id);
+    }
+
+    #[test]
+    fn deterministic_sort_orders_path_ids() {
+        // None < Some(id) per the documented identity contract.
+        let none = make_identity_obs(1, None);
+        let some = make_identity_obs(1, Some(5));
+        let mut list = vec![some.clone(), none.clone()];
+        sort_deterministic(&mut list);
+        assert_eq!(list[0].path_id, None);
+        assert_eq!(list[1].path_id, Some(5));
+    }
+
+    #[test]
+    fn parallel_completion_order_does_not_change_ids() {
+        // Input order (serial vs parallel completion) must not change the
+        // sorted identity order or the assigned IDs.
+        let obs = vec![
+            make_identity_obs(0, None),
+            make_identity_obs(1, Some(1)),
+            make_identity_obs(2, None),
+            make_identity_obs(3, Some(2)),
+        ];
+        // serial order
+        let mut serial = obs.clone();
+        sort_deterministic(&mut serial);
+        assign_deterministic_ids(&mut serial);
+        // "parallel" shuffled order
+        let mut parallel = vec![
+            obs[3].clone(),
+            obs[0].clone(),
+            obs[2].clone(),
+            obs[1].clone(),
+        ];
+        sort_deterministic(&mut parallel);
+        assign_deterministic_ids(&mut parallel);
+        let ids_serial: Vec<u64> = serial.iter().map(|o| o.id.0).collect();
+        let ids_parallel: Vec<u64> = parallel.iter().map(|o| o.id.0).collect();
+        assert_eq!(ids_serial, ids_parallel);
+        for (a, b) in serial.iter().zip(parallel.iter()) {
+            assert_eq!(a.path_id, b.path_id);
+        }
+    }
+
+    #[test]
+    fn serial_and_parallel_artifacts_match() {
+        // End-to-end: the observation payload (as serialized into caches /
+        // evidence) is identical regardless of input completion order.
+        let obs = vec![
+            make_identity_obs(0, None),
+            make_identity_obs(1, Some(1)),
+            make_identity_obs(2, None),
+        ];
+        let mut serial = obs.clone();
+        sort_deterministic(&mut serial);
+        assign_deterministic_ids(&mut serial);
+        let mut parallel = vec![obs[2].clone(), obs[0].clone(), obs[1].clone()];
+        sort_deterministic(&mut parallel);
+        assign_deterministic_ids(&mut parallel);
+        assert_eq!(serial, parallel);
+        assert_eq!(
+            compute_payload_checksum(&serial),
+            compute_payload_checksum(&parallel)
+        );
     }
 }

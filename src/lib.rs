@@ -21,6 +21,7 @@ pub mod plan;
 pub mod profiles;
 pub mod report;
 pub mod routes;
+pub mod schema;
 pub mod sequitur;
 pub mod sources;
 pub mod target;
