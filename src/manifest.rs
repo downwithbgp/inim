@@ -11,6 +11,8 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Manifest {
     pub event_id: String,
+    #[serde(default)]
+    pub revision: u32,
     pub event_window_utc: Window,
     pub ticket_window_local: LocalWindow,
     pub warmup_minutes: i64,

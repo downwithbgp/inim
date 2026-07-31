@@ -130,6 +130,61 @@ fn run_inner(
             ));
         }
 
+        // ── Check derived RIB cache ──────────────────────────────
+        let transit_asn = manifest.target.internet2_asn;
+        let origin_asns = manifest.target.origin_asns.clone();
+        let rib_key = crate::derived_cache::rib_cache_key(
+            &cached_rib.sha256,
+            collector,
+            &origin_asns,
+            transit_asn,
+            manifest.revision,
+        );
+        let cache_hit =
+            crate::derived_cache::load_rib_cache(cache_dir, &rib_key, &cached_rib.sha256);
+
+        if let Some(cached) = cache_hit {
+            eprintln!("  [{collector} RIB] derived cache hit, skipping parse");
+            let collector_target = crate::target::TargetSet::default();
+            let mut cts = collector_target.clone();
+            // Rebuild target set from cached streams
+            for s in &cached.frozen_streams {
+                use crate::domain::observation::CollectorId;
+                let _key = CollectorId(collector.clone());
+                // Push each stream into a minimal target
+                let stream = crate::target::TargetStream {
+                    peer_ip: s.peer_ip,
+                    prefix: s.prefix.clone(),
+                    origin_as: 0,
+                    as_path: s.baseline_as_path.clone(),
+                };
+                cts.streams
+                    .entry(collector.clone())
+                    .or_default()
+                    .push(stream);
+            }
+            target_set.merge(&cts);
+
+            let streams = cached.preflight.frozen_streams;
+            let c_pref = cached.preflight.distinct_prefixes;
+            let c_peers = cached.preflight.distinct_peers;
+            eprintln!(
+                "  [{collector} RIB] cached: {} frozen streams, {c_pref} prefixes, {c_peers} peers (0.0s)",
+                streams,
+            );
+            per_collector_counts.push((
+                collector.clone(),
+                0,
+                cached.preflight.origin_matching_routes,
+                cached.preflight.transit_matching_routes,
+                streams,
+            ));
+            // Add baseline observations for reconstruction
+            rib_observations.extend(cached.baseline_observations);
+            collected_ribs.push(cached_rib);
+            continue;
+        }
+
         eprintln!(
             "  {collector}: parsing RIB (origin filter: {:?})...",
             manifest.target.origin_asns
@@ -214,6 +269,41 @@ fn run_inner(
 
         // Merge into global target set
         target_set.merge(&collector_target);
+
+        // Save derived RIB cache
+        let frozen: Vec<crate::derived_cache::CachedTargetStream> = collector_target
+            .streams
+            .get(&collector_id)
+            .map(|v| {
+                v.iter()
+                    .map(|s| crate::derived_cache::CachedTargetStream {
+                        peer_ip: s.peer_ip,
+                        peer_asn: 0, // TODO: capture from observations
+                        prefix: s.prefix.clone(),
+                        baseline_as_path: s.as_path.clone(),
+                    })
+                    .collect()
+            })
+            .unwrap_or_default();
+        let entry = crate::derived_cache::RibCacheEntry {
+            schema_version: crate::derived_cache::RIB_CACHE_SCHEMA_VERSION,
+            parser_version: crate::derived_cache::PARSER_VERSION.to_string(),
+            source_url: cached_rib.url.clone(),
+            source_sha256: cached_rib.sha256.clone(),
+            collector: collector_id.clone(),
+            predicate_repr: format!("origin={:?} transit={}", origin_asns, transit_asn),
+            preflight: PreflightCounts::from_target_set(
+                &collector_target,
+                1,
+                origin_match,
+                transit_match,
+            ),
+            frozen_streams: frozen,
+            baseline_observations: rib_observations.clone(),
+        };
+        if let Err(e) = crate::derived_cache::save_rib_cache(cache_dir, &rib_key, &entry) {
+            eprintln!("  warning: failed to save derived cache: {e}");
+        }
 
         collected_ribs.push(cached_rib);
     }
