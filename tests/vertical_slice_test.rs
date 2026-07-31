@@ -117,6 +117,7 @@ fn redundant_maintenance_vertical_slice() {
         &transitions,
         detected_waves,
         any_unknown,
+        None,
     );
 
     // ── Assertions ─────────────────────────────────────────────

@@ -157,6 +157,7 @@ fn run_analyze_synthetic(event_path: &std::path::Path, _cache: &PathBuf, _out: &
         &transitions,
         detected_waves,
         any_unknown,
+        None, // synthetic path: no lifecycle data
     );
 
     // ── 7. Render reports ───────────────────────────────────────

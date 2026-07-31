@@ -9,6 +9,7 @@ pub mod discover;
 pub mod domain;
 pub mod fixtures;
 pub mod ingest;
+pub mod lifecycle;
 pub mod manifest;
 pub mod orchestrate;
 pub mod outcome;

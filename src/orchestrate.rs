@@ -530,13 +530,27 @@ fn run_inner(
     let t_assess = Instant::now();
     let expectation_display = format!("{:?}: {}", expectation.kind, expectation.description);
 
-    // ... later in the assess call:
+    // Build per-stream lifecycles for ParticipantRelationshipUnavailable events
+    let lifecycles = if expectation.kind
+        == crate::domain::expectation::ExpectationKind::ParticipantRelationshipUnavailable
+    {
+        Some(crate::lifecycle::build_lifecycles(
+            &transitions,
+            &target_set,
+            cooldown_end,
+            manifest.target.internet2_asn,
+        ))
+    } else {
+        None
+    };
+
     let assessment = crate::assess::assess(
         event.id.clone(),
         expectation,
         &transitions,
         waves.clone(),
         any_continuity_unknown,
+        lifecycles.as_deref(),
     );
     timings.push(("assess".to_string(), t_assess.elapsed().as_secs_f64()));
 

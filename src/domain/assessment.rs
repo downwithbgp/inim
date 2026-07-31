@@ -22,6 +22,9 @@ pub enum Verdict {
     PartialImpact,
     /// Internet2 path persisted unexpectedly through the event window.
     UnexpectedContinuedInternet2Path,
+    /// Only policy-shape changes (prepending) occurred without route withdrawal or
+    /// departure from the required transit path.
+    PolicyChangeObserved,
     /// Unexpected withdrawals occurred contrary to declared redundancy.
     UnexpectedWithdrawals,
     /// Redundancy failed — reachability was lost when it should have been preserved.
@@ -51,6 +54,7 @@ impl std::fmt::Display for Verdict {
             Verdict::UnexpectedContinuedInternet2Path => {
                 write!(f, "UNEXPECTED CONTINUED INTERNET2 PATH")
             }
+            Verdict::PolicyChangeObserved => write!(f, "POLICY CHANGE OBSERVED"),
             Verdict::UnexpectedWithdrawals => write!(f, "UNEXPECTED WITHDRAWALS"),
             Verdict::RedundancyFailureObserved => write!(f, "REDUNDANCY FAILURE"),
             Verdict::UnexpectedBlastRadius => write!(f, "UNEXPECTED BLAST RADIUS"),

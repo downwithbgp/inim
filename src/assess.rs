@@ -11,21 +11,31 @@ use crate::domain::event::EventId;
 use crate::domain::expectation::{ExpectationKind, ImpactExpectation};
 use crate::domain::route::{RouteTransition, TransitionKind};
 use crate::domain::wave::ImpactWave;
+use crate::lifecycle::StreamLifecycle;
 
 /// Assess whether observed behavior matches the declared expectation.
 ///
 /// Returns an assessment with verdict, evidence, and wave summary.
 /// If continuity is Unknown for any relevant collector, strong verdicts
 /// are suppressed (Indeterminate or InsufficientVisibility).
+///
+/// When `lifecycles` is provided, the verdict uses per-stream lifecycle
+/// evidence rather than raw transition counts.
 pub fn assess(
     event_id: EventId,
     expectation: ImpactExpectation,
     transitions: &[RouteTransition],
     waves: Vec<ImpactWave>,
     any_unknown_continuity: bool,
+    lifecycles: Option<&[StreamLifecycle]>,
 ) -> EventAssessment {
-    let evidence = collect_evidence(transitions, any_unknown_continuity);
-    let verdict = derive_verdict(&expectation, transitions, any_unknown_continuity);
+    let evidence = collect_evidence(transitions, any_unknown_continuity, lifecycles);
+    let verdict = derive_verdict(
+        &expectation,
+        transitions,
+        any_unknown_continuity,
+        lifecycles,
+    );
 
     EventAssessment {
         event_id,
@@ -42,6 +52,7 @@ pub fn assess(
 fn collect_evidence(
     transitions: &[RouteTransition],
     any_unknown_continuity: bool,
+    lifecycles: Option<&[StreamLifecycle]>,
 ) -> Vec<Evidence> {
     let mut evidence = Vec::new();
 
@@ -73,7 +84,15 @@ fn collect_evidence(
         description: format!("Withdrawals: {}", withdrawals.len()),
         source_records: withdrawals
             .iter()
-            .map(|t| format!("{} at {}", t.to.prefix(), t.to.timestamp()))
+            .map(|t| {
+                format!(
+                    "{}:{} {} at {}",
+                    t.key.collector,
+                    t.key.peer_ip,
+                    t.key.prefix.0,
+                    t.to.timestamp()
+                )
+            })
             .collect(),
     });
 
@@ -83,8 +102,10 @@ fn collect_evidence(
             .iter()
             .map(|t| {
                 format!(
-                    "{} at {} ({} → {})",
-                    t.to.prefix(),
+                    "{}:{} {} at {} ({} → {})",
+                    t.key.collector,
+                    t.key.peer_ip,
+                    t.key.prefix.0,
                     t.to.timestamp(),
                     t.from
                         .as_ref()
@@ -101,9 +122,44 @@ fn collect_evidence(
         description: format!("Restorations to baseline: {}", restorations.len()),
         source_records: restorations
             .iter()
-            .map(|t| format!("{} at {}", t.to.prefix(), t.to.timestamp()))
+            .map(|t| {
+                format!(
+                    "{}:{} {} at {}",
+                    t.key.collector,
+                    t.key.peer_ip,
+                    t.key.prefix.0,
+                    t.to.timestamp()
+                )
+            })
             .collect(),
     });
+
+    // Lifecycle-derived evidence
+    if let Some(lcs) = lifecycles {
+        let unchanged = lcs
+            .iter()
+            .filter(|l| l.category == crate::lifecycle::StreamCategory::Unchanged)
+            .count();
+        let prepend = lcs
+            .iter()
+            .filter(|l| l.category == crate::lifecycle::StreamCategory::PrependOnly)
+            .count();
+        let withdrawn = lcs.iter().filter(|l| l.was_withdrawn).count();
+        let departed = lcs
+            .iter()
+            .filter(|l| l.category == crate::lifecycle::StreamCategory::DepartedInternet2Path)
+            .count();
+        let restored = lcs.iter().filter(|l| l.flags.restored).count();
+        let not_restored = lcs.iter().filter(|l| l.flags.not_restored).count();
+
+        evidence.push(Evidence {
+            description: format!(
+                "Stream lifecycle: total={} unchanged={} prepend-only={} withdrawn={} departed-I2={} restored={} not-restored={}",
+                lcs.len(), unchanged, prepend, withdrawn, departed, restored, not_restored,
+            ),
+            source_records: vec![],
+        });
+    }
 
     if any_unknown_continuity {
         evidence.push(Evidence {
@@ -123,6 +179,7 @@ fn derive_verdict(
     expectation: &ImpactExpectation,
     transitions: &[RouteTransition],
     any_unknown_continuity: bool,
+    lifecycles: Option<&[StreamLifecycle]>,
 ) -> Verdict {
     let has_withdrawals = transitions
         .iter()
@@ -130,18 +187,11 @@ fn derive_verdict(
     let has_path_changes = transitions
         .iter()
         .any(|t| matches!(t.kind, TransitionKind::PathChange { .. }));
-    let _has_restoration = transitions.iter().any(|t| {
-        matches!(
-            t.kind,
-            TransitionKind::Restoration | TransitionKind::ReturnToBaseline
-        )
-    });
     let has_session_resets = transitions
         .iter()
         .any(|t| matches!(t.kind, TransitionKind::SessionReset));
 
-    // No observable impact at all — only for expectations that expect impact.
-    // For participant unavailability, no transitions means the path persisted.
+    // No observable impact at all
     if transitions.is_empty() {
         return match expectation.kind {
             ExpectationKind::ParticipantRelationshipUnavailable => {
@@ -175,28 +225,64 @@ fn derive_verdict(
             }
         }
         ExpectationKind::ParticipantRelationshipUnavailable => {
-            // For participant unavailability, the expected behavior is nuanced:
-            // - Complete withdrawals → participant unreachable (ExpectedParticipantUnavailability)
-            // - Path changes away from AS11537 → alternate routing (ExpectedAlternateRouting)
-            // - Mix of withdrawals and alternates → PartialImpact
-            // - No changes at all → UnexpectedContinuedInternet2Path
-            let departures_from_i2 = transitions.iter().any(|t| {
-                matches!(t.kind, TransitionKind::PathChange { .. })
-                    && t.from
-                        .as_ref()
-                        .and_then(|e| e.state.as_ref())
-                        .map(|s| s.attributes.as_path.0.contains(&11537))
-                        .unwrap_or(false)
-                    && !t.to.attributes().as_path.0.contains(&11537)
-            });
-            if has_withdrawals && !departures_from_i2 {
-                Verdict::ExpectedParticipantUnavailability
-            } else if departures_from_i2 && !has_withdrawals {
-                Verdict::ExpectedAlternateRouting
-            } else if has_withdrawals && departures_from_i2 {
-                Verdict::PartialImpact
+            // When lifecycle data is available, use set-based rules
+            if let Some(lcs) = lifecycles {
+                let total = lcs.len();
+                if total == 0 {
+                    return Verdict::UnexpectedContinuedInternet2Path;
+                }
+                let withdrawn = lcs.iter().filter(|l| l.was_withdrawn).count();
+                let departed = lcs
+                    .iter()
+                    .filter(|l| {
+                        l.category == crate::lifecycle::StreamCategory::DepartedInternet2Path
+                    })
+                    .count();
+                let only_prepend = lcs.iter().all(|l| {
+                    matches!(
+                        l.category,
+                        crate::lifecycle::StreamCategory::Unchanged
+                            | crate::lifecycle::StreamCategory::PrependOnly
+                    )
+                });
+                let all_affected = withdrawn + departed == total && (withdrawn > 0 || departed > 0);
+                let some_affected = withdrawn > 0 || departed > 0;
+
+                if only_prepend && !some_affected {
+                    // Only prepend/policy changes, no withdrawals or departures
+                    Verdict::PolicyChangeObserved
+                } else if departed > 0 && withdrawn == 0 {
+                    // Only departures from AS11537, no withdrawals
+                    Verdict::ExpectedAlternateRouting
+                } else if all_affected {
+                    // All streams affected (withdrawn or departed)
+                    Verdict::ExpectedParticipantUnavailability
+                } else if some_affected {
+                    // Proper subset affected
+                    Verdict::PartialImpact
+                } else {
+                    Verdict::UnexpectedContinuedInternet2Path
+                }
             } else {
-                Verdict::UnexpectedContinuedInternet2Path
+                // Legacy fallback without lifecycle data
+                let departures_from_i2 = transitions.iter().any(|t| {
+                    matches!(t.kind, TransitionKind::PathChange { .. })
+                        && t.from
+                            .as_ref()
+                            .and_then(|e| e.state.as_ref())
+                            .map(|s| s.attributes.as_path.0.contains(&11537))
+                            .unwrap_or(false)
+                        && !t.to.attributes().as_path.0.contains(&11537)
+                });
+                if has_withdrawals && !departures_from_i2 {
+                    Verdict::ExpectedParticipantUnavailability
+                } else if departures_from_i2 && !has_withdrawals {
+                    Verdict::ExpectedAlternateRouting
+                } else if has_withdrawals && departures_from_i2 {
+                    Verdict::PartialImpact
+                } else {
+                    Verdict::UnexpectedContinuedInternet2Path
+                }
             }
         }
         ExpectationKind::Unknown => Verdict::Indeterminate,
@@ -296,7 +382,14 @@ mod tests {
             path_change(vec![6447, 11537, 1101], vec![6447, 237, 1101], 0),
             return_to_baseline(10),
         ];
-        let assessment = assess(EventId::from("TEST"), exp, &transitions, vec![], false);
+        let assessment = assess(
+            EventId::from("TEST"),
+            exp,
+            &transitions,
+            vec![],
+            false,
+            None,
+        );
         assert_eq!(assessment.verdict, Verdict::ExpectedRedundantImpact);
     }
 
@@ -304,7 +397,14 @@ mod tests {
     fn redundant_with_withdrawals_is_failure() {
         let exp = ImpactExpectation::redundant(Some("NEWY32AOA"), "test");
         let transitions = vec![withdrawal(0)];
-        let assessment = assess(EventId::from("TEST"), exp, &transitions, vec![], false);
+        let assessment = assess(
+            EventId::from("TEST"),
+            exp,
+            &transitions,
+            vec![],
+            false,
+            None,
+        );
         assert_eq!(assessment.verdict, Verdict::RedundancyFailureObserved);
     }
 
@@ -312,14 +412,21 @@ mod tests {
     fn non_redundant_with_withdrawal_is_expected() {
         let exp = ImpactExpectation::non_redundant("test");
         let transitions = vec![withdrawal(0), return_to_baseline(10)];
-        let assessment = assess(EventId::from("TEST"), exp, &transitions, vec![], false);
+        let assessment = assess(
+            EventId::from("TEST"),
+            exp,
+            &transitions,
+            vec![],
+            false,
+            None,
+        );
         assert_eq!(assessment.verdict, Verdict::ExpectedLossOfReachability);
     }
 
     #[test]
     fn empty_transitions_is_no_impact() {
         let exp = ImpactExpectation::redundant(Some("NEWY32AOA"), "test");
-        let assessment = assess(EventId::from("TEST"), exp, &[], vec![], false);
+        let assessment = assess(EventId::from("TEST"), exp, &[], vec![], false, None);
         assert_eq!(assessment.verdict, Verdict::NoObservableBgpImpact);
     }
 
@@ -337,6 +444,7 @@ mod tests {
             &transitions,
             vec![],
             true, // unknown continuity
+            None,
         );
         assert_eq!(assessment.verdict, Verdict::InsufficientVisibility);
     }
@@ -349,7 +457,14 @@ mod tests {
             vec![6447, 237, 1101],
             0,
         )];
-        let assessment = assess(EventId::from("TEST"), exp, &transitions, vec![], false);
+        let assessment = assess(
+            EventId::from("TEST"),
+            exp,
+            &transitions,
+            vec![],
+            false,
+            None,
+        );
         assert!(!assessment.evidence.is_empty());
         assert!(assessment
             .evidence
@@ -400,6 +515,7 @@ mod tests {
             &transitions,
             vec![wave_no_motif],
             false,
+            None,
         );
         let a2 = assess(
             EventId::from("TEST"),
@@ -407,6 +523,7 @@ mod tests {
             &transitions,
             vec![wave_with_motif],
             false,
+            None,
         );
 
         assert_eq!(
@@ -419,7 +536,14 @@ mod tests {
     fn participant_unavailable_withdrawal_is_detected() {
         let exp = ImpactExpectation::participant_unavailable("test");
         let transitions = vec![withdrawal(0)];
-        let assessment = assess(EventId::from("TEST"), exp, &transitions, vec![], false);
+        let assessment = assess(
+            EventId::from("TEST"),
+            exp,
+            &transitions,
+            vec![],
+            false,
+            None,
+        );
         assert_eq!(
             assessment.verdict,
             Verdict::ExpectedParticipantUnavailability
@@ -434,7 +558,14 @@ mod tests {
             vec![6447, 237, 3333],
             0,
         )];
-        let assessment = assess(EventId::from("TEST"), exp, &transitions, vec![], false);
+        let assessment = assess(
+            EventId::from("TEST"),
+            exp,
+            &transitions,
+            vec![],
+            false,
+            None,
+        );
         assert_eq!(assessment.verdict, Verdict::ExpectedAlternateRouting);
     }
 
@@ -447,7 +578,14 @@ mod tests {
             vec![6447, 3356, 225],
             0,
         )];
-        let assessment = assess(EventId::from("TEST"), exp, &transitions, vec![], false);
+        let assessment = assess(
+            EventId::from("TEST"),
+            exp,
+            &transitions,
+            vec![],
+            false,
+            None,
+        );
         assert_ne!(
             assessment.verdict,
             Verdict::ExpectedParticipantUnavailability
@@ -462,7 +600,14 @@ mod tests {
             withdrawal(0),
             path_change(vec![6447, 11537, 225], vec![6447, 3356, 225], 1),
         ];
-        let assessment = assess(EventId::from("TEST"), exp, &transitions, vec![], false);
+        let assessment = assess(
+            EventId::from("TEST"),
+            exp,
+            &transitions,
+            vec![],
+            false,
+            None,
+        );
         assert_eq!(assessment.verdict, Verdict::PartialImpact);
     }
 
@@ -470,7 +615,7 @@ mod tests {
     fn unchanged_selected_streams_can_yield_unexpected_continued() {
         let exp = ImpactExpectation::participant_unavailable("test");
         // No transitions → no impact → but expectation was unavailability
-        let assessment = assess(EventId::from("TEST"), exp, &[], vec![], false);
+        let assessment = assess(EventId::from("TEST"), exp, &[], vec![], false, None);
         assert_eq!(
             assessment.verdict,
             Verdict::UnexpectedContinuedInternet2Path
@@ -488,6 +633,7 @@ mod tests {
             &transitions,
             vec![],
             false,
+            None,
         );
         let a2 = assess(
             EventId::from("T2"),
@@ -495,6 +641,7 @@ mod tests {
             &transitions,
             vec![],
             false,
+            None,
         );
         assert_ne!(a1.verdict, a2.verdict);
         assert_eq!(a1.verdict, Verdict::RedundancyFailureObserved);
