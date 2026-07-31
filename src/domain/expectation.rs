@@ -64,7 +64,7 @@ impl ImpactExpectation {
     pub fn participant_unavailable(provenance: &str) -> Self {
         ImpactExpectation {
             kind: ExpectationKind::ParticipantRelationshipUnavailable,
-            description: "Non-parenthesized participant title — Internet2 participant relationship may be unavailable. Impact may include path departure from AS11537, alternate routing, or partial restorations."
+            description: "Non-parenthesized participant title — managed-network participant relationship may be unavailable. Impact may include path departure from the reviewed transit predicate, alternate routing, or partial restorations."
                 .to_string(),
             provenance: provenance.to_string(),
         }

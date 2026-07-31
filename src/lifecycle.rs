@@ -103,9 +103,9 @@ pub enum StreamCategory {
     /// Only prepend changes (collapsed-equivalent paths).
     PrependOnly,
     /// Path changed materially but still via the required transit ASN.
-    PathChangedStillViaInternet2,
+    PathChangedStillViaTransit,
     /// Path departed the required transit ASN.
-    DepartedInternet2Path,
+    DepartedTransitPath,
     /// Route was withdrawn (became absent).
     Withdrawn,
 }
@@ -473,7 +473,7 @@ fn build_one_lifecycle(
                 restoration_count += 1;
                 if restoration_time.is_none()
                     && (was_withdrawn
-                        || seen_categories.contains(&StreamCategory::DepartedInternet2Path))
+                        || seen_categories.contains(&StreamCategory::DepartedTransitPath))
                 {
                     restoration_time = Some(t.to.timestamp());
                 }
@@ -523,10 +523,10 @@ fn build_one_lifecycle(
                             seen_categories.insert(StreamCategory::PrependOnly);
                         }
                         PathShapeChange::PathChangedStillViaRequiredTransit => {
-                            seen_categories.insert(StreamCategory::PathChangedStillViaInternet2);
+                            seen_categories.insert(StreamCategory::PathChangedStillViaTransit);
                         }
                         PathShapeChange::PathDepartedRequiredTransit => {
-                            seen_categories.insert(StreamCategory::DepartedInternet2Path);
+                            seen_categories.insert(StreamCategory::DepartedTransitPath);
                         }
                         PathShapeChange::PathReturnedToRequiredTransit => {
                             // Returning to transit — track restoration
@@ -556,10 +556,10 @@ fn build_one_lifecycle(
     // Determine primary category by precedence: Withdrawn > Departed > StillVia > PrependOnly > Unchanged
     let category = if seen_categories.contains(&StreamCategory::Withdrawn) {
         StreamCategory::Withdrawn
-    } else if seen_categories.contains(&StreamCategory::DepartedInternet2Path) {
-        StreamCategory::DepartedInternet2Path
-    } else if seen_categories.contains(&StreamCategory::PathChangedStillViaInternet2) {
-        StreamCategory::PathChangedStillViaInternet2
+    } else if seen_categories.contains(&StreamCategory::DepartedTransitPath) {
+        StreamCategory::DepartedTransitPath
+    } else if seen_categories.contains(&StreamCategory::PathChangedStillViaTransit) {
+        StreamCategory::PathChangedStillViaTransit
     } else if seen_categories.contains(&StreamCategory::PrependOnly) {
         StreamCategory::PrependOnly
     } else {
@@ -581,7 +581,7 @@ fn build_one_lifecycle(
     });
 
     let not_restored = was_withdrawn && !baseline_restored
-        || (seen_categories.contains(&StreamCategory::DepartedInternet2Path) && !baseline_restored);
+        || (seen_categories.contains(&StreamCategory::DepartedTransitPath) && !baseline_restored);
     let restored = restoration_count > 0 && !not_restored;
 
     StreamLifecycle {

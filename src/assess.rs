@@ -147,7 +147,7 @@ fn collect_evidence(
         let withdrawn = lcs.iter().filter(|l| l.was_withdrawn).count();
         let departed = lcs
             .iter()
-            .filter(|l| l.category == crate::lifecycle::StreamCategory::DepartedInternet2Path)
+            .filter(|l| l.category == crate::lifecycle::StreamCategory::DepartedTransitPath)
             .count();
         let restored = lcs.iter().filter(|l| l.flags.restored).count();
         let not_restored = lcs.iter().filter(|l| l.flags.not_restored).count();
@@ -238,9 +238,7 @@ fn derive_verdict(
                 let withdrawn = lcs.iter().filter(|l| l.was_withdrawn).count();
                 let departed = lcs
                     .iter()
-                    .filter(|l| {
-                        l.category == crate::lifecycle::StreamCategory::DepartedInternet2Path
-                    })
+                    .filter(|l| l.category == crate::lifecycle::StreamCategory::DepartedTransitPath)
                     .count();
                 let only_prepend = lcs.iter().all(|l| {
                     matches!(
