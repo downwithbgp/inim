@@ -27,26 +27,28 @@ struct Cli {
 #[derive(Subcommand)]
 enum Commands {
     /// Analyze a single operational event against BGP observations.
+    ///
+    /// Without --manifest: runs a built-in synthetic demonstration.
+    /// With --manifest: executes real analysis using discovered RouteViews data.
     Analyze {
-        /// Path to the event fixture JSON file.
+        /// Path to the event fixture JSON file (required).
         #[arg(short, long, value_name = "PATH")]
         event: PathBuf,
 
-        /// Path to a RIB MRT file for baseline state.
-        #[arg(short, long, value_name = "PATH")]
-        rib: Option<PathBuf>,
+        /// Path to the reviewed event manifest JSON file.
+        /// When present, triggers real-analysis path (broker discovery + cache).
+        #[arg(short = 'm', long, value_name = "PATH")]
+        manifest: Option<PathBuf>,
 
-        /// Directory containing UPDATE MRT files.
-        #[arg(short, long, value_name = "DIR")]
-        updates: Option<PathBuf>,
+        /// Local cache directory for downloaded archive files.
+        /// Default: ./cache
+        #[arg(short = 'c', long, value_name = "DIR", default_value = "./cache")]
+        cache: PathBuf,
 
-        /// Path to write the JSON report (default: stdout).
-        #[arg(short, long, value_name = "PATH")]
-        output: Option<PathBuf>,
-
-        /// Collector identifier (e.g. "route-views2").
-        #[arg(long, default_value = "route-views2")]
-        collector: String,
+        /// Output directory for reports and evidence.
+        /// Default: ./out
+        #[arg(short = 'o', long, value_name = "DIR", default_value = "./out")]
+        out: PathBuf,
     },
 }
 
@@ -56,22 +58,30 @@ fn main() {
     match &cli.command {
         Commands::Analyze {
             event,
-            rib,
-            updates,
-            output,
-            collector,
+            manifest,
+            cache,
+            out,
         } => {
-            run_analyze(event, rib.as_ref(), updates.as_ref(), output.as_ref(), collector);
+            if manifest.is_some() {
+                println!("inim: real analysis path selected (not yet wired).");
+                println!("  event:    {}", event.display());
+                println!("  manifest: {}", manifest.as_ref().unwrap().display());
+                println!("  cache:    {}", cache.display());
+                println!("  out:      {}", out.display());
+                println!();
+                println!("Real analysis pipeline (broker→discover→cache→ingest→reconstruct→assess→outputs)");
+                println!("is deferred. Use synthetic demo: omit --manifest.");
+            } else {
+                run_analyze_synthetic(event, cache, out);
+            }
         }
     }
 }
 
-fn run_analyze(
-    event_path: &std::path::Path,
-    _rib_path: Option<&std::path::PathBuf>,
-    _updates_dir: Option<&std::path::PathBuf>,
-    output_path: Option<&std::path::PathBuf>,
-    collector: &str,
+fn run_analyze_synthetic(
+    event_path: &PathBuf,
+    _cache: &PathBuf,
+    _out: &PathBuf,
 ) {
     // ── 1. Parse the Internet2 ticket fixture ────────────────────
     let ticket = match i2ticket::parse_ticket_fixture(
@@ -100,7 +110,7 @@ fn run_analyze(
     println!("  Using synthetic observations for demonstration.");
     println!();
 
-    let (store, changes) = build_demo_scenario(collector);
+    let (store, changes) = build_demo_scenario("route-views2");
 
     use inim::domain::route::Continuity;
     let any_unknown = changes.iter().any(|sc| sc.continuity == Continuity::Unknown);
@@ -127,35 +137,15 @@ fn run_analyze(
     );
 
     // ── 7. Render reports ───────────────────────────────────────
-    let data_note = if _rib_path.is_some() || _updates_dir.is_some() {
-        "not yet wired to ingest; using synthetic data"
-    } else {
-        "SYNTHETIC (no --rib/--updates provided)"
-    };
+    let data_note = "SYNTHETIC (no --manifest provided)";
     let terminal_report = report::render_terminal(&assessment, data_note);
 
     println!("{terminal_report}");
 
     let json_report = report::render_json(&assessment, data_note);
-
-    if let Some(out_path) = output_path {
-        let json_str = serde_json::to_string_pretty(&json_report).unwrap_or_default();
-        if let Err(e) = std::fs::write(out_path, &json_str) {
-            eprintln!("Error writing JSON report: {e}");
-            std::process::exit(1);
-        }
-        println!("JSON report written to: {}", out_path.display());
-    }
-
-    // Also print JSON to stdout if no output file specified (or always, for demo)
-    if output_path.is_none() {
-        println!();
-        println!("--- JSON ---");
-        println!(
-            "{}",
-            serde_json::to_string_pretty(&json_report).unwrap_or_default()
-        );
-    }
+    let json_str = serde_json::to_string_pretty(&json_report).unwrap_or_default();
+    println!("--- JSON ---");
+    println!("{json_str}");
 }
 
 /// Build a demonstration scenario for the vertical slice:
