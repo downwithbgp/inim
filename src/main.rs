@@ -98,6 +98,9 @@ fn main() {
                 if matches!(outcome, inim::outcome::AnalysisOutcome::Incomplete { .. }) {
                     std::process::exit(2);
                 }
+                if matches!(outcome, inim::outcome::AnalysisOutcome::Blocked { .. }) {
+                    std::process::exit(3);
+                }
             } else {
                 run_analyze_synthetic(event, cache, out);
             }

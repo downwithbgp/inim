@@ -237,6 +237,10 @@ fn write_report_txt(ctx: &OutputContext, path: &Path) -> Result<(), String> {
             push_ln(&mut buf, "  INCOMPLETE");
             push_ln(&mut buf, &format!("  {failure}"));
         }
+        AnalysisOutcome::Blocked { reason } => {
+            push_ln(&mut buf, "  ANALYSIS BLOCKED");
+            push_ln(&mut buf, &format!("  {reason}"));
+        }
     }
     push_ln(&mut buf, "");
 
