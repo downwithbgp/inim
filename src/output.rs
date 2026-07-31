@@ -706,7 +706,9 @@ mod tests {
     fn evidence_appendix_contains_baseline_before_after() {
         use crate::domain::observation::EvidenceRef;
         use crate::domain::route::Prefix;
-        use crate::domain::route::{AnalysisPhase, RouteKey, TransitionEffects, TransitionKind};
+        use crate::domain::route::{
+            AnalysisPhase, GenericTransitionEffects, RouteKey, TransitionKind,
+        };
         use std::net::IpAddr;
 
         // Build a minimal transition for the appendix test
@@ -729,7 +731,7 @@ mod tests {
             after_state,
             ev,
             TransitionKind::Announcement,
-            TransitionEffects::default(),
+            GenericTransitionEffects::default(),
             AnalysisPhase::Event,
         );
         let wave = ImpactWave {

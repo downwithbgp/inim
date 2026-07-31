@@ -156,22 +156,19 @@ pub enum TransitionKind {
 /// A single BGP observation may simultaneously change the path AND add
 /// a community AND modify MED. These facets are always computed, never
 /// forced into a single mutually-exclusive category.
+///
+/// Transit-specific effects (departure, return) are NOT here — they
+/// belong to `EventRelativeEffects` computed by `interpret_for_event`.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
-pub struct TransitionEffects {
+pub struct GenericTransitionEffects {
     /// Route gained the GRACEFUL_SHUTDOWN community (65535:0).
     pub graceful_shutdown_added: bool,
     /// Route lost the GRACEFUL_SHUTDOWN community (65535:0).
     pub graceful_shutdown_removed: bool,
-    /// Prepend count increased (more ASNs after collapsing duplicates).
-    pub prepend_increased: bool,
-    /// Prepend count decreased (fewer ASNs after collapsing duplicates).
-    pub prepend_reduced: bool,
+    /// Prepend classification (None/Increased/Reduced/Indeterminate).
+    pub prepend: PrependChange,
     /// Collapsed AS paths differ materially (not just prepending).
     pub material_path_changed: bool,
-    /// Path departed the required transit ASN.
-    pub required_transit_departed: bool,
-    /// Path returned to the required transit ASN.
-    pub required_transit_returned: bool,
     /// Communities changed (any change, including GSHUT).
     pub communities_changed: bool,
     /// MED value changed.
@@ -180,6 +177,83 @@ pub struct TransitionEffects {
     pub local_pref_changed: bool,
     /// Origin type changed.
     pub origin_changed: bool,
+    /// Next hop changed where represented.
+    pub next_hop_changed: bool,
+}
+
+/// Mutually exclusive prepend change classification.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub enum PrependChange {
+    /// No prepend change.
+    #[default]
+    None,
+    /// Prepend count increased.
+    Increased,
+    /// Prepend count decreased.
+    Reduced,
+    /// Cannot safely determine (AS sets, confederation segments).
+    Indeterminate,
+}
+
+/// Predicate for evaluating route paths against event-specific requirements.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum TransitPredicate {
+    /// Path must contain at least one of the given ASNs.
+    ContainsAny(Vec<u32>),
+    /// Path must contain all of the given ASNs.
+    ContainsAll(Vec<u32>),
+    /// Two ASNs must be adjacent (unordered) in the path.
+    Adjacent(u32, u32),
+}
+
+impl TransitPredicate {
+    /// Evaluate this predicate against an AS path.
+    pub fn evaluate(&self, path: &[u32]) -> bool {
+        match self {
+            TransitPredicate::ContainsAny(asns) => asns.iter().any(|a| path.contains(a)),
+            TransitPredicate::ContainsAll(asns) => asns.iter().all(|a| path.contains(a)),
+            TransitPredicate::Adjacent(a, b) => path
+                .windows(2)
+                .any(|w| (w[0] == *a && w[1] == *b) || (w[0] == *b && w[1] == *a)),
+        }
+    }
+}
+
+/// Event-specific routing context for interpreting transitions.
+#[derive(Debug, Clone)]
+pub struct EventRoutingContext {
+    pub transit_predicate: TransitPredicate,
+}
+
+/// Event-relative effects computed from a transition in context.
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
+pub struct EventRelativeEffects {
+    /// Path departed the required transit.
+    pub transit_departed: bool,
+    /// Path returned to the required transit.
+    pub transit_returned: bool,
+    /// Path retained the required transit (was and still is present).
+    pub transit_retained: bool,
+}
+
+/// Interpret a transition through an event-specific routing context.
+pub fn interpret_for_event(
+    from_path: Option<&[u32]>,
+    to_path: Option<&[u32]>,
+    ctx: &EventRoutingContext,
+) -> EventRelativeEffects {
+    let from_has = from_path
+        .map(|p| ctx.transit_predicate.evaluate(p))
+        .unwrap_or(false);
+    let to_has = to_path
+        .map(|p| ctx.transit_predicate.evaluate(p))
+        .unwrap_or(false);
+
+    EventRelativeEffects {
+        transit_departed: from_has && !to_has,
+        transit_returned: !from_has && to_has,
+        transit_retained: from_has && to_has,
+    }
 }
 
 // ── Evidenced route state ──────────────────────────────────────────
@@ -320,7 +394,7 @@ pub struct RouteTransition {
     pub kind: TransitionKind,
     /// Orthogonal effects that co-occurred with this transition.
     #[serde(default)]
-    pub effects: TransitionEffects,
+    pub effects: GenericTransitionEffects,
     /// The triggering observation.
     pub triggering: EvidenceRef,
     pub phase: AnalysisPhase,
@@ -335,7 +409,7 @@ impl RouteTransition {
         to: EvidencedRouteState,
         triggering: EvidenceRef,
         kind: TransitionKind,
-        effects: TransitionEffects,
+        effects: GenericTransitionEffects,
         phase: AnalysisPhase,
     ) -> Self {
         RouteTransition {
@@ -389,7 +463,7 @@ mod tests {
             to_ev,
             evidence,
             kind,
-            TransitionEffects::default(),
+            GenericTransitionEffects::default(),
             AnalysisPhase::Event,
         )
     }

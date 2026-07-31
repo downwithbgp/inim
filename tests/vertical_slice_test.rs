@@ -98,7 +98,7 @@ fn redundant_maintenance_vertical_slice() {
         .all_states()
         .map(|(k, v)| (k.clone(), v.clone()))
         .collect();
-    let transitions = tokenize::tokenize(changes, &baseline_map, None);
+    let transitions = tokenize::tokenize(changes, &baseline_map);
 
     // ── Waves ──────────────────────────────────────────────────
     let mut detected_waves = waves::detect_waves(&transitions, chrono::Duration::seconds(30));

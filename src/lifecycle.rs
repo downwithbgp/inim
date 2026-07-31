@@ -954,7 +954,7 @@ mod tests {
         use crate::tokenize::diff_states;
         let from = make_state_with_communities(vec![1, 2, 3], vec![]);
         let to = make_state_with_communities(vec![1, 2, 3], vec!["65535:0"]);
-        let (kind, _effects) = diff_states(None, Some(&from), &to, Continuity::Known, None);
+        let (kind, _effects) = diff_states(None, Some(&from), &to, Continuity::Known);
         assert_eq!(kind, crate::domain::route::TransitionKind::AttributeChange);
     }
 
@@ -964,7 +964,7 @@ mod tests {
         use crate::tokenize::diff_states;
         let from = make_state_with_communities(vec![1, 2, 3], vec!["65535:0"]);
         let to = make_state_with_communities(vec![1, 2, 3], vec![]);
-        let (kind, _effects) = diff_states(None, Some(&from), &to, Continuity::Known, None);
+        let (kind, _effects) = diff_states(None, Some(&from), &to, Continuity::Known);
         assert_eq!(kind, crate::domain::route::TransitionKind::AttributeChange);
     }
 

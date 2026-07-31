@@ -318,8 +318,8 @@ mod tests {
     use crate::domain::expectation::ImpactExpectation;
     use crate::domain::observation::EvidenceRef;
     use crate::domain::route::{
-        AnalysisPhase, AsPath, EvidencedRouteState, Prefix, RouteAttributes, RouteKey, RouteState,
-        TransitionEffects,
+        AnalysisPhase, AsPath, EvidencedRouteState, GenericTransitionEffects, Prefix,
+        RouteAttributes, RouteKey, RouteState,
     };
     use chrono::{TimeZone, Utc};
 
@@ -347,7 +347,7 @@ mod tests {
             to_ev,
             ev,
             kind,
-            TransitionEffects::default(),
+            GenericTransitionEffects::default(),
             AnalysisPhase::Event,
         )
     }

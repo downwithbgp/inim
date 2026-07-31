@@ -9,7 +9,8 @@
 use std::collections::HashMap;
 
 use crate::domain::route::{
-    Continuity, RouteState, RouteTransition, StateChange, TransitionEffects, TransitionKind,
+    Continuity, GenericTransitionEffects, PrependChange, RouteState, RouteTransition, StateChange,
+    TransitionKind,
 };
 use crate::lifecycle::collapse_as_path;
 
@@ -18,7 +19,9 @@ use crate::lifecycle::collapse_as_path;
 /// This is the **single classification point** in the system.
 /// `baseline` is the frozen event-baseline state (optional).
 /// `from` and `to` come from the StateChange emitted by reconstruction.
-/// `required_transit` is the transit ASN for departure/return detection.
+/// This is the **single classification point** in the system. It is
+/// source-neutral — no event-specific transit ASN or predicate appears here.
+/// Event-relative effects are computed separately by `interpret_for_event`.
 ///
 /// No `STABLE_ALTERNATE` is emitted — stability is a derived wave property.
 pub fn diff_states(
@@ -26,9 +29,8 @@ pub fn diff_states(
     from: Option<&RouteState>,
     to: &RouteState,
     continuity: Continuity,
-    required_transit: Option<u32>,
-) -> (TransitionKind, TransitionEffects) {
-    let mut effects = TransitionEffects::default();
+) -> (TransitionKind, GenericTransitionEffects) {
+    let mut effects = GenericTransitionEffects::default();
 
     // Session boundary or discontinuity → SessionReset
     if continuity == Continuity::Unknown {
@@ -96,26 +98,15 @@ pub fn diff_states(
         let to_collapsed = collapse_as_path(&to.attributes.as_path.0);
 
         if from_collapsed == to_collapsed {
-            // Prepend change
-            if from_state.attributes.as_path.0.len() > to.attributes.as_path.0.len() {
-                effects.prepend_reduced = true;
-            } else {
-                effects.prepend_increased = true;
-            }
+            // Prepend change — mutually exclusive enum
+            effects.prepend =
+                if from_state.attributes.as_path.0.len() > to.attributes.as_path.0.len() {
+                    PrependChange::Reduced
+                } else {
+                    PrependChange::Increased
+                };
         } else {
             effects.material_path_changed = true;
-        }
-
-        // Transit departure/return
-        if let Some(transit) = required_transit {
-            let from_has = from_state.attributes.as_path.0.contains(&transit);
-            let to_has = to.attributes.as_path.0.contains(&transit);
-            if from_has && !to_has {
-                effects.required_transit_departed = true;
-            }
-            if !from_has && to_has {
-                effects.required_transit_returned = true;
-            }
         }
 
         // Determine primary kind for path replacement
@@ -151,7 +142,6 @@ pub fn diff_states(
 pub fn tokenize(
     changes: Vec<StateChange>,
     _baseline_store: &HashMap<crate::domain::route::RouteKey, crate::domain::route::RouteState>,
-    required_transit: Option<u32>,
 ) -> Vec<RouteTransition> {
     changes
         .into_iter()
@@ -161,15 +151,17 @@ pub fn tokenize(
             let baseline_state = sc.event_baseline.as_ref().and_then(|e| e.state.as_ref());
 
             let (kind, effects) = match (from_state, to_state) {
-                (_, None) => (TransitionKind::Withdrawal, TransitionEffects::default()),
-                (None, Some(_)) => (TransitionKind::Announcement, TransitionEffects::default()),
-                (Some(_), Some(to_rs)) => diff_states(
-                    baseline_state,
-                    from_state,
-                    to_rs,
-                    sc.continuity,
-                    required_transit,
+                (_, None) => (
+                    TransitionKind::Withdrawal,
+                    GenericTransitionEffects::default(),
                 ),
+                (None, Some(_)) => (
+                    TransitionKind::Announcement,
+                    GenericTransitionEffects::default(),
+                ),
+                (Some(_), Some(to_rs)) => {
+                    diff_states(baseline_state, from_state, to_rs, sc.continuity)
+                }
             };
 
             RouteTransition::new(
@@ -250,7 +242,7 @@ mod tests {
     #[test]
     fn absent_to_announced() {
         let to = state("192.0.2.0/24", vec![6447, 11537, 1101], "rv2:185.1.8.65");
-        let (kind, _effects) = diff_states(None, None, &to, Continuity::Known, None);
+        let (kind, _effects) = diff_states(None, None, &to, Continuity::Known);
         assert_eq!(kind, TransitionKind::Announcement);
     }
 
@@ -258,7 +250,7 @@ mod tests {
     fn present_to_withdrawn() {
         let from = state("192.0.2.0/24", vec![6447, 11537, 1101], "rv2:185.1.8.65");
         let to = state("192.0.2.0/24", vec![], "rv2:185.1.8.65");
-        let (kind, _effects) = diff_states(None, Some(&from), &to, Continuity::Known, None);
+        let (kind, _effects) = diff_states(None, Some(&from), &to, Continuity::Known);
         assert_eq!(kind, TransitionKind::Withdrawal);
     }
 
@@ -266,7 +258,7 @@ mod tests {
     fn identical_reannouncement() {
         let from = state("192.0.2.0/24", vec![6447, 11537, 1101], "rv2:185.1.8.65");
         let to = from.clone();
-        let (kind, _effects) = diff_states(None, Some(&from), &to, Continuity::Known, None);
+        let (kind, _effects) = diff_states(None, Some(&from), &to, Continuity::Known);
         assert_eq!(kind, TransitionKind::Duplicate);
     }
 
@@ -274,7 +266,7 @@ mod tests {
     fn path_change() {
         let from = state("192.0.2.0/24", vec![6447, 11537, 1101], "rv2:185.1.8.65");
         let to = state("192.0.2.0/24", vec![6447, 237, 1101], "rv2:185.1.8.65");
-        let (kind, _effects) = diff_states(None, Some(&from), &to, Continuity::Known, None);
+        let (kind, _effects) = diff_states(None, Some(&from), &to, Continuity::Known);
         assert!(matches!(kind, TransitionKind::PathReplacement { .. }));
     }
 
@@ -283,8 +275,7 @@ mod tests {
         let baseline = state("192.0.2.0/24", vec![6447, 11537, 1101], "rv2:185.1.8.65");
         let from = state("192.0.2.0/24", vec![6447, 237, 1101], "rv2:185.1.8.65");
         let to = baseline.clone();
-        let (kind, _effects) =
-            diff_states(Some(&baseline), Some(&from), &to, Continuity::Known, None);
+        let (kind, _effects) = diff_states(Some(&baseline), Some(&from), &to, Continuity::Known);
         assert_eq!(kind, TransitionKind::ReturnToBaseline);
     }
 
@@ -292,7 +283,7 @@ mod tests {
     fn session_reset_on_unknown_continuity() {
         let from = state("192.0.2.0/24", vec![6447, 11537, 1101], "rv2:185.1.8.65");
         let to = state("192.0.2.0/24", vec![6447, 237, 1101], "rv2:185.1.8.65");
-        let (kind, _effects) = diff_states(None, Some(&from), &to, Continuity::Unknown, None);
+        let (kind, _effects) = diff_states(None, Some(&from), &to, Continuity::Unknown);
         assert_eq!(kind, TransitionKind::SessionReset);
     }
 
@@ -301,7 +292,7 @@ mod tests {
         let from = state("192.0.2.0/24", vec![6447, 11537, 1101], "rv2:185.1.8.65");
         let mut to = from.clone();
         to.attributes.local_pref = Some(200); // changed local pref
-        let (kind, _effects) = diff_states(None, Some(&from), &to, Continuity::Known, None);
+        let (kind, _effects) = diff_states(None, Some(&from), &to, Continuity::Known);
         assert_eq!(kind, TransitionKind::AttributeChange);
     }
 
@@ -339,7 +330,7 @@ mod tests {
             Continuity::Known,
             AnalysisPhase::Event,
         );
-        let transitions = tokenize(vec![sc], &baseline_map, None);
+        let transitions = tokenize(vec![sc], &baseline_map);
         assert_eq!(transitions.len(), 1);
         assert!(matches!(
             transitions[0].kind,

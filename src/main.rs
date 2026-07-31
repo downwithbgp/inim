@@ -144,7 +144,7 @@ fn run_analyze_synthetic(event_path: &std::path::Path, _cache: &PathBuf, _out: &
         .all_states()
         .map(|(k, v)| (k.clone(), v.clone()))
         .collect();
-    let transitions = tokenize::tokenize(changes, &baseline_map, None);
+    let transitions = tokenize::tokenize(changes, &baseline_map);
 
     // ── 5. Detect impact waves ──────────────────────────────────
     let mut detected_waves = waves::detect_waves(&transitions, chrono::Duration::seconds(30));

@@ -8,7 +8,7 @@ use chrono::{DateTime, Utc};
 
 use crate::domain::route::RouteTransition;
 #[allow(unused_imports)]
-use crate::domain::route::{TransitionEffects, TransitionKind};
+use crate::domain::route::{GenericTransitionEffects, TransitionKind};
 use crate::domain::wave::{fnv1a_64, ImpactWave, MotifEvidenceRange, WaveMotif};
 
 /// Detect impact waves from a sequence of route transitions.
@@ -339,7 +339,7 @@ mod tests {
             to_ev,
             ev,
             kind,
-            TransitionEffects::default(),
+            GenericTransitionEffects::default(),
             AnalysisPhase::Event,
         )
     }

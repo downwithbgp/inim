@@ -500,8 +500,7 @@ fn run_inner(
     // ── Tokenize ───────────────────────────────────────────────────
     eprintln!("→ Tokenizing {} state changes...", changes.len());
     let t_tok = Instant::now();
-    let transitions =
-        crate::tokenize::tokenize(changes, &baseline_map, Some(manifest.target.internet2_asn));
+    let transitions = crate::tokenize::tokenize(changes, &baseline_map);
     timings.push(("tokenize".to_string(), t_tok.elapsed().as_secs_f64()));
 
     // ── Detect + summarize waves ───────────────────────────────────
