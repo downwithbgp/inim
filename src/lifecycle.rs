@@ -293,6 +293,13 @@ pub struct StreamLifecycle {
     pub max_absence_secs: Option<f64>,
     /// Whether the STREAM (observer-prefix key) was ever fully absent.
     pub was_withdrawn: bool,
+    /// Timestamp when the stream became fully absent (final instance loss).
+    pub stream_withdrawal_time: Option<DateTime<Utc>>,
+    /// Active instances immediately before the stream absence began.
+    pub active_before_absence: usize,
+    /// Whether the last active instance matched the transit predicate at
+    /// stream withdrawal time.
+    pub transit_at_withdrawal: Option<bool>,
     /// Route instances (RouteKey) that were withdrawn.
     pub withdrawn_instances: Vec<crate::domain::route::RouteKey>,
     /// Number of stream-level withdrawals (visible → absent transitions).
@@ -363,22 +370,132 @@ pub struct LifecycleTransition {
 
 // ── Withdrawal audit ───────────────────────────────────────────────
 
-/// A single withdrawn stream record.
+/// A single withdrawn observer-prefix stream record.
+///
+/// One row per withdrawn ObserverPrefixKey. Wording throughout the audit
+/// is observer-scoped: "withdrawal from selected observer-prefix stream",
+/// never "global withdrawal".
 #[derive(Debug, Clone, Serialize)]
 pub struct WithdrawalRecord {
     pub collector: String,
     pub peer_ip: String,
     pub prefix: String,
     pub baseline_path: Vec<u32>,
-    pub withdrawal_time: DateTime<Utc>,
+    /// Baseline route instances for this stream.
+    pub baseline_instances: usize,
+    /// Active instances immediately before the stream became absent.
+    pub active_before_absence: usize,
+    /// Final instance withdrawal timestamp (stream became absent).
+    pub final_withdrawal_time: DateTime<Utc>,
     pub restoration_time: Option<DateTime<Utc>>,
     pub absence_duration_secs: Option<f64>,
-    /// Whether another selected observer still advertised the prefix at withdrawal time.
-    /// Computed from the transition timeline; documented as approximate.
-    pub another_observer_still_advertised: Option<bool>,
-    pub restored_to_baseline: Option<bool>,
+    /// Whether the last active instance matched the transit predicate at
+    /// stream withdrawal time.
+    pub transit_at_withdrawal: Option<bool>,
+    /// Exact-instance restoration occurred.
+    pub exact_restoration: bool,
+    /// Equivalent-route restoration occurred.
+    pub equivalent_restoration: bool,
+    /// Observer-prefix restoration occurred (absent → visible).
+    pub observer_prefix_restoration: bool,
+    /// Baseline-set restoration occurred.
+    pub baseline_set_restoration: bool,
     pub observation_ids: Vec<u64>,
     pub archive_checksums: Vec<String>,
+}
+
+/// Aggregate withdrawal-audit statistics over withdrawn streams.
+#[derive(Debug, Clone, Default, Serialize)]
+pub struct WithdrawalAuditSummary {
+    /// Unique withdrawn observer-prefix streams.
+    pub unique_withdrawn_streams: usize,
+    /// Route-instance withdrawals (all instance losses, including non-final).
+    pub route_instance_withdrawals: usize,
+    /// Affected prefixes (distinct).
+    pub affected_prefixes: usize,
+    /// Affected peers (distinct).
+    pub affected_peers: usize,
+    /// Median absence duration in seconds.
+    pub median_absence_secs: Option<f64>,
+    /// Maximum absence duration in seconds.
+    pub max_absence_secs: Option<f64>,
+    /// Streams restored after withdrawal.
+    pub restored_count: usize,
+    /// Streams still absent/unresolved at window end.
+    pub unresolved_count: usize,
+    /// Exact-instance restorations (streams).
+    pub exact_restorations: usize,
+    /// Equivalent-route restorations (streams).
+    pub equivalent_restorations: usize,
+    /// Observer-prefix restorations (streams).
+    pub observer_prefix_restorations: usize,
+    /// Baseline-set restorations (streams).
+    pub baseline_set_restorations: usize,
+}
+
+impl WithdrawalAuditSummary {
+    /// Summarize a withdrawal audit.
+    pub fn from_records(records: &[WithdrawalRecord]) -> Self {
+        let unique = records.len();
+        let mut prefixes: HashSet<String> = HashSet::new();
+        let mut peers: HashSet<String> = HashSet::new();
+        let mut absences: Vec<f64> = Vec::new();
+        let mut instance_withdrawals = 0usize;
+        let mut restored = 0usize;
+        let mut unresolved = 0usize;
+        let mut exact = 0usize;
+        let mut equiv = 0usize;
+        let mut op_rest = 0usize;
+        let mut baseline_set = 0usize;
+        for r in records {
+            prefixes.insert(r.prefix.clone());
+            peers.insert(r.peer_ip.clone());
+            if let Some(d) = r.absence_duration_secs {
+                absences.push(d);
+            }
+            instance_withdrawals += r.active_before_absence.max(1);
+            if r.restoration_time.is_some() {
+                restored += 1;
+            } else {
+                unresolved += 1;
+            }
+            if r.exact_restoration {
+                exact += 1;
+            }
+            if r.equivalent_restoration {
+                equiv += 1;
+            }
+            if r.observer_prefix_restoration {
+                op_rest += 1;
+            }
+            if r.baseline_set_restoration {
+                baseline_set += 1;
+            }
+        }
+        absences.sort_by(|a, b| a.partial_cmp(b).unwrap());
+        let median = if absences.is_empty() {
+            None
+        } else if absences.len() % 2 == 1 {
+            Some(absences[absences.len() / 2])
+        } else {
+            let hi = absences.len() / 2;
+            Some((absences[hi - 1] + absences[hi]) / 2.0)
+        };
+        WithdrawalAuditSummary {
+            unique_withdrawn_streams: unique,
+            route_instance_withdrawals: instance_withdrawals,
+            affected_prefixes: prefixes.len(),
+            affected_peers: peers.len(),
+            median_absence_secs: median,
+            max_absence_secs: absences.last().copied(),
+            restored_count: restored,
+            unresolved_count: unresolved,
+            exact_restorations: exact,
+            equivalent_restorations: equiv,
+            observer_prefix_restorations: op_rest,
+            baseline_set_restorations: baseline_set,
+        }
+    }
 }
 
 // ── Semantic waves ─────────────────────────────────────────────────
@@ -818,6 +935,9 @@ fn build_one_lifecycle(
     let mut absence_intervals: Vec<f64> = Vec::new();
     let mut current_absence_start: Option<DateTime<Utc>> = None;
     let mut stream_withdrawal_count = 0usize;
+    let mut stream_withdrawal_time: Option<DateTime<Utc>> = None;
+    let mut active_before_absence = 0usize;
+    let mut transit_at_withdrawal: Option<bool> = None;
     let mut restorations: Vec<StreamRestoration> = Vec::new();
     let mut last_withdrawn_keys: Vec<RouteKey> = Vec::new();
 
@@ -965,6 +1085,13 @@ fn build_one_lifecycle(
                     if current_absence_start.is_none() {
                         current_absence_start = Some(t.to.timestamp());
                     }
+                    stream_withdrawal_time = Some(t.to.timestamp());
+                    active_before_absence = active.len() + 1;
+                    transit_at_withdrawal = t
+                        .from
+                        .as_ref()
+                        .and_then(|f| f.state.as_ref())
+                        .map(|s| transit_predicate.evaluate(&s.attributes.as_path.0));
                 }
                 final_state = None;
             }
@@ -1160,6 +1287,9 @@ fn build_one_lifecycle(
         min_absence_secs: min_absence,
         max_absence_secs: max_absence,
         was_withdrawn,
+        stream_withdrawal_time,
+        active_before_absence,
+        transit_at_withdrawal,
         withdrawn_instances,
         stream_withdrawal_count,
         restorations,
@@ -1371,6 +1501,9 @@ fn transition_kind_str(kind: &TransitionKind) -> String {
 // ── Withdrawal audit ───────────────────────────────────────────────
 
 /// Produce a withdrawal audit from the lifecycle records.
+///
+/// One row per withdrawn ObserverPrefixKey. "Withdrawal" always means
+/// withdrawal from the selected observer-prefix stream — never global.
 pub fn withdrawal_audit(lifecycles: &[StreamLifecycle]) -> Vec<WithdrawalRecord> {
     let mut records = Vec::new();
 
@@ -1379,32 +1512,15 @@ pub fn withdrawal_audit(lifecycles: &[StreamLifecycle]) -> Vec<WithdrawalRecord>
             continue;
         }
 
-        // Find withdrawal and restoration times
-        let mut withdrawal_time: Option<DateTime<Utc>> = None;
-        let mut restoration_time: Option<DateTime<Utc>> = None;
+        let final_withdrawal_time = lc.stream_withdrawal_time.or(lc.first_change);
+        let Some(withdrawal_time) = final_withdrawal_time else {
+            continue;
+        };
+
         let mut observation_ids: Vec<u64> = Vec::new();
         let mut archive_checksums: Vec<String> = Vec::new();
-        let mut restored_to_baseline: Option<bool> = None;
-
         for t in &lc.transitions {
-            if t.kind == "Withdrawal" {
-                if withdrawal_time.is_none() {
-                    withdrawal_time = Some(t.timestamp);
-                }
-                observation_ids.push(t.observation_id);
-                if let Some(ref sha) = t.archive_sha256 {
-                    if !archive_checksums.contains(sha) {
-                        archive_checksums.push(sha.clone());
-                    }
-                }
-            }
-            if t.kind == "Restoration" || t.kind == "ReturnToBaseline" {
-                if restoration_time.is_none() {
-                    restoration_time = Some(t.timestamp);
-                }
-                if t.kind == "ReturnToBaseline" {
-                    restored_to_baseline = Some(true);
-                }
+            if t.kind == "Withdrawal" || t.kind == "Restoration" || t.kind == "ReturnToBaseline" {
                 observation_ids.push(t.observation_id);
                 if let Some(ref sha) = t.archive_sha256 {
                     if !archive_checksums.contains(sha) {
@@ -1414,21 +1530,32 @@ pub fn withdrawal_audit(lifecycles: &[StreamLifecycle]) -> Vec<WithdrawalRecord>
             }
         }
 
-        let absence_duration = match (withdrawal_time, restoration_time) {
-            (Some(w), Some(r)) => Some(((r - w).num_seconds() as f64).max(0.0)),
+        let absence_duration = match (withdrawal_time, lc.restoration_time) {
+            (w, Some(r)) => Some(((r - w).num_seconds() as f64).max(0.0)),
             _ => None,
         };
 
+        // Restoration kinds from the first restoration event.
+        let first_restoration = lc.restorations.first();
         records.push(WithdrawalRecord {
             collector: lc.collector.clone(),
             peer_ip: lc.peer_ip.clone(),
             prefix: lc.prefix.clone(),
             baseline_path: lc.baseline_path.clone(),
-            withdrawal_time: withdrawal_time.unwrap_or(lc.first_change.unwrap()),
-            restoration_time,
+            baseline_instances: lc.baseline_instance_count,
+            active_before_absence: lc.active_before_absence,
+            final_withdrawal_time: withdrawal_time,
+            restoration_time: lc.restoration_time,
             absence_duration_secs: absence_duration,
-            another_observer_still_advertised: None, // Requires cross-stream analysis — documented limitation
-            restored_to_baseline,
+            transit_at_withdrawal: lc.transit_at_withdrawal,
+            exact_restoration: first_restoration.map(|r| r.exact_instance).unwrap_or(false),
+            equivalent_restoration: first_restoration
+                .map(|r| r.equivalent_route)
+                .unwrap_or(false),
+            observer_prefix_restoration: first_restoration
+                .map(|r| r.observer_prefix)
+                .unwrap_or(false),
+            baseline_set_restoration: first_restoration.map(|r| r.baseline_set).unwrap_or(false),
             observation_ids,
             archive_checksums,
         });
@@ -2766,5 +2893,116 @@ mod tests {
             None,
         );
         assert_eq!(a_with.verdict, a_without.verdict);
+    }
+
+    // ── Part 7.3: withdrawal audit ────────────────────────────────
+
+    #[test]
+    fn withdrawal_audit_produces_one_row_per_withdrawn_stream() {
+        let a = opk("rv2", "185.1.8.65", "192.0.2.0/24");
+        let b = opk("rv2", "185.1.8.66", "192.0.2.0/24");
+        let mut cohort = cohort_with(&a, &[(Some(1), vec![6447, 65002, 65001])]);
+        let b_cohort = cohort_with(&b, &[(Some(1), vec![6447, 65002, 65001])]);
+        for k in b_cohort.observer_prefixes {
+            cohort.observer_prefixes.insert(k);
+        }
+        for (k, v) in b_cohort.baseline_instances {
+            cohort.baseline_instances.insert(k, v);
+        }
+        let transitions = vec![withdrawal(&a, Some(1), 10), withdrawal(&b, Some(1), 40)];
+        let lifecycles = build_lifecycles(&transitions, &cohort, t_secs(1000), &pred());
+        let records = withdrawal_audit(&lifecycles);
+        assert_eq!(records.len(), 2, "one row per withdrawn stream");
+        let summary = WithdrawalAuditSummary::from_records(&records);
+        assert_eq!(summary.unique_withdrawn_streams, 2);
+        assert_eq!(summary.route_instance_withdrawals, 2);
+        assert_eq!(summary.affected_prefixes, 1);
+        assert_eq!(summary.affected_peers, 2);
+        assert_eq!(summary.unresolved_count, 2);
+        assert_eq!(summary.restored_count, 0);
+    }
+
+    #[test]
+    fn withdrawal_audit_records_final_instance_timing_and_restorations() {
+        let key = opk("rv2", "185.1.8.65", "192.0.2.0/24");
+        let cohort = cohort_with(&key, &[(Some(1), vec![6447, 65002, 65001])]);
+        let transitions = vec![
+            withdrawal(&key, Some(1), 10),
+            mk_transition(
+                &key,
+                Some(1),
+                TransitionKind::Restoration,
+                30,
+                vec![6447, 65002, 65001],
+                vec![],
+            ),
+        ];
+        let lifecycles = build_lifecycles(&transitions, &cohort, t_secs(1000), &pred());
+        let records = withdrawal_audit(&lifecycles);
+        assert_eq!(records.len(), 1);
+        let r = &records[0];
+        // Final instance withdrawal timestamp.
+        assert_eq!(r.final_withdrawal_time, t_secs(10));
+        // Active instances immediately before absence.
+        assert_eq!(r.active_before_absence, 1);
+        assert_eq!(r.baseline_instances, 1);
+        assert_eq!(r.transit_at_withdrawal, Some(true));
+        // Restoration kinds.
+        assert_eq!(r.restoration_time, Some(t_secs(30)));
+        assert_eq!(r.absence_duration_secs, Some(20.0));
+        assert!(r.exact_restoration);
+        assert!(r.equivalent_restoration);
+        assert!(r.observer_prefix_restoration);
+        assert!(r.baseline_set_restoration);
+        // Evidence references.
+        assert!(r.observation_ids.contains(&10));
+        assert!(r.observation_ids.contains(&30));
+        assert!(r.archive_checksums.contains(&"abc123".to_string()));
+        let summary = WithdrawalAuditSummary::from_records(&records);
+        assert_eq!(summary.restored_count, 1);
+        assert_eq!(summary.unresolved_count, 0);
+        assert_eq!(summary.exact_restorations, 1);
+        assert_eq!(summary.equivalent_restorations, 1);
+        assert_eq!(summary.observer_prefix_restorations, 1);
+        assert_eq!(summary.baseline_set_restorations, 1);
+    }
+
+    #[test]
+    fn audit_median_absence_is_computed() {
+        let a = opk("rv2", "185.1.8.65", "192.0.2.0/24");
+        let b = opk("rv2", "185.1.8.66", "192.0.2.0/24");
+        let mut cohort = cohort_with(&a, &[(Some(1), vec![6447, 65002, 65001])]);
+        let b_cohort = cohort_with(&b, &[(Some(1), vec![6447, 65002, 65001])]);
+        for k in b_cohort.observer_prefixes {
+            cohort.observer_prefixes.insert(k);
+        }
+        for (k, v) in b_cohort.baseline_instances {
+            cohort.baseline_instances.insert(k, v);
+        }
+        let transitions = vec![
+            withdrawal(&a, Some(1), 10),
+            mk_transition(
+                &a,
+                Some(1),
+                TransitionKind::Restoration,
+                20,
+                vec![6447, 65002, 65001],
+                vec![],
+            ),
+            withdrawal(&b, Some(1), 40),
+            mk_transition(
+                &b,
+                Some(1),
+                TransitionKind::Restoration,
+                100,
+                vec![6447, 65002, 65001],
+                vec![],
+            ),
+        ];
+        let lifecycles = build_lifecycles(&transitions, &cohort, t_secs(1000), &pred());
+        let records = withdrawal_audit(&lifecycles);
+        let summary = WithdrawalAuditSummary::from_records(&records);
+        assert_eq!(summary.median_absence_secs, Some(35.0));
+        assert_eq!(summary.max_absence_secs, Some(60.0));
     }
 }

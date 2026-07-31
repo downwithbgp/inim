@@ -75,6 +75,16 @@ pub fn write_outputs(ctx: &OutputContext, out_dir: &Path) -> Result<Vec<PathBuf>
         let waves_path = out_dir.join("semantic_waves.json");
         write_semantic_waves(ctx, &waves_path)?;
         files.push(waves_path);
+
+        // Withdrawal audit artifact.
+        let audit_path = out_dir.join("withdrawal_audit.json");
+        write_withdrawal_audit(ctx, &audit_path)?;
+        files.push(audit_path);
+
+        // Lifecycle artifact.
+        let lifecycle_path = out_dir.join("lifecycle.json");
+        write_lifecycle_artifact(ctx, &lifecycle_path)?;
+        files.push(lifecycle_path);
     }
 
     let limitations_path = out_dir.join("limitations.json");
@@ -671,6 +681,47 @@ fn write_semantic_waves(ctx: &OutputContext, path: &Path) -> Result<(), String> 
     std::fs::write(path, json).map_err(|e| format!("cannot write {}: {e}", path.display()))
 }
 
+// ── withdrawal_audit.json ──────────────────────────────────────────
+
+#[derive(Serialize)]
+struct WithdrawalAuditArtifact {
+    schema_version: u32,
+    event_id: String,
+    summary: crate::lifecycle::WithdrawalAuditSummary,
+    records: Vec<crate::lifecycle::WithdrawalRecord>,
+}
+
+fn write_withdrawal_audit(ctx: &OutputContext, path: &Path) -> Result<(), String> {
+    let records = crate::lifecycle::withdrawal_audit(ctx.lifecycles);
+    let artifact = WithdrawalAuditArtifact {
+        schema_version: crate::schema::WITHDRAWAL_AUDIT_SCHEMA_VERSION,
+        event_id: ctx.event_id.to_string(),
+        summary: crate::lifecycle::WithdrawalAuditSummary::from_records(&records),
+        records,
+    };
+    let json = serde_json::to_string_pretty(&artifact).map_err(|e| format!("JSON error: {e}"))?;
+    std::fs::write(path, json).map_err(|e| format!("cannot write {}: {e}", path.display()))
+}
+
+// ── lifecycle.json ─────────────────────────────────────────────────
+
+#[derive(Serialize)]
+struct LifecycleArtifact {
+    schema_version: u32,
+    event_id: String,
+    lifecycles: Vec<crate::lifecycle::StreamLifecycle>,
+}
+
+fn write_lifecycle_artifact(ctx: &OutputContext, path: &Path) -> Result<(), String> {
+    let artifact = LifecycleArtifact {
+        schema_version: crate::schema::LIFECYCLE_ARTIFACT_SCHEMA_VERSION,
+        event_id: ctx.event_id.to_string(),
+        lifecycles: ctx.lifecycles.to_vec(),
+    };
+    let json = serde_json::to_string_pretty(&artifact).map_err(|e| format!("JSON error: {e}"))?;
+    std::fs::write(path, json).map_err(|e| format!("cannot write {}: {e}", path.display()))
+}
+
 // ── limitations.json ───────────────────────────────────────────────
 
 #[derive(Serialize)]
@@ -1053,6 +1104,9 @@ mod tests {
             min_absence_secs: None,
             max_absence_secs: None,
             was_withdrawn: false,
+            stream_withdrawal_time: None,
+            active_before_absence: 0,
+            transit_at_withdrawal: None,
             withdrawn_instances: vec![],
             stream_withdrawal_count: 0,
             restorations: vec![],
