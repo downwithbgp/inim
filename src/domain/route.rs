@@ -207,6 +207,14 @@ pub enum Continuity {
     Unknown,
 }
 
+/// Analysis phase: warmup, event, or cooldown.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum AnalysisPhase {
+    Warmup,
+    Event,
+    Cooldown,
+}
+
 /// A kind-less state change emitted by route reconstruction.
 ///
 /// Carries independently evidenced baseline, before, and after states —
@@ -220,6 +228,7 @@ pub struct StateChange {
     pub after: EvidencedRouteState,
     pub triggering: EvidenceRef,
     pub continuity: Continuity,
+    pub phase: AnalysisPhase,
 }
 
 impl StateChange {
@@ -230,6 +239,7 @@ impl StateChange {
         after: EvidencedRouteState,
         triggering: EvidenceRef,
         continuity: Continuity,
+        phase: AnalysisPhase,
     ) -> Self {
         StateChange {
             key,
@@ -238,6 +248,7 @@ impl StateChange {
             after,
             triggering,
             continuity,
+            phase,
         }
     }
 }
@@ -256,6 +267,7 @@ pub struct RouteTransition {
     pub kind: TransitionKind,
     /// The triggering observation.
     pub triggering: EvidenceRef,
+    pub phase: AnalysisPhase,
 }
 
 impl RouteTransition {
@@ -266,6 +278,7 @@ impl RouteTransition {
         to: EvidencedRouteState,
         triggering: EvidenceRef,
         kind: TransitionKind,
+        phase: AnalysisPhase,
     ) -> Self {
         RouteTransition {
             key,
@@ -274,6 +287,7 @@ impl RouteTransition {
             to,
             kind,
             triggering,
+            phase,
         }
     }
 }
@@ -309,7 +323,7 @@ mod tests {
         let evidence = synth_evidence();
         let from_ev = from.map(|s| EvidencedRouteState::present(s, evidence.clone()));
         let to_ev = EvidencedRouteState::present(to, evidence.clone());
-        RouteTransition::new(key, None, from_ev, to_ev, evidence, kind)
+        RouteTransition::new(key, None, from_ev, to_ev, evidence, kind, AnalysisPhase::Event)
     }
 
     #[test]
@@ -419,7 +433,7 @@ mod tests {
         let key = RouteKey::new("rv2", "185.1.8.65".parse().unwrap(), &state.prefix);
         let ev = synth_evidence();
         let after = EvidencedRouteState::present(state, ev.clone());
-        let sc = StateChange::new(key, None, None, after, ev, Continuity::Known);
+        let sc = StateChange::new(key, None, None, after, ev, Continuity::Known, AnalysisPhase::Event);
         assert_eq!(sc.continuity, Continuity::Known);
     }
 

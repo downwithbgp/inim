@@ -79,7 +79,7 @@ fn main() {
 }
 
 fn run_analyze_synthetic(
-    event_path: &PathBuf,
+    event_path: &std::path::Path,
     _cache: &PathBuf,
     _out: &PathBuf,
 ) {

@@ -306,7 +306,7 @@ fn describe_motif(motif: Option<&WaveMotif>) -> &str {
 mod tests {
     use super::*;
     use crate::domain::route::{
-        AsPath, EvidencedRouteState, Prefix, RouteAttributes, RouteKey, RouteState,
+        AsPath, AnalysisPhase, EvidencedRouteState, Prefix, RouteAttributes, RouteKey, RouteState,
     };
     use crate::domain::observation::EvidenceRef;
     use chrono::TimeZone;
@@ -327,7 +327,7 @@ mod tests {
         let key = RouteKey::new("test", "0.0.0.0".parse().unwrap(), &state.prefix);
         let ev = EvidenceRef::synthetic(0, "test", "0000");
         let to_ev = EvidencedRouteState::present(state, ev.clone());
-        RouteTransition::new(key, None, None, to_ev, ev, kind)
+        RouteTransition::new(key, None, None, to_ev, ev, kind, AnalysisPhase::Event)
     }
 
     #[test]

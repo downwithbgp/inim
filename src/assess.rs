@@ -176,7 +176,7 @@ mod tests {
     use crate::domain::event::EventId;
     use crate::domain::expectation::ImpactExpectation;
     use crate::domain::route::{
-        AsPath, EvidencedRouteState, Prefix, RouteAttributes, RouteKey, RouteState,
+        AnalysisPhase, AsPath, EvidencedRouteState, Prefix, RouteAttributes, RouteKey, RouteState,
     };
     use crate::domain::observation::EvidenceRef;
 
@@ -199,7 +199,7 @@ mod tests {
         let ev = se();
         let from_ev = from.map(|s| EvidencedRouteState::present(s, ev.clone()));
         let to_ev = EvidencedRouteState::present(to, ev.clone());
-        RouteTransition::new(key, None, from_ev, to_ev, ev, kind)
+        RouteTransition::new(key, None, from_ev, to_ev, ev, kind, AnalysisPhase::Event)
     }
 
     fn path_change(old: Vec<u32>, new: Vec<u32>, at: i64) -> RouteTransition {

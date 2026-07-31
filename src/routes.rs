@@ -9,7 +9,7 @@ use std::collections::HashMap;
 
 use crate::domain::observation::{EvidenceRef, ObservationKind, RouteObservation};
 use crate::domain::route::{
-    Continuity, EvidencedRouteState, RouteAttributes, RouteKey, RouteState, StateChange,
+    AnalysisPhase, Continuity, EvidencedRouteState, RouteAttributes, RouteKey, RouteState, StateChange,
 };
 
 #[derive(Debug, Clone)]
@@ -34,7 +34,7 @@ impl RouteStateStore {
         self.states.insert(key, state);
     }
 
-    pub fn apply_update(&mut self, obs: &RouteObservation) -> Option<StateChange> {
+    pub fn apply_update(&mut self, obs: &RouteObservation, phase: AnalysisPhase) -> Option<StateChange> {
         let key = observation_key(obs);
         let evidence = EvidenceRef::from_observation(obs);
 
@@ -67,7 +67,7 @@ impl RouteStateStore {
                 let baseline = self.event_baseline.get(&key).cloned();
 
                 Some(StateChange::new(
-                    key, baseline, before, after, evidence, continuity,
+                    key, baseline, before, after, evidence, continuity, phase,
                 ))
             }
             ObservationKind::Withdrawal => {
@@ -80,7 +80,7 @@ impl RouteStateStore {
                     let baseline = self.event_baseline.get(&key).cloned();
 
                     StateChange::new(
-                        key, baseline, Some(before), after, evidence, continuity,
+                        key, baseline, Some(before), after, evidence, continuity, phase,
                     )
                 })
             }
@@ -117,7 +117,7 @@ impl Default for RouteStateStore {
 pub fn reconstruct_routes(
     observations: impl IntoIterator<Item = RouteObservation>,
     event_start: chrono::DateTime<chrono::Utc>,
-    _event_end: chrono::DateTime<chrono::Utc>,
+    event_end: chrono::DateTime<chrono::Utc>,
     cooldown_end: chrono::DateTime<chrono::Utc>,
 ) -> (RouteStateStore, Vec<StateChange>) {
     let mut store = RouteStateStore::new();
@@ -130,12 +130,12 @@ pub fn reconstruct_routes(
                 store.seed_from_rib(&obs);
             }
             ObservationKind::SessionBoundary => {
-                store.apply_update(&obs);
+                store.apply_update(&obs, AnalysisPhase::Event);
             }
             _ => {
-                // Before event start: warm-up (silent)
+                // Before event start: warm-up (silent, no transitions emitted)
                 if obs.timestamp < event_start {
-                    store.apply_update(&obs);
+                    store.apply_update(&obs, AnalysisPhase::Warmup);
                     continue;
                 }
 
@@ -145,12 +145,19 @@ pub fn reconstruct_routes(
                     baseline_frozen = true;
                 }
 
-                // After cooldown end: stop
+                // After cooldown end: ignore
                 if obs.timestamp > cooldown_end {
                     continue;
                 }
 
-                if let Some(change) = store.apply_update(&obs) {
+                // Event or cooldown: emit transitions with correct phase
+                let phase = if obs.timestamp <= event_end {
+                    AnalysisPhase::Event
+                } else {
+                    AnalysisPhase::Cooldown
+                };
+
+                if let Some(change) = store.apply_update(&obs, phase) {
                     changes.push(change);
                 }
             }
@@ -257,14 +264,14 @@ mod tests {
     #[test] fn rib_seed_does_not_emit_transition() {
         let mut store = RouteStateStore::new();
         let obs = make_rib_obs("192.0.2.0/24", "rv2", "185.1.8.65", vec![6447,11537,1101]);
-        assert!(store.apply_update(&obs).is_none());
+        assert!(store.apply_update(&obs, AnalysisPhase::Event).is_none());
     }
 
     #[test] fn announcement_changes_route_state() {
         let mut store = RouteStateStore::new();
         store.seed_from_rib(&make_rib_obs("192.0.2.0/24","rv2","185.1.8.65",vec![6447,11537,1101]));
         let ann = make_announce("192.0.2.0/24","rv2","185.1.8.65",vec![6447,237,1101],0,1);
-        let sc = store.apply_update(&ann).unwrap();
+        let sc = store.apply_update(&ann, AnalysisPhase::Event).unwrap();
         assert!(sc.before.is_some());
         assert_eq!(sc.after.state.as_ref().unwrap().attributes.as_path.0, vec![6447,237,1101]);
     }
@@ -273,7 +280,7 @@ mod tests {
         let mut store = RouteStateStore::new();
         store.seed_from_rib(&make_rib_obs("192.0.2.0/24","rv2","185.1.8.65",vec![6447,11537,1101]));
         let wd = make_withdrawal("192.0.2.0/24","rv2","185.1.8.65",0,1);
-        let sc = store.apply_update(&wd).unwrap();
+        let sc = store.apply_update(&wd, AnalysisPhase::Event).unwrap();
         assert!(sc.before.is_some());
         assert!(sc.after.state.is_none()); // explicit absence
     }
@@ -282,17 +289,17 @@ mod tests {
         let mut store = RouteStateStore::new();
         store.seed_from_rib(&make_rib_obs("192.0.2.0/24","rv2","185.1.8.65",vec![6447,11537,1101]));
         let ann = make_announce("192.0.2.0/24","rv2","185.1.8.65",vec![6447,11537,1101],0,1);
-        assert!(store.apply_update(&ann).is_none());
+        assert!(store.apply_update(&ann, AnalysisPhase::Event).is_none());
     }
 
     #[test] fn alternate_path_then_original_is_restoration() {
         let mut store = RouteStateStore::new();
         store.seed_from_rib(&make_rib_obs("192.0.2.0/24","rv2","185.1.8.65",vec![6447,11537,1101]));
         let alt = make_announce("192.0.2.0/24","rv2","185.1.8.65",vec![6447,237,1101],0,1);
-        let c1 = store.apply_update(&alt).unwrap();
+        let c1 = store.apply_update(&alt, AnalysisPhase::Event).unwrap();
         assert_eq!(c1.after.state.as_ref().unwrap().attributes.as_path.0, vec![6447,237,1101]);
         let orig = make_announce("192.0.2.0/24","rv2","185.1.8.65",vec![6447,11537,1101],10,2);
-        let c2 = store.apply_update(&orig).unwrap();
+        let c2 = store.apply_update(&orig, AnalysisPhase::Event).unwrap();
         assert_eq!(c2.after.state.as_ref().unwrap().attributes.as_path.0, vec![6447,11537,1101]);
     }
 
@@ -306,7 +313,7 @@ mod tests {
             attributes: None,
             provenance: ObservationProvenance::synthetic(IngestRole::Updates, 0),
         };
-        store.apply_update(&sb);
+        store.apply_update(&sb, AnalysisPhase::Event);
         assert_eq!(store.continuity.get("rv2"), Some(&Continuity::Unknown));
     }
 
