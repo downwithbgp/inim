@@ -9,7 +9,7 @@ use std::collections::{HashMap, HashSet};
 use std::net::IpAddr;
 
 use crate::domain::observation::{ObservationKind, RouteObservation};
-use crate::domain::route::Prefix;
+use crate::domain::route::{Prefix, TransitPredicate};
 
 /// A frozen set of observer-prefix streams relevant to the event.
 #[derive(Debug, Clone, Default)]
@@ -34,13 +34,13 @@ pub struct TargetStream {
 ///
 /// Only observer-prefix streams matching ALL criteria are selected:
 /// 1. Origin AS is in `target_origin_asns`
-/// 2. Baseline AS path contains `required_transit_asn` (e.g. Internet2)
+/// 2. Baseline AS path satisfies `transit_predicate` (e.g. ContainsAny[11537])
 ///
 /// Collectors with no relevant streams receive an empty entry.
 pub fn scan_rib_and_freeze(
     rib_observations: &[RouteObservation],
     target_origin_asns: &[u32],
-    required_transit_asn: u32,
+    transit_predicate: &TransitPredicate,
 ) -> TargetSet {
     let mut streams: HashMap<String, Vec<TargetStream>> = HashMap::new();
 
@@ -60,8 +60,8 @@ pub fn scan_rib_and_freeze(
             continue;
         }
 
-        // Check transit AS in path
-        if !attrs.as_path.contains(&required_transit_asn) {
+        // Check transit predicate on path
+        if !transit_predicate.evaluate(&attrs.as_path) {
             continue;
         }
 
@@ -310,7 +310,7 @@ mod tests {
             "193.0.0.0/21",
             vec![6447, 11537, 3333],
         )];
-        scan_rib_and_freeze(&obs, &[3333], 11537)
+        scan_rib_and_freeze(&obs, &[3333], &TransitPredicate::ContainsAny(vec![11537]))
     }
 
     #[test]
@@ -326,7 +326,8 @@ mod tests {
                 vec![6447, 11537, 3333],
             ),
         ];
-        let target = scan_rib_and_freeze(&obs, &[3333], 11537);
+        let target =
+            scan_rib_and_freeze(&obs, &[3333], &TransitPredicate::ContainsAny(vec![11537]));
         assert_eq!(target.total_streams(), 2);
         assert!(target.has_relevant_streams("rv2"));
         assert!(target.contains(
@@ -351,7 +352,8 @@ mod tests {
             "192.0.2.0/24",
             vec![6447, 3356, 1101],
         )];
-        let target = scan_rib_and_freeze(&obs, &[3333], 11537);
+        let target =
+            scan_rib_and_freeze(&obs, &[3333], &TransitPredicate::ContainsAny(vec![11537]));
         assert_eq!(target.total_streams(), 0);
         assert!(!target.has_relevant_streams("rv2"));
     }
@@ -362,7 +364,8 @@ mod tests {
             make_rib("rv2", "185.1.8.65", "193.0.0.0/21", vec![6447, 11537, 3333]),
             make_rib("rv2", "185.1.8.65", "193.0.0.0/21", vec![6447, 11537, 3333]),
         ];
-        let target = scan_rib_and_freeze(&obs, &[3333], 11537);
+        let target =
+            scan_rib_and_freeze(&obs, &[3333], &TransitPredicate::ContainsAny(vec![11537]));
         assert_eq!(target.total_streams(), 1);
     }
 

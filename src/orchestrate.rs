@@ -156,13 +156,13 @@ fn run_inner(
         }
 
         // ── Check derived RIB cache ──────────────────────────────
-        let transit_asn = manifest.target.managed_network_asn;
+        let transit_predicate = reviewed_transit_predicate(&manifest)?;
         let origin_asns = manifest.target.origin_asns.clone();
         let rib_key = crate::derived_cache::rib_cache_key(
             &cached_rib.sha256,
             collector,
             &origin_asns,
-            transit_asn,
+            &transit_predicate,
             manifest.revision,
         );
         let cache_hit = if cache_control.no_derived_cache || cache_control.rebuild_derived_cache {
@@ -236,7 +236,7 @@ fn run_inner(
         let mut origin_match: usize = 0;
         let mut transit_match: usize = 0;
         let collector_id = collector.clone();
-        let transit_asn = manifest.target.managed_network_asn;
+        let transit_predicate = reviewed_transit_predicate(&manifest)?;
         let origin_asns = manifest.target.origin_asns.clone();
         let mut collector_obs: Vec<RouteObservation> = Vec::new();
 
@@ -255,7 +255,7 @@ fn run_inner(
             }
             origin_match += 1;
 
-            if !attrs.as_path.contains(&transit_asn) {
+            if !transit_predicate.evaluate(&attrs.as_path) {
                 continue;
             }
             transit_match += 1;
@@ -275,7 +275,7 @@ fn run_inner(
 
         // Compute per-collector preflight (only from this collector's observations)
         let collector_target =
-            scan_rib_and_freeze(collector_obs.as_slice(), &origin_asns, transit_asn);
+            scan_rib_and_freeze(collector_obs.as_slice(), &origin_asns, &transit_predicate);
 
         let streams = collector_target
             .streams
@@ -322,7 +322,11 @@ fn run_inner(
             source_url: cached_rib.url.clone(),
             source_sha256: cached_rib.sha256.clone(),
             collector: collector_id.clone(),
-            predicate_repr: format!("origin={:?} transit={}", origin_asns, transit_asn),
+            predicate_repr: format!(
+                "origin={:?} transit={}",
+                origin_asns,
+                crate::derived_cache::transit_predicate_identity(&transit_predicate)
+            ),
             preflight: PreflightCounts::from_target_set(
                 &collector_target,
                 1,
@@ -535,11 +539,12 @@ fn run_inner(
     let lifecycles = if expectation.kind
         == crate::domain::expectation::ExpectationKind::ParticipantRelationshipUnavailable
     {
+        let transit_predicate = reviewed_transit_predicate(&manifest)?;
         Some(crate::lifecycle::build_lifecycles(
             &transitions,
             &target_set,
             cooldown_end,
-            manifest.target.managed_network_asn,
+            &transit_predicate,
         ))
     } else {
         None
@@ -587,6 +592,23 @@ fn run_inner(
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────
+
+/// Extract the reviewed transit predicate from a manifest.
+///
+/// Analysis may only proceed with a reviewed, executable predicate —
+/// unresolved mappings block planning before this point.
+fn reviewed_transit_predicate(
+    manifest: &Manifest,
+) -> Result<crate::domain::route::TransitPredicate, String> {
+    manifest
+        .target
+        .transit_predicate
+        .predicate
+        .clone()
+        .ok_or_else(|| {
+            "analysis requires a reviewed TransitPredicate; the plan is blocked".to_string()
+        })
+}
 
 fn print_timings(timings: &[(String, f64)], total: f64) {
     eprintln!("\n── Stage timings ───────────────────────────");

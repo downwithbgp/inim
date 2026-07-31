@@ -10,7 +10,9 @@ use chrono::{DateTime, Utc};
 use serde::Serialize;
 use std::collections::{HashMap, HashSet};
 
-use crate::domain::route::{AnalysisPhase, RouteKey, RouteState, RouteTransition, TransitionKind};
+use crate::domain::route::{
+    AnalysisPhase, RouteKey, RouteState, RouteTransition, TransitPredicate, TransitionKind,
+};
 use crate::target::TargetSet;
 
 // ── Path collapsing ────────────────────────────────────────────────
@@ -56,20 +58,21 @@ pub enum PathShapeChange {
     GenericPathChange,
 }
 
-/// Classify a path change between two states with respect to a required transit ASN.
+/// Classify a path change between two states with respect to a transit predicate.
 ///
-/// `from` and `to` are the before/after route states. `required_transit` is the
-/// ASN that must be present for the path to be considered "via the required transit".
+/// `from` and `to` are the before/after route states. `transit_predicate` is
+/// the reviewed predicate that a path must satisfy to be considered "via the
+/// required transit".
 pub fn classify_path_change(
     from: &RouteState,
     to: &RouteState,
-    required_transit: u32,
+    transit_predicate: &TransitPredicate,
 ) -> PathShapeChange {
     let from_path = &from.attributes.as_path.0;
     let to_path = &to.attributes.as_path.0;
 
-    let from_has = from_path.contains(&required_transit);
-    let to_has = to_path.contains(&required_transit);
+    let from_has = transit_predicate.evaluate(from_path);
+    let to_has = transit_predicate.evaluate(to_path);
 
     // If collapsed sequences are equal, this is purely a prepend change
     if collapsed_equivalent(from_path, to_path) {
@@ -250,7 +253,7 @@ pub fn build_lifecycles(
     transitions: &[RouteTransition],
     target_set: &TargetSet,
     cooldown_end: DateTime<Utc>,
-    required_transit: u32,
+    transit_predicate: &TransitPredicate,
 ) -> Vec<StreamLifecycle> {
     // Group transitions by stream key
     let mut stream_transitions: HashMap<RouteKey, Vec<&RouteTransition>> = HashMap::new();
@@ -283,7 +286,7 @@ pub fn build_lifecycles(
             continue;
         }
         let stream_t = &stream_transitions[&t.key];
-        let lifecycle = build_one_lifecycle(&t.key, stream_t, cooldown_end, required_transit);
+        let lifecycle = build_one_lifecycle(&t.key, stream_t, cooldown_end, transit_predicate);
         lifecycles.push(lifecycle);
     }
 
@@ -342,7 +345,7 @@ fn build_one_lifecycle(
     key: &RouteKey,
     transitions: &[&RouteTransition],
     cooldown_end: DateTime<Utc>,
-    required_transit: u32,
+    transit_predicate: &TransitPredicate,
 ) -> StreamLifecycle {
     let baseline_path = transitions
         .first()
@@ -434,7 +437,7 @@ fn build_one_lifecycle(
                 .as_ref()
                 .map(|s| s.attributes.as_path.0.clone())
                 .unwrap_or_default(),
-            path_shape: path_shape_from_transition(t, required_transit),
+            path_shape: path_shape_from_transition(t, transit_predicate),
             observation_id: t.triggering.observation_id.0,
             archive_sha256: t.triggering.archive_sha256.clone(),
             has_gshut_after: has_gshut,
@@ -500,7 +503,7 @@ fn build_one_lifecycle(
                     replacement_appeared = true;
                     if replacement_retained_transit.is_none() {
                         replacement_retained_transit =
-                            Some(state.attributes.as_path.0.contains(&required_transit));
+                            Some(transit_predicate.evaluate(&state.attributes.as_path.0));
                     }
                 }
             }
@@ -516,7 +519,7 @@ fn build_one_lifecycle(
                     t.from.as_ref().and_then(|f| f.state.as_ref()),
                     t.to.state.as_ref(),
                 ) {
-                    let shape = classify_path_change(from, to, required_transit);
+                    let shape = classify_path_change(from, to, transit_predicate);
                     match shape {
                         PathShapeChange::PrependReduced | PathShapeChange::PrependIncreased => {
                             prepending_changed = true;
@@ -622,14 +625,14 @@ fn build_one_lifecycle(
 /// Extract path shape from a transition.
 fn path_shape_from_transition(
     t: &RouteTransition,
-    required_transit: u32,
+    transit_predicate: &TransitPredicate,
 ) -> Option<PathShapeChange> {
     if !matches!(t.kind, TransitionKind::PathReplacement { .. }) {
         return None;
     }
     let from = t.from.as_ref().and_then(|f| f.state.as_ref())?;
     let to = t.to.state.as_ref()?;
-    Some(classify_path_change(from, to, required_transit))
+    Some(classify_path_change(from, to, transit_predicate))
 }
 
 fn transition_kind_str(kind: &TransitionKind) -> String {
@@ -864,7 +867,7 @@ mod tests {
     fn prepend_reduction_is_classified_as_prepend_reduced() {
         let from = make_state(vec![11537, 40220, 225, 225, 225]);
         let to = make_state(vec![11537, 40220, 225]);
-        let shape = classify_path_change(&from, &to, 11537);
+        let shape = classify_path_change(&from, &to, &TransitPredicate::ContainsAny(vec![11537]));
         assert_eq!(shape, PathShapeChange::PrependReduced);
     }
 
@@ -872,7 +875,7 @@ mod tests {
     fn prepend_increase_is_classified_as_prepend_increased() {
         let from = make_state(vec![11537, 40220, 225]);
         let to = make_state(vec![11537, 40220, 225, 225, 225]);
-        let shape = classify_path_change(&from, &to, 11537);
+        let shape = classify_path_change(&from, &to, &TransitPredicate::ContainsAny(vec![11537]));
         assert_eq!(shape, PathShapeChange::PrependIncreased);
     }
 
@@ -882,14 +885,14 @@ mod tests {
         let from = make_state(vec![1, 2, 2, 3]);
         let to = make_state(vec![1, 2, 3]);
         assert_eq!(
-            classify_path_change(&from, &to, 99),
+            classify_path_change(&from, &to, &TransitPredicate::ContainsAny(vec![99])),
             PathShapeChange::PrependReduced
         );
         // Different collapsed sequence with transit = still via
         let from2 = make_state(vec![1, 99, 2, 3]);
         let to2 = make_state(vec![1, 99, 4, 3]);
         assert_eq!(
-            classify_path_change(&from2, &to2, 99),
+            classify_path_change(&from2, &to2, &TransitPredicate::ContainsAny(vec![99])),
             PathShapeChange::PathChangedStillViaRequiredTransit
         );
     }
@@ -898,7 +901,7 @@ mod tests {
     fn replacement_retaining_transit_is_not_departure() {
         let from = make_state(vec![1, 11537, 2]);
         let to = make_state(vec![1, 11537, 3]);
-        let shape = classify_path_change(&from, &to, 11537);
+        let shape = classify_path_change(&from, &to, &TransitPredicate::ContainsAny(vec![11537]));
         assert_ne!(shape, PathShapeChange::PathDepartedRequiredTransit);
         assert_eq!(shape, PathShapeChange::PathChangedStillViaRequiredTransit);
     }
@@ -907,7 +910,7 @@ mod tests {
     fn replacement_without_transit_is_departure() {
         let from = make_state(vec![1, 11537, 2]);
         let to = make_state(vec![1, 3, 2]);
-        let shape = classify_path_change(&from, &to, 11537);
+        let shape = classify_path_change(&from, &to, &TransitPredicate::ContainsAny(vec![11537]));
         assert_eq!(shape, PathShapeChange::PathDepartedRequiredTransit);
     }
 
@@ -915,7 +918,7 @@ mod tests {
     fn return_to_transit_is_classified() {
         let from = make_state(vec![1, 3, 2]);
         let to = make_state(vec![1, 11537, 2]);
-        let shape = classify_path_change(&from, &to, 11537);
+        let shape = classify_path_change(&from, &to, &TransitPredicate::ContainsAny(vec![11537]));
         assert_eq!(shape, PathShapeChange::PathReturnedToRequiredTransit);
     }
 

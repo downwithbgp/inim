@@ -1,8 +1,15 @@
 //! inim — Internetwork Impact Monitor
 //!
 //! CLI entry point. Parses commands and orchestrates analysis.
+//!
+//! Process exit status contract:
+//!   EXIT_SUCCESS           plan produced / analysis completed (0)
+//!   EXIT_INVALID_INPUT     malformed ticket or manifest (1)
+//!   EXIT_ANALYSIS_INCOMPLETE  infrastructure failure during analysis (2)
+//!   EXIT_ANALYSIS_BLOCKED  plan produced but blocked; no analysis ran (3)
 
 use clap::{Parser, Subcommand};
+use std::io::Write;
 use std::path::PathBuf;
 
 use inim::assess;
@@ -12,6 +19,11 @@ use inim::routes;
 use inim::sources::internet2::ticket as i2ticket;
 use inim::tokenize;
 use inim::waves;
+
+pub const EXIT_SUCCESS: i32 = 0;
+pub const EXIT_INVALID_INPUT: i32 = 1;
+pub const EXIT_ANALYSIS_INCOMPLETE: i32 = 2;
+pub const EXIT_ANALYSIS_BLOCKED: i32 = 3;
 
 /// Internetwork Impact Monitor — determine how network events affect
 /// the globally visible routing system.
@@ -26,10 +38,33 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
+    /// Produce an analysis plan from a reviewed manifest.
+    ///
+    /// Runs before any Broker query, archive download, cache lookup, or MRT
+    /// parsing. Prints "Ready" or "Blocked" and the plan JSON.
+    ///
+    /// Exit codes: 0 when the manifest was parsed and a plan was produced
+    /// (even if the plan is Blocked); 1 for malformed input.
+    Plan {
+        /// Path to the event fixture JSON file (required).
+        #[arg(short, long, value_name = "PATH")]
+        event: PathBuf,
+
+        /// Path to the reviewed event manifest JSON file.
+        #[arg(short = 'm', long, value_name = "PATH")]
+        manifest: PathBuf,
+
+        /// Output directory for plan artifacts (analysis_plan.json/.txt,
+        /// limitations.json). When absent, only stdout is written.
+        #[arg(short = 'o', long, value_name = "DIR")]
+        out: Option<PathBuf>,
+    },
     /// Analyze a single operational event against BGP observations.
     ///
     /// Without --manifest: runs a built-in synthetic demonstration.
-    /// With --manifest: executes real analysis using discovered RouteViews data.
+    /// With --manifest: plans first, then executes real analysis using
+    /// discovered RouteViews data when the plan is Ready. A Blocked plan
+    /// performs no Broker or MRT work and exits with EXIT_ANALYSIS_BLOCKED.
     Analyze {
         /// Path to the event fixture JSON file (required).
         #[arg(short, long, value_name = "PATH")]
@@ -66,8 +101,18 @@ enum Commands {
 
 fn main() {
     let cli = Cli::parse();
+    let code = run(&cli);
+    std::process::exit(code);
+}
 
+/// Dispatch a parsed CLI command and return the process exit code.
+fn run(cli: &Cli) -> i32 {
     match &cli.command {
+        Commands::Plan {
+            event,
+            manifest,
+            out,
+        } => cmd_plan(&mut std::io::stdout(), event, manifest, out.as_deref()),
         Commands::Analyze {
             event,
             manifest,
@@ -77,49 +122,161 @@ fn main() {
             rebuild_derived_cache,
             jobs,
         } => {
-            if let Some(manifest_path) = manifest {
-                let discovery = inim::discover::LiveArchiveDiscovery;
-                let cache_control = inim::orchestrate::CacheControl {
-                    no_derived_cache: *no_derived_cache,
-                    rebuild_derived_cache: *rebuild_derived_cache,
-                    jobs: *jobs,
-                };
-                let outcome = inim::orchestrate::run_real_analysis(
-                    event,
-                    manifest_path,
-                    cache,
-                    out,
-                    &discovery,
-                    cache_control,
-                );
-
-                let json = serde_json::to_string_pretty(&outcome).unwrap_or_default();
-                println!("{json}");
-                if matches!(outcome, inim::outcome::AnalysisOutcome::Incomplete { .. }) {
-                    std::process::exit(2);
-                }
-            } else {
-                run_analyze_synthetic(event, cache, out);
-            }
+            let discovery = inim::discover::LiveArchiveDiscovery;
+            let cache_control = inim::orchestrate::CacheControl {
+                no_derived_cache: *no_derived_cache,
+                rebuild_derived_cache: *rebuild_derived_cache,
+                jobs: *jobs,
+            };
+            cmd_analyze(
+                &mut std::io::stdout(),
+                &mut std::io::stderr(),
+                event,
+                manifest.as_ref().map(|p| p.as_path()),
+                cache,
+                out,
+                &discovery,
+                cache_control,
+            )
         }
     }
 }
 
-fn run_analyze_synthetic(event_path: &std::path::Path, _cache: &PathBuf, _out: &PathBuf) {
+/// `inim plan`: parse ticket + manifest, produce the plan, print it.
+///
+/// Exits 0 whenever the manifest parsed and a plan was produced — even for
+/// Blocked plans. Exits EXIT_INVALID_INPUT for malformed input.
+fn cmd_plan(
+    stdout: &mut dyn Write,
+    event_path: &std::path::Path,
+    manifest_path: &std::path::Path,
+    out_dir: Option<&std::path::Path>,
+) -> i32 {
+    let ticket = match i2ticket::parse_ticket_fixture(event_path.to_string_lossy().as_ref()) {
+        Ok(t) => t,
+        Err(e) => {
+            let _ = writeln!(stdout, "error: failed to parse ticket fixture: {e}");
+            return EXIT_INVALID_INPUT;
+        }
+    };
+    let expectation = i2ticket::derive_expectation(&ticket);
+    let manifest = match inim::manifest::Manifest::load(manifest_path) {
+        Ok(m) => m,
+        Err(e) => {
+            let _ = writeln!(stdout, "error: {e}");
+            return EXIT_INVALID_INPUT;
+        }
+    };
+    let plan = match inim::plan::plan_from_manifest(&manifest.event_id, expectation, &manifest) {
+        Ok(p) => p,
+        Err(e) => {
+            let _ = writeln!(stdout, "error: {e}");
+            return EXIT_INVALID_INPUT;
+        }
+    };
+
+    let artifact = inim::plan::PlanArtifact::from_plan(&plan);
+    let _ = writeln!(stdout, "{}", artifact.status_line());
+    let json = serde_json::to_string_pretty(&artifact).unwrap_or_default();
+    let _ = writeln!(stdout, "{json}");
+
+    // Write plan artifacts when an output directory is provided.
+    if let Some(dir) = out_dir {
+        if let Err(e) = inim::plan::write_plan_artifacts(&artifact, dir) {
+            let _ = writeln!(stdout, "error: failed to write plan artifacts: {e}");
+            return EXIT_INVALID_INPUT;
+        }
+    }
+
+    EXIT_SUCCESS
+}
+
+/// `inim analyze` with a manifest: plan first, then analyze when Ready.
+///
+/// A Blocked plan prints the plan and exits EXIT_ANALYSIS_BLOCKED without
+/// any Broker query, archive download, or MRT parse. Incomplete analysis
+/// exits EXIT_ANALYSIS_INCOMPLETE.
+#[allow(clippy::too_many_arguments)]
+fn cmd_analyze(
+    stdout: &mut dyn Write,
+    stderr: &mut dyn Write,
+    event_path: &std::path::Path,
+    manifest_path: Option<&std::path::Path>,
+    cache: &std::path::Path,
+    out: &std::path::Path,
+    discovery: &dyn inim::discover::ArchiveDiscovery,
+    cache_control: inim::orchestrate::CacheControl,
+) -> i32 {
+    let Some(manifest_path) = manifest_path else {
+        return run_analyze_synthetic(stdout, event_path);
+    };
+
+    // ── Plan first: no broker/cache/MRT work before planning ──
+    let ticket = match i2ticket::parse_ticket_fixture(event_path.to_string_lossy().as_ref()) {
+        Ok(t) => t,
+        Err(e) => {
+            let _ = writeln!(stderr, "error: failed to parse ticket fixture: {e}");
+            return EXIT_INVALID_INPUT;
+        }
+    };
+    let expectation = i2ticket::derive_expectation(&ticket);
+    let manifest = match inim::manifest::Manifest::load(manifest_path) {
+        Ok(m) => m,
+        Err(e) => {
+            let _ = writeln!(stderr, "error: {e}");
+            return EXIT_INVALID_INPUT;
+        }
+    };
+    let plan = match inim::plan::plan_from_manifest(&manifest.event_id, expectation, &manifest) {
+        Ok(p) => p,
+        Err(e) => {
+            let _ = writeln!(stderr, "error: {e}");
+            return EXIT_INVALID_INPUT;
+        }
+    };
+
+    if plan.is_blocked() {
+        // Blocked plans are printed and never executed: zero Broker calls,
+        // zero MRT parses, no AnalysisOutcome produced.
+        let artifact = inim::plan::PlanArtifact::from_plan(&plan);
+        let json = serde_json::to_string_pretty(&artifact).unwrap_or_default();
+        let _ = writeln!(stdout, "{json}");
+        return EXIT_ANALYSIS_BLOCKED;
+    }
+
+    let outcome = inim::orchestrate::run_real_analysis(
+        event_path,
+        manifest_path,
+        cache,
+        out,
+        discovery,
+        cache_control,
+    );
+
+    let json = serde_json::to_string_pretty(&outcome).unwrap_or_default();
+    let _ = writeln!(stdout, "{json}");
+    if matches!(outcome, inim::outcome::AnalysisOutcome::Incomplete { .. }) {
+        EXIT_ANALYSIS_INCOMPLETE
+    } else {
+        EXIT_SUCCESS
+    }
+}
+
+fn run_analyze_synthetic(stdout: &mut dyn Write, event_path: &std::path::Path) -> i32 {
     // ── 1. Parse the Internet2 ticket fixture ────────────────────
     let ticket = match i2ticket::parse_ticket_fixture(event_path.to_string_lossy().as_ref()) {
         Ok(t) => t,
         Err(e) => {
-            eprintln!("Error parsing ticket: {e}");
-            std::process::exit(1);
+            let _ = writeln!(stdout, "Error parsing ticket: {e}");
+            return EXIT_INVALID_INPUT;
         }
     };
 
     let expectation = i2ticket::derive_expectation(&ticket);
 
-    println!("inim: analyze command parsed.");
-    println!("  event:   {}", event_path.display());
-    println!("  expectation: {:?}", expectation.kind);
+    let _ = writeln!(stdout, "inim: analyze command parsed.");
+    let _ = writeln!(stdout, "  event:   {}", event_path.display());
+    let _ = writeln!(stdout, "  expectation: {:?}", expectation.kind);
 
     // ── 2. Ingest observations ──────────────────────────────────
     // TODO: when --rib and --updates are provided, use ingest::ObservationStream.
@@ -128,8 +285,8 @@ fn run_analyze_synthetic(event_path: &std::path::Path, _cache: &PathBuf, _out: &
     // ── 3. Reconstruct route state ──────────────────────────────
     // For the demo: use the built-in redundant scenario
 
-    println!("  Using synthetic observations for demonstration.");
-    println!();
+    let _ = writeln!(stdout, "  Using synthetic observations for demonstration.");
+    let _ = writeln!(stdout);
 
     let (store, changes) = build_demo_scenario("route-views2");
 
@@ -164,12 +321,13 @@ fn run_analyze_synthetic(event_path: &std::path::Path, _cache: &PathBuf, _out: &
     let data_note = "SYNTHETIC (no --manifest provided)";
     let terminal_report = report::render_terminal(&assessment, data_note);
 
-    println!("{terminal_report}");
+    let _ = writeln!(stdout, "{terminal_report}");
 
     let json_report = report::render_json(&assessment, data_note);
     let json_str = serde_json::to_string_pretty(&json_report).unwrap_or_default();
-    println!("--- JSON ---");
-    println!("{json_str}");
+    let _ = writeln!(stdout, "--- JSON ---");
+    let _ = writeln!(stdout, "{json_str}");
+    EXIT_SUCCESS
 }
 
 /// Build a demonstration scenario for the vertical slice:
@@ -280,6 +438,7 @@ mod tests {
                 assert_eq!(cache.to_string_lossy(), "./cache");
                 assert_eq!(out.to_string_lossy(), "./out");
             }
+            Commands::Plan { .. } => unreachable!("plan not expected"),
         }
     }
 
@@ -298,6 +457,7 @@ mod tests {
             Commands::Analyze { manifest, .. } => {
                 assert!(manifest.is_some());
             }
+            Commands::Plan { .. } => unreachable!("plan not expected"),
         }
     }
 
@@ -312,6 +472,7 @@ mod tests {
                 assert_eq!(cache.to_string_lossy(), "/tmp/c");
                 assert_eq!(out.to_string_lossy(), "/tmp/o");
             }
+            Commands::Plan { .. } => unreachable!("plan not expected"),
         }
     }
 
@@ -334,6 +495,243 @@ mod tests {
                 assert_eq!(event.to_string_lossy(), "e.json");
                 assert!(manifest.is_some());
             }
+            Commands::Plan { .. } => unreachable!("plan not expected"),
         }
+    }
+
+    // ── Part 1: planning + exit-status semantics ──────────────────
+
+    use inim::discover::{ArchiveDiscovery, ArchiveItem, InimArchiveError};
+    use std::io::Cursor;
+    use std::sync::atomic::{AtomicUsize, Ordering};
+
+    /// Discovery that counts calls and fails if ever invoked — used to
+    /// prove blocked plans perform zero Broker work.
+    struct CountingDiscovery {
+        calls: AtomicUsize,
+    }
+
+    impl CountingDiscovery {
+        fn new() -> Self {
+            CountingDiscovery {
+                calls: AtomicUsize::new(0),
+            }
+        }
+        fn call_count(&self) -> usize {
+            self.calls.load(Ordering::SeqCst)
+        }
+    }
+
+    impl ArchiveDiscovery for CountingDiscovery {
+        fn query(
+            &self,
+            _project: &str,
+            _collectors: &[&str],
+            _ts_start: chrono::DateTime<chrono::Utc>,
+            _ts_end: chrono::DateTime<chrono::Utc>,
+            _data_type: &str,
+        ) -> Result<Vec<ArchiveItem>, InimArchiveError> {
+            self.calls.fetch_add(1, Ordering::SeqCst);
+            Err(InimArchiveError::BrokerQueryError {
+                reason: "discovery must not run for blocked plans".into(),
+            })
+        }
+    }
+
+    const TICKET: &str = "tests/fixtures/internet2/INC0302574.json";
+
+    /// A blocked manifest: unresolved transit predicate, open ticket.
+    const BLOCKED_MANIFEST: &str = r#"{
+        "event_id": "INC0301970",
+        "revision": 1,
+        "schema_version": 2,
+        "event_window_utc": {"start": "2026-07-28T04:35:00Z", "end": ""},
+        "open": true,
+        "analysis_end_utc": "2026-07-29T04:35:00Z",
+        "ticket_window_local": {"start": "2026-07-28 00:35:00", "end": "", "timezone": "EDT"},
+        "warmup_minutes": 60,
+        "cooldown_minutes": 60,
+        "target": {
+            "label": "Smithville via Indiana GigaPOP",
+            "origin_asns": [11550],
+            "transit_predicate": {"status": "Unresolved"},
+            "prefix_selection": "origin AS11550 AND baseline AS path contains <PENDING REVIEW>"
+        },
+        "collectors": ["route-views2"]
+    }"#;
+
+    /// A ready manifest: reviewed ContainsAny predicate.
+    const READY_MANIFEST: &str = r#"{
+        "event_id": "INC0302574",
+        "revision": 2,
+        "schema_version": 2,
+        "event_window_utc": {"start": "2026-07-30T09:25:00Z", "end": "2026-07-30T09:47:00Z"},
+        "ticket_window_local": {"start": "2026-07-30 05:25:00", "end": "2026-07-30 05:47:00", "timezone": "EDT"},
+        "warmup_minutes": 60,
+        "cooldown_minutes": 60,
+        "target": {
+            "label": "RIPE via NYIIX",
+            "origin_asns": [3333],
+            "transit_predicate": {
+                "status": "Reviewed",
+                "predicate": {"ContainsAny": [11537]},
+                "provenance": {"statement": "AS11537 = Internet2", "reviewed_by": "analyst", "date": "2026-08-01"}
+            },
+            "prefix_selection": "origin AS3333 AND baseline path contains AS11537"
+        },
+        "collectors": ["route-views2"]
+    }"#;
+
+    fn write_manifest(dir: &std::path::Path, json: &str) -> std::path::PathBuf {
+        let p = dir.join("manifest.json");
+        std::fs::write(&p, json).unwrap();
+        p
+    }
+
+    #[test]
+    fn plan_command_reports_blocked_and_exits_successfully() {
+        let dir = tempfile::tempdir().unwrap();
+        let manifest = write_manifest(dir.path(), BLOCKED_MANIFEST);
+        let mut out = Cursor::new(Vec::new());
+        let code = cmd_plan(&mut out, std::path::Path::new(TICKET), &manifest, None);
+        assert_eq!(code, EXIT_SUCCESS);
+        let text = String::from_utf8(out.into_inner()).unwrap();
+        assert!(text.contains("Blocked"), "{text}");
+        assert!(text.contains("MissingReviewedTransitPredicate"), "{text}");
+    }
+
+    #[test]
+    fn analyze_command_reports_blocked_and_exits_nonzero() {
+        let dir = tempfile::tempdir().unwrap();
+        let manifest = write_manifest(dir.path(), BLOCKED_MANIFEST);
+        let out_dir = dir.path().join("out");
+        let discovery = CountingDiscovery::new();
+        let mut out = Cursor::new(Vec::new());
+        let mut err = Cursor::new(Vec::new());
+        let code = cmd_analyze(
+            &mut out,
+            &mut err,
+            std::path::Path::new(TICKET),
+            Some(&manifest),
+            &dir.path().join("cache"),
+            &out_dir,
+            &discovery,
+            inim::orchestrate::CacheControl::default(),
+        );
+        assert_eq!(code, EXIT_ANALYSIS_BLOCKED);
+        let text = String::from_utf8(out.into_inner()).unwrap();
+        assert!(text.contains("MissingReviewedTransitPredicate"), "{text}");
+    }
+
+    #[test]
+    fn blocked_analyze_has_no_analysis_outcome() {
+        let dir = tempfile::tempdir().unwrap();
+        let manifest = write_manifest(dir.path(), BLOCKED_MANIFEST);
+        let out_dir = dir.path().join("out");
+        let discovery = CountingDiscovery::new();
+        let mut out = Cursor::new(Vec::new());
+        let mut err = Cursor::new(Vec::new());
+        cmd_analyze(
+            &mut out,
+            &mut err,
+            std::path::Path::new(TICKET),
+            Some(&manifest),
+            &dir.path().join("cache"),
+            &out_dir,
+            &discovery,
+            inim::orchestrate::CacheControl::default(),
+        );
+        let text = String::from_utf8(out.into_inner()).unwrap();
+        // A blocked plan produces a plan artifact, never an AnalysisOutcome.
+        assert!(text.contains("\"plan\""), "{text}");
+        assert!(!text.contains("completed"), "{text}");
+        assert!(!text.contains("insufficient_visibility"), "{text}");
+        assert!(!text.contains("incomplete"), "{text}");
+    }
+
+    #[test]
+    fn blocked_analyze_performs_zero_broker_calls() {
+        let dir = tempfile::tempdir().unwrap();
+        let manifest = write_manifest(dir.path(), BLOCKED_MANIFEST);
+        let out_dir = dir.path().join("out");
+        let discovery = CountingDiscovery::new();
+        let mut out = Cursor::new(Vec::new());
+        let mut err = Cursor::new(Vec::new());
+        let code = cmd_analyze(
+            &mut out,
+            &mut err,
+            std::path::Path::new(TICKET),
+            Some(&manifest),
+            &dir.path().join("cache"),
+            &out_dir,
+            &discovery,
+            inim::orchestrate::CacheControl::default(),
+        );
+        assert_eq!(code, EXIT_ANALYSIS_BLOCKED);
+        assert_eq!(discovery.call_count(), 0);
+    }
+
+    #[test]
+    fn blocked_analyze_performs_zero_mrt_parses() {
+        let dir = tempfile::tempdir().unwrap();
+        let manifest = write_manifest(dir.path(), BLOCKED_MANIFEST);
+        let out_dir = dir.path().join("out");
+        let discovery = CountingDiscovery::new();
+        let mut out = Cursor::new(Vec::new());
+        let mut err = Cursor::new(Vec::new());
+        let code = cmd_analyze(
+            &mut out,
+            &mut err,
+            std::path::Path::new(TICKET),
+            Some(&manifest),
+            &dir.path().join("cache"),
+            &out_dir,
+            &discovery,
+            inim::orchestrate::CacheControl::default(),
+        );
+        assert_eq!(code, EXIT_ANALYSIS_BLOCKED);
+        // No MRT parsing implies no analysis artifacts are written.
+        assert!(!out_dir.exists() || std::fs::read_dir(&out_dir).unwrap().count() == 0);
+        // Zero broker calls also means no archive could have been parsed.
+        assert_eq!(discovery.call_count(), 0);
+    }
+
+    #[test]
+    fn ready_plan_does_not_start_analysis() {
+        let dir = tempfile::tempdir().unwrap();
+        let manifest = write_manifest(dir.path(), READY_MANIFEST);
+        let mut out = Cursor::new(Vec::new());
+        let code = cmd_plan(&mut out, std::path::Path::new(TICKET), &manifest, None);
+        assert_eq!(code, EXIT_SUCCESS);
+        let text = String::from_utf8(out.into_inner()).unwrap();
+        assert!(text.contains("Ready"), "{text}");
+        // Planning never performs acquisition: no artifacts, no outcome.
+        assert!(!text.contains("NoObservableBgpImpact"), "{text}");
+    }
+
+    #[test]
+    fn malformed_manifest_is_distinct_from_blocked_plan() {
+        let dir = tempfile::tempdir().unwrap();
+        let malformed = write_manifest(dir.path(), "not json at all");
+        let mut out = Cursor::new(Vec::new());
+        let code = cmd_plan(&mut out, std::path::Path::new(TICKET), &malformed, None);
+        assert_eq!(code, EXIT_INVALID_INPUT);
+
+        // The blocked plan uses a different, documented exit code.
+        let blocked = write_manifest(dir.path(), BLOCKED_MANIFEST);
+        let mut out = Cursor::new(Vec::new());
+        let code = cmd_plan(&mut out, std::path::Path::new(TICKET), &blocked, None);
+        assert_eq!(code, EXIT_SUCCESS); // plan command: blocked still exits 0
+        assert_ne!(EXIT_INVALID_INPUT, EXIT_ANALYSIS_BLOCKED);
+        assert_ne!(EXIT_INVALID_INPUT, EXIT_SUCCESS);
+    }
+
+    #[test]
+    fn exit_codes_are_documented_constants() {
+        // The exit codes are named constants, never magic integers.
+        assert_eq!(EXIT_SUCCESS, 0);
+        assert_eq!(EXIT_INVALID_INPUT, 1);
+        assert_eq!(EXIT_ANALYSIS_INCOMPLETE, 2);
+        assert_eq!(EXIT_ANALYSIS_BLOCKED, 3);
     }
 }

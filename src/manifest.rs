@@ -9,15 +9,32 @@ use serde::{Deserialize, Serialize};
 
 use crate::plan::TransitPredicateMapping;
 
+/// Schema version of the reviewed manifest format.
+///
+/// v1: single-ASN shortcut fields (`managed_network_asn`, `internet2_asn`).
+/// v2: canonical `TransitPredicateMapping`; legacy shortcut fields rejected.
+pub const MANIFEST_SCHEMA_VERSION: u32 = 2;
+
 /// A reviewed event manifest.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Manifest {
     pub event_id: String,
     #[serde(default)]
     pub revision: u32,
+    /// Manifest schema version. Defaults to 1 (legacy) when absent.
+    #[serde(default = "default_schema_version")]
+    pub schema_version: u32,
     pub event_window_utc: Window,
     pub ticket_window_local: LocalWindow,
+    /// Whether the ticket is open (no published end time).
+    #[serde(default)]
+    pub open: bool,
+    /// Reviewed analysis end for open tickets.
+    #[serde(default)]
+    pub analysis_end_utc: Option<String>,
+    #[serde(default)]
     pub warmup_minutes: i64,
+    #[serde(default)]
     pub cooldown_minutes: i64,
     pub target: ManifestTarget,
     pub collectors: Vec<String>,
@@ -25,6 +42,10 @@ pub struct Manifest {
     pub collectors_provenance: String,
     #[serde(default)]
     pub analyst_notes: Vec<String>,
+}
+
+fn default_schema_version() -> u32 {
+    1
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -46,8 +67,12 @@ pub struct LocalWindow {
 pub struct ManifestTarget {
     pub label: String,
     pub origin_asns: Vec<u32>,
-    #[serde(default)]
-    pub managed_network_asn: u32,
+    /// Legacy single-ASN shortcut — rejected on load; migration only.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub managed_network_asn: Option<u32>,
+    /// Legacy single-ASN shortcut — rejected on load; migration only.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub internet2_asn: Option<u32>,
     #[serde(default)]
     pub transit_predicate: TransitPredicateMapping,
     #[serde(default)]
@@ -69,7 +94,9 @@ impl Manifest {
         if manifest.event_id.is_empty() {
             return Err("manifest event_id is empty".into());
         }
-        if manifest.event_window_utc.start.is_empty() || manifest.event_window_utc.end.is_empty() {
+        if manifest.event_window_utc.start.is_empty()
+            || (manifest.event_window_utc.end.is_empty() && !manifest.open)
+        {
             return Err("manifest event_window_utc has empty start/end".into());
         }
         if manifest.collectors.is_empty() {

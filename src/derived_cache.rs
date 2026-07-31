@@ -15,7 +15,7 @@ use std::net::IpAddr;
 use std::path::{Path, PathBuf};
 
 use crate::domain::observation::RouteObservation;
-use crate::domain::route::Prefix;
+use crate::domain::route::{Prefix, TransitPredicate};
 use crate::target::{PreflightCounts, TargetSet};
 
 /// Schema versions — bump on any format change.
@@ -50,12 +50,41 @@ pub struct CachedTargetStream {
     pub baseline_as_path: Vec<u32>,
 }
 
+/// Canonical string identity of a TransitPredicate.
+///
+/// The identity includes the variant and its ordered ASN values, so any
+/// predicate change invalidates dependent caches. Serialization is the
+/// canonical representation: `ContainsAny[1,2]`, `ContainsAll[1]`, `Adjacent(1,2)`.
+pub fn transit_predicate_identity(predicate: &TransitPredicate) -> String {
+    match predicate {
+        TransitPredicate::ContainsAny(asns) => {
+            format!(
+                "ContainsAny[{}]",
+                asns.iter()
+                    .map(|a| a.to_string())
+                    .collect::<Vec<_>>()
+                    .join(",")
+            )
+        }
+        TransitPredicate::ContainsAll(asns) => {
+            format!(
+                "ContainsAll[{}]",
+                asns.iter()
+                    .map(|a| a.to_string())
+                    .collect::<Vec<_>>()
+                    .join(",")
+            )
+        }
+        TransitPredicate::Adjacent(a, b) => format!("Adjacent({a},{b})"),
+    }
+}
+
 /// Build a RIB cache key from the source SHA, collector, and predicate components.
 pub fn rib_cache_key(
     source_sha: &str,
     collector: &str,
     origin_asns: &[u32],
-    transit_asn: u32,
+    transit_predicate: &TransitPredicate,
     manifest_revision: u32,
 ) -> String {
     let mut hasher = Sha256::new();
@@ -67,7 +96,7 @@ pub fn rib_cache_key(
         hasher.update(asn.to_le_bytes());
     }
     hasher.update(b"|");
-    hasher.update(transit_asn.to_le_bytes());
+    hasher.update(transit_predicate_identity(transit_predicate).as_bytes());
     hasher.update(b"|");
     hasher.update(manifest_revision.to_le_bytes());
     hasher.update(b"|");
@@ -299,36 +328,90 @@ mod tests {
 
     #[test]
     fn rib_cache_key_changes_with_origin_asn_change() {
-        let k1 = rib_cache_key("sha", "rv2", &[3333], 11537, 1);
-        let k2 = rib_cache_key("sha", "rv2", &[3333, 225], 11537, 1);
+        let k1 = rib_cache_key(
+            "sha",
+            "rv2",
+            &[3333],
+            &TransitPredicate::ContainsAny(vec![11537]),
+            1,
+        );
+        let k2 = rib_cache_key(
+            "sha",
+            "rv2",
+            &[3333, 225],
+            &TransitPredicate::ContainsAny(vec![11537]),
+            1,
+        );
         assert_ne!(k1, k2);
     }
 
     #[test]
     fn rib_cache_key_changes_with_transit_asn_change() {
-        let k1 = rib_cache_key("sha", "rv2", &[3333], 11537, 1);
-        let k2 = rib_cache_key("sha", "rv2", &[3333], 11538, 1);
+        let k1 = rib_cache_key(
+            "sha",
+            "rv2",
+            &[3333],
+            &TransitPredicate::ContainsAny(vec![11537]),
+            1,
+        );
+        let k2 = rib_cache_key(
+            "sha",
+            "rv2",
+            &[3333],
+            &TransitPredicate::ContainsAny(vec![11538]),
+            1,
+        );
         assert_ne!(k1, k2);
     }
 
     #[test]
     fn rib_cache_key_changes_with_sha_change() {
-        let k1 = rib_cache_key("abc", "rv2", &[3333], 11537, 1);
-        let k2 = rib_cache_key("def", "rv2", &[3333], 11537, 1);
+        let k1 = rib_cache_key(
+            "abc",
+            "rv2",
+            &[3333],
+            &TransitPredicate::ContainsAny(vec![11537]),
+            1,
+        );
+        let k2 = rib_cache_key(
+            "def",
+            "rv2",
+            &[3333],
+            &TransitPredicate::ContainsAny(vec![11537]),
+            1,
+        );
         assert_ne!(k1, k2);
     }
 
     #[test]
     fn rib_cache_key_changes_with_revision_change() {
-        let k1 = rib_cache_key("sha", "rv2", &[3333], 11537, 1);
-        let k2 = rib_cache_key("sha", "rv2", &[3333], 11537, 2);
+        let k1 = rib_cache_key(
+            "sha",
+            "rv2",
+            &[3333],
+            &TransitPredicate::ContainsAny(vec![11537]),
+            1,
+        );
+        let k2 = rib_cache_key(
+            "sha",
+            "rv2",
+            &[3333],
+            &TransitPredicate::ContainsAny(vec![11537]),
+            2,
+        );
         assert_ne!(k1, k2);
     }
 
     #[test]
     fn rib_cache_hit_and_miss() {
         let dir = tempfile::tempdir().unwrap();
-        let key = rib_cache_key("test_sha", "rv2", &[3333], 11537, 1);
+        let key = rib_cache_key(
+            "test_sha",
+            "rv2",
+            &[3333],
+            &TransitPredicate::ContainsAny(vec![11537]),
+            1,
+        );
 
         // Miss when no cache exists
         assert!(load_rib_cache(dir.path(), &key, "test_sha").is_none());
@@ -363,7 +446,13 @@ mod tests {
     #[test]
     fn rib_cache_invalidates_on_schema_change() {
         let dir = tempfile::tempdir().unwrap();
-        let key = rib_cache_key("sha", "rv2", &[3333], 11537, 1);
+        let key = rib_cache_key(
+            "sha",
+            "rv2",
+            &[3333],
+            &TransitPredicate::ContainsAny(vec![11537]),
+            1,
+        );
         let entry = RibCacheEntry {
             schema_version: 999, // wrong
             parser_version: PARSER_VERSION.into(),
