@@ -36,8 +36,14 @@ pub struct OutputContext<'a> {
     pub lifecycles: &'a [crate::lifecycle::StreamLifecycle],
     /// Ticket lifecycle (Open/Closed) for the report.
     pub ticket_lifecycle: &'a str,
+    /// Human label for the ticket expectation kind (e.g. "redundant-attachment").
+    pub expectation_kind_label: &'a str,
     /// Canonical TransitPredicate identity used for the analysis.
     pub transit_predicate_identity: &'a str,
+    /// The reviewed transit predicate itself, when available.
+    pub transit_predicate: Option<&'a crate::domain::route::TransitPredicate>,
+    /// Collectors requested by the reviewed manifest (before preflight).
+    pub requested_collectors: &'a [String],
     pub limitations: &'a [String],
     /// Whether the report may use the NoObservableBgpImpact wording.
     pub no_observable_impact: bool,
@@ -98,62 +104,190 @@ pub fn write_outputs(ctx: &OutputContext, out_dir: &Path) -> Result<Vec<PathBuf>
 
 // ── report.txt ─────────────────────────────────────────────────────
 
-fn write_report_txt(ctx: &OutputContext, path: &Path) -> Result<(), String> {
+/// Rendered report line prefix used for the schema line.
+fn schema_line() -> String {
+    format!(
+        "Report schema: v{} (JSON schema v{})",
+        crate::schema::REPORT_SCHEMA_VERSION,
+        crate::schema::REPORT_SCHEMA_VERSION
+    )
+}
+
+/// Human-facing assessment sentence for the expectation.
+pub fn render_assessment_line(
+    verdict: &crate::domain::assessment::Verdict,
+    expectation: &str,
+) -> String {
+    use crate::domain::assessment::AssessmentKind;
+    match verdict.assessment_kind() {
+        AssessmentKind::NotAssessable => {
+            "Not assessable: insufficient visibility from the selected observers.".to_string()
+        }
+        kind => {
+            let mut line = format!("{} {expectation} expectation.", kind.human_label());
+            if verdict.is_provisional() {
+                line.push_str(" Observation is provisional (open event); later route-state changes may alter this.");
+            }
+            line
+        }
+    }
+}
+
+/// Archive-coverage statement, always scoped to the selected plan.
+pub fn render_archive_coverage(
+    requested: &[String],
+    retained: &[String],
+    limitations: &[String],
+) -> String {
+    // Incomplete only when a selected archive could not be acquired.
+    for lim in limitations {
+        let l = lim.to_lowercase();
+        if l.contains("failed to cache")
+            || l.contains("could not be acquired")
+            || l.contains("download failed")
+        {
+            return format!("Incomplete because a selected archive could not be acquired ({lim}).");
+        }
+    }
+    let missing: Vec<&str> = requested
+        .iter()
+        .filter(|r| !retained.contains(r))
+        .map(|r| r.as_str())
+        .collect();
+    if !missing.is_empty() {
+        return format!(
+            "Complete for the selected analysis plan at {}; {} had no qualifying baseline target streams after RIB preflight.",
+            retained.join(", "),
+            missing.join(", ")
+        );
+    }
+    "Complete for the selected analysis plan (selected collectors, planned interval, verified archives).".to_string()
+}
+
+/// Data-derived finding paragraph for the Result section.
+pub fn render_finding(
+    lcs: &[crate::lifecycle::StreamLifecycle],
+    transitions: &[crate::domain::route::RouteTransition],
+    collectors: &[String],
+) -> String {
+    use crate::lifecycle::StreamCategory;
+    let total = lcs.len();
+    let unchanged = lcs
+        .iter()
+        .filter(|l| l.category == StreamCategory::Unchanged)
+        .count();
+    let prepend = lcs
+        .iter()
+        .filter(|l| l.category == StreamCategory::PrependOnly)
+        .count();
+    let still_via = lcs
+        .iter()
+        .filter(|l| l.category == StreamCategory::PathChangedStillViaTransit)
+        .count();
+    let departed = lcs
+        .iter()
+        .filter(|l| l.category == StreamCategory::DepartedTransitPath)
+        .count();
+    let withdrawn = lcs.iter().filter(|l| l.was_withdrawn).count();
+    let restored = lcs.iter().filter(|l| l.flags.restored).count();
+    let unresolved = lcs.iter().filter(|l| l.flags.not_restored).count();
+    let ambiguous = lcs.iter().filter(|l| l.flags.add_path_ambiguous).count();
+    let collector_txt = collectors.join(", ");
+
+    let any_change = prepend + still_via + departed + withdrawn > 0;
+
+    if !any_change && transitions.is_empty() {
+        return format!(
+            "Across {total} selected observer-prefix streams at {collector_txt}, inim observed no announcements, withdrawals, path changes, or community changes during the event analysis window."
+        );
+    }
+    if !any_change {
+        let community_only = transitions
+            .iter()
+            .filter(|t| t.effects.communities_changed && !t.effects.material_path_changed)
+            .count();
+        return format!(
+            "Across {total} selected observer-prefix streams at {collector_txt}, inim observed no announcements, withdrawals, or path changes; {community_only} community-only attribute change(s) occurred."
+        );
+    }
+
+    // Partial / heterogeneous case. Streams are the primary unit.
+    let mut parts: Vec<String> =
+        vec!["The event produced partial and heterogeneous external routing impact.".to_string()];
+    if withdrawn > 0 {
+        let mut w =
+            format!("{withdrawn} of {total} selected observer-prefix streams became absent");
+        if restored == withdrawn {
+            w.push_str(" and later returned");
+        } else if restored > 0 {
+            w.push_str(&format!("; {restored} of them later returned"));
+        }
+        if unresolved > 0 {
+            w.push_str(&format!(
+                ", while {unresolved} had not returned by the end of the observation window"
+            ));
+        }
+        w.push('.');
+        parts.push(w);
+    }
+    let remaining = total.saturating_sub(withdrawn);
+    let mut remainder: Vec<String> = Vec::new();
+    if prepend > 0 {
+        remainder.push(format!("{prepend} showed prepend-only changes"));
+    }
+    if still_via > 0 {
+        remainder.push(format!(
+            "{still_via} had other material path changes while retaining the reviewed transit"
+        ));
+    }
+    if departed > 0 {
+        remainder.push(format!(
+            "{departed} remained visible after departing that transit"
+        ));
+    }
+    if unchanged > 0 {
+        remainder.push(format!("{unchanged} remained unchanged"));
+    }
+    if !remainder.is_empty() {
+        let joined = join_sentences(&remainder);
+        parts.push(format!(
+            "Among the remaining {remaining} streams, {joined}."
+        ));
+    }
+    if ambiguous > 0 {
+        parts.push(format!(
+            "{ambiguous} stream(s) have ambiguous ADD-PATH continuity and were excluded from strong stream-level assessment."
+        ));
+    }
+    parts.join(" ")
+}
+
+fn join_sentences(items: &[String]) -> String {
+    match items.len() {
+        0 => String::new(),
+        1 => items[0].clone(),
+        2 => format!("{} and {}", items[0], items[1]),
+        _ => {
+            let mut out = String::new();
+            for (i, item) in items.iter().enumerate() {
+                if i == items.len() - 1 {
+                    out.push_str(&format!("and {item}"));
+                } else if i > 0 {
+                    out.push_str(&format!(", {item}"));
+                } else {
+                    out.push_str(item);
+                }
+            }
+            out
+        }
+    }
+}
+
+/// The full analyst-facing text report.
+pub fn render_report_txt(ctx: &OutputContext) -> String {
     use crate::lifecycle::StreamCategory;
 
     let mut buf = String::new();
-
-    push_ln(&mut buf, "══════════════════════════════════════════");
-    push_ln(&mut buf, "  INTERNET IMPACT ANALYSIS");
-    push_ln(&mut buf, "══════════════════════════════════════════");
-    push_ln(&mut buf, "");
-    push_ln(&mut buf, &format!("Event:        {}", ctx.event_id));
-    push_ln(&mut buf, &format!("Title:        {}", ctx.ticket_title));
-    push_ln(
-        &mut buf,
-        &format!("Report schema: v{}", crate::schema::REPORT_SCHEMA_VERSION),
-    );
-    push_ln(&mut buf, "");
-
-    // ── 8.1 Observed event signature ────────────────────────────
-    push_ln(&mut buf, "── Observed event signature ────────────────");
-    push_ln(
-        &mut buf,
-        &format!("  Ticket expectation:      {}", ctx.declared_expectation),
-    );
-    push_ln(
-        &mut buf,
-        &format!("  Ticket lifecycle:        {}", ctx.ticket_lifecycle),
-    );
-    push_ln(
-        &mut buf,
-        &format!(
-            "  Transit predicate:       {}",
-            ctx.transit_predicate_identity
-        ),
-    );
-    push_ln(
-        &mut buf,
-        &format!("  Analysis window (UTC):   {}", ctx.event_window),
-    );
-    push_ln(
-        &mut buf,
-        &format!("  Warmup:                  {}", ctx.warmup_window),
-    );
-    push_ln(
-        &mut buf,
-        &format!("  Cooldown:                {}", ctx.cooldown_window),
-    );
-    push_ln(
-        &mut buf,
-        &format!(
-            "  Observer scope:          {} collectors ({})",
-            ctx.collectors.len(),
-            ctx.collectors.join(", ")
-        ),
-    );
-    push_ln(&mut buf, "");
-
     let lcs = ctx.lifecycles;
     let baseline_streams = lcs.len();
     let baseline_instances: usize = lcs.iter().map(|l| l.baseline_instance_count).sum();
@@ -183,164 +317,297 @@ fn write_report_txt(ctx: &OutputContext, path: &Path) -> Result<(), String> {
     let restored = lcs.iter().filter(|l| l.flags.restored).count();
     let unresolved = lcs.iter().filter(|l| l.flags.not_restored).count();
     let ambiguous = lcs.iter().filter(|l| l.flags.add_path_ambiguous).count();
-    let retaining = unchanged + prepend_only + still_via;
-    let material_changes = ctx
+    let material_transitions = ctx
         .transitions
         .iter()
         .filter(|t| t.effects.material_path_changed)
         .count();
+    let withdrawal_transitions = ctx
+        .transitions
+        .iter()
+        .filter(|t| matches!(t.kind, crate::domain::route::TransitionKind::Withdrawal))
+        .count();
 
-    push_ln(&mut buf, "  ── Observer scope (streams and instances) ──");
-    push_ln(
-        &mut buf,
-        &format!("    Baseline observer-prefix streams: {}", baseline_streams),
-    );
-    push_ln(
-        &mut buf,
-        &format!(
-            "    Baseline route instances:          {}",
-            baseline_instances
-        ),
-    );
-    push_ln(
-        &mut buf,
-        &format!("    Multiple-instance streams:          {}", multi_instance),
-    );
+    // ── Header ────────────────────────────────────────────────────
+    push_ln(&mut buf, "══════════════════════════════════════════");
+    push_ln(&mut buf, "  EXTERNAL BGP EVENT ANALYSIS");
+    push_ln(&mut buf, "══════════════════════════════════════════");
     push_ln(&mut buf, "");
-    push_ln(&mut buf, "  ── Stream lifecycle ─────────────────────");
-    push_ln(
-        &mut buf,
-        &format!("    Unchanged streams:                  {}", unchanged),
-    );
-    push_ln(
-        &mut buf,
-        &format!("    Prepend-only streams:               {}", prepend_only),
-    );
-    push_ln(
-        &mut buf,
-        &format!(
-            "    Material path changes (transitions):{}",
-            material_changes
-        ),
-    );
-    push_ln(
-        &mut buf,
-        &format!("    Streams retaining transit:          {}", retaining),
-    );
-    push_ln(
-        &mut buf,
-        &format!("    Streams departing transit:          {}", departed),
-    );
-    push_ln(
-        &mut buf,
-        &format!("    Withdrawn streams:                  {}", withdrawn),
-    );
-    push_ln(
-        &mut buf,
-        &format!("    Restored streams:                   {}", restored),
-    );
-    push_ln(
-        &mut buf,
-        &format!("    Unresolved streams:                 {}", unresolved),
-    );
-    push_ln(
-        &mut buf,
-        &format!("    ADD-PATH ambiguous streams:         {}", ambiguous),
-    );
+    push_ln(&mut buf, ctx.event_id);
+    push_ln(&mut buf, ctx.ticket_title);
+    push_ln(&mut buf, "");
+    push_ln(&mut buf, &schema_line());
     push_ln(&mut buf, "");
 
-    if !ctx.semantic_waves.is_empty() {
-        push_ln(&mut buf, "  ── Semantic waves ────────────────────────");
-        for w in ctx.semantic_waves {
-            push_ln(
-                &mut buf,
-                &format!(
-                    "    {} {}  {} – {} ({} streams, {} route instances, peak {} – {})",
-                    w.id,
-                    w.label.as_str(),
-                    w.start.format("%H:%M:%S"),
-                    w.end.format("%H:%M:%S"),
-                    w.stream_count,
-                    w.route_instance_count,
-                    w.peak_start.format("%H:%M:%S"),
-                    w.peak_end.format("%H:%M:%S"),
-                ),
-            );
-        }
-        push_ln(&mut buf, "");
-    }
-
-    push_ln(&mut buf, "  ── Final impact assessment ───────────────");
+    // ── Result ────────────────────────────────────────────────────
+    push_ln(&mut buf, "Result");
     match ctx.outcome {
         AnalysisOutcome::Completed { assessment } => {
-            push_ln(&mut buf, &format!("    Verdict: {}", assessment.verdict));
-            for ev in &assessment.evidence {
-                push_ln(&mut buf, &format!("    - {}", ev.description));
-            }
-            if ctx.no_observable_impact {
-                push_ln(&mut buf, "");
-                push_ln(
-                    &mut buf,
-                    "    No route-state changes were observed among the selected RouteViews",
-                );
-                push_ln(
-                    &mut buf,
-                    "    observer-prefix streams. This is consistent with the",
-                );
-                push_ln(&mut buf, "    redundant-attachment expectation.");
+            push_ln(
+                &mut buf,
+                &format!("    {}", assessment.verdict.human_label()),
+            );
+            push_ln(&mut buf, "");
+            let finding = render_finding(lcs, ctx.transitions, ctx.collectors);
+            for line in wrap_text(&finding, 76, 4) {
+                push_ln(&mut buf, &line);
             }
         }
         AnalysisOutcome::InsufficientVisibility { reason } => {
-            push_ln(&mut buf, "    INSUFFICIENT VISIBILITY");
+            push_ln(&mut buf, "    Insufficient visibility");
+            push_ln(&mut buf, "");
             push_ln(&mut buf, &format!("    {reason}"));
         }
         AnalysisOutcome::Incomplete { failure } => {
-            push_ln(&mut buf, "    INCOMPLETE");
+            push_ln(&mut buf, "    Analysis incomplete");
+            push_ln(&mut buf, "");
             push_ln(&mut buf, &format!("    {failure}"));
         }
     }
     push_ln(&mut buf, "");
 
-    // ── 8.2 Observable mechanism hints ───────────────────────────
-    push_ln(&mut buf, "── Observable mechanism hints ──────────────");
-    let gshut_streams = lcs.iter().filter(|l| l.graceful_shutdown_seen).count();
-    if gshut_streams > 0 {
-        push_ln(
-            &mut buf,
-            &format!(
-                "  RFC 8326 GRACEFUL_SHUTDOWN community (65535:0) was observed on {gshut_streams} selected observer-prefix streams."
-            ),
-        );
-        // GSHUT timing hints.
-        let with_timing: Vec<_> = lcs
-            .iter()
-            .filter(|l| l.graceful_shutdown_seen)
-            .map(|l| {
-                let first = l
-                    .first_gshut_timestamp
-                    .map(|t| t.format("%H:%M:%S").to_string())
-                    .unwrap_or_else(|| "?".into());
-                let last = l
-                    .last_gshut_timestamp
-                    .map(|t| t.format("%H:%M:%S").to_string())
-                    .unwrap_or_else(|| "?".into());
-                format!(
-                    "    {}:{} {} first={first} last={last} before-withdrawal={} before-replacement={}",
-                    l.collector, l.peer_ip, l.prefix, l.gshut_before_withdrawal, l.gshut_before_path_change
-                )
-            })
-            .collect();
-        for line in with_timing {
-            push_ln(&mut buf, &line);
+    // ── Assessment against ticket expectation ─────────────────────
+    push_ln(&mut buf, "Assessment against ticket expectation");
+    if let AnalysisOutcome::Completed { assessment } = ctx.outcome {
+        let line = render_assessment_line(&assessment.verdict, ctx.expectation_kind_label);
+        for l in wrap_text(&line, 76, 4) {
+            push_ln(&mut buf, &l);
+        }
+        // Explicitly separate the observed signature from the assessment.
+        if matches!(
+            assessment.verdict,
+            crate::domain::assessment::Verdict::NoObservableBgpImpact
+        ) {
+            push_ln(&mut buf, "");
+            push_ln(
+                &mut buf,
+                "    The absence of observed route-state changes does not prove that the",
+            );
+            push_ln(
+                &mut buf,
+                "    attachment, circuit, or network was physically redundant.",
+            );
         }
     } else {
         push_ln(
             &mut buf,
-            "  No RFC 8326 GRACEFUL_SHUTDOWN community reached the selected observers.",
+            "    Not assessable: no BGP evidence was observed (planning blocked or analysis incomplete).",
+        );
+    }
+    push_ln(&mut buf, "");
+
+    // ── Observation scope ─────────────────────────────────────────
+    push_ln(&mut buf, "Observation scope");
+    push_ln(
+        &mut buf,
+        &format!("    Event window:      {}", ctx.event_window),
+    );
+    push_ln(
+        &mut buf,
+        &format!("    Warmup:            {}", ctx.warmup_window),
+    );
+    push_ln(
+        &mut buf,
+        &format!("    Cooldown:          {}", ctx.cooldown_window),
+    );
+    push_ln(
+        &mut buf,
+        &format!("    Collectors:        {}", ctx.collectors.join(", ")),
+    );
+    push_ln(
+        &mut buf,
+        &format!("    Selected streams:  {baseline_streams} observer-prefix streams"),
+    );
+    push_ln(
+        &mut buf,
+        &format!("    Baseline routes:   {baseline_instances} route instances"),
+    );
+    if multi_instance > 0 {
+        push_ln(
+            &mut buf,
+            &format!(
+                "    Multi-instance:    {multi_instance} stream(s) with multiple route instances"
+            ),
+        );
+    }
+    if let Some(pred) = ctx.transit_predicate {
+        push_ln(&mut buf, "    Baseline qualification:");
+        push_ln(&mut buf, &format!("        {}", pred.human_description()));
+    }
+    push_ln(
+        &mut buf,
+        &format!(
+            "    Archive coverage:  {}",
+            render_archive_coverage(ctx.requested_collectors, ctx.collectors, ctx.limitations)
+        ),
+    );
+    push_ln(&mut buf, "");
+
+    // ── Important limitation ──────────────────────────────────────
+    push_ln(&mut buf, "Important limitation");
+    push_ln(
+        &mut buf,
+        "    This finding is limited to externally exported BGP route state at the",
+    );
+    push_ln(
+        &mut buf,
+        "    selected public collectors. It does not measure traffic, circuit state,",
+    );
+    push_ln(&mut buf, "    or global reachability.");
+    push_ln(&mut buf, "");
+
+    // ── Ticket interpretation ─────────────────────────────────────
+    push_ln(&mut buf, "Ticket interpretation");
+    push_ln(
+        &mut buf,
+        &format!("    Ticket expectation: {}", ctx.declared_expectation),
+    );
+    push_ln(
+        &mut buf,
+        &format!("    Ticket lifecycle:   {}", ctx.ticket_lifecycle),
+    );
+    push_ln(
+        &mut buf,
+        &format!("    Target predicate:   {}", ctx.target_predicate),
+    );
+    if let Some(pred) = ctx.transit_predicate {
+        push_ln(
+            &mut buf,
+            &format!("    TransitPredicate:   {}", pred.render_canonical()),
+        );
+    }
+    push_ln(&mut buf, "");
+
+    // ── Evidence details ──────────────────────────────────────────
+    push_ln(&mut buf, "Evidence details");
+    push_ln(
+        &mut buf,
+        &format!("    Route-instance transitions: {}", ctx.transitions.len()),
+    );
+    push_ln(
+        &mut buf,
+        &format!(
+            "      event-window: {}  cooldown: {}",
+            ctx.transitions
+                .iter()
+                .filter(|t| t.phase == AnalysisPhase::Event)
+                .count(),
+            ctx.transitions
+                .iter()
+                .filter(|t| t.phase == AnalysisPhase::Cooldown)
+                .count()
+        ),
+    );
+    push_ln(
+        &mut buf,
+        &format!("    Route-instance withdrawal transitions: {withdrawal_transitions}"),
+    );
+    push_ln(
+        &mut buf,
+        &format!("    Material path changes (transitions): {material_transitions}"),
+    );
+    push_ln(
+        &mut buf,
+        &format!("    Baseline route instances: {baseline_instances}"),
+    );
+    if let AnalysisOutcome::Completed { assessment } = ctx.outcome {
+        for ev in &assessment.evidence {
+            // The compact lifecycle dump lives in report.json; the text
+            // report renders the readable Lifecycle counts section instead.
+            if ev.description.starts_with("Stream lifecycle:") {
+                continue;
+            }
+            push_ln(&mut buf, &format!("    - {}", ev.description));
+        }
+    }
+    push_ln(&mut buf, "");
+
+    // ── Lifecycle counts ──────────────────────────────────────────
+    push_ln(&mut buf, "Lifecycle counts (observer-prefix streams)");
+    push_ln(
+        &mut buf,
+        &format!("    Total selected streams:      {baseline_streams}"),
+    );
+    push_ln(
+        &mut buf,
+        &format!("    Unchanged streams:            {unchanged}"),
+    );
+    push_ln(
+        &mut buf,
+        &format!("    Prepend-only streams:         {prepend_only}"),
+    );
+    push_ln(
+        &mut buf,
+        &format!("    Material change, still via reviewed transit: {still_via}"),
+    );
+    push_ln(
+        &mut buf,
+        &format!("    Streams departing the reviewed transit: {departed}"),
+    );
+    push_ln(
+        &mut buf,
+        &format!("    Observer-prefix streams that became absent: {withdrawn}"),
+    );
+    if withdrawn > 0 || departed > 0 {
+        push_ln(
+            &mut buf,
+            &format!("    Streams restored after absence: {restored}"),
+        );
+    } else {
+        push_ln(
+            &mut buf,
+            "    Streams restored after absence: Not applicable (no stream became absent or departed)",
+        );
+    }
+    push_ln(
+        &mut buf,
+        &format!("    Unresolved streams:            {unresolved}"),
+    );
+    push_ln(
+        &mut buf,
+        &format!("    ADD-PATH ambiguous streams:    {ambiguous}"),
+    );
+    push_ln(&mut buf, "");
+
+    // ── Observable mechanism hints ────────────────────────────────
+    push_ln(&mut buf, "Observable mechanism hints");
+    let gshut_streams = lcs.iter().filter(|l| l.graceful_shutdown_seen).count();
+    if gshut_streams == 0 {
+        push_ln(
+            &mut buf,
+            "    No RFC 8326 GRACEFUL_SHUTDOWN community reached the selected observers.",
         );
         push_ln(
             &mut buf,
-            "  Its absence does not establish that graceful shutdown was not used.",
+            "    Its absence does not establish that graceful shutdown was not used.",
+        );
+    } else {
+        push_ln(
+            &mut buf,
+            &format!(
+                "    RFC 8326 GRACEFUL_SHUTDOWN community was observed on {gshut_streams} selected observer-prefix stream(s)."
+            ),
+        );
+        for l in lcs.iter().filter(|l| l.graceful_shutdown_seen) {
+            let first = l
+                .first_gshut_timestamp
+                .map(|t| t.format("%H:%M:%S").to_string())
+                .unwrap_or_else(|| "?".into());
+            let last = l
+                .last_gshut_timestamp
+                .map(|t| t.format("%H:%M:%S").to_string())
+                .unwrap_or_else(|| "?".into());
+            push_ln(
+                &mut buf,
+                &format!(
+                    "      {}:{} {} first={first} last={last} before-withdrawal={} before-replacement={}",
+                    l.collector, l.peer_ip, l.prefix, l.gshut_before_withdrawal, l.gshut_before_path_change
+                ),
+            );
+        }
+        push_ln(
+            &mut buf,
+            "    The tag's presence does not imply it caused any subsequent route-state change.",
         );
     }
     let community_only = ctx
@@ -350,62 +617,103 @@ fn write_report_txt(ctx: &OutputContext, path: &Path) -> Result<(), String> {
         .count();
     push_ln(
         &mut buf,
-        &format!("  Community-only changes (no path change): {community_only} transition(s)."),
+        &format!("    Community-only changes: {community_only} transition(s)"),
     );
+    push_ln(&mut buf, "");
+    push_ln(&mut buf, "    Not directly observable here:");
+    push_ln(&mut buf, "      RFC 9003 administrative-shutdown message");
+    push_ln(&mut buf, "      RFC 8327 operational intent");
+    push_ln(&mut buf, "      Graceful Restart negotiation state");
     push_ln(
         &mut buf,
-        "  RFC 9003: administrative-shutdown message not observable from these remote collector sessions.",
-    );
-    push_ln(
-        &mut buf,
-        "  RFC 8327: operational intent not directly observable.",
-    );
-    push_ln(
-        &mut buf,
-        "  Graceful Restart: negotiated session capability/state not directly observable from this dataset.",
-    );
-    push_ln(
-        &mut buf,
-        "  Mechanism hints do not change the impact assessment by themselves.",
+        "    Mechanism hints do not change the impact assessment by themselves.",
     );
     push_ln(&mut buf, "");
 
-    // ── 8.3 Limitations ─────────────────────────────────────────
-    push_ln(&mut buf, "── Limitations ─────────────────────────────");
+    // ── Method and limitations ────────────────────────────────────
+    push_ln(&mut buf, "Method and limitations");
     push_ln(
         &mut buf,
-        "  • Selected collectors do not provide global visibility.",
+        "    Selected collectors do not provide global visibility.",
     );
-    push_ln(&mut buf, "  • BGP route state is not traffic measurement.");
-    push_ln(&mut buf, "  • Local session state is not observed.");
-    push_ln(&mut buf, "  • Physical-link state is not observed.");
+    push_ln(&mut buf, "    BGP route state is not traffic measurement.");
     push_ln(
         &mut buf,
-        "  • Absent communities do not prove a mechanism was unused.",
+        "    Local BGP session state is not directly observed.",
+    );
+    push_ln(&mut buf, "    Physical-link state is not observed.");
+    push_ln(
+        &mut buf,
+        "    Absent optional communities prove nothing about mechanism non-use.",
     );
     push_ln(
         &mut buf,
-        "  • Event declarations and BGP changes establish temporal association, not automatic causation.",
+        "    Temporal association is not automatic causation.",
     );
     for lim in ctx.limitations {
-        push_ln(&mut buf, &format!("  • {lim}"));
+        push_ln(&mut buf, &format!("    • {lim}"));
     }
     push_ln(&mut buf, "");
 
+    // ── Evidence artifact references ──────────────────────────────
+    push_ln(&mut buf, "Evidence artifact references");
     push_ln(
         &mut buf,
-        "This analysis uses control-plane observations from selected RouteViews",
+        "    Full evidence with schema versions is written to this directory:",
     );
     push_ln(
         &mut buf,
-        "collectors only. Conclusions are observer-scoped and do not claim",
+        "      report.json        assessment, signature, mechanism hints, limitations",
     );
     push_ln(
         &mut buf,
-        "global reachability or physical-layer attribution.",
+        "      evidence_appendix.jsonl   per-transition evidence",
+    );
+    push_ln(
+        &mut buf,
+        "      archive_manifest.json     source archives with SHA-256",
+    );
+    push_ln(
+        &mut buf,
+        "      lifecycle.json           per-stream lifecycles",
+    );
+    push_ln(
+        &mut buf,
+        "      semantic_waves.json      wave boundaries and facets",
+    );
+    push_ln(
+        &mut buf,
+        "      withdrawal_audit.json    withdrawn-stream audit",
     );
 
-    std::fs::write(path, buf).map_err(|e| format!("cannot write {}: {e}", path.display()))
+    buf
+}
+
+/// Wrap a paragraph at `width` columns with `indent` leading spaces.
+fn wrap_text(text: &str, width: usize, indent: usize) -> Vec<String> {
+    let mut out = Vec::new();
+    let mut line = String::new();
+    let prefix = " ".repeat(indent);
+    for word in text.split_whitespace() {
+        if line.is_empty() {
+            line = format!("{prefix}{word}");
+        } else if line.len() + 1 + word.len() <= width {
+            line.push(' ');
+            line.push_str(word);
+        } else {
+            out.push(line);
+            line = format!("{prefix}{word}");
+        }
+    }
+    if !line.is_empty() {
+        out.push(line);
+    }
+    out
+}
+
+fn write_report_txt(ctx: &OutputContext, path: &Path) -> Result<(), String> {
+    let content = render_report_txt(ctx);
+    std::fs::write(path, content).map_err(|e| format!("cannot write {}: {e}", path.display()))
 }
 
 // ── report.json ─────────────────────────────────────────────────────
@@ -414,6 +722,8 @@ fn write_report_txt(ctx: &OutputContext, path: &Path) -> Result<(), String> {
 struct JsonReport {
     schema_version: u32,
     event_id: String,
+    result: serde_json::Value,
+    assessment: serde_json::Value,
     observed_event_signature: serde_json::Value,
     observable_mechanism_hints: serde_json::Value,
     limitations: Vec<String>,
@@ -464,6 +774,13 @@ fn write_report_json(ctx: &OutputContext, path: &Path) -> Result<(), String> {
             "baseline_observer_prefix_streams": lcs.len(),
             "baseline_route_instances": lcs.iter().map(|l| l.baseline_instance_count).sum::<usize>(),
             "multiple_instance_streams": lcs.iter().filter(|l| l.baseline_instance_count > 1 || l.total_route_instances > l.baseline_instance_count).count(),
+            "archive_coverage": render_archive_coverage(
+                ctx.requested_collectors,
+                ctx.collectors,
+                ctx.limitations,
+            ),
+            "baseline_qualification": ctx.transit_predicate.map(|p| p.human_description()),
+            "exact_transit_predicate": ctx.transit_predicate.map(|p| p.render_canonical()),
         },
         "stream_lifecycle": {
             "unchanged": lcs.iter().filter(|l| l.category == StreamCategory::Unchanged).count(),
@@ -521,9 +838,49 @@ fn write_report_json(ctx: &OutputContext, path: &Path) -> Result<(), String> {
         "mechanism_hints_do_not_change_impact_assessment": true,
     });
 
+    let (result_json, assessment_json) = if let AnalysisOutcome::Completed { assessment } =
+        ctx.outcome
+    {
+        let verdict_label = assessment.verdict.human_label();
+        let finding = render_finding(lcs, ctx.transitions, ctx.collectors);
+        let assessment_text =
+            render_assessment_line(&assessment.verdict, ctx.expectation_kind_label);
+        (
+            serde_json::json!({
+                "verdict": assessment.verdict,
+                "verdict_label": verdict_label,
+                "finding": finding,
+            }),
+            serde_json::json!({
+                "statement": assessment_text,
+                "verdict": assessment.verdict,
+                "provisional": assessment.verdict.is_provisional(),
+            }),
+        )
+    } else {
+        (
+            serde_json::json!({
+                "verdict": null,
+                "verdict_label": match ctx.outcome {
+                    AnalysisOutcome::InsufficientVisibility { .. } => "Insufficient visibility",
+                    AnalysisOutcome::Incomplete { .. } => "Analysis incomplete",
+                    AnalysisOutcome::Completed { .. } => unreachable!(),
+                },
+                "finding": null,
+            }),
+            serde_json::json!({
+                "statement": "Not assessable: no BGP evidence was observed (planning blocked or analysis incomplete).",
+                "verdict": null,
+                "provisional": false,
+            }),
+        )
+    };
+
     let report = JsonReport {
         schema_version: crate::schema::REPORT_SCHEMA_VERSION,
         event_id: ctx.event_id.to_string(),
+        result: result_json,
+        assessment: assessment_json,
         observed_event_signature: signature,
         observable_mechanism_hints: mechanism_hints,
         limitations: ctx.limitations.to_vec(),
@@ -840,7 +1197,10 @@ mod tests {
             semantic_waves,
             lifecycles,
             ticket_lifecycle: "Closed",
+            expectation_kind_label: "redundant-attachment",
             transit_predicate_identity: "ContainsAny[11537]",
+            transit_predicate: None,
+            requested_collectors: collectors,
             limitations,
             no_observable_impact: true,
         }
@@ -949,7 +1309,7 @@ mod tests {
         write_outputs(&ctx, dir.path()).unwrap();
 
         let report = std::fs::read_to_string(dir.path().join("report.txt")).unwrap();
-        assert!(report.contains("INSUFFICIENT VISIBILITY"));
+        assert!(report.contains("Insufficient visibility"));
         assert!(report.contains("no streams"));
     }
 
@@ -979,7 +1339,7 @@ mod tests {
         write_outputs(&ctx, dir.path()).unwrap();
 
         let report = std::fs::read_to_string(dir.path().join("report.txt")).unwrap();
-        assert!(report.contains("INCOMPLETE"));
+        assert!(report.contains("Analysis incomplete"));
         assert!(report.contains("download failed"));
     }
 
@@ -1012,7 +1372,8 @@ mod tests {
         assert!(!report.contains("remained globally reachable"));
         assert!(!report.contains("traffic successfully failed over"));
         assert!(!report.contains("physical circuit caused"));
-        assert!(report.contains("observer-scoped"));
+        assert!(report.contains("selected public collectors"));
+        assert!(report.contains("does not measure traffic, circuit state,"));
     }
 
     #[test]
@@ -1170,11 +1531,11 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         write_outputs(&ctx, dir.path()).unwrap();
         let report = std::fs::read_to_string(dir.path().join("report.txt")).unwrap();
-        let sig = report.find("Observed event signature").unwrap();
+        let result = report.find("Result").unwrap();
         let hints = report.find("Observable mechanism hints").unwrap();
-        let lim = report.find("Limitations").unwrap();
-        assert!(sig < hints, "signature precedes mechanism hints");
-        assert!(hints < lim, "mechanism hints precede limitations");
+        let method = report.find("Method and limitations").unwrap();
+        assert!(result < hints, "result precedes mechanism hints");
+        assert!(hints < method, "mechanism hints precede method/limitations");
     }
 
     #[test]
@@ -1205,8 +1566,8 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         write_outputs(&ctx, dir.path()).unwrap();
         let report = std::fs::read_to_string(dir.path().join("report.txt")).unwrap();
-        assert!(report.contains("Baseline observer-prefix streams: 2"));
-        assert!(report.contains("Baseline route instances:          2"));
+        assert!(report.contains("Selected streams:  2 observer-prefix streams"));
+        assert!(report.contains("Baseline routes:   2 route instances"));
     }
 
     #[test]
@@ -1237,7 +1598,7 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         write_outputs(&ctx, dir.path()).unwrap();
         let report = std::fs::read_to_string(dir.path().join("report.txt")).unwrap();
-        assert!(report.contains("Withdrawn streams:                  1"));
+        assert!(report.contains("Observer-prefix streams that became absent: 1"));
         // Observer-scoped: never "global withdrawal".
         assert!(!report.contains("global withdrawal"), "{report}");
     }
@@ -1268,11 +1629,10 @@ mod tests {
         write_outputs(&ctx, dir.path()).unwrap();
         let report = std::fs::read_to_string(dir.path().join("report.txt")).unwrap();
         // RFC 9003 / 8327 / GR are stated as not observable, never claimed.
-        assert!(report.contains("RFC 9003: administrative-shutdown message not observable"));
-        assert!(report.contains("RFC 8327: operational intent not directly observable"));
-        assert!(report.contains(
-            "Graceful Restart: negotiated session capability/state not directly observable"
-        ));
+        assert!(report.contains("Not directly observable here:"));
+        assert!(report.contains("RFC 9003 administrative-shutdown message"));
+        assert!(report.contains("RFC 8327 operational intent"));
+        assert!(report.contains("Graceful Restart negotiation state"));
         assert!(!report.contains("was administratively shut down"));
         assert!(!report.contains("intended to withdraw"));
     }
@@ -1312,5 +1672,850 @@ mod tests {
         let json = std::fs::read_to_string(dir.path().join("report.json")).unwrap();
         let val: serde_json::Value = serde_json::from_str(&json).unwrap();
         assert_eq!(val["schema_version"], crate::schema::REPORT_SCHEMA_VERSION);
+    }
+
+    // ── Session 28: analyst-facing output tests ───────────────────
+
+    use crate::domain::route::TransitPredicate;
+
+    /// Owns every value a rendered report needs, so OutputContext borrows
+    /// live data for the whole test.
+    struct TestCtx {
+        outcome: AnalysisOutcome,
+        collectors: Vec<String>,
+        ribs: Vec<CachedArchive>,
+        updates: Vec<CachedArchive>,
+        transitions: Vec<RouteTransition>,
+        waves: Vec<ImpactWave>,
+        semantic: Vec<crate::lifecycle::SemanticWave>,
+        lifecycles: Vec<crate::lifecycle::StreamLifecycle>,
+        limitations: Vec<String>,
+        predicate: Option<TransitPredicate>,
+    }
+
+    impl TestCtx {
+        fn new(
+            outcome: AnalysisOutcome,
+            collectors: Vec<String>,
+            lifecycles: Vec<crate::lifecycle::StreamLifecycle>,
+        ) -> Self {
+            TestCtx {
+                outcome,
+                collectors,
+                ribs: vec![],
+                updates: vec![],
+                transitions: vec![],
+                waves: vec![],
+                semantic: vec![],
+                lifecycles,
+                limitations: vec![],
+                predicate: None,
+            }
+        }
+
+        fn ctx(&self) -> OutputContext<'_> {
+            OutputContext {
+                outcome: &self.outcome,
+                event_id: "TEST",
+                ticket_title: "Test Ticket",
+                event_window: "2026-07-30 09:25:00 UTC - 2026-07-30 09:47:00 UTC",
+                warmup_window: "2026-07-30 08:25:00 UTC - 2026-07-30 09:25:00 UTC",
+                cooldown_window: "2026-07-30 09:47:00 UTC - 2026-07-30 10:47:00 UTC",
+                declared_expectation: "Redundant: Parenthesized site code (NEWA)",
+                target_predicate: "origin AS3333 AND baseline AS path contains AS11537",
+                collectors: &self.collectors,
+                selected_ribs: &self.ribs,
+                selected_updates: &self.updates,
+                preflight: None,
+                continuity: "Known (no gaps)",
+                transitions: &self.transitions,
+                waves: &self.waves,
+                semantic_waves: &self.semantic,
+                lifecycles: &self.lifecycles,
+                ticket_lifecycle: "Closed",
+                expectation_kind_label: "redundant-attachment",
+                transit_predicate_identity: "ContainsAny[11537]",
+                transit_predicate: self.predicate.as_ref(),
+                requested_collectors: &self.collectors,
+                limitations: &self.limitations,
+                no_observable_impact: true,
+            }
+        }
+
+        fn report(&self) -> String {
+            render_report_txt(&self.ctx())
+        }
+    }
+
+    fn lifecycle_with(
+        category: crate::lifecycle::StreamCategory,
+        was_withdrawn: bool,
+        restored: bool,
+        not_restored: bool,
+        ambiguous: bool,
+    ) -> crate::lifecycle::StreamLifecycle {
+        use crate::lifecycle::{StreamFlags, StreamLifecycle};
+        StreamLifecycle {
+            collector: "route-views2".into(),
+            peer_ip: "185.1.8.65".into(),
+            prefix: "192.0.2.0/24".into(),
+            baseline_path: vec![6447, 11537, 3333],
+            baseline_instance_count: 1,
+            max_concurrent_instances: 1,
+            total_route_instances: 1,
+            category,
+            flags: StreamFlags {
+                restored,
+                not_restored,
+                multiple_cycles: false,
+                add_path_ambiguous: ambiguous,
+            },
+            first_change: None,
+            transitions: vec![],
+            min_absence_secs: None,
+            max_absence_secs: None,
+            was_withdrawn,
+            stream_withdrawal_time: None,
+            active_before_absence: 0,
+            transit_at_withdrawal: None,
+            withdrawn_instances: vec![],
+            stream_withdrawal_count: 0,
+            restorations: vec![],
+            add_path_ambiguity: None,
+            replacement_appeared: false,
+            replacement_retained_transit: None,
+            prepending_changed: false,
+            cooldown_transitions: vec![],
+            final_state: None,
+            baseline_restored: false,
+            restoration_time: None,
+            affected_duration_secs: None,
+            graceful_shutdown_seen: false,
+            gshut_present_at_baseline: false,
+            gshut_newly_added: false,
+            gshut_removed: false,
+            first_gshut_timestamp: None,
+            last_gshut_timestamp: None,
+            gshut_before_withdrawal: false,
+            gshut_before_path_change: false,
+            gshut_to_consequence_secs: None,
+            gshut_removed_during_restoration: false,
+            communities_before: vec![],
+            communities_after: vec![],
+        }
+    }
+
+    fn no_change_ctx() -> TestCtx {
+        use crate::lifecycle::StreamCategory;
+        TestCtx::new(
+            sample_outcome(),
+            vec!["route-views2".to_string(), "route-views6".to_string()],
+            vec![lifecycle_with(
+                StreamCategory::Unchanged,
+                false,
+                false,
+                false,
+                false,
+            )],
+        )
+    }
+
+    fn partial_outcome() -> AnalysisOutcome {
+        use crate::domain::assessment::{EventAssessment, Evidence, Verdict};
+        use crate::domain::event::EventId;
+        use crate::domain::expectation::ImpactExpectation;
+        AnalysisOutcome::Completed {
+            assessment: EventAssessment {
+                event_id: EventId::from("T"),
+                expectation: ImpactExpectation::participant_unavailable("t"),
+                verdict: Verdict::PartialImpact,
+                evidence: vec![Evidence {
+                    description: "x".into(),
+                    source_records: vec![],
+                }],
+                waves: vec![],
+                generated_at: chrono::Utc::now(),
+            },
+        }
+    }
+
+    #[test]
+    fn completed_report_uses_external_bgp_heading() {
+        let report = no_change_ctx().report();
+        assert!(report.contains("EXTERNAL BGP EVENT ANALYSIS"));
+        assert!(!report.contains("INTERNET IMPACT ANALYSIS"));
+    }
+
+    #[test]
+    fn no_change_verdict_displays_route_state_language() {
+        let report = no_change_ctx().report();
+        assert!(report.contains("No route-state change observed"));
+        assert!(!report.contains("NO OBSERVABLE BGP IMPACT"));
+    }
+
+    #[test]
+    fn partial_verdict_displays_observer_scoped_language() {
+        let report = TestCtx::new(
+            partial_outcome(),
+            vec!["route-views2".to_string()],
+            vec![lifecycle_with(
+                crate::lifecycle::StreamCategory::Unchanged,
+                false,
+                false,
+                false,
+                false,
+            )],
+        )
+        .report();
+        assert!(report.contains("Partial routing impact observed"));
+        assert!(!report.contains("PARTIAL IMPACT"));
+    }
+
+    #[test]
+    fn provisional_verdict_says_so_far() {
+        use crate::domain::assessment::{EventAssessment, Verdict};
+        use crate::domain::event::EventId;
+        use crate::domain::expectation::ImpactExpectation;
+        for (v, phrase) in [
+            (
+                Verdict::ProvisionalImpactObserved,
+                "Routing impact observed so far",
+            ),
+            (
+                Verdict::ProvisionalNoImpactSoFar,
+                "No route-state change observed so far",
+            ),
+        ] {
+            let outcome = AnalysisOutcome::Completed {
+                assessment: EventAssessment {
+                    event_id: EventId::from("T"),
+                    expectation: ImpactExpectation::redundant(Some("SITE"), "t"),
+                    verdict: v,
+                    evidence: vec![],
+                    waves: vec![],
+                    generated_at: chrono::Utc::now(),
+                },
+            };
+            let report = TestCtx::new(
+                outcome,
+                vec!["route-views2".to_string()],
+                vec![lifecycle_with(
+                    crate::lifecycle::StreamCategory::Unchanged,
+                    false,
+                    false,
+                    false,
+                    false,
+                )],
+            )
+            .report();
+            assert!(report.contains(phrase), "{phrase}");
+            assert!(report.contains("so far"));
+            assert!(report.contains("provisional"));
+        }
+    }
+
+    #[test]
+    fn blocked_plan_has_no_impact_verdict() {
+        use crate::domain::assessment::Verdict;
+        let blocked = crate::plan::AnalysisPlanStatus::Blocked {
+            reason: crate::plan::AnalysisBlockReason::MissingReviewedTransitPredicate,
+        };
+        assert!(matches!(
+            blocked,
+            crate::plan::AnalysisPlanStatus::Blocked { .. }
+        ));
+        // No impact verdict exists for blocked plans.
+        for v in [
+            Verdict::NoObservableBgpImpact,
+            Verdict::PartialImpact,
+            Verdict::ProvisionalImpactObserved,
+        ] {
+            assert!(!v.human_label().contains("blocked"));
+        }
+        let plan = crate::plan::PlanArtifact::from_plan(&crate::plan::AnalysisPlan {
+            event_id: "INC0301970".into(),
+            expectation:
+                crate::domain::expectation::ImpactExpectation::peer_relationship_unavailable("t"),
+            lifecycle: crate::domain::expectation::TicketLifecycle::Open,
+            analysis_window: crate::domain::event::EventWindow {
+                start: chrono::Utc::now(),
+                end: chrono::Utc::now(),
+            },
+            entity_origin_asns: vec![11550],
+            transit_predicate: crate::plan::TransitPredicateMapping::default(),
+            status: blocked,
+        });
+        let text = plan.render_text();
+        assert!(text.contains("Blocked"));
+        assert!(!text.contains("Consistent with"));
+        assert!(!text.contains("route-state change observed"));
+    }
+
+    #[test]
+    fn no_change_summary_names_scope_and_zero_change() {
+        let report = TestCtx::new(
+            sample_outcome(),
+            vec!["route-views2".to_string(), "route-views6".to_string()],
+            vec![
+                lifecycle_with(
+                    crate::lifecycle::StreamCategory::Unchanged,
+                    false,
+                    false,
+                    false,
+                    false,
+                ),
+                lifecycle_with(
+                    crate::lifecycle::StreamCategory::Unchanged,
+                    false,
+                    false,
+                    false,
+                    false,
+                ),
+            ],
+        )
+        .report();
+        let flat = report
+            .split_whitespace()
+            .collect::<Vec<_>>()
+            .join(&String::from(' '));
+        assert!(flat
+            .contains("Across 2 selected observer-prefix streams at route-views2, route-views6"));
+        assert!(flat.contains("no announcements, withdrawals, path changes, or community changes"));
+    }
+
+    #[test]
+    fn partial_summary_reports_stream_categories() {
+        use crate::lifecycle::StreamCategory;
+        let report = TestCtx::new(
+            partial_outcome(),
+            vec!["route-views2".to_string()],
+            vec![
+                lifecycle_with(StreamCategory::Withdrawn, true, true, false, false),
+                lifecycle_with(StreamCategory::PrependOnly, false, false, false, false),
+                lifecycle_with(
+                    StreamCategory::PathChangedStillViaTransit,
+                    false,
+                    false,
+                    false,
+                    false,
+                ),
+                lifecycle_with(
+                    StreamCategory::DepartedTransitPath,
+                    false,
+                    false,
+                    false,
+                    false,
+                ),
+                lifecycle_with(StreamCategory::Unchanged, false, false, false, false),
+            ],
+        )
+        .report();
+        let flat = report
+            .split_whitespace()
+            .collect::<Vec<_>>()
+            .join(&String::from(' '));
+        assert!(flat
+            .contains("1 of 5 selected observer-prefix streams became absent and later returned"));
+        assert!(flat.contains("1 showed prepend-only changes"));
+        assert!(
+            flat.contains("1 had other material path changes while retaining the reviewed transit")
+        );
+        assert!(flat.contains("1 remained visible after departing that transit"));
+        assert!(flat.contains("1 remained unchanged"));
+    }
+
+    #[test]
+    fn summary_values_are_derived_from_report_data() {
+        let one = TestCtx::new(
+            sample_outcome(),
+            vec!["route-views2".to_string()],
+            vec![lifecycle_with(
+                crate::lifecycle::StreamCategory::Unchanged,
+                false,
+                false,
+                false,
+                false,
+            )],
+        )
+        .report();
+        let three = TestCtx::new(
+            sample_outcome(),
+            vec!["route-views2".to_string()],
+            vec![
+                lifecycle_with(
+                    crate::lifecycle::StreamCategory::Unchanged,
+                    false,
+                    false,
+                    false,
+                    false,
+                ),
+                lifecycle_with(
+                    crate::lifecycle::StreamCategory::Unchanged,
+                    false,
+                    false,
+                    false,
+                    false,
+                ),
+                lifecycle_with(
+                    crate::lifecycle::StreamCategory::Unchanged,
+                    false,
+                    false,
+                    false,
+                    false,
+                ),
+            ],
+        )
+        .report();
+        assert!(one.contains("Across 1 selected observer-prefix stream"));
+        assert!(three.contains("Across 3 selected observer-prefix streams"));
+        assert_ne!(one, three);
+    }
+
+    #[test]
+    fn summary_does_not_hardcode_known_event_entities() {
+        // The renderer source (before the test module) must not hardcode
+        // known event entities in its prose.
+        let src = include_str!("output.rs");
+        let renderer = src
+            .lines()
+            .take_while(|l| !l.starts_with("#[cfg(test)]") && !l.starts_with("#[test]"))
+            .collect::<Vec<_>>()
+            .join("\n");
+        for hardcoded in ["RIPE", "UVA", "NEWA", "INC0302574", "INC0299001"] {
+            assert!(
+                !renderer.contains(hardcoded),
+                "renderer must not hardcode {hardcoded}"
+            );
+        }
+    }
+
+    #[test]
+    fn summary_uses_streams_as_primary_unit() {
+        let report = TestCtx::new(
+            sample_outcome(),
+            vec!["route-views2".to_string()],
+            vec![lifecycle_with(
+                crate::lifecycle::StreamCategory::Withdrawn,
+                true,
+                true,
+                false,
+                false,
+            )],
+        )
+        .report();
+        assert!(report.contains("observer-prefix streams"));
+    }
+
+    #[test]
+    fn observation_and_expectation_assessment_are_distinct() {
+        let report = no_change_ctx().report();
+        let result = report.find("Result").unwrap();
+        let assessment = report
+            .find("Assessment against ticket expectation")
+            .unwrap();
+        assert!(result < assessment);
+        assert!(report.contains("Assessment against ticket expectation"));
+        assert!(report.contains("Consistent with the redundant-attachment expectation"));
+    }
+
+    #[test]
+    fn no_change_does_not_render_redundancy_proven() {
+        let report = no_change_ctx().report();
+        assert!(report.contains("does not prove that the"));
+        assert!(!report.contains("redundancy proven"));
+        assert!(!report.contains("proves that the attachment"));
+    }
+
+    #[test]
+    fn temporal_association_does_not_render_causation() {
+        let report = no_change_ctx().report();
+        assert!(report.contains("Temporal association is not automatic causation"));
+        assert!(!report.contains("caused by the ticket"));
+        assert!(!report.contains("because the event"));
+    }
+
+    #[test]
+    fn blocked_plan_is_not_assessed_against_bgp_evidence() {
+        let plan = crate::plan::PlanArtifact::from_plan(&crate::plan::AnalysisPlan {
+            event_id: "INC0301970".into(),
+            expectation:
+                crate::domain::expectation::ImpactExpectation::peer_relationship_unavailable("t"),
+            lifecycle: crate::domain::expectation::TicketLifecycle::Open,
+            analysis_window: crate::domain::event::EventWindow {
+                start: chrono::Utc::now(),
+                end: chrono::Utc::now(),
+            },
+            entity_origin_asns: vec![11550],
+            transit_predicate: crate::plan::TransitPredicateMapping::default(),
+            status: crate::plan::AnalysisPlanStatus::Blocked {
+                reason: crate::plan::AnalysisBlockReason::MissingReviewedTransitPredicate,
+            },
+        });
+        let text = plan.render_text();
+        assert!(!text.contains("BGP evidence"));
+        assert!(!text.contains("Consistent"));
+        assert!(text.contains("Blocked"));
+    }
+
+    #[test]
+    fn every_summary_count_has_an_explicit_unit() {
+        use crate::lifecycle::StreamCategory;
+        let report = TestCtx::new(
+            sample_outcome(),
+            vec!["route-views2".to_string()],
+            vec![
+                lifecycle_with(StreamCategory::Withdrawn, true, true, false, false),
+                lifecycle_with(StreamCategory::PrependOnly, false, false, false, false),
+            ],
+        )
+        .report();
+        assert!(report.contains("observer-prefix streams"));
+        assert!(report.contains("route instances"));
+        assert!(report.contains("Route-instance transitions"));
+        assert!(!report.contains("Withdrawals: 1\n"), "{report}");
+    }
+
+    #[test]
+    fn text_report_does_not_repeat_compact_lifecycle_dump() {
+        let report = no_change_ctx().report();
+        assert!(!report.contains("Stream lifecycle: total="), "{report}");
+    }
+
+    #[test]
+    fn report_contains_no_stale_departed_i2_label() {
+        let report = no_change_ctx().report();
+        assert!(!report.contains("departed-I2"), "{report}");
+    }
+
+    #[test]
+    fn report_distinguishes_stream_and_transition_withdrawals() {
+        use crate::lifecycle::StreamCategory;
+        let report = TestCtx::new(
+            sample_outcome(),
+            vec!["route-views2".to_string()],
+            vec![lifecycle_with(
+                StreamCategory::Withdrawn,
+                true,
+                true,
+                false,
+                false,
+            )],
+        )
+        .report();
+        assert!(report.contains("Observer-prefix streams that became absent: 1"));
+        assert!(report.contains("Route-instance withdrawal transitions: 0"));
+    }
+
+    #[test]
+    fn concise_no_change_report_suppresses_irrelevant_zero_categories() {
+        let report = no_change_ctx().report();
+        assert!(report.contains("Unchanged streams:            1"));
+        assert!(
+            report.contains("Streams restored after absence: Not applicable"),
+            "restoration must be Not applicable when no stream changed"
+        );
+    }
+
+    #[test]
+    fn concise_partial_report_includes_every_nonzero_category() {
+        use crate::lifecycle::StreamCategory;
+        let report = TestCtx::new(
+            sample_outcome(),
+            vec!["route-views2".to_string()],
+            vec![
+                lifecycle_with(StreamCategory::Withdrawn, true, true, false, false),
+                lifecycle_with(StreamCategory::PrependOnly, false, false, false, false),
+                lifecycle_with(
+                    StreamCategory::PathChangedStillViaTransit,
+                    false,
+                    false,
+                    false,
+                    false,
+                ),
+                lifecycle_with(
+                    StreamCategory::DepartedTransitPath,
+                    false,
+                    false,
+                    false,
+                    false,
+                ),
+            ],
+        )
+        .report();
+        for needle in [
+            "Prepend-only streams:         1",
+            "Material change, still via reviewed transit: 1",
+            "Streams departing the reviewed transit: 1",
+            "Observer-prefix streams that became absent: 1",
+            "Streams restored after absence: 1",
+        ] {
+            assert!(report.contains(needle), "missing {needle}");
+        }
+    }
+
+    #[test]
+    fn evidence_details_include_complete_zero_and_nonzero_counts() {
+        let report = no_change_ctx().report();
+        assert!(report.contains("Route-instance transitions: 0"));
+        assert!(report.contains("Route-instance withdrawal transitions: 0"));
+        assert!(report.contains("Material path changes (transitions): 0"));
+        assert!(report.contains("Unchanged streams:            1"));
+    }
+
+    #[test]
+    fn unresolved_and_ambiguous_counts_are_never_hidden_when_nonzero() {
+        use crate::lifecycle::StreamCategory;
+        let report = TestCtx::new(
+            sample_outcome(),
+            vec!["route-views2".to_string()],
+            vec![
+                lifecycle_with(StreamCategory::Withdrawn, true, false, true, false),
+                lifecycle_with(StreamCategory::Unchanged, false, false, false, true),
+            ],
+        )
+        .report();
+        let flat = report
+            .split_whitespace()
+            .collect::<Vec<_>>()
+            .join(&String::from(' '));
+        assert!(flat.contains("Unresolved streams: 1"));
+        assert!(flat.contains("ADD-PATH ambiguous streams: 1"));
+        assert!(flat.contains("ambiguous ADD-PATH continuity"));
+    }
+
+    #[test]
+    fn collector_list_is_human_formatted() {
+        let report = no_change_ctx().report();
+        assert!(report.contains("route-views2, route-views6"));
+        assert!(!report.contains('['), "no Rust debug collections in text");
+        assert!(!report.contains(']'));
+    }
+
+    #[test]
+    fn contains_any_has_human_description() {
+        assert_eq!(
+            TransitPredicate::ContainsAny(vec![11537]).human_description(),
+            "at least one route path traversed AS11537"
+        );
+        assert_eq!(
+            TransitPredicate::ContainsAny(vec![11537, 11538]).human_description(),
+            "at least one route path traversed one of AS11537, AS11538"
+        );
+    }
+
+    #[test]
+    fn contains_all_has_human_description() {
+        assert_eq!(
+            TransitPredicate::ContainsAll(vec![11537, 11538]).human_description(),
+            "route path contained all of AS11537, AS11538"
+        );
+    }
+
+    #[test]
+    fn adjacency_has_human_description() {
+        assert_eq!(
+            TransitPredicate::Adjacent(11537, 11538).human_description(),
+            "route path contained the adjacency AS11537 \u{2192} AS11538"
+        );
+    }
+
+    #[test]
+    fn exact_predicate_remains_in_evidence_details() {
+        use crate::lifecycle::StreamCategory;
+        let mut tc = TestCtx::new(
+            sample_outcome(),
+            vec!["route-views2".to_string()],
+            vec![lifecycle_with(
+                StreamCategory::Unchanged,
+                false,
+                false,
+                false,
+                false,
+            )],
+        );
+        tc.predicate = Some(TransitPredicate::ContainsAny(vec![11537]));
+        let report = tc.report();
+        assert!(report.contains("at least one route path traversed AS11537"));
+        assert!(report.contains("TransitPredicate:   ContainsAny { 11537 }"));
+    }
+
+    #[test]
+    fn complete_coverage_is_scoped_to_selected_plan() {
+        let s = render_archive_coverage(
+            &["route-views2".to_string(), "route-views6".to_string()],
+            &["route-views2".to_string(), "route-views6".to_string()],
+            &[],
+        );
+        assert!(s.contains("Complete for the selected analysis plan"));
+        assert!(
+            !s.starts_with("Complete."),
+            "coverage must not be global: {s}"
+        );
+    }
+
+    #[test]
+    fn collector_without_targets_is_not_called_archive_failure() {
+        let s = render_archive_coverage(
+            &["route-views2".to_string(), "route-views6".to_string()],
+            &["route-views2".to_string()],
+            &[],
+        );
+        assert!(s.contains(
+            "route-views6 had no qualifying baseline target streams after RIB preflight"
+        ));
+        assert!(!s.to_lowercase().contains("failure"));
+        assert!(!s.to_lowercase().contains("incomplete"));
+    }
+
+    #[test]
+    fn missing_selected_archive_renders_incomplete_coverage() {
+        let s = render_archive_coverage(
+            &["route-views2".to_string(), "route-views6".to_string()],
+            &["route-views2".to_string()],
+            &["failed to cache UPDATE: download failed".to_string()],
+        );
+        assert!(s.contains("Incomplete because a selected archive could not be acquired"));
+    }
+
+    #[test]
+    fn negative_finding_requires_coverage_statement() {
+        let report = no_change_ctx().report();
+        assert!(report.contains("Archive coverage:"));
+        assert!(report.contains("Complete for the selected analysis plan"));
+    }
+
+    #[test]
+    fn mechanism_zero_case_is_compact() {
+        let report = no_change_ctx().report();
+        assert!(report
+            .contains("No RFC 8326 GRACEFUL_SHUTDOWN community reached the selected observers."));
+        assert!(
+            report.contains("Its absence does not establish that graceful shutdown was not used.")
+        );
+    }
+
+    #[test]
+    fn nonobservable_mechanisms_are_grouped() {
+        let report = no_change_ctx().report();
+        let idx = report.find("Not directly observable here:").unwrap();
+        let rfc9003 = report
+            .find("RFC 9003 administrative-shutdown message")
+            .unwrap();
+        let rfc8327 = report.find("RFC 8327 operational intent").unwrap();
+        let gr = report.find("Graceful Restart negotiation state").unwrap();
+        assert!(idx < rfc9003 && rfc9003 < rfc8327 && rfc8327 < gr);
+        assert!(report.matches("not observable").count() <= 3);
+    }
+
+    #[test]
+    fn gshut_presence_reports_stream_count_and_timing() {
+        let mut lc = lifecycle_with(
+            crate::lifecycle::StreamCategory::Unchanged,
+            false,
+            false,
+            false,
+            false,
+        );
+        lc.graceful_shutdown_seen = true;
+        lc.first_gshut_timestamp = Some(chrono::Utc::now());
+        lc.last_gshut_timestamp = Some(chrono::Utc::now());
+        let report =
+            TestCtx::new(sample_outcome(), vec!["route-views2".to_string()], vec![lc]).report();
+        assert!(report.contains(
+            "GRACEFUL_SHUTDOWN community was observed on 1 selected observer-prefix stream(s)"
+        ));
+        assert!(report.contains("first="));
+        assert!(report.contains("does not imply it caused any subsequent route-state change"));
+    }
+
+    #[test]
+    fn mechanism_section_does_not_change_assessment() {
+        let a = no_change_ctx().report();
+        let b = no_change_ctx().report();
+        assert!(a.contains("Consistent with the redundant-attachment expectation"));
+        assert_eq!(a, b);
+    }
+
+    #[test]
+    fn concise_limit_appears_near_result() {
+        let report = no_change_ctx().report();
+        let result = report.find("Result").unwrap();
+        let lim = report.find("Important limitation").unwrap();
+        let details = report.find("Evidence details").unwrap();
+        assert!(result < lim && lim < details);
+        assert!(report.contains("does not measure traffic, circuit state,"));
+    }
+
+    #[test]
+    fn detailed_limitations_remain_available() {
+        let report = no_change_ctx().report();
+        assert!(report.contains("Method and limitations"));
+        assert!(report.contains("Selected collectors do not provide global visibility."));
+        assert!(report.contains("BGP route state is not traffic measurement."));
+        assert!(report.contains("Local BGP session state is not directly observed."));
+        assert!(report.contains("Physical-link state is not observed."));
+        assert!(
+            report.contains("Absent optional communities prove nothing about mechanism non-use.")
+        );
+        assert!(report.contains("Temporal association is not automatic causation."));
+    }
+
+    #[test]
+    fn report_never_claims_global_reachability() {
+        let report = no_change_ctx().report();
+        assert!(!report.contains("global reachability was"));
+        assert!(!report.contains("globally reachable"));
+    }
+
+    #[test]
+    fn report_never_claims_traffic_impact_from_route_state() {
+        let report = no_change_ctx().report();
+        assert!(!report.contains("traffic impact"));
+        assert!(!report.contains("traffic was"));
+    }
+
+    #[test]
+    fn report_uses_no_causal_claim() {
+        let report = no_change_ctx().report();
+        assert!(!report.contains("caused by"));
+        assert!(!report.contains("because of the ticket"));
+    }
+
+    #[test]
+    fn report_primary_result_precedes_detailed_counters() {
+        let report = no_change_ctx().report();
+        let result = report.find("Result").unwrap();
+        let counters = report.find("Lifecycle counts").unwrap();
+        let details = report.find("Evidence details").unwrap();
+        assert!(result < counters && result < details);
+    }
+
+    #[test]
+    fn no_change_report_is_not_dominated_by_zero_values() {
+        let report = no_change_ctx().report();
+        let first_screen = &report[..report.find("Evidence details").unwrap_or(report.len())];
+        assert!(first_screen.contains("No route-state change observed"));
+        assert!(first_screen.contains("Across 1 selected observer-prefix stream"));
+        assert!(
+            first_screen.matches(": 0").count() <= 6,
+            "concise layer should not parade zeros"
+        );
+    }
+
+    #[test]
+    fn report_answers_expectation_observation_assessment_in_first_section() {
+        let report = no_change_ctx().report();
+        let first_section = &report[..report.find("Ticket interpretation").unwrap_or(report.len())];
+        assert!(first_section.contains("Result"));
+        assert!(first_section.contains("Assessment against ticket expectation"));
+        assert!(first_section.contains("Observation scope"));
+        assert!(first_section.contains("Important limitation"));
+    }
+
+    #[test]
+    fn report_contains_no_rust_debug_collections() {
+        let report = no_change_ctx().report();
+        assert!(!report.contains('['));
+        assert!(!report.contains(']'));
     }
 }

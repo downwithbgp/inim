@@ -155,7 +155,7 @@ fn collect_evidence(
 
         evidence.push(Evidence {
             description: format!(
-                "Stream lifecycle: total={} unchanged={} prepend-only={} withdrawn={} departed-I2={} restored={} not-restored={} add-path-ambiguous={}",
+                "Stream lifecycle: total={} unchanged={} prepend-only={} withdrawn={} departed-transit={} restored={} not-restored={} add-path-ambiguous={}",
                 lcs.len(), unchanged, prepend, withdrawn, departed, restored, not_restored, ambiguous,
             ),
             source_records: vec![],

@@ -245,6 +245,55 @@ impl TransitPredicate {
                 .any(|w| (w[0] == *a && w[1] == *b) || (w[0] == *b && w[1] == *a)),
         }
     }
+
+    /// Canonical syntax for evidence sections, e.g. `ContainsAny { 11537 }`.
+    pub fn render_canonical(&self) -> String {
+        match self {
+            TransitPredicate::ContainsAny(asns) => format!(
+                "ContainsAny {{ {} }}",
+                asns.iter()
+                    .map(|a| a.to_string())
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            ),
+            TransitPredicate::ContainsAll(asns) => format!(
+                "ContainsAll {{ {} }}",
+                asns.iter()
+                    .map(|a| a.to_string())
+                    .collect::<Vec<_>>()
+                    .join(", ")
+            ),
+            TransitPredicate::Adjacent(a, b) => format!("Adjacent {{ {a}, {b} }}"),
+        }
+    }
+
+    /// Human-readable description for analyst-facing text.
+    pub fn human_description(&self) -> String {
+        match self {
+            TransitPredicate::ContainsAny(asns) if asns.len() == 1 => {
+                format!("at least one route path traversed AS{}", asns[0])
+            }
+            TransitPredicate::ContainsAny(asns) => {
+                let list = asns
+                    .iter()
+                    .map(|a| format!("AS{a}"))
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                format!("at least one route path traversed one of {list}")
+            }
+            TransitPredicate::ContainsAll(asns) => {
+                let list = asns
+                    .iter()
+                    .map(|a| format!("AS{a}"))
+                    .collect::<Vec<_>>()
+                    .join(", ");
+                format!("route path contained all of {list}")
+            }
+            TransitPredicate::Adjacent(a, b) => {
+                format!("route path contained the adjacency AS{a} → AS{b}")
+            }
+        }
+    }
 }
 
 /// Event-specific routing context for interpreting transitions.

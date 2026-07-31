@@ -72,6 +72,91 @@ impl std::fmt::Display for Verdict {
     }
 }
 
+impl Verdict {
+    /// Precise human-facing label for the verdict.
+    ///
+    /// These labels describe externally observed BGP route state — they
+    /// never claim general Internet impact, traffic measurement, or
+    /// physical-layer conclusions.
+    pub fn human_label(&self) -> &'static str {
+        match self {
+            Verdict::ExpectedRedundantImpact => "Expected redundant-attachment impact observed",
+            Verdict::ExpectedLossOfReachability => "Expected loss of reachability observed",
+            Verdict::ExpectedParticipantUnavailability => {
+                "Expected participant unavailability observed"
+            }
+            Verdict::ExpectedAlternateRouting => "Expected alternate routing observed",
+            Verdict::PartialImpact => "Partial routing impact observed",
+            Verdict::UnexpectedContinuedInternet2Path => {
+                "Unexpected continued reviewed-transit path"
+            }
+            Verdict::PolicyChangeObserved => "Policy-shape change observed",
+            Verdict::ProvisionalImpactObserved => "Routing impact observed so far",
+            Verdict::ProvisionalNoImpactSoFar => "No route-state change observed so far",
+            Verdict::UnexpectedWithdrawals => "Unexpected withdrawals observed",
+            Verdict::RedundancyFailureObserved => "Redundancy failure observed",
+            Verdict::UnexpectedBlastRadius => "Unexpected blast radius observed",
+            Verdict::LessImpactThanExpected => "Less impact than expected",
+            Verdict::NoObservableBgpImpact => "No route-state change observed",
+            Verdict::InsufficientVisibility => "Insufficient visibility",
+            Verdict::Indeterminate => "Indeterminate",
+        }
+    }
+
+    /// Whether this verdict is provisional for an open event.
+    pub fn is_provisional(&self) -> bool {
+        matches!(
+            self,
+            Verdict::ProvisionalImpactObserved | Verdict::ProvisionalNoImpactSoFar
+        )
+    }
+
+    /// Assessment posture relative to the ticket expectation.
+    pub fn assessment_kind(&self) -> AssessmentKind {
+        match self {
+            Verdict::ExpectedRedundantImpact
+            | Verdict::ExpectedLossOfReachability
+            | Verdict::ExpectedParticipantUnavailability
+            | Verdict::ExpectedAlternateRouting
+            | Verdict::NoObservableBgpImpact => AssessmentKind::Consistent,
+            Verdict::PartialImpact => AssessmentKind::PartiallyConsistent,
+            Verdict::UnexpectedContinuedInternet2Path
+            | Verdict::PolicyChangeObserved
+            | Verdict::UnexpectedWithdrawals
+            | Verdict::RedundancyFailureObserved
+            | Verdict::UnexpectedBlastRadius
+            | Verdict::LessImpactThanExpected => AssessmentKind::Inconsistent,
+            Verdict::ProvisionalImpactObserved | Verdict::ProvisionalNoImpactSoFar => {
+                AssessmentKind::Consistent
+            }
+            Verdict::InsufficientVisibility => AssessmentKind::NotAssessable,
+            Verdict::Indeterminate => AssessmentKind::Indeterminate,
+        }
+    }
+}
+
+/// How the observed signature compares to the ticket expectation.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum AssessmentKind {
+    Consistent,
+    PartiallyConsistent,
+    Inconsistent,
+    Indeterminate,
+    NotAssessable,
+}
+
+impl AssessmentKind {
+    pub fn human_label(&self) -> &'static str {
+        match self {
+            AssessmentKind::Consistent => "Consistent with the",
+            AssessmentKind::PartiallyConsistent => "Partially consistent with the",
+            AssessmentKind::Inconsistent => "Inconsistent with the",
+            AssessmentKind::Indeterminate => "Indeterminate relative to the",
+            AssessmentKind::NotAssessable => "Not assessable from the",
+        }
+    }
+}
+
 /// A piece of evidence linking a conclusion to source records.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Evidence {

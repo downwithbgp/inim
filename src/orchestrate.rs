@@ -553,6 +553,7 @@ fn run_inner(
     eprintln!("→ Assessing...");
     let t_assess = Instant::now();
     let expectation_display = format!("{:?}: {}", expectation.kind, expectation.description);
+    let expectation_kind_label = expectation.kind.human_label();
 
     // Build per-stream lifecycles for every completed event: classification
     // is by ObserverPrefixKey with full route-instance history retained.
@@ -602,9 +603,12 @@ fn run_inner(
         semantic_waves: &semantic_waves,
         lifecycles: &lifecycles,
         ticket_lifecycle: if manifest.open { "Open" } else { "Closed" },
+        expectation_kind_label,
         transit_predicate_identity: &crate::derived_cache::transit_predicate_identity(
             &transit_predicate,
         ),
+        transit_predicate: Some(&transit_predicate),
+        requested_collectors: &manifest.collectors,
         limitations: &limitations,
         no_observable_impact: matches!(
             assessment.verdict,

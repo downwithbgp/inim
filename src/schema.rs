@@ -31,8 +31,11 @@ pub const OBSERVATION_SCHEMA_VERSION: u32 = 2;
 /// Frozen cohort identity schema (ObserverPrefixKey values).
 pub const COHORT_IDENTITY_SCHEMA_VERSION: u32 = 1;
 
-/// Report JSON schema.
-pub const REPORT_SCHEMA_VERSION: u32 = 1;
+/// Report JSON schema. v1: signature/hints/limitations structure. v2:
+/// adds machine-readable `result`, `assessment`, and `archive_coverage`
+/// fields alongside the existing signature (text rendering changed
+/// without weakening the JSON).
+pub const REPORT_SCHEMA_VERSION: u32 = 2;
 
 /// Evidence appendix schema.
 pub const EVIDENCE_APPENDIX_SCHEMA_VERSION: u32 = 1;

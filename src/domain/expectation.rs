@@ -25,6 +25,21 @@ pub enum ExpectationKind {
     Unknown,
 }
 
+impl ExpectationKind {
+    /// Human label for the ticket expectation, used in analyst-facing text.
+    pub fn human_label(&self) -> &'static str {
+        match self {
+            ExpectationKind::Redundant => "redundant-attachment",
+            ExpectationKind::NonRedundant => "loss-of-reachability",
+            ExpectationKind::ParticipantRelationshipUnavailable => {
+                "participant-relationship-unavailable"
+            }
+            ExpectationKind::PeerRelationshipUnavailable => "peer-relationship-unavailable",
+            ExpectationKind::Unknown => "unknown",
+        }
+    }
+}
+
 /// The lifecycle state of a ticket — independent of routing expectation.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum TicketLifecycle {
