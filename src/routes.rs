@@ -341,4 +341,98 @@ mod tests {
         store.freeze_event_baseline();
         assert!(!store.event_baseline.is_empty());
     }
+
+    // ── Phase tests ──────────────────────────────────────────────
+
+    #[test]
+    fn warmup_change_updates_baseline_but_emits_no_event_transition() {
+        let obs = vec![
+            make_rib_obs("192.0.2.0/24","rv2","185.1.8.65",vec![6447,11537,1101]),
+            make_announce("192.0.2.0/24","rv2","185.1.8.65",vec![6447,237,1101],-50,1),
+        ];
+        let (store, changes) = reconstruct_routes(obs, t(0), t(300), t(600));
+        // Warmup change must NOT appear as a transition
+        assert!(changes.is_empty(), "warmup must emit no transitions");
+        // But state must have been updated
+        let key = observation_key(&make_announce("192.0.2.0/24","rv2","185.1.8.65",vec![],0,0));
+        assert!(store.current_state(&key).is_some());
+    }
+
+    #[test]
+    fn event_change_is_classified_as_event_impact() {
+        let obs = vec![
+            make_rib_obs("192.0.2.0/24","rv2","185.1.8.65",vec![6447,11537,1101]),
+            make_announce("192.0.2.0/24","rv2","185.1.8.65",vec![6447,237,1101],10,1),
+        ];
+        let (_, changes) = reconstruct_routes(obs, t(0), t(300), t(600));
+        assert_eq!(changes.len(), 1);
+        assert_eq!(changes[0].phase, AnalysisPhase::Event);
+    }
+
+    #[test]
+    fn post_event_change_is_classified_as_cooldown() {
+        let obs = vec![
+            make_rib_obs("192.0.2.0/24","rv2","185.1.8.65",vec![6447,11537,1101]),
+            make_announce("192.0.2.0/24","rv2","185.1.8.65",vec![6447,237,1101],10,1),  // event
+            make_announce("192.0.2.0/24","rv2","185.1.8.65",vec![6447,11537,1101],360,2), // after event_end=300, before cooldown_end=600
+        ];
+        let (_, changes) = reconstruct_routes(obs, t(0), t(300), t(600));
+        assert_eq!(changes.len(), 2);
+        assert_eq!(changes[0].phase, AnalysisPhase::Event);
+        assert_eq!(changes[1].phase, AnalysisPhase::Cooldown);
+    }
+
+    #[test]
+    fn cooldown_restoration_references_event_baseline() {
+        let obs = vec![
+            make_rib_obs("192.0.2.0/24","rv2","185.1.8.65",vec![6447,11537,1101]),
+            make_announce("192.0.2.0/24","rv2","185.1.8.65",vec![6447,237,1101],10,1),  // event: path change
+            make_announce("192.0.2.0/24","rv2","185.1.8.65",vec![6447,11537,1101],360,2), // cooldown: restoration
+        ];
+        let (_, changes) = reconstruct_routes(obs, t(0), t(300), t(600));
+        let baseline_change = &changes[0];
+        let cooldown_change = &changes[1];
+        // The baseline should be set on both changes
+        assert!(baseline_change.event_baseline.is_some());
+        assert!(cooldown_change.event_baseline.is_some());
+    }
+
+    #[test]
+    fn cooldown_instability_is_not_reported_as_during_event() {
+        let obs = vec![
+            make_rib_obs("192.0.2.0/24","rv2","185.1.8.65",vec![6447,11537,1101]),
+            make_announce("192.0.2.0/24","rv2","185.1.8.65",vec![6447,237,1101],360,1), // cooldown
+            make_announce("192.0.2.0/24","rv2","185.1.8.65",vec![6447,3356,1101],380,2), // also cooldown
+        ];
+        let (_, changes) = reconstruct_routes(obs, t(0), t(300), t(600));
+        // Both are in cooldown, none in event
+        for c in &changes {
+            assert_eq!(c.phase, AnalysisPhase::Cooldown);
+        }
+    }
+
+    #[test]
+    fn update_after_cooldown_end_is_ignored() {
+        let obs = vec![
+            make_rib_obs("192.0.2.0/24","rv2","185.1.8.65",vec![6447,11537,1101]),
+            make_announce("192.0.2.0/24","rv2","185.1.8.65",vec![6447,237,1101],700,1), // after cooldown_end=600
+        ];
+        let (_, changes) = reconstruct_routes(obs, t(0), t(300), t(600));
+        assert!(changes.is_empty(), "update after cooldown must be ignored");
+    }
+
+    #[test]
+    fn evidence_survives_all_three_phases() {
+        let obs = vec![
+            make_rib_obs("192.0.2.0/24","rv2","185.1.8.65",vec![6447,11537,1101]),
+            make_announce("192.0.2.0/24","rv2","185.1.8.65",vec![6447,237,1101],-50,1), // warmup
+            make_announce("192.0.2.0/24","rv2","185.1.8.65",vec![6447,3356,1101],10,2),  // event  
+            make_announce("192.0.2.0/24","rv2","185.1.8.65",vec![6447,11537,1101],360,3), // cooldown
+        ];
+        let (_, changes) = reconstruct_routes(obs, t(0), t(300), t(600));
+        // Event and cooldown changes must have triggering evidence
+        for c in &changes {
+            assert!(c.triggering.observation_id.0 > 0, "evidence must survive");
+        }
+    }
 }
