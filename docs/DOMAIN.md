@@ -1,102 +1,152 @@
 # inim — Domain Glossary
 
+## Identity model (ADD-PATH-aware)
+
+### RouteKey
+Unique identity of a **route instance**: `collector`, `peer_ip`,
+`prefix`, and `path_id` (`None` for ordinary unkeyed records).
+The route-state store is `Map<RouteKey, RouteState>`.
+
+### ObserverPrefixKey
+Aggregate stream identity: `collector`, `peer_ip`, `prefix` — **no**
+`path_id`. The principal lifecycle identity. The frozen cohort is a
+`Set<ObserverPrefixKey>`.
+
+Multiple route instances (multiple `path_id`s) may represent **one**
+observer stream. Final instance loss is required for stream absence;
+`path_id` churn alone is not routing impact.
+
+### Deterministic observation identity
+Observation IDs and evidence IDs are assigned after sorting by the
+documented order: collector, timestamp, archive order, element sequence,
+peer IP, prefix, path_id (`None < Some(id)`). Serial and parallel
+completion produce identical IDs; different route instances get different
+IDs.
+
 ## Core types
 
-### EventId
-A unique identifier for an operational event (e.g. ticket number).
-Newtype wrapper around `String`. Examples: `"CHG0107955"`, `"INC0302574"`.
-
-### EventWindow
-The declared time window for an event: `start` and `end` as
-`DateTime<Utc>`.
-
-### OperationalEvent
-A parsed event from any source. Contains the id, title, declared time
-window, source identifier, and the original raw data for auditability.
-
-### RedundancyIndicator
-Whether a parenthesized site code was found in an Internet2 ticket title,
-and the extracted code if present. This is Internet2-specific evidence.
+### EventId / EventWindow / OperationalEvent
+Event identity and declared time window. `OperationalEvent` carries id,
+title, window, source, and raw data for auditability. Event subjects are
+**data, not code** — no event name appears in domain enum variants.
 
 ### ExpectationKind
-Enum: `Redundant`, `NonRedundant`, `Unknown`. Describes the expected
-impact type derived from the ticket.
+`Redundant`, `NonRedundant`, `ParticipantRelationshipUnavailable`,
+`PeerRelationshipUnavailable`, `Unknown`.
 
 ### ImpactExpectation
-A parsed operational expectation with provenance: what kind of impact is
-expected, a human-readable description, and where the expectation came
-from.
+What kind of impact is expected, a human-readable description, and where
+the expectation came from (convention provenance).
 
-### EntityType
-Enum: `Participant`, `Peer`, `Exchange`, `RouterSite`, `Unknown`.
-Classifies a network entity referenced in an event.
+### TicketLifecycle
+`Open` / `Closed`. **Orthogonal** to `ImpactExpectation`: an open ticket
+can have any expectation; the lifecycle only describes whether a
+published end time exists.
 
-### NetworkEntity
-A named network entity with its type and optional site code.
+### TransitPredicate
+Reviewed path predicate: `ContainsAny(asns)`, `ContainsAll(asns)`,
+`Adjacent(left, right)`. Evaluated against AS paths.
 
-### Prefix
-A BGP prefix string (e.g. `"192.0.2.0/24"`). Newtype wrapper.
+### TransitPredicateMapping
+Manifest-carried reviewed mapping: `status` (Reviewed/Unresolved),
+`predicate`, `provenance` (statement, reviewer, date). Canonical manifests
+use this — never single-ASN shortcut fields.
 
-### AsPath
-A sequence of AS numbers (e.g. `[11537, 237, 1101]`). Newtype wrapper.
-
-### RouteAttributes
-The attributes of a route: AS path, origin AS, MED, local preference,
-and communities.
-
-### RouteState
-The state of a route as observed by a specific observer at a specific
-time. Contains prefix, attributes, timestamp, and observer identifier.
+### Prefix / AsPath / RouteAttributes / RouteState
+Route model types. `RouteState` carries prefix, attributes, timestamp,
+observer, and `path_id`.
 
 ### TransitionKind
-Enum describing the kind of state change:
-- `Announcement` — previously absent route appears
-- `Withdrawal` — route disappears
-- `ExactDuplicate` — no change
-- `PathChange` — AS path changed (old, new)
-- `AttributeChange` — non-path attributes changed
-- `SessionReset` — observer session discontinuity
-- `Restoration` — previously withdrawn route returns with original path
+`Announcement`, `Withdrawal`, `Duplicate`, `PathReplacement`,
+`AttributeChange`, `SessionReset`, `Restoration`, `ReturnToBaseline`.
+
+### GenericTransitionEffects
+Orthogonal facets computed for every transition: communities changed,
+graceful-shutdown added/removed, prepend change, material path changed,
+origin changed, next-hop changed, MED changed, local-pref changed.
+
+### EventRelativeEffects
+Separate, event-relative facets: transit retained, transit departed,
+transit returned.
 
 ### RouteTransition
-A transition from one RouteState to another, tagged with the kind of
-transition.
+A classified transition with evidenced baseline/before/after states and
+triggering evidence.
 
-### ImpactWave
-A temporally concentrated set of related route transitions:
-label, start, peak, end, affected prefixes, affected peer observers,
-and optional SEQUITUR-derived motif.
+## Stream lifecycle
+
+### StreamCategory
+Per-`ObserverPrefixKey`: `Unchanged`, `PrependOnly`,
+`PathChangedStillViaTransit`, `DepartedTransitPath`, `Withdrawn`.
+Rules:
+- losing one instance while another remains is **not** Withdrawn;
+- losing the final target instance **is** Withdrawn;
+- an equivalent route reappearing under a new path_id is **not** a
+  material path change;
+- a visible stream with no active matching route is DepartedTransitPath;
+- at least one active matching route remaining means still ViaTransit.
+
+### Restoration kinds
+- **ExactInstanceRestoration** — same path_id returns with a semantically
+  equivalent route;
+- **EquivalentRouteRestoration** — equivalent route returns under any
+  path_id;
+- **ObserverPrefixRestoration** — stream changes from absent to visible;
+- **BaselineSetRestoration** — active route semantics again equal baseline
+  route semantics.
+
+Path-id equality alone is never semantic equality. Route-semantic equality
+compares: AS path, origin ASNs, origin type, next hop, MED, local
+preference, atomic aggregate, and communities (as sets). Attributes not
+preserved by the model (large/extended communities, non-ASN path
+segments) are not compared.
+
+### ADD-PATH continuity ambiguity
+When both keyed (`path_id=Some`) and unkeyed (`None`) records appear for
+one `ObserverPrefixKey`, the stream is flagged `add-path ambiguous` with
+recorded evidence (first keyed record, first unkeyed record, archive
+identities, affected time range). The ambiguity is **stream-scoped** and
+suppresses strong stream-level assessment; unrelated streams remain fully
+evaluable.
+
+### GSHUT (RFC 8326)
+The GRACEFUL_SHUTDOWN community is `65535:0`. The lifecycle tracks
+baseline presence, addition, removal, first/last timestamps, presence
+before withdrawal/path replacement, tag-to-consequence duration, and
+removal during restoration. Its presence is an optional mechanism hint;
+absence does not prove a mechanism was unused.
+
+## Semantic waves
+
+Temporal clusters of event-window transitions derived primarily from
+lifecycles, retaining contributing RouteKey evidence: stable wave ID,
+start/peak-interval/end, stream count vs route-instance count, prefixes,
+peers, generic facet counts, event-relative counts, representative
+before/after states, and evidence references. Labels
+(`PrependReduction`, `PrependIncrease`, `StreamWithdrawal`,
+`TransitDeparture`, `StreamRestoration`, `TransitReturn`,
+`BaselinePolicyRestoration`, `MixedRouteChange`) require supporting
+effects; ties resolve to `MixedRouteChange`. Wave counts are derived from
+actual temporal clustering — never forced. SEQUITUR describes repeated
+sequences; it never assigns semantic labels and never determines the
+assessment.
+
+## Assessment
 
 ### Verdict
-Enum with 9 variants describing the assessment outcome:
 `ExpectedRedundantImpact`, `ExpectedLossOfReachability`,
-`UnexpectedWithdrawals`, `RedundancyFailureObserved`,
-`UnexpectedBlastRadius`, `LessImpactThanExpected`,
-`NoObservableBgpImpact`, `InsufficientVisibility`, `Indeterminate`.
+`ExpectedParticipantUnavailability`, `ExpectedAlternateRouting`,
+`PartialImpact`, `UnexpectedContinuedInternet2Path`,
+`PolicyChangeObserved`, `ProvisionalImpactObserved`,
+`ProvisionalNoImpactSoFar`, `UnexpectedWithdrawals`,
+`RedundancyFailureObserved`, `UnexpectedBlastRadius`,
+`LessImpactThanExpected`, `NoObservableBgpImpact`,
+`InsufficientVisibility`, `Indeterminate`.
 
-### Evidence
-A piece of evidence linking a conclusion to specific source records.
+### AnalysisOutcome
+`Completed`, `InsufficientVisibility`, `Incomplete`. Blocked planning is
+**not** an outcome — `AnalysisPlanStatus::Blocked` precedes acquisition.
 
-### EventAssessment
-A complete assessment: event id, expectation, verdict, evidence list,
-waves, and generation timestamp.
-
-## Internet2-specific types
-
-### Internet2Ticket
-A parsed Internet2 GRNOC ticket: id, title, declared time window, and
-raw fixture data.
-
-### TicketFixture
-Internal deserialization format for JSON fixture files on disk.
-
-## Sequence types (future)
-
-### TransitionSymbol
-A canonical symbol representing a route transition (e.g. "ANNOUNCEMENT",
-"PRIMARY_TO_ALTERNATE"). Used as input to SEQUITUR.
-
-### Grammar
-A SEQUITUR grammar: rules mapping non-terminal symbols to sequences of
-terminals and non-terminals. Compresses and reveals structure in
-transition sequences.
+### Evidence / EventAssessment
+Evidence links conclusions to source records; an assessment carries
+event id, expectation, verdict, evidence, waves, and generation time.

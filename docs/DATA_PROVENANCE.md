@@ -3,66 +3,87 @@
 ## Principle
 
 Every conclusion rendered by inim must be traceable to concrete source
-records. This document defines the provenance model and will be updated
-as the system gains the ability to track data lineage through the
-analysis pipeline.
+records. This document defines the provenance model.
 
 ## Current state
 
-The MVP foundation establishes the data structures for provenance
-tracking:
+### Event subjects are data, not code
+No event name, ASN, or network name appears in any domain enum variant.
+Manifests carry reviewed entity/predicate mappings; rendered messages
+interpolate manifest values.
 
-### OperationalEvent
-- `source: String` — identifies the origin system (e.g. `"internet2-grnoc"`)
-- `raw: Value` — preserves the original fixture data verbatim
+### Reviewed manifest (canonical, schema v2)
+- `event_id`, `revision`, `schema_version`, windows, warmup/cooldown
+- `target.origin_asns` — reviewed entity mapping (origin ASNs)
+- `target.transit_predicate` — `TransitPredicateMapping` with
+  `status` (Reviewed/Unresolved), `predicate`, and `provenance`
+  (statement, reviewer, date)
+- `collectors` + `collectors_provenance`, `analyst_notes`
 
-### ImpactExpectation
-- `provenance: String` — documents where the expectation came from
-  (e.g. `"Internet2 title convention: parenthesized site code indicates
-  expected redundancy"`)
+Legacy single-ASN shortcut fields (`managed_network_asn`,
+`internet2_asn`) are **rejected** on load with
+`LegacyManifestRequiresMigration`; the offline `migrate-manifest` helper
+converts them with analyst-confirmed provenance and never invents
+unresolved ASNs.
 
-### Evidence
-- `description: String` — human-readable explanation
-- `source_records: Vec<String>` — references to specific source records
-  that support the conclusion
+### Observation provenance
+Every `RouteObservation` carries:
+- `source_url` / `archive_sha256` — canonical source URL and archive
+  checksum
+- `role` (RIB/updates), `parser_representation`
+- `mrt_timestamp`, `element_seq` (deterministic within the archive),
+  `archive_order` (deterministic across archives)
+- `path_id` — ADD-PATH identity, preserved end-to-end
 
-### RouteState
-- `observer: String` — identifies which collector:peer reported this state
-- `timestamp: DateTime<Utc>` — when the observation was made
+### Deterministic identity
+Observation IDs and evidence IDs are assigned **after** sorting by the
+documented order: collector, timestamp, archive order, element sequence,
+peer IP, prefix, path_id (`None < Some(id)`). Serial and parallel
+completion produce identical IDs and identical artifacts.
 
-### EventAssessment
-- `generated_at: DateTime<Utc>` — when the assessment was produced
+### Evidence chain
+`StateChange` and `RouteTransition` carry evidenced baseline/before/after
+states plus the triggering `EvidenceRef` (observation id, source URL,
+archive SHA, collector, peer, prefix, timestamp, element seq, path_id).
+Lifecycle transitions, restorations, ambiguity records, and semantic
+waves retain evidence references.
 
-## Future provenance model
+### Derived caches (schema v2)
+- RIB cache: source URL + SHA-256, collector, parser identity, reviewed
+  entity ASNs, canonical TransitPredicate identity, frozen cohort
+  identity (ObserverPrefixKey values), every baseline `RouteKey`
+  including `path_id`, evidenced baseline observations, preflight
+  counters, payload checksum.
+- UPDATE cache: full `RouteObservation` records (path_id, complete
+  attributes), source URL + SHA, archive order, element sequence,
+  admission counters, cohort identity, parser identity, payload
+  checksum. A zero-observation cache remains a valid hit.
 
-Each analysis stage will add provenance metadata:
-
-1. **Ticket ingestion**: fixture file path, parse timestamp
-2. **BGP reconstruction**: MRT file paths, RIB sequence numbers,
-   UPDATE message offsets
-3. **Tokenization**: which RouteStates were compared
-4. **SEQUITUR**: which sequences were fed, grammar derivation steps
-5. **Wave detection**: clustering parameters, transition membership
-6. **Assessment**: verdict rules triggered, evidence sources
-7. **Report**: output file path, rendering timestamp
+### Artifacts
+Report, evidence appendix, lifecycle, withdrawal audit, semantic waves,
+comparison, and analysis-plan artifacts all carry schema versions. Old
+artifacts are archived (e.g. `out/archive/pre-observer-prefix-schema/`),
+never parsed as current schema.
 
 ## Audit trail
 
-The JSON report format will include a `provenance` section enumerating:
-- Input files (paths, hashes)
-- Processing parameters
-- Per-conclusion source record references
-- Reproducibility metadata (version, timestamp, random seed if any)
+Artifacts written per event:
+- `report.txt` / `report.json` — observed event signature, observable
+  mechanism hints, limitations, verdict, evidence
+- `archive_manifest.json` — every source archive (URL, local path,
+  collector, type, size, SHA-256)
+- `evidence_appendix.jsonl` — one line per transition with baseline/
+  before/after states and triggering evidence
+- `lifecycle.json`, `semantic_waves.json`, `withdrawal_audit.json`,
+  `limitations.json`
+- `analysis_plan.json` / `analysis_plan.txt` (plan command) — plan
+  status, reason, broker calls (0), MRT files examined (0)
 
 ## Reproducibility
 
-Reports must be deterministic. Given the same inputs (ticket fixture,
-MRT files, configuration), inim must produce identical output. This
-requires:
-- No random number generators (use deterministic algorithms)
-- Stable sorting of collections
-- Explicit timestamp ordering
-- No floating-point comparisons in decision logic
+Reports are deterministic: no RNGs, stable sorts, explicit timestamp
+ordering, deterministic wave clustering, deterministic IDs (serial and
+parallel runs produce identical artifacts).
 
 ## Test fixture provenance
 
@@ -74,7 +95,4 @@ requires:
 - **SHA256:** `9298763bbecbaef2a4378aa8bf58f0c8e911d9afd8e5d4cd1c15f0beb6922d66`
 - **Size:** 68,469 bytes (compressed)
 - **Content:** BGP4MP update records used by bgpkit-parser's own test suite.
-  Contains real (anonymized) RouteViews BGP UPDATE messages suitable for
-  testing the BgpElem → RouteObservation conversion boundary.
-- **Usage:** `ingest::tests::parses_actual_mrt_fixture_into_observations` —
-  parses first 20 records, asserts correct kind/prefix/provenance fields.
+- **Usage:** `ingest::tests::parses_actual_mrt_fixture_into_observations`.

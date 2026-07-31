@@ -258,3 +258,86 @@ Design choices:
 - Strict digram-uniqueness invariant has known edge cases on longer sequences
   with small alphabets (documented); all practical BGP transition sequences
   (typically 2–10 symbols) produce correct grammars
+
+---
+
+# Session 25 decisions
+
+## CLI planning and exit status semantics
+
+- `AnalysisPlanStatus::Blocked` stays in the library/domain, **outside**
+  `AnalysisOutcome`. `AnalysisOutcome` never carries a blocked variant.
+- The CLI communicates blocking through documented process exit codes:
+  `EXIT_SUCCESS` (0), `EXIT_INVALID_INPUT` (1),
+  `EXIT_ANALYSIS_INCOMPLETE` (2), `EXIT_ANALYSIS_BLOCKED` (3). Named
+  constants in main.rs; never encoded in domain enums.
+- `inim plan` exits 0 whenever the manifest parsed and a plan was
+  produced (even Blocked); nonzero only for malformed input/internal
+  failure.
+- `inim analyze` plans first; a Blocked plan performs zero Broker calls
+  and zero MRT parses, prints the plan artifact, exits 3.
+
+## Canonical TransitPredicate manifests
+
+- Canonical manifests use `TransitPredicateMapping` (status, predicate,
+  provenance). Supported predicates: `ContainsAny` (ordered non-empty
+  set), `ContainsAll` (ordered non-empty set), `Adjacent(left, right)`.
+- Legacy `managed_network_asn` / `internet2_asn` fields are **rejected**
+  with `LegacyManifestRequiresMigration` — never silently deserialized
+  into a canonical predicate during normal analysis.
+- Offline `migrate-manifest` helper: converts single-ASN shortcuts to
+  `ContainsAny`, requires analyst-confirmed provenance for Reviewed
+  mappings, never invents unresolved ASN values, never executes analysis.
+- The unresolved open fixture (INC0301970) is `Unresolved` with no
+  predicate.
+
+## ADD-PATH identity and lifecycle semantics
+
+- Route-state identity is `RouteKey` = collector + peer IP + prefix +
+  path_id. Stream identity is `ObserverPrefixKey` (no path_id). The
+  frozen cohort is `Set<ObserverPrefixKey>`.
+- Multiple route instances may represent one observer stream; final
+  instance loss is required for stream absence; path_id churn alone is
+  not routing impact.
+- Restoration kinds: ExactInstanceRestoration (same path_id + equivalent
+  route), EquivalentRouteRestoration (any path_id), ObserverPrefix-
+  Restoration (absent → visible), BaselineSetRestoration (active
+  semantics == baseline semantics). Path-id equality alone is never
+  semantic equality; route-semantic equality is defined over AS path,
+  origin ASNs, origin type, next hop, MED, local pref, atomic aggregate,
+  and communities (as sets).
+- Mixed keyed/unkeyed encoding for one stream → `AddPathContinuity-
+  Ambiguous`, stream-scoped, with first-conflicting-evidence records.
+  Ambiguous streams are excluded from strong stream-level assessment and
+  block no-impact verdicts.
+
+## Schema versioning and migration policy
+
+All persisted formats carry explicit schema versions (see
+`src/schema.rs`). Old versions are never reused after identity semantics
+changed. Old artifacts are archived
+(`out/archive/pre-observer-prefix-schema/`) rather than parsed as
+current. Derived caches are invalidated by version/parser/predicate/
+cohort changes and rebuilt atomically. Cohort identity hashes
+ObserverPrefixKey values only — invariant to baseline path-ID ordering.
+
+## Mechanism hints vs routing impact
+
+- RFC 8326 GSHUT (65535:0) may propagate as optional evidence; lifecycle
+  tracks tag timing per stream; permitted conclusions are exactly the two
+  documented statements.
+- RFC 9003 and RFC 8327 intent are not visible remotely; Graceful Restart
+  capability negotiation is not observable from this dataset. Mechanism
+  hints cannot change the impact assessment by themselves.
+
+## Semantic waves
+
+- Waves are temporal clusters derived from actual evidence — never a
+  forced count. Labels require supporting effects; ties resolve to
+  `MixedRouteChange`. SEQUITUR describes repeated sequences; it never
+  assigns semantic labels and never determines the assessment.
+
+## Monocle
+
+- Monocle remains rejected under ADR-001 (`docs/ADRs/ADR-001-monocle.md`);
+  no dependency added.

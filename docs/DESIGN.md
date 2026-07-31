@@ -38,29 +38,43 @@
 Ticket fixture (JSON)
     │
     ▼
-Internet2 adapter ──► OperationalEvent + ImpactExpectation
+Ticket/GRNOC adapter ──► EventId + ImpactExpectation
                             │
-MRT RIB files ──► BGP module ──► seeded RouteState per observer
-    │                               │
-MRT UPDATE files ──────────────────┤
-                                    ▼
-                          RouteTransition stream
-                                    │
-                                    ▼
-                          Tokenize ──► TransitionSymbol sequence
-                                    │
-                                    ▼
-                          SEQUITUR ──► Grammar (motifs)
-                                    │
-                                    ▼
-                          Waves ──► ImpactWave list
-                                    │
-                                    ▼
-                          Assess ──► EventAssessment
-                                    │
-                                    ▼
-                          Report ──► Terminal + JSON output
+Reviewed manifest (JSON) ───┤
+    │                        ▼
+    ▼                 plan_from_manifest (BEFORE acquisition)
+AnalysisPlan                 │
+    │                         │ Ready?
+    │                         ▼
+    │              Broker discovery + archive caching
+    │                         │
+    │              RIB derived-cache lookup ── hit? skip MRT parse
+    │                         │
+    │              RIB preflight ──► FrozenCohort (ObserverPrefixKey set)
+    │                         │
+    │              UPDATE derived-cache lookup ── hit? skip MRT parse
+    │                         │
+    │              deterministic sort + observation ID assignment
+    │                         │
+    │              Route reconstruction (RouteStateStore, RouteKey)
+    │                         │
+    │              Tokenize ──► RouteTransition + effects
+    │                         │
+    │              Waves ──► ImpactWave list (+ SEQUITUR motifs)
+    │                         │
+    │              Lifecycles ──► StreamLifecycle per ObserverPrefixKey
+    │                         │
+    │              Semantic waves (from lifecycles + evidence)
+    │                         │
+    │              Assess ──► EventAssessment (verdict, evidence)
+    │                         │
+    │              Outputs ──► report/evidence/lifecycle/wave/audit JSON
+    ▼
+AnalysisOutcome (completed | insufficient_visibility | incomplete)
 ```
+
+Blocked plans (`AnalysisPlanStatus::Blocked`) stop before the dashed
+branch: zero Broker calls, zero MRT parses, exit `EXIT_ANALYSIS_BLOCKED`.
 
 ## Key design decisions
 
@@ -72,12 +86,55 @@ MRT UPDATE files ──────────────────┤
 - Single static binary for deployment
 - Cargo ecosystem includes MRT parsing crates when needed
 
-### Why no async
+### Why planning precedes acquisition
 
-The initial scope (local CLI processing one ticket + bounded MRT files)
+Every analysis starts from a reviewed manifest. Planning validates the
+reviewed entity mapping and transit predicate before any network activity,
+so blocked plans are cheap, safe, and deterministic. Blocked planning is
+a plan status, not an `AnalysisOutcome` — outcomes describe completed or
+failed observation, never pre-acquisition refusal.
+
+### Why the principal lifecycle identity is ObserverPrefixKey
+
+BGP ADD-PATH means one observer may advertise multiple route instances
+(`RouteKey` with distinct `path_id`) for one prefix. Routing impact is
+experienced at the observer-prefix stream level, so lifecycles are keyed
+by `ObserverPrefixKey` while every instance's history is retained. Stream
+absence requires the loss of the **final** instance; path_id churn alone
+is not routing impact.
+
+### Why canonical manifests use TransitPredicateMapping
+
+A single-ASN shortcut cannot express the reviewed predicates the event
+model supports (`ContainsAny`, `ContainsAll`, `Adjacent`). Canonical
+manifests carry status + predicate + provenance. Legacy shortcut fields
+are rejected with `LegacyManifestRequiresMigration` and converted only by
+the offline `migrate-manifest` helper, which requires analyst-confirmed
+provenance and never invents unresolved ASNs.
+
+### Why schema versions are explicit and old versions are rejected
+
+Identity semantics changed with ADD-PATH awareness. Reusing an old schema
+number would silently reinterpret pre-ADD-PATH caches. Every persisted
+format (manifest, RIB cache, UPDATE cache, cohort identity, report,
+evidence appendix, lifecycle, withdrawal audit, semantic wave,
+comparison, analysis plan) carries an explicit version; mismatches are
+rejected and rebuilt/archived rather than parsed as current.
+
+### Why mechanism hints are separate from routing impact
+
+Route-state changes are evidence of impact. RFC 8326 GSHUT communities
+may propagate without causing route changes, and their absence proves
+nothing. Mechanism hints (RFC 8326 observations, RFC 9003 / RFC 8327 /
+Graceful Restart non-observability statements) are reported in a separate
+section and can never change the impact assessment by themselves.
+
+### Why async is deferred
+
+The current scope (local CLI processing one ticket + bounded MRT files)
 does not require network concurrency. Async adds complexity in error
-handling, debugging, and trait ergonomics. It can be introduced later
-if live scraping or streaming becomes necessary.
+handling, debugging, and trait ergonomics. It can be introduced later if
+live scraping or streaming becomes necessary.
 
 ### Why crate boundaries as modules, not workspace crates
 
@@ -92,7 +149,8 @@ desirable.
 SEQUITUR must have no BGP-specific knowledge. It operates on abstract
 symbol sequences. This makes it independently testable with property
 tests (round-trip, digram uniqueness, rule reuse) and reusable for
-non-BGP sequence analysis.
+non-BGP sequence analysis. SEQUITUR describes repeated sequences; it
+never assigns semantic labels and never determines the assessment.
 
 ### Why parenthesized convention is Internet2-specific
 
@@ -101,3 +159,4 @@ model must be source-neutral. The Internet2 adapter explicitly documents
 this as an Internet2 naming convention with provenance tracking, so
 future adapters for other networks can implement their own expectation
 derivation without misunderstanding this as a universal rule.
+
