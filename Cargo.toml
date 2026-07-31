@@ -4,7 +4,14 @@ version = "0.1.0"
 edition = "2021"
 authors = ["Vadim Petrov <vadim@vadimpetrov.com>"]
 license = "MIT"
-description = "Internetwork Impact Monitor — determine how planned or unplanned network events affect the globally visible routing system"
+description = "Internetwork Impact Monitor — compare operator-declared network events with externally observable BGP route behavior from selected public collectors"
+readme = "README.md"
+keywords = ["bgp", "routing", "network-events", "routeviews", "observability"]
+categories = ["command-line-utilities", "network-programming"]
+# Packaging: exclude caches, raw MRT archives, generated event outputs,
+# validation/archived runs, and local scratch files. The crate ships only
+# source, tests/fixtures (provenance-documented, MIT-compatible), and docs.
+exclude = ["out/", "cache/", "run_stderr*.log"]
 
 [dependencies]
 clap = { version = "4", features = ["derive"] }

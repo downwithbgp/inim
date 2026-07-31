@@ -1,0 +1,45 @@
+# Contributing to inim
+
+Thanks for considering a contribution. This project is a small, careful
+data-analysis tool; keep contributions proportionate to the request.
+
+## License
+
+inim is licensed under the **MIT License** (see `LICENSE`).
+SPDX-License-Identifier: MIT
+
+By submitting a contribution you agree that it is licensed under the same
+MIT License (inbound = outbound). You must have the right to submit the
+work (your own original work, or work you are licensed to contribute).
+
+There is no Contributor License Agreement.
+
+## Before you submit
+
+- **Quality gates must pass:**
+  ```sh
+  cargo fmt --check
+  cargo test
+  cargo test --release
+  cargo clippy --all-targets --all-features -- -D warnings
+  ```
+- **Event subjects and ASN mappings are data, not code.** A new ticket
+  title, participant, or transit ASN belongs in a reviewed manifest
+  (`manifests/`) with provenance — never as a special case in production
+  code.
+- **External fixtures require provenance.** If you add a fixture from
+  upstream or public sources, record its source, license basis, and
+  checksum in `tests/fixtures/README.md`.
+- **Generated artifacts should not be committed casually.** Re-run
+  analyses and commit current-schema outputs when an analysis changes
+  materially; do not commit scratch outputs, caches, or raw MRT archives
+  (`cache/` is gitignored; `out/` is excluded from the crate package).
+- **Keep changes surgical.** Match the existing style; every changed line
+  should trace to the request.
+- **New persisted formats carry schema versions.** Bump the schema and
+  reject old identity semantics rather than silently reinterpreting them.
+
+## Release checklist
+
+See `RELEASING.md` for the release-readiness checklist (gates, license
+audit, packaging, verification).

@@ -1,8 +1,15 @@
 # inim — Internetwork Impact Monitor
 
-Determines how operational network events affect the globally visible
-routing system, using control-plane BGP observations from selected
-RouteViews collectors.
+inim compares operator-declared network events with externally observable
+BGP route behavior from selected public collectors (RouteViews).
+
+It does not establish:
+
+- global reachability
+- traffic impact
+- circuit state
+- operator command usage
+- causation from temporal association alone
 
 ## Status
 
@@ -67,5 +74,29 @@ insufficient-visibility, or incomplete results.
    lifecycle.json, semantic_waves.json, withdrawal_audit.json,
    limitations.json; optional comparison artifacts.
 
+## Worked demonstrations
+
+Two completed case studies are analyzed in this repository:
+
+- **INC0302574** (RIPE via NYIIX, redundant-attachment expectation) —
+  **No observable BGP impact**: no route-state changes were observed among
+  the 19 selected RouteViews observer-prefix streams (19 baseline route
+  instances), consistent with the redundant-attachment expectation.
+- **INC0299001** (UVA via Internet2, participant-relationship expectation)
+  — **Partial impact**: among 48 selected observer-prefix streams,
+  22 prepend-only, 11 material changes still via transit, 2 departed the
+  reviewed transit predicate, 13 withdrew from the selected streams
+  (13 restored), 2 semantic waves; 214 route transitions.
+
+Both are observer-scoped conclusions about selected public collectors —
+see `out/` (current-schema artifacts) and the archived earlier analyses
+under `out/archive/`.
+
 See `docs/` for the full design, domain model, decisions, data provenance,
 and observability contracts.
+
+## License
+
+inim is licensed under the MIT License. See LICENSE.
+
+SPDX-License-Identifier: MIT

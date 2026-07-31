@@ -1,0 +1,25 @@
+# cargo-deny configuration (development-time license audit; not linked
+# into inim). Allowed licenses: permissive OSI-approved licenses only.
+# Audit command: `cargo deny check licenses` (cargo-deny 0.19.8).
+[licenses]
+allow = [
+    "MIT",
+    "Apache-2.0",
+    "0BSD",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "Zlib",
+    "Unlicense",
+    "CC0-1.0",
+    "Unicode-3.0",
+    "MIT-0",
+    "bzip2-1.0.6",
+    "CDLA-Permissive-2.0",
+]
+# Any dependency without a determinable license fails the audit as
+# unresolved rather than being guessed.
+confidence-threshold = 0.8
+
+[bans]
+multiple-versions = "warn"
