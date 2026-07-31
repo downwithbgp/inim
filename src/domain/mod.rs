@@ -5,5 +5,6 @@ pub mod event;
 pub mod expectation;
 pub mod entity;
 pub mod route;
+pub mod observation;
 pub mod wave;
 pub mod assessment;

@@ -1,10 +1,13 @@
-//! Route types — prefixes, AS paths, route state, and transitions.
+//! Route types — prefixes, AS paths, route state, transitions, and keys.
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use std::net::IpAddr;
+
+use super::observation::Asn;
 
 /// A BGP prefix (e.g. "192.0.2.0/24").
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, PartialOrd, Ord, Serialize, Deserialize)]
 pub struct Prefix(pub String);
 
 impl From<&str> for Prefix {
@@ -34,12 +37,18 @@ impl std::fmt::Display for AsPath {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RouteAttributes {
     pub as_path: AsPath,
-    /// The origin AS (rightmost AS in the path).
-    pub origin_as: u32,
+    /// The ASNs originating the route (rightmost in path).
+    pub origin_asns: Vec<Asn>,
+    /// Next-hop IP address.
+    pub next_hop: Option<IpAddr>,
+    /// BGP origin type (IGP, EGP, INCOMPLETE).
+    pub origin: Option<String>,
     /// Multi-exit discriminator.
     pub med: Option<u32>,
     /// Local preference.
     pub local_pref: Option<u32>,
+    /// Atomic aggregate flag.
+    pub atomic_aggregate: bool,
     /// Communities as string representations (e.g. "11537:1000").
     pub communities: Vec<String>,
 }
@@ -47,13 +56,34 @@ pub struct RouteAttributes {
 impl RouteAttributes {
     /// Create bare route attributes from an AS path.
     pub fn from_as_path(as_path: Vec<u32>) -> Self {
-        let origin_as = *as_path.last().unwrap_or(&0);
+        let origin_asns = as_path.last().map(|&a| vec![Asn(a)]).unwrap_or_default();
         RouteAttributes {
             as_path: AsPath(as_path),
-            origin_as,
+            origin_asns,
+            next_hop: None,
+            origin: None,
             med: None,
             local_pref: None,
+            atomic_aggregate: false,
             communities: vec![],
+        }
+    }
+}
+
+/// A unique key identifying a route: collector + peer + prefix.
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+pub struct RouteKey {
+    pub collector: String,
+    pub peer_ip: IpAddr,
+    pub prefix: Prefix,
+}
+
+impl RouteKey {
+    pub fn new(collector: &str, peer_ip: IpAddr, prefix: &Prefix) -> Self {
+        RouteKey {
+            collector: collector.to_string(),
+            peer_ip,
+            prefix: prefix.clone(),
         }
     }
 }
@@ -68,7 +98,30 @@ pub struct RouteState {
     pub observer: String,
 }
 
+impl RouteState {
+    pub fn to_key(&self) -> RouteKey {
+        // Parse peer IP from observer string like "route-views2:185.1.8.65"
+        let peer_ip: IpAddr = self
+            .observer
+            .split(':')
+            .nth(1)
+            .and_then(|s| s.parse().ok())
+            .unwrap_or_else(|| "0.0.0.0".parse().unwrap());
+
+        let collector = self
+            .observer
+            .split(':')
+            .next()
+            .unwrap_or("")
+            .to_string();
+
+        RouteKey::new(&collector, peer_ip, &self.prefix)
+    }
+}
+
 /// The kind of route transition between two states.
+///
+/// Classification lives only in tokenize::diff.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum TransitionKind {
     /// A previously absent route is announced.
@@ -88,6 +141,8 @@ pub enum TransitionKind {
     SessionReset,
     /// A previously withdrawn route is restored with its original path.
     Restoration,
+    /// Return to event baseline after a change.
+    ReturnToBaseline,
 }
 
 /// A transition from one route state to another.
@@ -104,6 +159,45 @@ pub struct RouteTransition {
 impl RouteTransition {
     pub fn new(from: Option<RouteState>, to: RouteState, kind: TransitionKind) -> Self {
         RouteTransition { from, to, kind }
+    }
+}
+
+// ── Reconstruction primitives ──────────────────────────────────────
+
+/// Whether observation continuity is confirmed.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum Continuity {
+    /// Continuity is known and uninterrupted.
+    Known,
+    /// Continuity cannot be confirmed (session boundary, archive gap).
+    Unknown,
+}
+
+/// A kind-less state change emitted by route reconstruction.
+///
+/// Contains only before/after states and continuity status.
+/// Classification happens downstream in tokenize::diff.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct StateChange {
+    pub key: RouteKey,
+    pub from: Option<RouteState>,
+    pub to: RouteState,
+    pub continuity: Continuity,
+}
+
+impl StateChange {
+    pub fn new(
+        key: RouteKey,
+        from: Option<RouteState>,
+        to: RouteState,
+        continuity: Continuity,
+    ) -> Self {
+        StateChange {
+            key,
+            from,
+            to,
+            continuity,
+        }
     }
 }
 
@@ -140,14 +234,14 @@ mod tests {
     #[test]
     fn route_attributes_from_as_path() {
         let attrs = RouteAttributes::from_as_path(vec![11537, 237, 1101]);
-        assert_eq!(attrs.origin_as, 1101);
+        assert_eq!(attrs.origin_asns, vec![Asn(1101)]);
         assert_eq!(attrs.as_path.0.len(), 3);
     }
 
     #[test]
     fn route_attributes_empty_path() {
         let attrs = RouteAttributes::from_as_path(vec![]);
-        assert_eq!(attrs.origin_as, 0);
+        assert!(attrs.origin_asns.is_empty());
     }
 
     #[test]
@@ -214,5 +308,31 @@ mod tests {
         let json = serde_json::to_string(&t).unwrap();
         let parsed: RouteTransition = serde_json::from_str(&json).unwrap();
         assert_eq!(t, parsed);
+    }
+
+    #[test]
+    fn route_key_construction() {
+        let key = RouteKey::new(
+            "route-views2",
+            "185.1.8.65".parse().unwrap(),
+            &Prefix::from("192.0.2.0/24"),
+        );
+        assert_eq!(key.collector, "route-views2");
+    }
+
+    #[test]
+    fn state_change_construction() {
+        let state = sample_state("192.0.2.0/24", vec![11537, 1101], "rv2:AS6447");
+        let key = RouteKey::new("rv2", "185.1.8.65".parse().unwrap(), &state.prefix);
+        let sc = StateChange::new(key, None, state, Continuity::Known);
+        assert_eq!(sc.continuity, Continuity::Known);
+        assert!(sc.from.is_none());
+    }
+
+    #[test]
+    fn route_state_to_key() {
+        let state = sample_state("192.0.2.0/24", vec![11537, 1101], "route-views2:185.1.8.65");
+        let key = state.to_key();
+        assert_eq!(key.collector, "route-views2");
     }
 }
