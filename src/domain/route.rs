@@ -138,9 +138,9 @@ pub enum TransitionKind {
     /// A route is withdrawn.
     Withdrawal,
     /// An exact duplicate of the previous state (no change).
-    ExactDuplicate,
+    Duplicate,
     /// The AS path changed (e.g. failover to alternate).
-    PathChange { old: AsPath, new: AsPath },
+    PathReplacement { old: AsPath, new: AsPath },
     /// Non-path attributes changed (no path difference).
     AttributeChange,
     /// Observer session discontinuity — not a real route change.
@@ -149,12 +149,37 @@ pub enum TransitionKind {
     Restoration,
     /// Return to event baseline after a change.
     ReturnToBaseline,
-    /// Route newly gained the GRACEFUL_SHUTDOWN community (65535:0).
-    GracefulShutdownTagged,
+}
+
+/// Orthogonal effects that may co-occur with a primary TransitionKind.
+///
+/// A single BGP observation may simultaneously change the path AND add
+/// a community AND modify MED. These facets are always computed, never
+/// forced into a single mutually-exclusive category.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub struct TransitionEffects {
+    /// Route gained the GRACEFUL_SHUTDOWN community (65535:0).
+    pub graceful_shutdown_added: bool,
     /// Route lost the GRACEFUL_SHUTDOWN community (65535:0).
-    GracefulShutdownUntagged,
-    /// Communities changed while the AS path remained equal (non-GSHUT).
-    CommunityOnlyChange,
+    pub graceful_shutdown_removed: bool,
+    /// Prepend count increased (more ASNs after collapsing duplicates).
+    pub prepend_increased: bool,
+    /// Prepend count decreased (fewer ASNs after collapsing duplicates).
+    pub prepend_reduced: bool,
+    /// Collapsed AS paths differ materially (not just prepending).
+    pub material_path_changed: bool,
+    /// Path departed the required transit ASN.
+    pub required_transit_departed: bool,
+    /// Path returned to the required transit ASN.
+    pub required_transit_returned: bool,
+    /// Communities changed (any change, including GSHUT).
+    pub communities_changed: bool,
+    /// MED value changed.
+    pub med_changed: bool,
+    /// Local preference changed.
+    pub local_pref_changed: bool,
+    /// Origin type changed.
+    pub origin_changed: bool,
 }
 
 // ── Evidenced route state ──────────────────────────────────────────
@@ -293,12 +318,16 @@ pub struct RouteTransition {
     pub to: EvidencedRouteState,
     /// The kind of transition that occurred.
     pub kind: TransitionKind,
+    /// Orthogonal effects that co-occurred with this transition.
+    #[serde(default)]
+    pub effects: TransitionEffects,
     /// The triggering observation.
     pub triggering: EvidenceRef,
     pub phase: AnalysisPhase,
 }
 
 impl RouteTransition {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         key: RouteKey,
         event_baseline: Option<EvidencedRouteState>,
@@ -306,6 +335,7 @@ impl RouteTransition {
         to: EvidencedRouteState,
         triggering: EvidenceRef,
         kind: TransitionKind,
+        effects: TransitionEffects,
         phase: AnalysisPhase,
     ) -> Self {
         RouteTransition {
@@ -314,6 +344,7 @@ impl RouteTransition {
             from,
             to,
             kind,
+            effects,
             triggering,
             phase,
         }
@@ -358,6 +389,7 @@ mod tests {
             to_ev,
             evidence,
             kind,
+            TransitionEffects::default(),
             AnalysisPhase::Event,
         )
     }
@@ -407,20 +439,20 @@ mod tests {
     fn transition_path_change() {
         let from = sample_state("192.0.2.0/24", vec![11537, 1101], "rv2:AS6447");
         let to = sample_state("192.0.2.0/24", vec![11537, 237, 1101], "rv2:AS6447");
-        let kind = TransitionKind::PathChange {
+        let kind = TransitionKind::PathReplacement {
             old: from.attributes.as_path.clone(),
             new: to.attributes.as_path.clone(),
         };
         let t = synth_transition(Some(from), to, kind);
-        assert!(matches!(t.kind, TransitionKind::PathChange { .. }));
+        assert!(matches!(t.kind, TransitionKind::PathReplacement { .. }));
     }
 
     #[test]
     fn transition_exact_duplicate() {
         let from = sample_state("192.0.2.0/24", vec![11537, 1101], "rv2:AS6447");
         let to = from.clone();
-        let t = synth_transition(Some(from), to, TransitionKind::ExactDuplicate);
-        assert_eq!(t.kind, TransitionKind::ExactDuplicate);
+        let t = synth_transition(Some(from), to, TransitionKind::Duplicate);
+        assert_eq!(t.kind, TransitionKind::Duplicate);
     }
 
     #[test]
@@ -443,7 +475,7 @@ mod tests {
     fn transition_serialization_roundtrip() {
         let from = sample_state("192.0.2.0/24", vec![11537, 1101], "rv2:AS6447");
         let to = sample_state("192.0.2.0/24", vec![11537, 237, 1101], "rv2:AS6447");
-        let kind = TransitionKind::PathChange {
+        let kind = TransitionKind::PathReplacement {
             old: from.attributes.as_path.clone(),
             new: to.attributes.as_path.clone(),
         };

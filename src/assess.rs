@@ -63,7 +63,7 @@ fn collect_evidence(
         .collect();
     let path_changes: Vec<_> = transitions
         .iter()
-        .filter(|t| matches!(t.kind, TransitionKind::PathChange { .. }))
+        .filter(|t| matches!(t.kind, TransitionKind::PathReplacement { .. }))
         .collect();
     let restorations: Vec<_> = transitions
         .iter()
@@ -186,7 +186,7 @@ fn derive_verdict(
         .any(|t| matches!(t.kind, TransitionKind::Withdrawal));
     let has_path_changes = transitions
         .iter()
-        .any(|t| matches!(t.kind, TransitionKind::PathChange { .. }));
+        .any(|t| matches!(t.kind, TransitionKind::PathReplacement { .. }));
     let has_session_resets = transitions
         .iter()
         .any(|t| matches!(t.kind, TransitionKind::SessionReset));
@@ -270,7 +270,7 @@ fn derive_verdict(
             } else {
                 // Legacy fallback without lifecycle data
                 let departures_from_i2 = transitions.iter().any(|t| {
-                    matches!(t.kind, TransitionKind::PathChange { .. })
+                    matches!(t.kind, TransitionKind::PathReplacement { .. })
                         && t.from
                             .as_ref()
                             .and_then(|e| e.state.as_ref())
@@ -319,6 +319,7 @@ mod tests {
     use crate::domain::observation::EvidenceRef;
     use crate::domain::route::{
         AnalysisPhase, AsPath, EvidencedRouteState, Prefix, RouteAttributes, RouteKey, RouteState,
+        TransitionEffects,
     };
     use chrono::{TimeZone, Utc};
 
@@ -339,7 +340,16 @@ mod tests {
         let ev = se();
         let from_ev = from.map(|s| EvidencedRouteState::present(s, ev.clone()));
         let to_ev = EvidencedRouteState::present(to, ev.clone());
-        RouteTransition::new(key, None, from_ev, to_ev, ev, kind, AnalysisPhase::Event)
+        RouteTransition::new(
+            key,
+            None,
+            from_ev,
+            to_ev,
+            ev,
+            kind,
+            TransitionEffects::default(),
+            AnalysisPhase::Event,
+        )
     }
 
     fn path_change(old: Vec<u32>, new: Vec<u32>, at: i64) -> RouteTransition {
@@ -358,7 +368,7 @@ mod tests {
         make_transition(
             Some(from),
             to,
-            TransitionKind::PathChange {
+            TransitionKind::PathReplacement {
                 old: AsPath(vec![]),
                 new: AsPath(vec![]),
             },

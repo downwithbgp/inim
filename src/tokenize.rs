@@ -8,13 +8,17 @@
 
 use std::collections::HashMap;
 
-use crate::domain::route::{Continuity, RouteState, RouteTransition, StateChange, TransitionKind};
+use crate::domain::route::{
+    Continuity, RouteState, RouteTransition, StateChange, TransitionEffects, TransitionKind,
+};
+use crate::lifecycle::collapse_as_path;
 
-/// Classify a state change into a transition kind.
+/// Classify a state change into a primary transition kind and orthogonal effects.
 ///
 /// This is the **single classification point** in the system.
 /// `baseline` is the frozen event-baseline state (optional).
 /// `from` and `to` come from the StateChange emitted by reconstruction.
+/// `required_transit` is the transit ASN for departure/return detection.
 ///
 /// No `STABLE_ALTERNATE` is emitted — stability is a derived wave property.
 pub fn diff_states(
@@ -22,69 +26,121 @@ pub fn diff_states(
     from: Option<&RouteState>,
     to: &RouteState,
     continuity: Continuity,
-) -> TransitionKind {
+    required_transit: Option<u32>,
+) -> (TransitionKind, TransitionEffects) {
+    let mut effects = TransitionEffects::default();
+
     // Session boundary or discontinuity → SessionReset
     if continuity == Continuity::Unknown {
-        return TransitionKind::SessionReset;
+        return (TransitionKind::SessionReset, effects);
     }
 
-    match from {
+    let from_state = match from {
         None => {
-            // No prior state → this is a new announcement
-            TransitionKind::Announcement
+            // No prior state → new announcement
+            return (TransitionKind::Announcement, effects);
         }
-        Some(from_state) => {
-            // Withdrawal: to has empty AS path
-            if to.attributes.as_path.0.is_empty() {
-                return TransitionKind::Withdrawal;
+        Some(s) => s,
+    };
+
+    // Withdrawal: to has empty AS path
+    if to.attributes.as_path.0.is_empty() {
+        return (TransitionKind::Withdrawal, effects);
+    }
+
+    // Exact duplicate
+    if from_state.attributes == to.attributes {
+        return (TransitionKind::Duplicate, effects);
+    }
+
+    // ── Compute all orthogonal effects ──────────────────────
+
+    // GSHUT effects
+    let from_has_gshut = from_state
+        .attributes
+        .communities
+        .contains(&"65535:0".to_string());
+    let to_has_gshut = to.attributes.communities.contains(&"65535:0".to_string());
+    if !from_has_gshut && to_has_gshut {
+        effects.graceful_shutdown_added = true;
+    }
+    if from_has_gshut && !to_has_gshut {
+        effects.graceful_shutdown_removed = true;
+    }
+
+    // Community change
+    if from_state.attributes.communities != to.attributes.communities {
+        effects.communities_changed = true;
+    }
+
+    // MED change
+    if from_state.attributes.med != to.attributes.med {
+        effects.med_changed = true;
+    }
+
+    // Local pref change
+    if from_state.attributes.local_pref != to.attributes.local_pref {
+        effects.local_pref_changed = true;
+    }
+
+    // Origin change
+    if from_state.attributes.origin != to.attributes.origin {
+        effects.origin_changed = true;
+    }
+
+    // Path effects
+    let path_changed = from_state.attributes.as_path != to.attributes.as_path;
+
+    if path_changed {
+        let from_collapsed = collapse_as_path(&from_state.attributes.as_path.0);
+        let to_collapsed = collapse_as_path(&to.attributes.as_path.0);
+
+        if from_collapsed == to_collapsed {
+            // Prepend change
+            if from_state.attributes.as_path.0.len() > to.attributes.as_path.0.len() {
+                effects.prepend_reduced = true;
+            } else {
+                effects.prepend_increased = true;
             }
+        } else {
+            effects.material_path_changed = true;
+        }
 
-            // Exact duplicate
-            if from_state.attributes == to.attributes {
-                return TransitionKind::ExactDuplicate;
+        // Transit departure/return
+        if let Some(transit) = required_transit {
+            let from_has = from_state.attributes.as_path.0.contains(&transit);
+            let to_has = to.attributes.as_path.0.contains(&transit);
+            if from_has && !to_has {
+                effects.required_transit_departed = true;
             }
-
-            // Check for community changes when AS path is equal
-            if from_state.attributes.as_path == to.attributes.as_path {
-                let from_has_gshut = from_state
-                    .attributes
-                    .communities
-                    .contains(&"65535:0".to_string());
-                let to_has_gshut = to.attributes.communities.contains(&"65535:0".to_string());
-
-                if !from_has_gshut && to_has_gshut {
-                    return TransitionKind::GracefulShutdownTagged;
-                }
-                if from_has_gshut && !to_has_gshut {
-                    return TransitionKind::GracefulShutdownUntagged;
-                }
-                // Communities differ but not GSHUT → community-only change
-                if from_state.attributes.communities != to.attributes.communities {
-                    return TransitionKind::CommunityOnlyChange;
-                }
-                // Other attribute-only changes
-                return TransitionKind::AttributeChange;
+            if !from_has && to_has {
+                effects.required_transit_returned = true;
             }
+        }
 
-            // Path change
-            if from_state.attributes.as_path != to.attributes.as_path {
-                // Check if it's a restoration to baseline
-                if let Some(bl) = baseline {
-                    if to.attributes.as_path == bl.attributes.as_path {
-                        return TransitionKind::ReturnToBaseline;
+        // Determine primary kind for path replacement
+        let primary = {
+            // Check if it's a restoration to baseline
+            if let Some(bl) = baseline {
+                if to.attributes.as_path == bl.attributes.as_path {
+                    TransitionKind::ReturnToBaseline
+                } else {
+                    TransitionKind::PathReplacement {
+                        old: from_state.attributes.as_path.clone(),
+                        new: to.attributes.as_path.clone(),
                     }
                 }
-                // Check if it's a restoration to from's previous state
-                // (simplified: exact restoration = returning to an exact previous path)
-                return TransitionKind::PathChange {
+            } else {
+                TransitionKind::PathReplacement {
                     old: from_state.attributes.as_path.clone(),
                     new: to.attributes.as_path.clone(),
-                };
+                }
             }
-
-            // Non-path attribute change
-            TransitionKind::AttributeChange
-        }
+        };
+        (primary, effects)
+    } else {
+        // No path change — primary kind is AttributeChange
+        (TransitionKind::AttributeChange, effects)
     }
 }
 
@@ -95,6 +151,7 @@ pub fn diff_states(
 pub fn tokenize(
     changes: Vec<StateChange>,
     _baseline_store: &HashMap<crate::domain::route::RouteKey, crate::domain::route::RouteState>,
+    required_transit: Option<u32>,
 ) -> Vec<RouteTransition> {
     changes
         .into_iter()
@@ -103,12 +160,16 @@ pub fn tokenize(
             let to_state = sc.after.state.as_ref();
             let baseline_state = sc.event_baseline.as_ref().and_then(|e| e.state.as_ref());
 
-            let kind = match (from_state, to_state) {
-                (_, None) => TransitionKind::Withdrawal,
-                (None, Some(_)) => TransitionKind::Announcement,
-                (Some(_), Some(to_rs)) => {
-                    diff_states(baseline_state, from_state, to_rs, sc.continuity)
-                }
+            let (kind, effects) = match (from_state, to_state) {
+                (_, None) => (TransitionKind::Withdrawal, TransitionEffects::default()),
+                (None, Some(_)) => (TransitionKind::Announcement, TransitionEffects::default()),
+                (Some(_), Some(to_rs)) => diff_states(
+                    baseline_state,
+                    from_state,
+                    to_rs,
+                    sc.continuity,
+                    required_transit,
+                ),
             };
 
             RouteTransition::new(
@@ -118,6 +179,7 @@ pub fn tokenize(
                 sc.after,
                 sc.triggering,
                 kind,
+                effects,
                 sc.phase,
             )
         })
@@ -143,15 +205,12 @@ impl TransitionSymbol {
         let s = match kind {
             TransitionKind::Announcement => "ANNOUNCEMENT",
             TransitionKind::Withdrawal => "WITHDRAWAL",
-            TransitionKind::ExactDuplicate => "DUPLICATE",
-            TransitionKind::PathChange { .. } => "PATH_CHANGE",
+            TransitionKind::Duplicate => "DUPLICATE",
+            TransitionKind::PathReplacement { .. } => "PATH_REPLACEMENT",
             TransitionKind::AttributeChange => "ATTRIBUTE_CHANGE",
             TransitionKind::SessionReset => "SESSION_RESET",
             TransitionKind::Restoration => "RESTORATION",
             TransitionKind::ReturnToBaseline => "RETURN_TO_BASELINE",
-            TransitionKind::GracefulShutdownTagged => "GSHUT_TAG",
-            TransitionKind::GracefulShutdownUntagged => "GSHUT_UNTAG",
-            TransitionKind::CommunityOnlyChange => "COMMUNITY_CHANGE",
         };
         TransitionSymbol(s.to_string())
     }
@@ -191,7 +250,7 @@ mod tests {
     #[test]
     fn absent_to_announced() {
         let to = state("192.0.2.0/24", vec![6447, 11537, 1101], "rv2:185.1.8.65");
-        let kind = diff_states(None, None, &to, Continuity::Known);
+        let (kind, _effects) = diff_states(None, None, &to, Continuity::Known, None);
         assert_eq!(kind, TransitionKind::Announcement);
     }
 
@@ -199,7 +258,7 @@ mod tests {
     fn present_to_withdrawn() {
         let from = state("192.0.2.0/24", vec![6447, 11537, 1101], "rv2:185.1.8.65");
         let to = state("192.0.2.0/24", vec![], "rv2:185.1.8.65");
-        let kind = diff_states(None, Some(&from), &to, Continuity::Known);
+        let (kind, _effects) = diff_states(None, Some(&from), &to, Continuity::Known, None);
         assert_eq!(kind, TransitionKind::Withdrawal);
     }
 
@@ -207,16 +266,16 @@ mod tests {
     fn identical_reannouncement() {
         let from = state("192.0.2.0/24", vec![6447, 11537, 1101], "rv2:185.1.8.65");
         let to = from.clone();
-        let kind = diff_states(None, Some(&from), &to, Continuity::Known);
-        assert_eq!(kind, TransitionKind::ExactDuplicate);
+        let (kind, _effects) = diff_states(None, Some(&from), &to, Continuity::Known, None);
+        assert_eq!(kind, TransitionKind::Duplicate);
     }
 
     #[test]
     fn path_change() {
         let from = state("192.0.2.0/24", vec![6447, 11537, 1101], "rv2:185.1.8.65");
         let to = state("192.0.2.0/24", vec![6447, 237, 1101], "rv2:185.1.8.65");
-        let kind = diff_states(None, Some(&from), &to, Continuity::Known);
-        assert!(matches!(kind, TransitionKind::PathChange { .. }));
+        let (kind, _effects) = diff_states(None, Some(&from), &to, Continuity::Known, None);
+        assert!(matches!(kind, TransitionKind::PathReplacement { .. }));
     }
 
     #[test]
@@ -224,7 +283,8 @@ mod tests {
         let baseline = state("192.0.2.0/24", vec![6447, 11537, 1101], "rv2:185.1.8.65");
         let from = state("192.0.2.0/24", vec![6447, 237, 1101], "rv2:185.1.8.65");
         let to = baseline.clone();
-        let kind = diff_states(Some(&baseline), Some(&from), &to, Continuity::Known);
+        let (kind, _effects) =
+            diff_states(Some(&baseline), Some(&from), &to, Continuity::Known, None);
         assert_eq!(kind, TransitionKind::ReturnToBaseline);
     }
 
@@ -232,7 +292,7 @@ mod tests {
     fn session_reset_on_unknown_continuity() {
         let from = state("192.0.2.0/24", vec![6447, 11537, 1101], "rv2:185.1.8.65");
         let to = state("192.0.2.0/24", vec![6447, 237, 1101], "rv2:185.1.8.65");
-        let kind = diff_states(None, Some(&from), &to, Continuity::Unknown);
+        let (kind, _effects) = diff_states(None, Some(&from), &to, Continuity::Unknown, None);
         assert_eq!(kind, TransitionKind::SessionReset);
     }
 
@@ -241,19 +301,19 @@ mod tests {
         let from = state("192.0.2.0/24", vec![6447, 11537, 1101], "rv2:185.1.8.65");
         let mut to = from.clone();
         to.attributes.local_pref = Some(200); // changed local pref
-        let kind = diff_states(None, Some(&from), &to, Continuity::Known);
+        let (kind, _effects) = diff_states(None, Some(&from), &to, Continuity::Known, None);
         assert_eq!(kind, TransitionKind::AttributeChange);
     }
 
     #[test]
     fn no_stable_alternate_symbol() {
         // Verify STABLE_ALTERNATE is not in the symbol alphabet
-        let kind = TransitionKind::PathChange {
+        let kind = TransitionKind::PathReplacement {
             old: AsPath(vec![6447, 11537, 1101]),
             new: AsPath(vec![6447, 237, 1101]),
         };
         let sym = TransitionSymbol::from_kind(&kind);
-        assert_eq!(sym.0, "PATH_CHANGE");
+        assert_eq!(sym.0, "PATH_REPLACEMENT");
         // There is no STABLE_ALTERNATE variant
     }
 
@@ -279,11 +339,11 @@ mod tests {
             Continuity::Known,
             AnalysisPhase::Event,
         );
-        let transitions = tokenize(vec![sc], &baseline_map);
+        let transitions = tokenize(vec![sc], &baseline_map, None);
         assert_eq!(transitions.len(), 1);
         assert!(matches!(
             transitions[0].kind,
-            TransitionKind::PathChange { .. }
+            TransitionKind::PathReplacement { .. }
         ));
     }
 }

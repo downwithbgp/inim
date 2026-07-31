@@ -8,7 +8,7 @@ use chrono::{DateTime, Utc};
 
 use crate::domain::route::RouteTransition;
 #[allow(unused_imports)]
-use crate::domain::route::TransitionKind;
+use crate::domain::route::{TransitionEffects, TransitionKind};
 use crate::domain::wave::{fnv1a_64, ImpactWave, MotifEvidenceRange, WaveMotif};
 
 /// Detect impact waves from a sequence of route transitions.
@@ -291,14 +291,14 @@ fn describe_motif(motif: Option<&WaveMotif>) -> &str {
     match motif {
         Some(m) => {
             let expanded = &m.expanded;
-            if expanded.contains("PATH_CHANGE") && expanded.contains("RETURN_TO_BASELINE") {
+            if expanded.contains("PATH_REPLACEMENT") && expanded.contains("RETURN_TO_BASELINE") {
                 "failover and restoration"
             } else if expanded.contains("RETURN_TO_BASELINE") {
                 "restoration"
-            } else if expanded.contains("PATH_CHANGE") && m.structure.len() > 1 {
-                "structured path change"
-            } else if expanded.contains("PATH_CHANGE") {
-                "path change"
+            } else if expanded.contains("PATH_REPLACEMENT") && m.structure.len() > 1 {
+                "structured path replacement"
+            } else if expanded.contains("PATH_REPLACEMENT") {
+                "path replacement"
             } else if expanded.contains("WITHDRAWAL") {
                 "withdrawal"
             } else {
@@ -332,7 +332,16 @@ mod tests {
         let key = RouteKey::new("test", "0.0.0.0".parse().unwrap(), &state.prefix);
         let ev = EvidenceRef::synthetic(0, "test", "0000");
         let to_ev = EvidencedRouteState::present(state, ev.clone());
-        RouteTransition::new(key, None, None, to_ev, ev, kind, AnalysisPhase::Event)
+        RouteTransition::new(
+            key,
+            None,
+            None,
+            to_ev,
+            ev,
+            kind,
+            TransitionEffects::default(),
+            AnalysisPhase::Event,
+        )
     }
 
     #[test]
@@ -344,7 +353,7 @@ mod tests {
     #[test]
     fn single_transition_is_one_wave() {
         let t = transition(
-            TransitionKind::PathChange {
+            TransitionKind::PathReplacement {
                 old: AsPath(vec![11537]),
                 new: AsPath(vec![237, 11537]),
             },
@@ -352,20 +361,20 @@ mod tests {
         );
         let waves = detect_waves(&[t], chrono::Duration::seconds(30));
         assert_eq!(waves.len(), 1);
-        assert!(waves[0].motif.as_ref().map(|m| m.expanded.as_str()) == Some("PATH_CHANGE"));
+        assert!(waves[0].motif.as_ref().map(|m| m.expanded.as_str()) == Some("PATH_REPLACEMENT"));
     }
 
     #[test]
     fn close_transitions_merge_into_one_wave() {
         let t1 = transition(
-            TransitionKind::PathChange {
+            TransitionKind::PathReplacement {
                 old: AsPath(vec![11537]),
                 new: AsPath(vec![237, 11537]),
             },
             0,
         );
         let t2 = transition(
-            TransitionKind::PathChange {
+            TransitionKind::PathReplacement {
                 old: AsPath(vec![237, 11537]),
                 new: AsPath(vec![3356, 11537]),
             },
@@ -378,7 +387,7 @@ mod tests {
     #[test]
     fn far_transitions_split_into_separate_waves() {
         let t1 = transition(
-            TransitionKind::PathChange {
+            TransitionKind::PathReplacement {
                 old: AsPath(vec![11537]),
                 new: AsPath(vec![237, 11537]),
             },
@@ -395,7 +404,7 @@ mod tests {
     #[test]
     fn summarize_adds_labels() {
         let t = transition(
-            TransitionKind::PathChange {
+            TransitionKind::PathReplacement {
                 old: AsPath(vec![11537]),
                 new: AsPath(vec![237, 11537]),
             },
@@ -404,7 +413,7 @@ mod tests {
         let mut waves = detect_waves(&[t], chrono::Duration::seconds(30));
         summarize_waves(&mut waves);
         assert!(waves[0].label.contains("Wave 1"));
-        assert!(waves[0].label.contains("path change"));
+        assert!(waves[0].label.contains("path replacement"));
     }
 
     #[test]
@@ -414,7 +423,7 @@ mod tests {
         let t0 = t(0);
         let motif = WaveMotif {
             id: "abc".into(),
-            expanded: "PATH_CHANGE".into(),
+            expanded: "PATH_REPLACEMENT".into(),
             structure: vec!["ROOT → PATH_CHANGE".into()],
             occurrences: 1,
             covered_terminals: 1,

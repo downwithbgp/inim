@@ -504,7 +504,7 @@ fn build_one_lifecycle(
                     }
                 }
             }
-            TransitionKind::PathChange { .. } => {
+            TransitionKind::PathReplacement { .. } => {
                 if last_had_gshut {
                     gshut_before_path_change = true;
                 }
@@ -624,7 +624,7 @@ fn path_shape_from_transition(
     t: &RouteTransition,
     required_transit: u32,
 ) -> Option<PathShapeChange> {
-    if !matches!(t.kind, TransitionKind::PathChange { .. }) {
+    if !matches!(t.kind, TransitionKind::PathReplacement { .. }) {
         return None;
     }
     let from = t.from.as_ref().and_then(|f| f.state.as_ref())?;
@@ -636,15 +636,12 @@ fn transition_kind_str(kind: &TransitionKind) -> String {
     match kind {
         TransitionKind::Announcement => "Announcement".into(),
         TransitionKind::Withdrawal => "Withdrawal".into(),
-        TransitionKind::ExactDuplicate => "ExactDuplicate".into(),
-        TransitionKind::PathChange { .. } => "PathChange".into(),
+        TransitionKind::Duplicate => "Duplicate".into(),
+        TransitionKind::PathReplacement { .. } => "PathReplacement".into(),
         TransitionKind::AttributeChange => "AttributeChange".into(),
         TransitionKind::SessionReset => "SessionReset".into(),
         TransitionKind::Restoration => "Restoration".into(),
         TransitionKind::ReturnToBaseline => "ReturnToBaseline".into(),
-        TransitionKind::GracefulShutdownTagged => "GracefulShutdownTagged".into(),
-        TransitionKind::GracefulShutdownUntagged => "GracefulShutdownUntagged".into(),
-        TransitionKind::CommunityOnlyChange => "CommunityOnlyChange".into(),
     }
 }
 
@@ -957,11 +954,8 @@ mod tests {
         use crate::tokenize::diff_states;
         let from = make_state_with_communities(vec![1, 2, 3], vec![]);
         let to = make_state_with_communities(vec![1, 2, 3], vec!["65535:0"]);
-        let kind = diff_states(None, Some(&from), &to, Continuity::Known);
-        assert_eq!(
-            kind,
-            crate::domain::route::TransitionKind::GracefulShutdownTagged
-        );
+        let (kind, _effects) = diff_states(None, Some(&from), &to, Continuity::Known, None);
+        assert_eq!(kind, crate::domain::route::TransitionKind::AttributeChange);
     }
 
     #[test]
@@ -970,11 +964,8 @@ mod tests {
         use crate::tokenize::diff_states;
         let from = make_state_with_communities(vec![1, 2, 3], vec!["65535:0"]);
         let to = make_state_with_communities(vec![1, 2, 3], vec![]);
-        let kind = diff_states(None, Some(&from), &to, Continuity::Known);
-        assert_eq!(
-            kind,
-            crate::domain::route::TransitionKind::GracefulShutdownUntagged
-        );
+        let (kind, _effects) = diff_states(None, Some(&from), &to, Continuity::Known, None);
+        assert_eq!(kind, crate::domain::route::TransitionKind::AttributeChange);
     }
 
     #[test]
