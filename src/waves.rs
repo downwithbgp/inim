@@ -32,6 +32,7 @@ pub fn detect_waves(
     let mut waves: Vec<ImpactWave> = Vec::new();
     let mut current_group: Vec<&RouteTransition> = vec![sorted[0]];
     let mut wave_start = sorted[0].to.timestamp();
+    let mut wave_id: usize = 1;
 
     for window in sorted.windows(2) {
         let prev = window[0];
@@ -41,7 +42,8 @@ pub fn detect_waves(
         if gap <= max_gap {
             current_group.push(next);
         } else {
-            waves.push(build_wave(&current_group, wave_start));
+            waves.push(build_wave(wave_id, &current_group, wave_start));
+            wave_id += 1;
             current_group = vec![next];
             wave_start = next.to.timestamp();
         }
@@ -49,13 +51,13 @@ pub fn detect_waves(
 
     // Final group
     if !current_group.is_empty() {
-        waves.push(build_wave(&current_group, wave_start));
+        waves.push(build_wave(wave_id, &current_group, wave_start));
     }
 
     waves
 }
 
-fn build_wave(transitions: &[&RouteTransition], wave_start: DateTime<Utc>) -> ImpactWave {
+fn build_wave(id: usize, transitions: &[&RouteTransition], wave_start: DateTime<Utc>) -> ImpactWave {
     let peak = transitions[transitions.len() / 2].to.timestamp();
     let end = transitions.last().map(|t| t.to.timestamp()).unwrap_or(wave_start);
 
@@ -77,6 +79,7 @@ fn build_wave(transitions: &[&RouteTransition], wave_start: DateTime<Utc>) -> Im
     let motif = sequitur_motif(transitions);
 
     ImpactWave {
+        id,
         label: String::new(), // filled by summarize later
         start: wave_start,
         peak,

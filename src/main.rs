@@ -63,16 +63,12 @@ fn main() {
             out,
         } => {
             if let Some(manifest_path) = manifest {
-                eprintln!("inim: real analysis path — broker discovery deferred.");
-                match inim::orchestrate::run_real_analysis(event, manifest_path, cache, out) {
-                    Err(e) => {
-                        eprintln!("Error: {e}");
-                        std::process::exit(2);
-                    }
-                    Ok(outcome) => {
-                        let json = serde_json::to_string_pretty(&outcome).unwrap_or_default();
-                        println!("{json}");
-                    }
+                let discovery = inim::discover::LiveArchiveDiscovery;
+                let outcome = inim::orchestrate::run_real_analysis(event, manifest_path, cache, out, &discovery);
+                let json = serde_json::to_string_pretty(&outcome).unwrap_or_default();
+                println!("{json}");
+                if matches!(outcome, inim::outcome::AnalysisOutcome::Incomplete { .. }) {
+                    std::process::exit(2);
                 }
             } else {
                 run_analyze_synthetic(event, cache, out);

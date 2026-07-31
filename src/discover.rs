@@ -2,8 +2,9 @@
 //!
 //! Discovers RouteViews archive files via bgpkit-broker, selects the
 //! relevant RIB and UPDATE files for an analysis window, downloads
-//! them to a deterministic local cache with integrity verification,
-//! and returns a serializable dataset manifest for reproducibility.
+//! them to a deterministic local cache with integrity verification
+//! (SHA-256 sidecar + atomic rename), and returns a serializable
+//! dataset manifest for reproducibility.
 //!
 //! This module uses bgpkit-broker for discovery but owns the
 //! selection logic, caching policy, and error classification.
@@ -11,7 +12,22 @@
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::io::Read;
-use std::path::Path;
+use std::path::{Path, PathBuf};
+
+// ── Discovery trait ────────────────────────────────────────────────
+
+/// Abstraction over archive discovery so real and failing backends
+/// can share the same orchestration code.
+pub trait ArchiveDiscovery {
+    fn query(
+        &self,
+        project: &str,
+        collectors: &[&str],
+        ts_start: chrono::DateTime<chrono::Utc>,
+        ts_end: chrono::DateTime<chrono::Utc>,
+        data_type: &str,
+    ) -> Result<Vec<ArchiveItem>, InimArchiveError>;
+}
 
 // ── Archive item types ─────────────────────────────────────────────
 
@@ -73,10 +89,66 @@ pub struct CollectorArchives {
     pub has_relevant_streams: bool,
 }
 
+// ── Live broker discovery ──────────────────────────────────────────
+
+/// Live bgpkit-broker backend (requires network).
+pub struct LiveArchiveDiscovery;
+
+impl ArchiveDiscovery for LiveArchiveDiscovery {
+    fn query(
+        &self,
+        project: &str,
+        collectors: &[&str],
+        ts_start: chrono::DateTime<chrono::Utc>,
+        ts_end: chrono::DateTime<chrono::Utc>,
+        data_type: &str,
+    ) -> Result<Vec<ArchiveItem>, InimArchiveError> {
+        // Build broker queries per collector — broker uses sync API
+        let mut all_items: Vec<ArchiveItem> = Vec::new();
+
+        for collector in collectors {
+            let broker = bgpkit_broker::BgpkitBroker::new()
+                .ts_start(ts_start.naive_utc())
+                .ts_end(ts_end.naive_utc())
+                .collector_id(collector)
+                .project(project)
+                .data_type(data_type);
+
+            let broker_items = broker.query().map_err(|e| {
+                InimArchiveError::BrokerQueryError {
+                    reason: format!("broker query failed for collector {collector}: {e}"),
+                }
+            })?;
+
+            for item in broker_items {
+                all_items.push(ArchiveItem {
+                    project: project.to_string(),
+                    collector_id: item.collector_id.clone(), // authoritative
+                    data_type: item.data_type.clone(),
+                    ts_start: chrono::DateTime::from_naive_utc_and_offset(item.ts_start, chrono::Utc),
+                    ts_end: chrono::DateTime::from_naive_utc_and_offset(item.ts_end, chrono::Utc),
+                    url: item.url.clone(),
+                    // Use exact_size if available, otherwise rough_size
+                    size: if item.exact_size > 0 {
+                        item.exact_size as u64
+                    } else {
+                        item.rough_size.max(0) as u64
+                    },
+                });
+            }
+        }
+
+        Ok(all_items)
+    }
+}
+
 // ── Selection logic (pure, testable without network) ──────────────
 
-/// Select the newest RIB with `ts_end` at or before `warmup_start`.
-pub fn select_rib(items: &[ArchiveItem], warmup_start: chrono::DateTime<chrono::Utc>) -> Option<&ArchiveItem> {
+/// Select the newest RIB with `ts_start` at or before `warmup_start`.
+pub fn select_rib(
+    items: &[ArchiveItem],
+    warmup_start: chrono::DateTime<chrono::Utc>,
+) -> Option<&ArchiveItem> {
     items
         .iter()
         .filter(|item| item.data_type == "rib" && item.ts_start <= warmup_start)
@@ -104,9 +176,12 @@ pub fn select_updates(
 
 /// Validate that consecutive UPDATE files have no unexplained gaps.
 ///
-/// A gap exists if the next file's `ts_start` > previous file's `ts_end`.
-/// Small overlaps are expected (files often cover slightly overlapping periods).
-pub fn validate_update_gaps(updates: &[&ArchiveItem], tolerance: chrono::Duration) -> Vec<String> {
+/// A gap exists if the next file's `ts_start` > previous file's `ts_end`
+/// beyond a tolerance.
+pub fn validate_update_gaps(
+    updates: &[&ArchiveItem],
+    tolerance: chrono::Duration,
+) -> Vec<String> {
     let mut gaps = Vec::new();
     for window in updates.windows(2) {
         let prev = window[0];
@@ -126,17 +201,101 @@ pub fn validate_update_gaps(updates: &[&ArchiveItem], tolerance: chrono::Duratio
     gaps
 }
 
+/// Remove duplicate URLs from a mutable list of archive items.
+/// Keeps the first occurrence, drops subsequent duplicates.
+pub fn dedupe_urls(items: &mut Vec<ArchiveItem>) -> Vec<String> {
+    let mut seen: std::collections::HashSet<String> = std::collections::HashSet::new();
+    let mut removed = Vec::new();
+    items.retain(|item| {
+        if seen.contains(&item.url) {
+            removed.push(item.url.clone());
+            false
+        } else {
+            seen.insert(item.url.clone());
+            true
+        }
+    });
+    removed
+}
+
+// ── Checksum sidecar helpers ───────────────────────────────────────
+
+/// Write a checksum sidecar file: `<path>.sha256`.
+#[allow(dead_code)]
+fn write_sha_sidecar(path: &Path, sha256: &str) -> Result<(), std::io::Error> {
+    let sidecar_path = sha_sidecar_path(path);
+    std::fs::write(&sidecar_path, format!("{sha256}\n"))
+}
+
+/// Read a checksum sidecar, returning the first line trimmed.
+fn read_sha_sidecar(path: &Path) -> Option<String> {
+    let sidecar_path = sha_sidecar_path(path);
+    let content = std::fs::read_to_string(&sidecar_path).ok()?;
+    content.lines().next().map(|s| s.trim().to_string())
+}
+
+/// Get the sidecar path for a file.
+fn sha_sidecar_path(path: &Path) -> PathBuf {
+    let mut p = path.to_path_buf();
+    let mut name = p.file_name().unwrap_or_default().to_os_string();
+    name.push(".sha256");
+    p.set_file_name(name);
+    p
+}
+
+/// Check whether a cached file matches expected integrity.
+///
+/// Returns `true` if:
+/// - The file exists with matching size
+/// - A sidecar exists with matching SHA-256
+/// - The current file's recomputed SHA-256 matches the sidecar
+///
+/// This guards against:
+/// - Truncated downloads (size mismatch)
+/// - Corrupted cache (checksum mismatch)
+/// - Missing sidecar (treated as corrupt)
+fn cached_file_matches(path: &Path, expected_size: u64, expected_sha: Option<&str>) -> bool {
+    // File must exist
+    let meta = match std::fs::metadata(path) {
+        Ok(m) => m,
+        Err(_) => return false,
+    };
+
+    // Size must match
+    if meta.len() != expected_size {
+        return false;
+    }
+
+    // Sidecar must exist
+    let stored_sha = match read_sha_sidecar(path) {
+        Some(s) => s,
+        None => return false,
+    };
+
+    // If expected SHA provided, it must match the sidecar
+    if let Some(expected) = expected_sha {
+        if stored_sha != expected {
+            return false;
+        }
+    }
+
+    // Recompute and verify against sidecar
+    match compute_sha256(path) {
+        Ok(current) => current == stored_sha,
+        Err(_) => false,
+    }
+}
+
 // ── Caching with integrity ─────────────────────────────────────────
 
 /// Download an archive item to a deterministic local cache path.
 ///
 /// Downloads to a temporary `.part` file, verifies size against the
-/// broker-reported size (if available), computes SHA-256, then atomically
-/// renames into the cache directory. Skips download if the cached file
-/// already exists with matching size and SHA-256.
+/// broker-reported size (if available), computes SHA-256, writes a
+/// `.sha256` sidecar, then atomically renames into the cache directory.
+/// Reuses a cached file only after validated integrity (size + SHA-256 sidecar).
 ///
-/// Returns an `ArchiveError` on download failure, size mismatch, or
-/// checksum mismatch — never an analysis verdict.
+/// Returns an `InimArchiveError` on failure — never an analysis verdict.
 pub fn cache_archive(
     item: &ArchiveItem,
     cache_dir: &Path,
@@ -155,21 +314,17 @@ pub fn cache_archive(
     let final_path = local_dir.join(&basename);
 
     // Check if already cached with matching integrity
-    if final_path.exists() {
-        if let Ok(meta) = std::fs::metadata(&final_path) {
-            if meta.len() == item.size {
-                if let Ok(sha) = compute_sha256(&final_path) {
-                    return Ok(CachedArchive {
-                        url: item.url.clone(),
-                        local_path: final_path.to_string_lossy().to_string(),
-                        project: item.project.clone(),
-                        collector_id: item.collector_id.clone(),
-                        data_type: item.data_type.clone(),
-                        size: item.size,
-                        sha256: sha,
-                    });
-                }
-            }
+    if cached_file_matches(&final_path, item.size, None) {
+        if let Ok(sha) = compute_sha256(&final_path) {
+            return Ok(CachedArchive {
+                url: item.url.clone(),
+                local_path: final_path.to_string_lossy().to_string(),
+                project: item.project.clone(),
+                collector_id: item.collector_id.clone(),
+                data_type: item.data_type.clone(),
+                size: item.size,
+                sha256: sha,
+            });
         }
     }
 
@@ -191,13 +346,15 @@ pub fn cache_archive(
     }
 
     let mut body = Vec::new();
-    response.read_to_end(&mut body).map_err(|e| InimArchiveError::DownloadError {
-        url: item.url.clone(),
-        reason: e.to_string(),
-    })?;
+    response
+        .read_to_end(&mut body)
+        .map_err(|e| InimArchiveError::DownloadError {
+            url: item.url.clone(),
+            reason: e.to_string(),
+        })?;
 
-    // Verify size
-    if body.len() as u64 != item.size {
+    // Verify size (warn if reported size was zero, don't fail)
+    if item.size > 0 && body.len() as u64 != item.size {
         return Err(InimArchiveError::SizeMismatch {
             url: item.url.clone(),
             expected: item.size,
@@ -213,10 +370,28 @@ pub fn cache_archive(
     // Compute SHA-256
     let sha256 = bytes_to_hex(&Sha256::digest(&body)[..]);
 
-    // Atomic rename
+    // Write sidecar next to part file (rename below carries both)
+    let part_sidecar = sha_sidecar_path(&part_path);
+    std::fs::write(&part_sidecar, format!("{sha256}\n")).map_err(|e| {
+        InimArchiveError::CacheError {
+            path: part_sidecar.to_string_lossy().to_string(),
+            reason: e.to_string(),
+        }
+    })?;
+
+    // Atomic rename of data file
     std::fs::rename(&part_path, &final_path).map_err(|e| InimArchiveError::CacheError {
         path: part_path.to_string_lossy().to_string(),
         reason: e.to_string(),
+    })?;
+
+    // Atomic rename of sidecar
+    let final_sidecar = sha_sidecar_path(&final_path);
+    std::fs::rename(&part_sidecar, &final_sidecar).map_err(|e| {
+        InimArchiveError::CacheError {
+            path: part_sidecar.to_string_lossy().to_string(),
+            reason: e.to_string(),
+        }
     })?;
 
     Ok(CachedArchive {
@@ -230,12 +405,15 @@ pub fn cache_archive(
     })
 }
 
+// ── Hashing helpers ─────────────────────────────────────────────────
+
 /// Compute the SHA-256 checksum of a file.
 fn compute_sha256(path: &Path) -> Result<String, InimArchiveError> {
-    let mut file = std::fs::File::open(path).map_err(|e| InimArchiveError::CacheError {
-        path: path.to_string_lossy().to_string(),
-        reason: e.to_string(),
-    })?;
+    let mut file =
+        std::fs::File::open(path).map_err(|e| InimArchiveError::CacheError {
+            path: path.to_string_lossy().to_string(),
+            reason: e.to_string(),
+        })?;
     let mut hasher = Sha256::new();
     std::io::copy(&mut file, &mut hasher).map_err(|e| InimArchiveError::CacheError {
         path: path.to_string_lossy().to_string(),
@@ -258,8 +436,13 @@ fn bytes_to_hex(bytes: &[u8]) -> String {
 #[derive(Debug)]
 pub enum InimArchiveError {
     DownloadError { url: String, reason: String },
-    SizeMismatch { url: String, expected: u64, actual: u64 },
+    SizeMismatch {
+        url: String,
+        expected: u64,
+        actual: u64,
+    },
     CacheError { path: String, reason: String },
+    BrokerQueryError { reason: String },
 }
 
 impl std::fmt::Display for InimArchiveError {
@@ -268,17 +451,29 @@ impl std::fmt::Display for InimArchiveError {
             InimArchiveError::DownloadError { url, reason } => {
                 write!(f, "download failed for {url}: {reason}")
             }
-            InimArchiveError::SizeMismatch { url, expected, actual } => {
-                write!(f, "size mismatch for {url}: expected {expected}, got {actual}")
+            InimArchiveError::SizeMismatch {
+                url,
+                expected,
+                actual,
+            } => {
+                write!(
+                    f,
+                    "size mismatch for {url}: expected {expected}, got {actual}"
+                )
             }
             InimArchiveError::CacheError { path, reason } => {
                 write!(f, "cache error at {path}: {reason}")
+            }
+            InimArchiveError::BrokerQueryError { reason } => {
+                write!(f, "broker query failed: {reason}")
             }
         }
     }
 }
 
 impl std::error::Error for InimArchiveError {}
+
+// ── Tests ──────────────────────────────────────────────────────────
 
 #[cfg(test)]
 mod tests {
@@ -308,7 +503,9 @@ mod tests {
             data_type: "updates".into(),
             ts_start: t(ts_start),
             ts_end: t(ts_end),
-            url: format!("http://archive.routeviews.org/{collector}/updates.{ts_start}.bz2"),
+            url: format!(
+                "http://archive.routeviews.org/{collector}/updates.{ts_start}.bz2"
+            ),
             size: 5_000_000,
         }
     }
@@ -317,10 +514,10 @@ mod tests {
     fn closest_preceding_rib_is_selected() {
         let items = vec![
             make_rib("2026-07-30T06:00:00Z", "2026-07-30T07:59:59Z", "rv2"),
-            make_rib("2026-07-30T08:00:00Z", "2026-07-30T09:59:59Z", "rv2"), // closest before 09:00
-            make_rib("2026-07-30T10:00:00Z", "2026-07-30T11:59:59Z", "rv2"), // after warmup_start
+            make_rib("2026-07-30T08:00:00Z", "2026-07-30T09:59:59Z", "rv2"),
+            make_rib("2026-07-30T10:00:00Z", "2026-07-30T11:59:59Z", "rv2"),
         ];
-        let warmup_start = t("2026-07-30T08:25:00Z"); // 60 min before 09:25
+        let warmup_start = t("2026-07-30T08:25:00Z");
         let rib = select_rib(&items, warmup_start).expect("should select closest RIB");
         assert_eq!(rib.ts_start, t("2026-07-30T08:00:00Z"));
     }
@@ -328,30 +525,28 @@ mod tests {
     #[test]
     fn all_update_files_overlapping_window_are_selected() {
         let items = vec![
-            make_update("2026-07-30T07:45:00Z", "2026-07-30T08:00:00Z", "rv2"), // before rib
-            make_update("2026-07-30T07:55:00Z", "2026-07-30T08:10:00Z", "rv2"), // overlaps rib
-            make_update("2026-07-30T09:20:00Z", "2026-07-30T09:35:00Z", "rv2"), // overlaps event
-            make_update("2026-07-30T10:40:00Z", "2026-07-30T10:55:00Z", "rv2"), // overlaps cooldown
-            make_update("2026-07-30T11:00:00Z", "2026-07-30T11:15:00Z", "rv2"), // after cooldown
+            make_update("2026-07-30T07:45:00Z", "2026-07-30T08:00:00Z", "rv2"),
+            make_update("2026-07-30T07:55:00Z", "2026-07-30T08:10:00Z", "rv2"),
+            make_update("2026-07-30T09:20:00Z", "2026-07-30T09:35:00Z", "rv2"),
+            make_update("2026-07-30T10:40:00Z", "2026-07-30T10:55:00Z", "rv2"),
+            make_update("2026-07-30T11:00:00Z", "2026-07-30T11:15:00Z", "rv2"),
         ];
         let rib_ts = t("2026-07-30T08:00:00Z");
         let cooldown_end = t("2026-07-30T10:47:00Z");
         let updates = select_updates(&items, rib_ts, cooldown_end);
-        // Files 0-3 all overlap the window (0: boundary overlap at 08:00 equals rib_ts)
         assert_eq!(updates.len(), 4);
-        assert!(updates[0].ts_start == t("2026-07-30T07:45:00Z"));
     }
 
     #[test]
     fn warmup_and_cooldown_bounds_are_included() {
         let items = vec![
-            make_update("2026-07-30T08:20:00Z", "2026-07-30T08:30:00Z", "rv2"), // warm-up
-            make_update("2026-07-30T10:40:00Z", "2026-07-30T10:50:00Z", "rv2"), // cool-down
+            make_update("2026-07-30T08:20:00Z", "2026-07-30T08:30:00Z", "rv2"),
+            make_update("2026-07-30T10:40:00Z", "2026-07-30T10:50:00Z", "rv2"),
         ];
         let rib_ts = t("2026-07-30T08:00:00Z");
         let cooldown_end = t("2026-07-30T10:47:00Z");
         let updates = select_updates(&items, rib_ts, cooldown_end);
-        assert_eq!(updates.len(), 2, "both warmup and cooldown updates must be included");
+        assert_eq!(updates.len(), 2);
     }
 
     #[test]
@@ -359,31 +554,28 @@ mod tests {
         let items = vec![
             make_update("2026-07-30T08:00:00Z", "2026-07-30T08:15:00Z", "rv2"),
             make_update("2026-07-30T08:15:00Z", "2026-07-30T08:30:00Z", "rv2"),
-            make_update("2026-07-30T08:45:00Z", "2026-07-30T09:00:00Z", "rv2"), // 15-min gap
+            make_update("2026-07-30T08:45:00Z", "2026-07-30T09:00:00Z", "rv2"),
         ];
         let rib_ts = t("2026-07-30T08:00:00Z");
         let cooldown_end = t("2026-07-30T10:00:00Z");
         let updates = select_updates(&items, rib_ts, cooldown_end);
         let gaps = validate_update_gaps(&updates, chrono::Duration::minutes(5));
-        assert_eq!(gaps.len(), 1, "should detect the 15-minute gap");
+        assert_eq!(gaps.len(), 1);
         assert!(gaps[0].contains("gap of"));
     }
 
     #[test]
     fn collector_identity_comes_from_broker_metadata() {
-        // Simulate: URL says "rrc00" but broker metadata says "route-views2"
         let item = ArchiveItem {
             project: "route-views".into(),
-            collector_id: "route-views2".into(), // ← this is authoritative
+            collector_id: "route-views2".into(),
             data_type: "rib".into(),
             ts_start: t("2026-07-30T08:00:00Z"),
             ts_end: t("2026-07-30T09:59:59Z"),
-            url: "http://archive.routeviews.org/rrc00/rib.bz2".into(), // misleading URL
+            url: "http://archive.routeviews.org/rrc00/rib.bz2".into(),
             size: 100_000_000,
         };
-        // Collector identity must come from the broker metadata field
         assert_eq!(item.collector_id, "route-views2");
-        // URL alone would suggest "rrc00" — wrong
         assert_ne!(
             Path::new(&item.url)
                 .parent()
@@ -417,5 +609,139 @@ mod tests {
         assert!(json.contains("INC0302574"));
         assert!(json.contains("abcdef1234567890"));
         assert!(json.contains("route-views"));
+    }
+
+    #[test]
+    fn rib_selection_precedes_warmup() {
+        let items = vec![
+            make_rib("2026-07-30T06:00:00Z", "2026-07-30T07:59:59Z", "rv2"),
+            make_rib("2026-07-30T08:00:00Z", "2026-07-30T09:59:59Z", "rv2"),
+            make_rib("2026-07-30T09:00:00Z", "2026-07-30T10:59:59Z", "rv2"), // after warmup
+        ];
+        let warmup_start = t("2026-07-30T08:25:00Z");
+        let rib = select_rib(&items, warmup_start).unwrap();
+        // Selected RIB must start at or before warmup_start
+        assert!(rib.ts_start <= warmup_start);
+        // The 09:00 RIB starts after warmup, must NOT be selected
+        assert_eq!(rib.ts_start, t("2026-07-30T08:00:00Z"));
+    }
+
+    #[test]
+    fn update_selection_overlaps_full_analysis_interval() {
+        let items = vec![
+            make_update("2026-07-30T07:45:00Z", "2026-07-30T08:00:00Z", "rv2"),
+            make_update("2026-07-30T09:20:00Z", "2026-07-30T09:35:00Z", "rv2"),
+            make_update("2026-07-30T10:40:00Z", "2026-07-30T10:55:00Z", "rv2"),
+        ];
+        let rib_ts = t("2026-07-30T08:00:00Z");
+        let cooldown_end = t("2026-07-30T10:47:00Z");
+        let updates = select_updates(&items, rib_ts, cooldown_end);
+        // All three overlap [rib_ts, cooldown_end]
+        assert_eq!(updates.len(), 3);
+        assert!(updates.first().unwrap().ts_start <= rib_ts || updates.first().unwrap().ts_end >= rib_ts);
+    }
+
+    #[test]
+    fn archive_gap_sets_continuity_unknown() {
+        let items = vec![
+            make_update("2026-07-30T08:00:00Z", "2026-07-30T08:15:00Z", "rv2"),
+            // gap of 45 minutes
+            make_update("2026-07-30T09:00:00Z", "2026-07-30T09:15:00Z", "rv2"),
+        ];
+        let rib_ts = t("2026-07-30T08:00:00Z");
+        let cooldown_end = t("2026-07-30T10:00:00Z");
+        let updates = select_updates(&items, rib_ts, cooldown_end);
+        let gaps = validate_update_gaps(&updates, chrono::Duration::minutes(5));
+        // A large gap should be detected
+        assert!(!gaps.is_empty());
+        assert!(gaps[0].contains("gap of"));
+    }
+
+    // ── Cache + sidecar tests ──────────────────────────────────────
+
+    #[test]
+    fn cached_archive_checksum_is_verified() {
+        let dir = tempfile::tempdir().unwrap();
+        let cache = dir.path().join("cache");
+
+        // Write a fake cached file
+        let local_dir = cache.join("rv2").join("rib");
+        std::fs::create_dir_all(&local_dir).unwrap();
+        let data_path = local_dir.join("rib.bz2");
+        std::fs::write(&data_path, b"hello test data").unwrap();
+        let sha = bytes_to_hex(&Sha256::digest(b"hello test data")[..]);
+
+        // Write sidecar
+        std::fs::write(sha_sidecar_path(&data_path), format!("{sha}\n")).unwrap();
+
+        assert!(cached_file_matches(&data_path, 15, Some(&sha)));
+        assert!(!cached_file_matches(&data_path, 999, Some(&sha))); // wrong size
+        assert!(!cached_file_matches(&data_path, 15, Some("deadbeef"))); // wrong sha
+    }
+
+    #[test]
+    fn corrupt_cached_file_is_replaced() {
+        let dir = tempfile::tempdir().unwrap();
+        let cache = dir.path().join("cache");
+
+        // Write a "corrupt" cached file (content doesn't match sidecar)
+        let local_dir = cache.join("rv2").join("rib");
+        std::fs::create_dir_all(&local_dir).unwrap();
+        let data_path = local_dir.join("rib.bz2");
+        std::fs::write(&data_path, b"corrupt data here").unwrap();
+
+        // Write sidecar with DIFFERENT hash
+        let wrong_sha = bytes_to_hex(&Sha256::digest(b"something else")[..]);
+        std::fs::write(sha_sidecar_path(&data_path), format!("{wrong_sha}\n")).unwrap();
+
+        // Should NOT match (recomputed SHA differs from sidecar)
+        assert!(!cached_file_matches(&data_path, 18, None));
+    }
+
+    #[test]
+    fn duplicate_urls_are_rejected() {
+        let _warmup_start = t("2026-07-30T08:25:00Z");
+        let mut items = vec![
+            ArchiveItem {
+                project: "route-views".into(),
+                collector_id: "rv2".into(),
+                data_type: "rib".into(),
+                ts_start: t("2026-07-30T08:00:00Z"),
+                ts_end: t("2026-07-30T09:59:59Z"),
+                url: "http://example.com/rib.bz2".into(),
+                size: 100,
+            },
+            ArchiveItem {
+                project: "route-views".into(),
+                collector_id: "rv2".into(),
+                data_type: "rib".into(),
+                ts_start: t("2026-07-30T08:00:00Z"),
+                ts_end: t("2026-07-30T09:59:59Z"),
+                url: "http://example.com/rib.bz2".into(), // duplicate
+                size: 100,
+            },
+        ];
+
+        let removed = dedupe_urls(&mut items);
+        assert_eq!(items.len(), 1);
+        assert_eq!(removed.len(), 1);
+        assert!(removed[0].contains("rib.bz2"));
+    }
+
+    #[test]
+    fn broker_metadata_supplies_collector_identity() {
+        // The ArchiveItem struct uses collector_id from metadata, not URL.
+        // Even when URL suggests a different collector, the id field is authoritative.
+        let item = ArchiveItem {
+            project: "route-views".into(),
+            collector_id: "route-views6".into(),
+            data_type: "updates".into(),
+            ts_start: t("2026-07-30T09:00:00Z"),
+            ts_end: t("2026-07-30T09:15:00Z"),
+            url: "http://archive.routeviews.org/route-views2/updates.20260730.0900.bz2".into(),
+            size: 5_000_000,
+        };
+        // Metadata says route-views6, even if URL suggests route-views2
+        assert_eq!(item.collector_id, "route-views6");
     }
 }

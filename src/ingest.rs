@@ -28,6 +28,10 @@ pub struct IngestContext {
     pub role: IngestRole,
     pub collector: CollectorId,
     pub input_path: PathBuf,
+    /// Canonical source URL (for provenance).
+    pub source_url: Option<String>,
+    /// SHA-256 of the source file (for provenance).
+    pub source_sha: Option<String>,
 }
 
 // ── Error types ────────────────────────────────────────────────────
@@ -368,6 +372,8 @@ mod tests {
             role: IngestRole::Rib,
             collector: CollectorId("route-views2".into()),
             input_path: PathBuf::from("rib.mrt.bz2"),
+            source_url: None,
+            source_sha: None,
         };
         assert_eq!(ctx.collector.0, "route-views2");
     }
@@ -387,7 +393,7 @@ mod tests {
         let ctx = IngestContext {
             role: IngestRole::Rib,
             collector: CollectorId("test".into()),
-            input_path: PathBuf::from("test.mrt"),
+            input_path: PathBuf::from("test.mrt"), source_url: None, source_sha: None,
         };
         // If role were inferred from elem.elem_type, Rib would be impossible
         // since BgpElem only has ANNOUNCE/WITHDRAW
@@ -404,7 +410,7 @@ mod tests {
         let ctx = IngestContext {
             role: IngestRole::Updates,
             collector: CollectorId("route-views2".into()),
-            input_path: fixture_path.clone(),
+            input_path: fixture_path.clone(), source_url: None, source_sha: None,
         };
 
         let stream = ObservationStream::from_local_file(fixture_path, ctx)

@@ -12,6 +12,7 @@ pub mod sequitur;
 pub mod waves;
 pub mod assess;
 pub mod report;
+pub mod manifest;
 pub mod discover;
 pub mod target;
 pub mod outcome;

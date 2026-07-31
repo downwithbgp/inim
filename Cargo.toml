@@ -16,8 +16,10 @@ bgpkit-parser = { version = "=0.19.0", default-features = false, features = ["pa
 bgpkit-broker = "0.12"
 sha2 = "0.10"
 reqwest = { version = "0.12", features = ["blocking"] }
+tokio = { version = "1", features = ["rt"] }
 
 [dev-dependencies]
+tempfile = "3"
 
 [lib]
 path = "src/lib.rs"

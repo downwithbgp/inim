@@ -56,6 +56,8 @@ pub struct MotifEvidenceRange {
 /// propagation delay through the Internet.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ImpactWave {
+    /// Sequential wave identifier, assigned by the detector.
+    pub id: usize,
     /// Human-readable label (e.g. "Primary-path detachment").
     pub label: String,
     /// Start of the wave.
@@ -80,6 +82,7 @@ impl ImpactWave {
         end: DateTime<Utc>,
     ) -> Self {
         ImpactWave {
+            id: 0,
             label: label.to_string(),
             start,
             peak,
