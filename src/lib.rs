@@ -11,6 +11,7 @@ pub mod fixtures;
 pub mod ingest;
 pub mod lifecycle;
 pub mod manifest;
+pub mod observability;
 pub mod orchestrate;
 pub mod outcome;
 pub mod output;

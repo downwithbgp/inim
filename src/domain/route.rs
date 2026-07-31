@@ -149,6 +149,12 @@ pub enum TransitionKind {
     Restoration,
     /// Return to event baseline after a change.
     ReturnToBaseline,
+    /// Route newly gained the GRACEFUL_SHUTDOWN community (65535:0).
+    GracefulShutdownTagged,
+    /// Route lost the GRACEFUL_SHUTDOWN community (65535:0).
+    GracefulShutdownUntagged,
+    /// Communities changed while the AS path remained equal (non-GSHUT).
+    CommunityOnlyChange,
 }
 
 // ── Evidenced route state ──────────────────────────────────────────

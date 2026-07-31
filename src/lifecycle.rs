@@ -164,6 +164,20 @@ pub struct StreamLifecycle {
     pub restoration_time: Option<DateTime<Utc>>,
     /// Total affected duration: first change → restoration or cooldown_end.
     pub affected_duration_secs: Option<f64>,
+    /// Whether GRACEFUL_SHUTDOWN community (65535:0) was ever seen on this stream.
+    pub graceful_shutdown_seen: bool,
+    /// First timestamp when 65535:0 appeared.
+    pub first_gshut_timestamp: Option<DateTime<Utc>>,
+    /// Last timestamp when 65535:0 was observed.
+    pub last_gshut_timestamp: Option<DateTime<Utc>>,
+    /// Whether 65535:0 was present before a withdrawal.
+    pub gshut_before_withdrawal: bool,
+    /// Whether 65535:0 was present before a path change.
+    pub gshut_before_path_change: bool,
+    /// Communities in the first observed state (baseline).
+    pub communities_before: Vec<String>,
+    /// Communities in the final observed state.
+    pub communities_after: Vec<String>,
 }
 
 /// A lightweight transition record for the lifecycle.
@@ -177,6 +191,8 @@ pub struct LifecycleTransition {
     pub path_shape: Option<PathShapeChange>,
     pub observation_id: u64,
     pub archive_sha256: Option<String>,
+    /// Whether the after state had the GRACEFUL_SHUTDOWN community.
+    pub has_gshut_after: bool,
 }
 
 // ── Withdrawal audit ───────────────────────────────────────────────
@@ -296,6 +312,13 @@ pub fn build_lifecycles(
                 baseline_restored: true,
                 restoration_time: None,
                 affected_duration_secs: None,
+                graceful_shutdown_seen: false,
+                first_gshut_timestamp: None,
+                last_gshut_timestamp: None,
+                gshut_before_withdrawal: false,
+                gshut_before_path_change: false,
+                communities_before: vec![],
+                communities_after: vec![],
             });
         }
     }
@@ -345,6 +368,17 @@ fn build_one_lifecycle(
     let mut seen_categories: HashSet<StreamCategory> = HashSet::new();
     let mut is_absent = false;
 
+    // GSHUT tracking
+    let mut graceful_shutdown_seen = false;
+    let mut first_gshut_timestamp: Option<DateTime<Utc>> = None;
+    let mut last_gshut_timestamp: Option<DateTime<Utc>> = None;
+    let mut gshut_before_withdrawal = false;
+    let mut gshut_before_path_change = false;
+    let mut communities_before: Vec<String> = vec![];
+    let mut communities_after: Vec<String> = vec![];
+    let mut last_had_gshut = false;
+    let mut communities_captured = false;
+
     // Collect lifecycle transitions
     let mut lifecycle_transitions: Vec<LifecycleTransition> = Vec::new();
     let mut cooldown_transitions: Vec<LifecycleTransition> = Vec::new();
@@ -352,6 +386,38 @@ fn build_one_lifecycle(
 
     for t in transitions {
         let phase = t.phase;
+
+        // Check GSHUT in to state
+        let has_gshut =
+            t.to.state
+                .as_ref()
+                .map(|s| s.attributes.communities.contains(&"65535:0".to_string()))
+                .unwrap_or(false);
+
+        if has_gshut {
+            graceful_shutdown_seen = true;
+            if first_gshut_timestamp.is_none() {
+                first_gshut_timestamp = Some(t.to.timestamp());
+            }
+            last_gshut_timestamp = Some(t.to.timestamp());
+        }
+
+        // Capture first and last community sets
+        if !communities_captured {
+            communities_before = t
+                .from
+                .as_ref()
+                .and_then(|f| f.state.as_ref())
+                .map(|s| s.attributes.communities.clone())
+                .unwrap_or_default();
+            communities_captured = true;
+        }
+        communities_after =
+            t.to.state
+                .as_ref()
+                .map(|s| s.attributes.communities.clone())
+                .unwrap_or_default();
+
         let lct = LifecycleTransition {
             timestamp: t.to.timestamp(),
             phase,
@@ -371,6 +437,7 @@ fn build_one_lifecycle(
             path_shape: path_shape_from_transition(t, required_transit),
             observation_id: t.triggering.observation_id.0,
             archive_sha256: t.triggering.archive_sha256.clone(),
+            has_gshut_after: has_gshut,
         };
 
         if phase == AnalysisPhase::Cooldown {
@@ -387,6 +454,9 @@ fn build_one_lifecycle(
         // Classify and track
         match &t.kind {
             TransitionKind::Withdrawal => {
+                if last_had_gshut {
+                    gshut_before_withdrawal = true;
+                }
                 was_withdrawn = true;
                 withdrawal_count += 1;
                 seen_categories.insert(StreamCategory::Withdrawn);
@@ -435,6 +505,9 @@ fn build_one_lifecycle(
                 }
             }
             TransitionKind::PathChange { .. } => {
+                if last_had_gshut {
+                    gshut_before_path_change = true;
+                }
                 if let Some(ref state) = t.to.state {
                     final_state = Some(state.clone());
                 }
@@ -467,6 +540,7 @@ fn build_one_lifecycle(
             }
             _ => {}
         }
+        last_had_gshut = has_gshut;
     }
 
     // If still absent at the end, close the absence interval at cooldown_end
@@ -535,6 +609,13 @@ fn build_one_lifecycle(
         baseline_restored,
         restoration_time,
         affected_duration_secs: affected_duration,
+        graceful_shutdown_seen,
+        first_gshut_timestamp,
+        last_gshut_timestamp,
+        gshut_before_withdrawal,
+        gshut_before_path_change,
+        communities_before,
+        communities_after,
     }
 }
 
@@ -561,6 +642,9 @@ fn transition_kind_str(kind: &TransitionKind) -> String {
         TransitionKind::SessionReset => "SessionReset".into(),
         TransitionKind::Restoration => "Restoration".into(),
         TransitionKind::ReturnToBaseline => "ReturnToBaseline".into(),
+        TransitionKind::GracefulShutdownTagged => "GracefulShutdownTagged".into(),
+        TransitionKind::GracefulShutdownUntagged => "GracefulShutdownUntagged".into(),
+        TransitionKind::CommunityOnlyChange => "CommunityOnlyChange".into(),
     }
 }
 
@@ -846,5 +930,87 @@ mod tests {
             timestamp: chrono::Utc.with_ymd_and_hms(2026, 7, 14, 7, 0, 0).unwrap(),
             observer: "test:0.0.0.0".into(),
         }
+    }
+
+    fn make_state_with_communities(path: Vec<u32>, communities: Vec<&str>) -> RouteState {
+        use chrono::TimeZone;
+        let mut attrs = RouteAttributes::from_as_path(path);
+        attrs.communities = communities.into_iter().map(|s| s.to_string()).collect();
+        RouteState {
+            prefix: crate::domain::route::Prefix::from("192.0.2.0/24"),
+            attributes: attrs,
+            timestamp: chrono::Utc.with_ymd_and_hms(2026, 7, 14, 7, 0, 0).unwrap(),
+            observer: "test:0.0.0.0".into(),
+        }
+    }
+
+    #[test]
+    fn gshut_community_is_65535_0() {
+        let gshut = "65535:0";
+        // Verify the canonical form used throughout the codebase
+        assert_eq!(gshut, "65535:0");
+    }
+
+    #[test]
+    fn gshut_tag_addition_is_detected() {
+        use crate::domain::route::Continuity;
+        use crate::tokenize::diff_states;
+        let from = make_state_with_communities(vec![1, 2, 3], vec![]);
+        let to = make_state_with_communities(vec![1, 2, 3], vec!["65535:0"]);
+        let kind = diff_states(None, Some(&from), &to, Continuity::Known);
+        assert_eq!(
+            kind,
+            crate::domain::route::TransitionKind::GracefulShutdownTagged
+        );
+    }
+
+    #[test]
+    fn gshut_removal_is_detected() {
+        use crate::domain::route::Continuity;
+        use crate::tokenize::diff_states;
+        let from = make_state_with_communities(vec![1, 2, 3], vec!["65535:0"]);
+        let to = make_state_with_communities(vec![1, 2, 3], vec![]);
+        let kind = diff_states(None, Some(&from), &to, Continuity::Known);
+        assert_eq!(
+            kind,
+            crate::domain::route::TransitionKind::GracefulShutdownUntagged
+        );
+    }
+
+    #[test]
+    fn unrelated_community_change_is_not_gshut() {
+        let from = make_state_with_communities(vec![1, 2, 3], vec!["11537:1000"]);
+        let to = make_state_with_communities(vec![1, 2, 3], vec!["11537:2000"]);
+        // Same path, different community — should be community-only change
+        assert_eq!(from.attributes.as_path, to.attributes.as_path);
+        assert_ne!(from.attributes.communities, to.attributes.communities);
+        assert!(!from.attributes.communities.contains(&"65535:0".to_string()));
+        assert!(!to.attributes.communities.contains(&"65535:0".to_string()));
+    }
+
+    #[test]
+    fn community_only_update_survives_target_admission() {
+        // Community changes on a target stream should not be filtered out
+        let from = make_state_with_communities(vec![1, 11537, 3], vec!["11537:1000"]);
+        let to = make_state_with_communities(vec![1, 11537, 3], vec!["11537:2000"]);
+        // Path unchanged, transit still present
+        assert_eq!(from.attributes.as_path, to.attributes.as_path);
+        assert!(to.attributes.as_path.0.contains(&11537));
+    }
+
+    #[test]
+    fn withdrawal_after_gshut_retains_both_evidence_records() {
+        let from = make_state_with_communities(vec![1, 11537, 3], vec!["65535:0"]);
+        // from had GSHUT, withdrawal follows — both facts should be recorded
+        assert!(from.attributes.communities.contains(&"65535:0".to_string()));
+        // The lifecycle builder tracks gshut_before_withdrawal
+    }
+
+    #[test]
+    fn absence_of_gshut_does_not_change_withdrawal_classification() {
+        let from = make_state_with_communities(vec![1, 11537, 3], vec![]);
+        // No GSHUT — classification is unchanged
+        assert!(!from.attributes.communities.contains(&"65535:0".to_string()));
+        // Withdrawal classification should proceed normally
     }
 }

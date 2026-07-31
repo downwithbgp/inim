@@ -44,6 +44,28 @@ pub fn diff_states(
                 return TransitionKind::ExactDuplicate;
             }
 
+            // Check for community changes when AS path is equal
+            if from_state.attributes.as_path == to.attributes.as_path {
+                let from_has_gshut = from_state
+                    .attributes
+                    .communities
+                    .contains(&"65535:0".to_string());
+                let to_has_gshut = to.attributes.communities.contains(&"65535:0".to_string());
+
+                if !from_has_gshut && to_has_gshut {
+                    return TransitionKind::GracefulShutdownTagged;
+                }
+                if from_has_gshut && !to_has_gshut {
+                    return TransitionKind::GracefulShutdownUntagged;
+                }
+                // Communities differ but not GSHUT → community-only change
+                if from_state.attributes.communities != to.attributes.communities {
+                    return TransitionKind::CommunityOnlyChange;
+                }
+                // Other attribute-only changes
+                return TransitionKind::AttributeChange;
+            }
+
             // Path change
             if from_state.attributes.as_path != to.attributes.as_path {
                 // Check if it's a restoration to baseline
@@ -127,6 +149,9 @@ impl TransitionSymbol {
             TransitionKind::SessionReset => "SESSION_RESET",
             TransitionKind::Restoration => "RESTORATION",
             TransitionKind::ReturnToBaseline => "RETURN_TO_BASELINE",
+            TransitionKind::GracefulShutdownTagged => "GSHUT_TAG",
+            TransitionKind::GracefulShutdownUntagged => "GSHUT_UNTAG",
+            TransitionKind::CommunityOnlyChange => "COMMUNITY_CHANGE",
         };
         TransitionSymbol(s.to_string())
     }
