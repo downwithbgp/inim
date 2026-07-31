@@ -4,6 +4,8 @@
 //! parsed BGP elements (BgpElem) into inim-native RouteObservation
 //! values using an explicit IngestContext.
 
+pub mod monocle;
+
 use std::path::PathBuf;
 
 use bgpkit_parser::models::AsPathSegment;
@@ -202,7 +204,7 @@ impl Iterator for ObservationStream {
 /// Convert a single BgpElem into a RouteObservation.
 ///
 /// This is the only function that touches bgpkit-parser types.
-fn bgp_elem_to_observation(
+pub fn bgp_elem_to_observation(
     elem: &BgpElem,
     element_seq: u64,
     input_path: &str,
@@ -306,7 +308,7 @@ fn segment_asns(seg: &AsPathSegment) -> Vec<bgpkit_parser::models::Asn> {
 // ── Utility ────────────────────────────────────────────────────────
 
 /// Normalize an IP address: IPv4-mapped IPv6 → plain IPv4.
-fn canonical_ip(ip: std::net::IpAddr) -> std::net::IpAddr {
+pub fn canonical_ip(ip: std::net::IpAddr) -> std::net::IpAddr {
     match ip {
         std::net::IpAddr::V6(v6) if v6.to_ipv4_mapped().is_some() => {
             std::net::IpAddr::V4(v6.to_ipv4_mapped().unwrap())
@@ -315,7 +317,7 @@ fn canonical_ip(ip: std::net::IpAddr) -> std::net::IpAddr {
     }
 }
 
-fn f64_to_utc(epoch: f64) -> chrono::DateTime<Utc> {
+pub fn f64_to_utc(epoch: f64) -> chrono::DateTime<Utc> {
     let secs = epoch.trunc() as i64;
     let nsecs = ((epoch - epoch.trunc()) * 1_000_000_000.0) as u32;
     Utc.timestamp_opt(secs, nsecs).unwrap()
