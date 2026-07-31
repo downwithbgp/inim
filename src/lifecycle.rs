@@ -539,6 +539,7 @@ fn build_one_lifecycle(
     let mut communities_captured = false;
     let mut last_had_gshut = false;
     let mut first_gshut_added_at: Option<DateTime<Utc>> = None;
+    let mut first_consequence_at: Option<DateTime<Utc>> = None;
 
     // Baseline GSHUT presence (principal baseline instance).
     if let Some(first) = baseline_instances.values().next() {
@@ -640,6 +641,9 @@ fn build_one_lifecycle(
             TransitionKind::Withdrawal => {
                 if last_had_gshut {
                     gshut_before_withdrawal = true;
+                    if first_consequence_at.is_none() {
+                        first_consequence_at = Some(t.to.timestamp());
+                    }
                 }
                 withdrawn_instances.push(t.key.clone());
                 active.remove(&t.key);
@@ -700,6 +704,9 @@ fn build_one_lifecycle(
         if matches!(t.kind, TransitionKind::PathReplacement { .. }) {
             if last_had_gshut {
                 gshut_before_path_change = true;
+                if first_consequence_at.is_none() {
+                    first_consequence_at = Some(t.to.timestamp());
+                }
             }
             if let (Some(from), Some(to)) = (
                 t.from.as_ref().and_then(|f| f.state.as_ref()),
@@ -753,22 +760,12 @@ fn build_one_lifecycle(
         last_had_gshut = has_gshut;
     }
 
-    // GSHUT tag-to-consequence duration.
-    if let Some(added) = first_gshut_added_at {
-        if gshut_before_withdrawal || gshut_before_path_change {
-            let first_consequence = transitions.iter().find_map(|t| {
-                if last_gshut_before(t, transit_predicate) {
-                    Some(t.to.timestamp())
-                } else {
-                    None
-                }
-            });
-            if let Some(c) = first_consequence {
-                let secs = (c - added).num_seconds() as f64;
-                if secs >= 0.0 {
-                    gshut_to_consequence = Some(secs);
-                }
-            }
+    // GSHUT tag-to-consequence duration: first addition → first consequence
+    // (withdrawal or path replacement while the tag was present).
+    if let (Some(added), Some(c)) = (first_gshut_added_at, first_consequence_at) {
+        let secs = (c - added).num_seconds() as f64;
+        if secs >= 0.0 {
+            gshut_to_consequence = Some(secs);
         }
     }
 
@@ -808,8 +805,16 @@ fn build_one_lifecycle(
         ((end - fc).num_seconds() as f64).max(0.0)
     });
 
-    let not_restored = was_withdrawn && !baseline_restored
-        || (seen_categories.contains(&StreamCategory::DepartedTransitPath) && !baseline_restored);
+    // End-of-window state determines not_restored: a stream that ended the
+    // window still absent (after withdrawal) or still departed is not
+    // restored; a stream that came back to any present matching state is.
+    let ended_absent = active.is_empty() && was_withdrawn;
+    let ended_departed = !active.is_empty()
+        && !active
+            .values()
+            .any(|s| transit_predicate.evaluate(&s.attributes.as_path.0))
+        && seen_categories.contains(&StreamCategory::DepartedTransitPath);
+    let not_restored = ended_absent || ended_departed;
     let restored = restoration_count > 0 && !not_restored;
 
     let baseline_path = baseline_instances
@@ -869,15 +874,6 @@ fn build_one_lifecycle(
         communities_before,
         communities_after,
     }
-}
-
-/// Whether a transition's from-state carried GSHUT (consequence trigger).
-fn last_gshut_before(t: &RouteTransition, _predicate: &TransitPredicate) -> bool {
-    t.from
-        .as_ref()
-        .and_then(|f| f.state.as_ref())
-        .map(|s| s.attributes.communities.contains(&"65535:0".to_string()))
-        .unwrap_or(false)
 }
 
 /// Classify a stream restoration event (absent → visible).
@@ -2077,5 +2073,312 @@ mod tests {
             crate::domain::assessment::Verdict::InsufficientVisibility,
             "ambiguous stream withdrawal must not yield a strong verdict"
         );
+    }
+
+    // ── Part 5: RFC 8326 GRACEFUL_SHUTDOWN lifecycle ──────────────
+
+    /// A path-replacement transition carrying a real before state.
+    fn mk_path_change(
+        key: &ObserverPrefixKey,
+        pid: Option<u32>,
+        at_secs: i64,
+        from_path: Vec<u32>,
+        from_communities: Vec<&str>,
+        to_path: Vec<u32>,
+        to_communities: Vec<&str>,
+    ) -> RouteTransition {
+        let rk = RouteKey::with_path_id(&key.collector, key.peer_ip, &key.prefix, pid);
+        let mut from_attrs = RouteAttributes::from_as_path(from_path);
+        from_attrs.communities = from_communities
+            .into_iter()
+            .map(|s| s.to_string())
+            .collect();
+        let from = RouteState {
+            prefix: key.prefix.clone(),
+            attributes: from_attrs,
+            timestamp: t_secs(at_secs - 1),
+            observer: format!("{}:{}", key.collector, key.peer_ip),
+            path_id: pid,
+        };
+        let mut to_attrs = RouteAttributes::from_as_path(to_path.clone());
+        to_attrs.communities = to_communities.into_iter().map(|s| s.to_string()).collect();
+        let to = RouteState {
+            prefix: key.prefix.clone(),
+            attributes: to_attrs,
+            timestamp: t_secs(at_secs),
+            observer: format!("{}:{}", key.collector, key.peer_ip),
+            path_id: pid,
+        };
+        let ev = EvidenceRef::synthetic(at_secs as u64, "http://example.com/up.bz2", "abc123");
+        RouteTransition::new(
+            rk,
+            None,
+            Some(EvidencedRouteState::present(from, ev.clone())),
+            EvidencedRouteState::present(to, ev.clone()),
+            ev,
+            TransitionKind::PathReplacement {
+                old: AsPath(to_path.clone()),
+                new: AsPath(to_path.clone()),
+            },
+            GenericTransitionEffects::default(),
+            AnalysisPhase::Event,
+        )
+    }
+
+    #[test]
+    fn gshut_addition_coexists_with_path_change() {
+        let key = opk("rv2", "185.1.8.65", "192.0.2.0/24");
+        let cohort = cohort_with(&key, &[(Some(1), vec![6447, 65002, 65001])]);
+        // Path changes AND GSHUT is added in the same transition.
+        let transitions = vec![mk_path_change(
+            &key,
+            Some(1),
+            10,
+            vec![6447, 65002, 65001],
+            vec![],
+            vec![6447, 9999, 65001],
+            vec!["65535:0"],
+        )];
+        let lifecycles = build_lifecycles(&transitions, &cohort, t_secs(1000), &pred());
+        let lc = &lifecycles[0];
+        assert!(lc.gshut_newly_added, "GSHUT addition recorded");
+        assert_eq!(lc.first_gshut_timestamp, Some(t_secs(10)));
+        assert_eq!(lc.last_gshut_timestamp, Some(t_secs(10)));
+        // The departure classification still applies.
+        assert_eq!(lc.category, StreamCategory::DepartedTransitPath);
+    }
+
+    #[test]
+    fn gshut_addition_coexists_with_prepend_reduction() {
+        let key = opk("rv2", "185.1.8.65", "192.0.2.0/24");
+        let cohort = cohort_with(&key, &[(Some(1), vec![6447, 65002, 65002, 65002, 65001])]);
+        // Prepend reduction (3x 65002 -> 1x 65002) with GSHUT added.
+        let transitions = vec![mk_path_change(
+            &key,
+            Some(1),
+            10,
+            vec![6447, 65002, 65002, 65002, 65001],
+            vec![],
+            vec![6447, 65002, 65001],
+            vec!["65535:0"],
+        )];
+        let lifecycles = build_lifecycles(&transitions, &cohort, t_secs(1000), &pred());
+        let lc = &lifecycles[0];
+        assert!(lc.gshut_newly_added);
+        assert_eq!(lc.category, StreamCategory::PrependOnly);
+    }
+
+    /// A restoration-kind transition with a real before state.
+    fn mk_restoration_with_from(
+        key: &ObserverPrefixKey,
+        pid: Option<u32>,
+        at_secs: i64,
+        from_path: Vec<u32>,
+        from_communities: Vec<&str>,
+        to_path: Vec<u32>,
+        to_communities: Vec<&str>,
+    ) -> RouteTransition {
+        let rk = RouteKey::with_path_id(&key.collector, key.peer_ip, &key.prefix, pid);
+        let mut from_attrs = RouteAttributes::from_as_path(from_path);
+        from_attrs.communities = from_communities
+            .into_iter()
+            .map(|s| s.to_string())
+            .collect();
+        let from = RouteState {
+            prefix: key.prefix.clone(),
+            attributes: from_attrs,
+            timestamp: t_secs(at_secs - 1),
+            observer: format!("{}:{}", key.collector, key.peer_ip),
+            path_id: pid,
+        };
+        let mut to_attrs = RouteAttributes::from_as_path(to_path.clone());
+        to_attrs.communities = to_communities.into_iter().map(|s| s.to_string()).collect();
+        let to = RouteState {
+            prefix: key.prefix.clone(),
+            attributes: to_attrs,
+            timestamp: t_secs(at_secs),
+            observer: format!("{}:{}", key.collector, key.peer_ip),
+            path_id: pid,
+        };
+        let ev = EvidenceRef::synthetic(at_secs as u64, "http://example.com/up.bz2", "abc123");
+        RouteTransition::new(
+            rk,
+            None,
+            Some(EvidencedRouteState::present(from, ev.clone())),
+            EvidencedRouteState::present(to, ev.clone()),
+            ev,
+            TransitionKind::Restoration,
+            GenericTransitionEffects::default(),
+            AnalysisPhase::Event,
+        )
+    }
+
+    #[test]
+    fn gshut_removal_coexists_with_restoration() {
+        let key = opk("rv2", "185.1.8.65", "192.0.2.0/24");
+        let cohort = cohort_with(&key, &[(Some(1), vec![6447, 65002, 65001])]);
+        // Baseline has no GSHUT; add it, withdraw, then restore WITHOUT it.
+        let transitions = vec![
+            mk_path_change(
+                &key,
+                Some(1),
+                10,
+                vec![6447, 65002, 65001],
+                vec![],
+                vec![6447, 65002, 65001],
+                vec!["65535:0"],
+            ),
+            withdrawal(&key, Some(1), 20),
+            mk_restoration_with_from(
+                &key,
+                Some(1),
+                30,
+                vec![6447, 65002, 65001],
+                vec!["65535:0"],
+                vec![6447, 65002, 65001],
+                vec![],
+            ),
+        ];
+        let lifecycles = build_lifecycles(&transitions, &cohort, t_secs(1000), &pred());
+        let lc = &lifecycles[0];
+        assert!(lc.gshut_newly_added);
+        assert!(lc.gshut_removed, "GSHUT removed during the window");
+        assert!(
+            lc.gshut_removed_during_restoration,
+            "removal co-occurs with restoration"
+        );
+        assert!(lc.flags.restored);
+    }
+
+    #[test]
+    fn lifecycle_tracks_gshut_before_withdrawal() {
+        let key = opk("rv2", "185.1.8.65", "192.0.2.0/24");
+        let cohort = cohort_with(&key, &[(Some(1), vec![6447, 65002, 65001])]);
+        let transitions = vec![
+            mk_path_change(
+                &key,
+                Some(1),
+                10,
+                vec![6447, 65002, 65001],
+                vec![],
+                vec![6447, 65002, 65001],
+                vec!["65535:0"],
+            ),
+            withdrawal(&key, Some(1), 20),
+        ];
+        let lifecycles = build_lifecycles(&transitions, &cohort, t_secs(1000), &pred());
+        let lc = &lifecycles[0];
+        assert!(
+            lc.gshut_before_withdrawal,
+            "GSHUT present before withdrawal"
+        );
+        assert!(lc.was_withdrawn);
+        // Tag-to-consequence duration: 20 - 10 = 10s.
+        assert_eq!(lc.gshut_to_consequence_secs, Some(10.0));
+    }
+
+    #[test]
+    fn lifecycle_tracks_gshut_before_path_replacement() {
+        let key = opk("rv2", "185.1.8.65", "192.0.2.0/24");
+        let cohort = cohort_with(&key, &[(Some(1), vec![6447, 65002, 65001])]);
+        let transitions = vec![
+            mk_path_change(
+                &key,
+                Some(1),
+                10,
+                vec![6447, 65002, 65001],
+                vec![],
+                vec![6447, 65002, 65001],
+                vec!["65535:0"],
+            ),
+            mk_path_change(
+                &key,
+                Some(1),
+                20,
+                vec![6447, 65002, 65001],
+                vec!["65535:0"],
+                vec![6447, 9999, 65001],
+                vec![],
+            ),
+        ];
+        let lifecycles = build_lifecycles(&transitions, &cohort, t_secs(1000), &pred());
+        let lc = &lifecycles[0];
+        assert!(
+            lc.gshut_before_path_change,
+            "GSHUT present before path replacement"
+        );
+        assert_eq!(lc.gshut_to_consequence_secs, Some(10.0));
+    }
+
+    #[test]
+    fn unrelated_community_change_is_not_gshut_lifecycle() {
+        let key = opk("rv2", "185.1.8.65", "192.0.2.0/24");
+        let cohort = cohort_with(&key, &[(Some(1), vec![6447, 65002, 65001])]);
+        // Only an unrelated community change.
+        let transitions = vec![mk_transition(
+            &key,
+            Some(1),
+            TransitionKind::AttributeChange,
+            10,
+            vec![6447, 65002, 65001],
+            vec!["11537:1000"],
+        )];
+        let lifecycles = build_lifecycles(&transitions, &cohort, t_secs(1000), &pred());
+        let lc = &lifecycles[0];
+        assert!(!lc.graceful_shutdown_seen);
+        assert!(!lc.gshut_newly_added);
+        assert!(!lc.gshut_removed);
+        assert!(lc.first_gshut_timestamp.is_none());
+    }
+
+    #[test]
+    fn gshut_survives_cache_roundtrip() {
+        let key = opk("rv2", "185.1.8.65", "192.0.2.0/24");
+        let cohort = cohort_with(&key, &[(Some(1), vec![6447, 65002, 65001])]);
+        let transitions = vec![
+            mk_path_change(
+                &key,
+                Some(1),
+                10,
+                vec![6447, 65002, 65001],
+                vec![],
+                vec![6447, 65002, 65001],
+                vec!["65535:0"],
+            ),
+            withdrawal(&key, Some(1), 20),
+        ];
+        let lifecycles = build_lifecycles(&transitions, &cohort, t_secs(1000), &pred());
+        let lc = &lifecycles[0];
+        // The lifecycle artifact serializes; GSHUT fields survive.
+        let json = serde_json::to_value(lc).unwrap();
+        assert_eq!(
+            json["graceful_shutdown_seen"],
+            serde_json::Value::Bool(true)
+        );
+        assert_eq!(
+            json["gshut_before_withdrawal"],
+            serde_json::Value::Bool(true)
+        );
+        assert_eq!(
+            json["first_gshut_timestamp"],
+            serde_json::to_value(t_secs(10)).unwrap()
+        );
+        assert_eq!(
+            json["gshut_to_consequence_secs"],
+            serde_json::to_value(10.0).unwrap()
+        );
+    }
+
+    #[test]
+    fn gshut_absence_does_not_change_impact_verdict() {
+        let key = opk("rv2", "185.1.8.65", "192.0.2.0/24");
+        let cohort = cohort_with(&key, &[(Some(1), vec![6447, 65002, 65001])]);
+        // No GSHUT anywhere; the withdrawal classification is unchanged.
+        let transitions = vec![withdrawal(&key, Some(1), 10)];
+        let lifecycles = build_lifecycles(&transitions, &cohort, t_secs(1000), &pred());
+        let lc = &lifecycles[0];
+        assert!(!lc.graceful_shutdown_seen);
+        assert_eq!(lc.category, StreamCategory::Withdrawn);
+        assert!(lc.was_withdrawn);
     }
 }
