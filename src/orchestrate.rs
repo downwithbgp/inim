@@ -557,6 +557,13 @@ fn run_inner(
     // is by ObserverPrefixKey with full route-instance history retained.
     let lifecycles =
         crate::lifecycle::build_lifecycles(&transitions, &cohort, cooldown_end, &transit_predicate);
+    // Semantic waves derive primarily from the lifecycles' transitions.
+    let semantic_waves = crate::lifecycle::derive_semantic_waves(
+        &lifecycles,
+        &transitions,
+        120.0,
+        &transit_predicate,
+    );
 
     let assessment = crate::assess::assess(
         event.id.clone(),
@@ -591,6 +598,7 @@ fn run_inner(
         },
         transitions: &transitions,
         waves: &waves,
+        semantic_waves: &semantic_waves,
         limitations: &limitations,
     };
     crate::output::write_outputs(&ctx, out_dir).map_err(|e| format!("output error: {e}"))?;

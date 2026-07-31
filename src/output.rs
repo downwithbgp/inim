@@ -30,6 +30,8 @@ pub struct OutputContext<'a> {
     pub continuity: &'a str,
     pub transitions: &'a [RouteTransition],
     pub waves: &'a [ImpactWave],
+    /// Semantic waves derived from ObserverPrefixKey lifecycles.
+    pub semantic_waves: &'a [crate::lifecycle::SemanticWave],
     pub limitations: &'a [String],
 }
 
@@ -60,6 +62,13 @@ pub fn write_outputs(ctx: &OutputContext, out_dir: &Path) -> Result<Vec<PathBuf>
         let appendix_path = out_dir.join("evidence_appendix.jsonl");
         write_evidence_appendix(ctx, &appendix_path)?;
         files.push(appendix_path);
+    }
+
+    // Semantic waves artifact — always written for Completed outcomes.
+    if matches!(ctx.outcome, AnalysisOutcome::Completed { .. }) {
+        let waves_path = out_dir.join("semantic_waves.json");
+        write_semantic_waves(ctx, &waves_path)?;
+        files.push(waves_path);
     }
 
     let limitations_path = out_dir.join("limitations.json");
@@ -451,6 +460,25 @@ fn write_evidence_appendix(ctx: &OutputContext, path: &Path) -> Result<(), Strin
         .map_err(|e| format!("cannot write {}: {e}", path.display()))
 }
 
+// ── semantic_waves.json ────────────────────────────────────────────
+
+#[derive(Serialize)]
+struct SemanticWavesArtifact {
+    schema_version: u32,
+    event_id: String,
+    waves: Vec<crate::lifecycle::SemanticWave>,
+}
+
+fn write_semantic_waves(ctx: &OutputContext, path: &Path) -> Result<(), String> {
+    let artifact = SemanticWavesArtifact {
+        schema_version: crate::schema::SEMANTIC_WAVE_SCHEMA_VERSION,
+        event_id: ctx.event_id.to_string(),
+        waves: ctx.semantic_waves.to_vec(),
+    };
+    let json = serde_json::to_string_pretty(&artifact).map_err(|e| format!("JSON error: {e}"))?;
+    std::fs::write(path, json).map_err(|e| format!("cannot write {}: {e}", path.display()))
+}
+
 // ── limitations.json ───────────────────────────────────────────────
 
 #[derive(Serialize)]
@@ -524,6 +552,7 @@ mod tests {
         }
     }
 
+    #[allow(clippy::too_many_arguments)]
     fn make_ctx<'a>(
         outcome: &'a AnalysisOutcome,
         collectors: &'a Vec<String>,
@@ -531,6 +560,7 @@ mod tests {
         updates: &'a Vec<CachedArchive>,
         transitions: &'a Vec<RouteTransition>,
         waves: &'a Vec<ImpactWave>,
+        semantic_waves: &'a Vec<crate::lifecycle::SemanticWave>,
         limitations: &'a Vec<String>,
     ) -> OutputContext<'a> {
         OutputContext {
@@ -549,6 +579,7 @@ mod tests {
             continuity: "Known (no gaps)",
             transitions,
             waves,
+            semantic_waves,
             limitations,
         }
     }
@@ -563,6 +594,7 @@ mod tests {
         let updates = vec![];
         let transitions = vec![];
         let waves = vec![];
+        let semantic_waves = vec![];
         let limitations = vec![
             "Test limitation 1".to_string(),
             "Test limitation 2".to_string(),
@@ -575,6 +607,7 @@ mod tests {
             &updates,
             &transitions,
             &waves,
+            &semantic_waves,
             &limitations,
         );
 
@@ -602,6 +635,7 @@ mod tests {
         let updates = vec![];
         let transitions = vec![];
         let waves = vec![];
+        let semantic_waves = vec![];
         let limitations = vec!["gap detected".to_string()];
         let ctx = make_ctx(
             &outcome,
@@ -610,6 +644,7 @@ mod tests {
             &updates,
             &transitions,
             &waves,
+            &semantic_waves,
             &limitations,
         );
         let dir = tempfile::tempdir().unwrap();
@@ -630,6 +665,7 @@ mod tests {
         let updates = vec![];
         let transitions = vec![];
         let waves = vec![];
+        let semantic_waves = vec![];
         let limitations = vec![];
         let ctx = make_ctx(
             &outcome,
@@ -638,6 +674,7 @@ mod tests {
             &updates,
             &transitions,
             &waves,
+            &semantic_waves,
             &limitations,
         );
         let dir = tempfile::tempdir().unwrap();
@@ -656,6 +693,7 @@ mod tests {
         let updates = vec![];
         let transitions = vec![];
         let waves = vec![];
+        let semantic_waves = vec![];
         let limitations = vec![];
         let ctx = make_ctx(
             &outcome,
@@ -664,6 +702,7 @@ mod tests {
             &updates,
             &transitions,
             &waves,
+            &semantic_waves,
             &limitations,
         );
         let dir = tempfile::tempdir().unwrap();
@@ -682,6 +721,7 @@ mod tests {
         let updates = vec![];
         let transitions = vec![];
         let waves = vec![];
+        let semantic_waves = vec![];
         let limitations = vec![];
         let ctx = make_ctx(
             &outcome,
@@ -690,6 +730,7 @@ mod tests {
             &updates,
             &transitions,
             &waves,
+            &semantic_waves,
             &limitations,
         );
         let dir = tempfile::tempdir().unwrap();
@@ -752,6 +793,7 @@ mod tests {
         let updates = vec![];
         let transitions = vec![transition];
         let waves = vec![wave];
+        let semantic_waves = vec![];
         let limitations = vec![];
         let ctx = make_ctx(
             &outcome,
@@ -760,6 +802,7 @@ mod tests {
             &updates,
             &transitions,
             &waves,
+            &semantic_waves,
             &limitations,
         );
         let dir = tempfile::tempdir().unwrap();

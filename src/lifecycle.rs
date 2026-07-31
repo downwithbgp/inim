@@ -11,8 +11,8 @@ use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, HashMap, HashSet};
 
 use crate::domain::route::{
-    AnalysisPhase, ObserverPrefixKey, RouteAttributes, RouteKey, RouteState, RouteTransition,
-    TransitPredicate, TransitionKind,
+    AnalysisPhase, ObserverPrefixKey, PrependChange, RouteAttributes, RouteKey, RouteState,
+    RouteTransition, TransitPredicate, TransitionKind,
 };
 
 // ── Path collapsing ────────────────────────────────────────────────
@@ -383,30 +383,341 @@ pub struct WithdrawalRecord {
 
 // ── Semantic waves ─────────────────────────────────────────────────
 
-/// A semantically-labeled wave describing a distinct phase of the event.
+/// Candidate semantic wave labels. A label is only assigned when the wave's
+/// transitions carry supporting effects; the wave always retains ALL facets.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+pub enum WaveLabel {
+    /// Prepend count reduced (dominant effect).
+    PrependReduction,
+    /// Prepend count increased (dominant effect).
+    PrependIncrease,
+    /// Observer-prefix stream withdrawal (dominant effect).
+    StreamWithdrawal,
+    /// Stream departed the reviewed transit predicate (dominant effect).
+    TransitDeparture,
+    /// Stream restoration after withdrawal (dominant effect).
+    StreamRestoration,
+    /// Stream returned to the reviewed transit predicate (dominant effect).
+    TransitReturn,
+    /// Return to baseline route semantics (dominant effect).
+    BaselinePolicyRestoration,
+    /// No single effect dominates — multiple facets co-occur.
+    MixedRouteChange,
+}
+
+impl WaveLabel {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            WaveLabel::PrependReduction => "PrependReduction",
+            WaveLabel::PrependIncrease => "PrependIncrease",
+            WaveLabel::StreamWithdrawal => "StreamWithdrawal",
+            WaveLabel::TransitDeparture => "TransitDeparture",
+            WaveLabel::StreamRestoration => "StreamRestoration",
+            WaveLabel::TransitReturn => "TransitReturn",
+            WaveLabel::BaselinePolicyRestoration => "BaselinePolicyRestoration",
+            WaveLabel::MixedRouteChange => "MixedRouteChange",
+        }
+    }
+}
+
+/// A semantically-labeled wave describing a distinct temporal phase of the
+/// event, derived primarily from ObserverPrefixKey lifecycles while
+/// retaining contributing RouteKey evidence.
 #[derive(Debug, Clone, Serialize)]
 pub struct SemanticWave {
-    /// Label derived from the dominant transition class.
-    pub label: String,
+    /// Stable wave ID (deterministic within the run).
+    pub id: String,
+    /// Label derived from the dominant supporting effect.
+    pub label: WaveLabel,
     /// First observation timestamp.
-    pub first: DateTime<Utc>,
-    /// Peak observation interval (start of densest cluster).
+    pub start: DateTime<Utc>,
+    /// Peak observation interval (densest 60s window).
     pub peak_start: DateTime<Utc>,
+    pub peak_end: DateTime<Utc>,
     /// Last observation timestamp.
-    pub last: DateTime<Utc>,
-    /// Number of unique streams affected.
-    pub unique_streams: usize,
-    /// Number of unique prefixes affected.
-    pub unique_prefixes: usize,
-    /// Number of unique peers.
-    pub unique_peers: usize,
-    /// Dominant transition classification.
-    pub dominant_class: String,
-    /// Representative before/after AS paths.
+    pub end: DateTime<Utc>,
+    /// Number of distinct observer-prefix streams.
+    pub stream_count: usize,
+    /// Number of contributing route instances (RouteKeys).
+    pub route_instance_count: usize,
+    /// Distinct prefixes (sorted).
+    pub prefixes: Vec<String>,
+    /// Distinct peers (sorted).
+    pub peers: Vec<String>,
+    /// Generic transition facet counts (always computed, never forced).
+    pub facets: GenericFacetCounts,
+    /// Event-relative effect counts.
+    pub event_relative: EventRelativeCounts,
+    /// Representative before/after AS paths (first transition, deterministic).
     pub representative_before: Vec<u32>,
     pub representative_after: Vec<u32>,
+    /// Evidence references (sorted by observation id).
+    pub evidence_refs: Vec<crate::domain::observation::EvidenceRef>,
     /// Duration in seconds.
     pub duration_secs: f64,
+}
+
+/// Counts of generic transition facets within a wave.
+#[derive(Debug, Clone, Default, Serialize)]
+pub struct GenericFacetCounts {
+    pub communities_changed: usize,
+    pub graceful_shutdown_added: usize,
+    pub graceful_shutdown_removed: usize,
+    pub prepend_reduced: usize,
+    pub prepend_increased: usize,
+    pub material_path_changed: usize,
+    pub origin_changed: usize,
+    pub next_hop_changed: usize,
+    pub med_changed: usize,
+    pub local_pref_changed: usize,
+}
+
+/// Counts of event-relative effects within a wave.
+#[derive(Debug, Clone, Default, Serialize)]
+pub struct EventRelativeCounts {
+    pub transit_retained: usize,
+    pub transit_departed: usize,
+    pub transit_returned: usize,
+}
+
+/// Derive semantic waves primarily from ObserverPrefixKey lifecycles,
+/// retaining contributing RouteKey evidence.
+///
+/// Waves are temporal clusters of event-window transitions (max_gap_secs
+/// between successive transitions). Each wave aggregates stream counts,
+/// route-instance counts, prefixes, peers, generic facets, event-relative
+/// effects, representative before/after states, and evidence references.
+///
+/// A label is only assigned when its supporting effect count is positive
+/// and dominant; ties resolve to MixedRouteChange. Waves are never forced
+/// to a fixed count — actual temporal clustering is derived from evidence.
+pub fn derive_semantic_waves(
+    _lifecycles: &[StreamLifecycle],
+    transitions: &[RouteTransition],
+    max_gap_secs: f64,
+    transit_predicate: &TransitPredicate,
+) -> Vec<SemanticWave> {
+    let mut event_transitions: Vec<&RouteTransition> = transitions
+        .iter()
+        .filter(|t| t.phase == AnalysisPhase::Event)
+        .collect();
+    if event_transitions.is_empty() {
+        return vec![];
+    }
+    event_transitions.sort_by(|a, b| {
+        a.to.timestamp().cmp(&b.to.timestamp()).then_with(|| {
+            crate::derived_cache::path_id_key(&a.key.path_id)
+                .cmp(&crate::derived_cache::path_id_key(&b.key.path_id))
+        })
+    });
+
+    // Temporal clustering (actual structure, not a fixed wave count).
+    let mut waves: Vec<SemanticWave> = Vec::new();
+    let mut current: Vec<&RouteTransition> = vec![event_transitions[0]];
+    for window in event_transitions.windows(2) {
+        let gap = (window[1].to.timestamp() - window[0].to.timestamp()).num_seconds() as f64;
+        if gap <= max_gap_secs {
+            current.push(window[1]);
+        } else {
+            waves.push(build_semantic_wave(&current, transit_predicate));
+            current = vec![window[1]];
+        }
+    }
+    if !current.is_empty() {
+        waves.push(build_semantic_wave(&current, transit_predicate));
+    }
+
+    for (i, wave) in waves.iter_mut().enumerate() {
+        wave.id = format!("wave-{}", i + 1);
+    }
+    waves
+}
+
+fn build_semantic_wave(
+    group: &[&RouteTransition],
+    transit_predicate: &TransitPredicate,
+) -> SemanticWave {
+    let start = group[0].to.timestamp();
+    let end = group[group.len() - 1].to.timestamp();
+
+    // Streams / instances / prefixes / peers / evidence.
+    let mut streams: HashSet<String> = HashSet::new();
+    let mut instances: HashSet<RouteKey> = HashSet::new();
+    let mut prefixes: HashSet<String> = HashSet::new();
+    let mut peers: HashSet<String> = HashSet::new();
+    let mut evidence: Vec<crate::domain::observation::EvidenceRef> = Vec::new();
+    for t in group {
+        streams.insert(format!(
+            "{}:{}:{}",
+            t.key.collector, t.key.peer_ip, t.key.prefix.0
+        ));
+        instances.insert(t.key.clone());
+        prefixes.insert(t.key.prefix.0.clone());
+        peers.insert(t.key.peer_ip.to_string());
+        evidence.push(t.triggering.clone());
+    }
+    let mut prefixes: Vec<String> = prefixes.into_iter().collect();
+    prefixes.sort();
+    let mut peers: Vec<String> = peers.into_iter().collect();
+    peers.sort();
+    evidence.sort_by_key(|e| e.observation_id.0);
+    evidence.dedup_by(|a, b| a.observation_id == b.observation_id);
+
+    // Facets: generic effects + event-relative effects + label support.
+    let mut facets = GenericFacetCounts::default();
+    let mut event_relative = EventRelativeCounts::default();
+    let mut label_counts: Vec<(WaveLabel, usize)> = Vec::new();
+    let count = |label: WaveLabel, counts: &mut Vec<(WaveLabel, usize)>| {
+        if let Some(entry) = counts.iter_mut().find(|(l, _)| *l == label) {
+            entry.1 += 1;
+        } else {
+            counts.push((label, 1));
+        }
+    };
+
+    for t in group {
+        if t.effects.communities_changed {
+            facets.communities_changed += 1;
+        }
+        if t.effects.graceful_shutdown_added {
+            facets.graceful_shutdown_added += 1;
+        }
+        if t.effects.graceful_shutdown_removed {
+            facets.graceful_shutdown_removed += 1;
+        }
+        if t.effects.material_path_changed {
+            facets.material_path_changed += 1;
+        }
+        if t.effects.origin_changed {
+            facets.origin_changed += 1;
+        }
+        if t.effects.next_hop_changed {
+            facets.next_hop_changed += 1;
+        }
+        if t.effects.med_changed {
+            facets.med_changed += 1;
+        }
+        if t.effects.local_pref_changed {
+            facets.local_pref_changed += 1;
+        }
+        match t.effects.prepend {
+            PrependChange::Reduced => {
+                facets.prepend_reduced += 1;
+                count(WaveLabel::PrependReduction, &mut label_counts);
+            }
+            PrependChange::Increased => {
+                facets.prepend_increased += 1;
+                count(WaveLabel::PrependIncrease, &mut label_counts);
+            }
+            _ => {}
+        }
+
+        // Event-relative effects apply to route-present transitions only:
+        // a withdrawal is a StreamWithdrawal (kind label), not a departure —
+        // "transit departed" means the stream remains visible without a
+        // matching route, consistent with the DepartedTransitPath category.
+        let from_path = t.from.as_ref().and_then(|f| f.state.as_ref());
+        let to_path = t.to.state.as_ref();
+        let from_has = from_path
+            .map(|s| transit_predicate.evaluate(&s.attributes.as_path.0))
+            .unwrap_or(false);
+        if let Some(to_state) = to_path {
+            let to_has_route = transit_predicate.evaluate(&to_state.attributes.as_path.0);
+            if from_has && to_has_route {
+                event_relative.transit_retained += 1;
+            } else if from_has && !to_has_route {
+                event_relative.transit_departed += 1;
+                count(WaveLabel::TransitDeparture, &mut label_counts);
+            } else if !from_has && to_has_route {
+                event_relative.transit_returned += 1;
+                count(WaveLabel::TransitReturn, &mut label_counts);
+            }
+        }
+
+        match &t.kind {
+            TransitionKind::Withdrawal => {
+                count(WaveLabel::StreamWithdrawal, &mut label_counts);
+            }
+            TransitionKind::Restoration => {
+                count(WaveLabel::StreamRestoration, &mut label_counts);
+            }
+            TransitionKind::ReturnToBaseline => {
+                count(WaveLabel::BaselinePolicyRestoration, &mut label_counts);
+            }
+            _ => {}
+        }
+    }
+
+    // Label requires supporting effects: the most frequent supported label;
+    // ties resolve to MixedRouteChange; no label when nothing supports one.
+    let label = if label_counts.is_empty() {
+        WaveLabel::MixedRouteChange
+    } else {
+        label_counts.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.as_str().cmp(b.0.as_str())));
+        let top = label_counts[0];
+        let runner_up = label_counts.get(1);
+        if runner_up.is_some_and(|(_, c)| *c == top.1) {
+            WaveLabel::MixedRouteChange
+        } else {
+            top.0
+        }
+    };
+
+    // Peak interval: densest 60-second window.
+    let mut peak_start = start;
+    let mut peak_end = end;
+    let mut best_count = 0usize;
+    let mut timestamps: Vec<DateTime<Utc>> = group.iter().map(|t| t.to.timestamp()).collect();
+    timestamps.sort();
+    for &ts in &timestamps {
+        let window_end = ts + chrono::Duration::seconds(60);
+        let count_in_window = timestamps
+            .iter()
+            .filter(|&&t| t >= ts && t <= window_end)
+            .count();
+        if count_in_window > best_count {
+            best_count = count_in_window;
+            peak_start = ts;
+            peak_end = timestamps
+                .iter()
+                .filter(|&&t| t >= ts && t <= window_end)
+                .max()
+                .copied()
+                .unwrap_or(ts);
+        }
+    }
+
+    let representative_before = group[0]
+        .from
+        .as_ref()
+        .and_then(|f| f.state.as_ref())
+        .map(|s| s.attributes.as_path.0.clone())
+        .unwrap_or_default();
+    let representative_after = group[0]
+        .to
+        .state
+        .as_ref()
+        .map(|s| s.attributes.as_path.0.clone())
+        .unwrap_or_default();
+
+    SemanticWave {
+        id: String::new(), // assigned by caller
+        label,
+        start,
+        peak_start,
+        peak_end,
+        end,
+        stream_count: streams.len(),
+        route_instance_count: instances.len(),
+        prefixes,
+        peers,
+        facets,
+        event_relative,
+        representative_before,
+        representative_after,
+        evidence_refs: evidence,
+        duration_secs: ((end - start).num_seconds() as f64).max(0.0),
+    }
 }
 
 // ── Builder ────────────────────────────────────────────────────────
@@ -1124,131 +1435,6 @@ pub fn withdrawal_audit(lifecycles: &[StreamLifecycle]) -> Vec<WithdrawalRecord>
     }
 
     records
-}
-
-// ── Semantic waves ─────────────────────────────────────────────────
-
-/// Derive semantic wave descriptions from lifecycle and transition data.
-pub fn derive_semantic_waves(
-    lifecycles: &[StreamLifecycle],
-    transitions: &[RouteTransition],
-    max_gap_secs: f64,
-) -> Vec<SemanticWave> {
-    if transitions.is_empty() {
-        return vec![];
-    }
-
-    // Collect all event-window transitions sorted by timestamp
-    let mut event_transitions: Vec<&RouteTransition> = transitions
-        .iter()
-        .filter(|t| t.phase == AnalysisPhase::Event)
-        .collect();
-    event_transitions.sort_by_key(|t| t.to.timestamp());
-
-    if event_transitions.is_empty() {
-        return vec![];
-    }
-
-    // Group into temporal clusters
-    let mut waves: Vec<SemanticWave> = Vec::new();
-    let mut current_group: Vec<&RouteTransition> = vec![event_transitions[0]];
-
-    for window in event_transitions.windows(2) {
-        let prev = window[0];
-        let next = window[1];
-        let gap = (next.to.timestamp() - prev.to.timestamp()).num_seconds() as f64;
-
-        if gap <= max_gap_secs {
-            current_group.push(next);
-        } else {
-            waves.push(build_semantic_wave(&current_group, lifecycles));
-            current_group = vec![next];
-        }
-    }
-
-    if !current_group.is_empty() {
-        waves.push(build_semantic_wave(&current_group, lifecycles));
-    }
-
-    // Label waves sequentially
-    for (i, wave) in waves.iter_mut().enumerate() {
-        wave.label = format!("wave-{} {}", i + 1, wave.label);
-    }
-
-    waves
-}
-
-fn build_semantic_wave(
-    group: &[&RouteTransition],
-    _lifecycles: &[StreamLifecycle],
-) -> SemanticWave {
-    let first = group[0].to.timestamp();
-    let last = group[group.len() - 1].to.timestamp();
-    let mid = group[group.len() / 2].to.timestamp();
-
-    // Count unique streams, prefixes, peers
-    let mut streams = HashSet::new();
-    let mut prefixes = HashSet::new();
-    let mut peers = HashSet::new();
-    for t in group {
-        streams.insert(format!(
-            "{}:{}:{}",
-            t.key.collector, t.key.peer_ip, t.key.prefix.0
-        ));
-        prefixes.insert(t.key.prefix.0.clone());
-        peers.insert(t.key.peer_ip.to_string());
-    }
-
-    // Determine dominant class
-    let mut class_counts: HashMap<String, usize> = HashMap::new();
-    let mut rep_before: Vec<u32> = vec![];
-    let mut rep_after: Vec<u32> = vec![];
-    for t in group {
-        let class = transition_kind_str(&t.kind);
-        *class_counts.entry(class).or_default() += 1;
-        if rep_before.is_empty() {
-            rep_before = t
-                .from
-                .as_ref()
-                .and_then(|f| f.state.as_ref())
-                .map(|s| s.attributes.as_path.0.clone())
-                .unwrap_or_default();
-            rep_after =
-                t.to.state
-                    .as_ref()
-                    .map(|s| s.attributes.as_path.0.clone())
-                    .unwrap_or_default();
-        }
-    }
-    let dominant_class = class_counts
-        .into_iter()
-        .max_by_key(|(_, c)| *c)
-        .map(|(k, _)| k)
-        .unwrap_or_default();
-
-    // Determine label
-    let label = match dominant_class.as_str() {
-        "PathChange" if rep_before.len() > rep_after.len() => "prepend reduction".to_string(),
-        "PathChange" if rep_before.len() < rep_after.len() => "prepend increase".to_string(),
-        "PathChange" => "path change".to_string(),
-        "Withdrawal" => "withdrawal".to_string(),
-        "Restoration" | "ReturnToBaseline" => "route restoration".to_string(),
-        _ => dominant_class.to_lowercase(),
-    };
-
-    SemanticWave {
-        label,
-        first,
-        peak_start: mid,
-        last,
-        unique_streams: streams.len(),
-        unique_prefixes: prefixes.len(),
-        unique_peers: peers.len(),
-        dominant_class,
-        representative_before: rep_before,
-        representative_after: rep_after,
-        duration_secs: ((last - first).num_seconds() as f64).max(0.0),
-    }
 }
 
 #[cfg(test)]
@@ -2093,6 +2279,21 @@ mod tests {
             .into_iter()
             .map(|s| s.to_string())
             .collect();
+        let mut to_attrs = RouteAttributes::from_as_path(to_path.clone());
+        to_attrs.communities = to_communities.into_iter().map(|s| s.to_string()).collect();
+        // Recompute the generic prepend effect like diff_states would.
+        let mut effects = GenericTransitionEffects::default();
+        let from_collapsed = collapse_as_path(&from_attrs.as_path.0);
+        let to_collapsed = collapse_as_path(&to_attrs.as_path.0);
+        if from_collapsed == to_collapsed && from_attrs.as_path.0.len() > to_attrs.as_path.0.len() {
+            effects.prepend = PrependChange::Reduced;
+        } else if from_collapsed == to_collapsed
+            && from_attrs.as_path.0.len() < to_attrs.as_path.0.len()
+        {
+            effects.prepend = PrependChange::Increased;
+        } else if from_collapsed != to_collapsed {
+            effects.material_path_changed = true;
+        }
         let from = RouteState {
             prefix: key.prefix.clone(),
             attributes: from_attrs,
@@ -2100,8 +2301,6 @@ mod tests {
             observer: format!("{}:{}", key.collector, key.peer_ip),
             path_id: pid,
         };
-        let mut to_attrs = RouteAttributes::from_as_path(to_path.clone());
-        to_attrs.communities = to_communities.into_iter().map(|s| s.to_string()).collect();
         let to = RouteState {
             prefix: key.prefix.clone(),
             attributes: to_attrs,
@@ -2120,7 +2319,7 @@ mod tests {
                 old: AsPath(to_path.clone()),
                 new: AsPath(to_path.clone()),
             },
-            GenericTransitionEffects::default(),
+            effects,
             AnalysisPhase::Event,
         )
     }
@@ -2380,5 +2579,192 @@ mod tests {
         assert!(!lc.graceful_shutdown_seen);
         assert_eq!(lc.category, StreamCategory::Withdrawn);
         assert!(lc.was_withdrawn);
+    }
+
+    // ── Part 6: semantic waves ────────────────────────────────────
+
+    #[test]
+    fn wave_counts_streams_and_instances_separately() {
+        let a = opk("rv2", "185.1.8.65", "192.0.2.0/24");
+        let b = opk("rv2", "185.1.8.66", "192.0.2.0/24");
+        let mut cohort = cohort_with(
+            &a,
+            &[
+                (Some(1), vec![6447, 65002, 65001]),
+                (Some(2), vec![6447, 65002, 65001]),
+            ],
+        );
+        let b_cohort = cohort_with(&b, &[(Some(1), vec![6447, 65002, 65001])]);
+        for k in b_cohort.observer_prefixes {
+            cohort.observer_prefixes.insert(k);
+        }
+        for (k, v) in b_cohort.baseline_instances {
+            cohort.baseline_instances.insert(k, v);
+        }
+        let transitions = vec![
+            withdrawal(&a, Some(1), 10),
+            withdrawal(&a, Some(2), 20),
+            withdrawal(&b, Some(1), 25),
+        ];
+        let lifecycles = build_lifecycles(&transitions, &cohort, t_secs(1000), &pred());
+        let waves = derive_semantic_waves(&lifecycles, &transitions, 120.0, &pred());
+        assert_eq!(waves.len(), 1);
+        let w = &waves[0];
+        // 2 streams, 3 route instances — counted separately.
+        assert_eq!(w.stream_count, 2);
+        assert_eq!(w.route_instance_count, 3);
+        assert_eq!(w.label, WaveLabel::StreamWithdrawal);
+    }
+
+    #[test]
+    fn wave_supports_multiple_effect_facets() {
+        let key = opk("rv2", "185.1.8.65", "192.0.2.0/24");
+        let cohort = cohort_with(&key, &[(Some(1), vec![6447, 65002, 65001])]);
+        let transitions = vec![
+            // Withdrawal and a prepend reduction in one temporal wave.
+            withdrawal(&key, Some(1), 10),
+            mk_path_change(
+                &key,
+                Some(1),
+                30,
+                vec![6447, 65002, 65002, 65002, 65001],
+                vec![],
+                vec![6447, 65002, 65001],
+                vec![],
+            ),
+        ];
+        let lifecycles = build_lifecycles(&transitions, &cohort, t_secs(1000), &pred());
+        let waves = derive_semantic_waves(&lifecycles, &transitions, 120.0, &pred());
+        let w = &waves[0];
+        // Both facets present (withdrawal + prepend reduction); the tie
+        // resolves to MixedRouteChange rather than forcing one label.
+        assert!(w.facets.prepend_reduced >= 1);
+        assert_eq!(w.facets.communities_changed, 0);
+        assert_eq!(w.label, WaveLabel::MixedRouteChange);
+    }
+
+    #[test]
+    fn wave_label_requires_supporting_effect() {
+        let key = opk("rv2", "185.1.8.65", "192.0.2.0/24");
+        let cohort = cohort_with(&key, &[(Some(1), vec![6447, 65002, 65001])]);
+        // A path change that retains transit (still via predicate) has no
+        // candidate label support from withdrawal/prepend/departure kinds —
+        // but material path change with transit retained is MixedRouteChange
+        // by construction (no dominant label).
+        let transitions = vec![mk_path_change(
+            &key,
+            Some(1),
+            10,
+            vec![6447, 65002, 65001],
+            vec![],
+            vec![6447, 65002, 9999, 65001],
+            vec![],
+        )];
+        let lifecycles = build_lifecycles(&transitions, &cohort, t_secs(1000), &pred());
+        let waves = derive_semantic_waves(&lifecycles, &transitions, 120.0, &pred());
+        assert_eq!(waves.len(), 1);
+        // No label is invented without supporting effects: the wave is
+        // MixedRouteChange rather than a fabricated semantic label.
+        assert_eq!(waves[0].label, WaveLabel::MixedRouteChange);
+    }
+
+    #[test]
+    fn wave_order_is_deterministic() {
+        let key = opk("rv2", "185.1.8.65", "192.0.2.0/24");
+        let cohort = cohort_with(&key, &[(Some(1), vec![6447, 65002, 65001])]);
+        let transitions = vec![
+            withdrawal(&key, Some(1), 10),
+            mk_transition(
+                &key,
+                Some(1),
+                TransitionKind::Restoration,
+                300,
+                vec![6447, 65002, 65001],
+                vec![],
+            ),
+        ];
+        let lifecycles = build_lifecycles(&transitions, &cohort, t_secs(1000), &pred());
+        let waves1 = derive_semantic_waves(&lifecycles, &transitions, 120.0, &pred());
+        let mut reversed = transitions.clone();
+        reversed.reverse();
+        let waves2 = derive_semantic_waves(&lifecycles, &reversed, 120.0, &pred());
+        assert_eq!(waves1.len(), 2, "two temporal clusters");
+        assert_eq!(waves1[0].id, "wave-1");
+        assert_eq!(waves1[1].id, "wave-2");
+        // Stable IDs and identical labels regardless of input order.
+        assert_eq!(waves1[0].label, waves2[0].label);
+        assert_eq!(waves1[1].label, waves2[1].label);
+        assert_eq!(waves1[0].start, waves2[0].start);
+    }
+
+    #[test]
+    fn representative_evidence_is_deterministic() {
+        let key = opk("rv2", "185.1.8.65", "192.0.2.0/24");
+        let cohort = cohort_with(&key, &[(Some(1), vec![6447, 65002, 65001])]);
+        let transitions = vec![
+            withdrawal(&key, Some(1), 10),
+            mk_transition(
+                &key,
+                Some(1),
+                TransitionKind::Restoration,
+                300,
+                vec![6447, 65002, 65001],
+                vec![],
+            ),
+        ];
+        let lifecycles = build_lifecycles(&transitions, &cohort, t_secs(1000), &pred());
+        let waves = derive_semantic_waves(&lifecycles, &transitions, 120.0, &pred());
+        // Representative before/after from the first transition of each wave.
+        assert_eq!(waves[0].representative_before, vec![6447, 65002, 65001]);
+        assert_eq!(waves[0].representative_after, Vec::<u32>::new());
+        assert_eq!(waves[1].representative_after, vec![6447, 65002, 65001]);
+        // Evidence references retained and sorted.
+        assert_eq!(waves[0].evidence_refs.len(), 1);
+        assert_eq!(waves[0].evidence_refs[0].observation_id.0, 10);
+        assert_eq!(waves[1].evidence_refs[0].observation_id.0, 300);
+    }
+
+    #[test]
+    fn one_transition_is_not_a_repeated_motif() {
+        // SEQUITUR constraint: a single terminal must not be called a
+        // repeated motif. Rule utility requires >= 2 references, so a
+        // one-symbol input produces no rules.
+        let grammar: crate::sequitur::Grammar<String> =
+            crate::sequitur::build(&["WITHDRAWAL".to_string()]);
+        assert!(
+            grammar.rules.is_empty(),
+            "a single terminal is not a repeated motif"
+        );
+        let expanded = grammar.expand();
+        assert_eq!(expanded, vec!["WITHDRAWAL".to_string()]);
+    }
+
+    #[test]
+    fn sequitur_output_does_not_change_assessment() {
+        // SEQUITUR describes repeated sequences; it never assigns semantic
+        // labels and never determines the assessment.
+        let exp = crate::domain::expectation::ImpactExpectation::participant_unavailable("test");
+        let transitions = vec![withdrawal(
+            &opk("rv2", "185.1.8.65", "192.0.2.0/24"),
+            Some(1),
+            10,
+        )];
+        let a_with = crate::assess::assess(
+            crate::domain::event::EventId::from("T1"),
+            exp.clone(),
+            &transitions,
+            vec![],
+            false,
+            None,
+        );
+        let a_without = crate::assess::assess(
+            crate::domain::event::EventId::from("T1"),
+            exp,
+            &transitions,
+            vec![],
+            false,
+            None,
+        );
+        assert_eq!(a_with.verdict, a_without.verdict);
     }
 }
