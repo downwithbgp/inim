@@ -176,13 +176,30 @@ mod tests {
     use crate::domain::event::EventId;
     use crate::domain::expectation::ImpactExpectation;
     use crate::domain::route::{
-        AsPath, Prefix, RouteAttributes, RouteState,
+        AsPath, EvidencedRouteState, Prefix, RouteAttributes, RouteKey, RouteState,
     };
+    use crate::domain::observation::EvidenceRef;
 
     fn t(secs: i64) -> chrono::DateTime<Utc> {
         Utc.with_ymd_and_hms(2025, 6, 15, 5, 25, 0)
             .unwrap()
             + chrono::Duration::seconds(secs)
+    }
+
+    fn se() -> EvidenceRef {
+        EvidenceRef::synthetic(0, "test", "0000")
+    }
+
+    fn make_transition(
+        from: Option<RouteState>,
+        to: RouteState,
+        kind: TransitionKind,
+    ) -> RouteTransition {
+        let key = RouteKey::new("test", "0.0.0.0".parse().unwrap(), &to.prefix);
+        let ev = se();
+        let from_ev = from.map(|s| EvidencedRouteState::present(s, ev.clone()));
+        let to_ev = EvidencedRouteState::present(to, ev.clone());
+        RouteTransition::new(key, None, from_ev, to_ev, ev, kind)
     }
 
     fn path_change(old: Vec<u32>, new: Vec<u32>, at: i64) -> RouteTransition {
@@ -198,9 +215,8 @@ mod tests {
             timestamp: t(at),
             observer: "rv2:185.1.8.65".into(),
         };
-        RouteTransition::new(
-            Some(from),
-            to,
+        make_transition(
+            Some(from), to,
             TransitionKind::PathChange {
                 old: AsPath(vec![]),
                 new: AsPath(vec![]),
@@ -221,7 +237,7 @@ mod tests {
             timestamp: t(at),
             observer: "rv2:185.1.8.65".into(),
         };
-        RouteTransition::new(Some(from), to, TransitionKind::ReturnToBaseline)
+        make_transition(Some(from), to, TransitionKind::ReturnToBaseline)
     }
 
     fn withdrawal(at: i64) -> RouteTransition {
@@ -237,7 +253,7 @@ mod tests {
             timestamp: t(at),
             observer: "rv2:185.1.8.65".into(),
         };
-        RouteTransition::new(Some(from), to, TransitionKind::Withdrawal)
+        make_transition(Some(from), to, TransitionKind::Withdrawal)
     }
 
     #[test]

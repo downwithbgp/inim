@@ -347,6 +347,8 @@ mod tests {
     fn provenance_roundtrip() {
         let p = ObservationProvenance {
             input: "rib.mrt.bz2".into(),
+            source_url: None,
+            archive_sha256: None,
             role: IngestRole::Rib,
             parser_representation: "bgpkit-bgp-elem".into(),
             mrt_timestamp: 1749990000.0,

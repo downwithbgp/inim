@@ -117,7 +117,7 @@ impl Default for RouteStateStore {
 pub fn reconstruct_routes(
     observations: impl IntoIterator<Item = RouteObservation>,
     event_start: chrono::DateTime<chrono::Utc>,
-    event_end: chrono::DateTime<chrono::Utc>,
+    _event_end: chrono::DateTime<chrono::Utc>,
     cooldown_end: chrono::DateTime<chrono::Utc>,
 ) -> (RouteStateStore, Vec<StateChange>) {
     let mut store = RouteStateStore::new();
@@ -190,7 +190,7 @@ mod tests {
     use chrono::{TimeZone, Utc};
     use crate::domain::observation::{Asn, CollectorId, Communities, ObservationAttributes, ObservationId, ObservationProvenance, ObservationSource, IngestRole};
     use crate::domain::route::Prefix;
-    use crate::fixtures::synthetic_evidence;
+    
 
     fn t(offset_secs: i64) -> chrono::DateTime<Utc> {
         Utc.with_ymd_and_hms(2025, 6, 15, 5, 25, 0).unwrap() + chrono::Duration::seconds(offset_secs)

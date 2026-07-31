@@ -283,10 +283,10 @@ impl std::error::Error for InimArchiveError {}
 #[cfg(test)]
 mod tests {
     use super::*;
-    use chrono::{TimeZone, Utc};
+    use chrono::Utc;
 
     fn t(s: &str) -> chrono::DateTime<Utc> {
-        Utc.datetime_from_str(s, "%Y-%m-%dT%H:%M:%SZ").unwrap()
+        chrono::DateTime::parse_from_rfc3339(s).unwrap().to_utc()
     }
 
     fn make_rib(ts_start: &str, ts_end: &str, collector: &str) -> ArchiveItem {

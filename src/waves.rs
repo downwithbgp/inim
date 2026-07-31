@@ -306,8 +306,9 @@ fn describe_motif(motif: Option<&WaveMotif>) -> &str {
 mod tests {
     use super::*;
     use crate::domain::route::{
-        AsPath, Prefix, RouteAttributes, RouteState,
+        AsPath, EvidencedRouteState, Prefix, RouteAttributes, RouteKey, RouteState,
     };
+    use crate::domain::observation::EvidenceRef;
     use chrono::TimeZone;
 
     fn t(secs: i64) -> DateTime<Utc> {
@@ -323,7 +324,10 @@ mod tests {
             timestamp: t(at),
             observer: "rv2:185.1.8.65".into(),
         };
-        RouteTransition::new(None, state, kind)
+        let key = RouteKey::new("test", "0.0.0.0".parse().unwrap(), &state.prefix);
+        let ev = EvidenceRef::synthetic(0, "test", "0000");
+        let to_ev = EvidencedRouteState::present(state, ev.clone());
+        RouteTransition::new(key, None, None, to_ev, ev, kind)
     }
 
     #[test]
@@ -427,8 +431,8 @@ mod tests {
 
     #[test]
     fn multi_terminal_rule_is_labeled_as_motif() {
-        use crate::domain::wave::{WaveMotif, MotifEvidenceRange};
-        let t0 = t(0);
+        use crate::domain::wave::WaveMotif;
+        let _t0 = t(0);
         let motif = WaveMotif {
             id: "def".into(),
             expanded: "PATH_CHANGE RETURN_TO_BASELINE".into(),

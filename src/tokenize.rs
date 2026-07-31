@@ -138,7 +138,10 @@ impl TransitionSymbol {
 mod tests {
     use super::*;
     use chrono::{TimeZone, Utc};
-    use crate::domain::route::{AsPath, Prefix, RouteAttributes, RouteKey};
+    use crate::domain::route::{
+        AsPath, EvidencedRouteState, Prefix, RouteAttributes, RouteKey,
+    };
+    use crate::domain::observation::EvidenceRef;
     use std::net::IpAddr;
 
     fn t() -> chrono::DateTime<Utc> {
@@ -241,7 +244,10 @@ mod tests {
         let mut baseline_map = HashMap::new();
         baseline_map.insert(k.clone(), baseline);
 
-        let sc = StateChange::new(k.clone(), Some(from_state), to_state, Continuity::Known);
+        let ev = EvidenceRef::synthetic(0, "test", "0000");
+        let before_ev = EvidencedRouteState::present(from_state, ev.clone());
+        let after_ev = EvidencedRouteState::present(to_state, ev.clone());
+        let sc = StateChange::new(k.clone(), None, Some(before_ev), after_ev, ev, Continuity::Known);
         let transitions = tokenize(vec![sc], &baseline_map);
         assert_eq!(transitions.len(), 1);
         assert!(matches!(

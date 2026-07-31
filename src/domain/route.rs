@@ -296,6 +296,22 @@ mod tests {
         }
     }
 
+    fn synth_evidence() -> EvidenceRef {
+        EvidenceRef::synthetic(0, "test", "0000000000000000")
+    }
+
+    fn synth_transition(
+        from: Option<RouteState>,
+        to: RouteState,
+        kind: TransitionKind,
+    ) -> RouteTransition {
+        let key = RouteKey::new("test", "0.0.0.0".parse().unwrap(), &to.prefix);
+        let evidence = synth_evidence();
+        let from_ev = from.map(|s| EvidencedRouteState::present(s, evidence.clone()));
+        let to_ev = EvidencedRouteState::present(to, evidence.clone());
+        RouteTransition::new(key, None, from_ev, to_ev, evidence, kind)
+    }
+
     #[test]
     fn prefix_from_str() {
         let p = Prefix::from("192.0.2.0/24");
@@ -324,7 +340,7 @@ mod tests {
     #[test]
     fn transition_announcement() {
         let state = sample_state("192.0.2.0/24", vec![11537, 1101], "rv2:AS6447");
-        let t = RouteTransition::new(None, state, TransitionKind::Announcement);
+        let t = synth_transition(None, state, TransitionKind::Announcement);
         assert_eq!(t.kind, TransitionKind::Announcement);
         assert!(t.from.is_none());
     }
@@ -333,7 +349,7 @@ mod tests {
     fn transition_withdrawal() {
         let from = sample_state("192.0.2.0/24", vec![11537, 1101], "rv2:AS6447");
         let to = sample_state("192.0.2.0/24", vec![], "rv2:AS6447");
-        let t = RouteTransition::new(Some(from), to, TransitionKind::Withdrawal);
+        let t = synth_transition(Some(from), to, TransitionKind::Withdrawal);
         assert_eq!(t.kind, TransitionKind::Withdrawal);
     }
 
@@ -345,7 +361,7 @@ mod tests {
             old: from.attributes.as_path.clone(),
             new: to.attributes.as_path.clone(),
         };
-        let t = RouteTransition::new(Some(from), to, kind);
+        let t = synth_transition(Some(from), to, kind);
         assert!(matches!(t.kind, TransitionKind::PathChange { .. }));
     }
 
@@ -353,7 +369,7 @@ mod tests {
     fn transition_exact_duplicate() {
         let from = sample_state("192.0.2.0/24", vec![11537, 1101], "rv2:AS6447");
         let to = from.clone();
-        let t = RouteTransition::new(Some(from), to, TransitionKind::ExactDuplicate);
+        let t = synth_transition(Some(from), to, TransitionKind::ExactDuplicate);
         assert_eq!(t.kind, TransitionKind::ExactDuplicate);
     }
 
@@ -361,7 +377,7 @@ mod tests {
     fn transition_restoration() {
         let from = sample_state("192.0.2.0/24", vec![11537, 237, 1101], "rv2:AS6447");
         let original = sample_state("192.0.2.0/24", vec![11537, 1101], "rv2:AS6447");
-        let t = RouteTransition::new(Some(from), original, TransitionKind::Restoration);
+        let t = synth_transition(Some(from), original, TransitionKind::Restoration);
         assert_eq!(t.kind, TransitionKind::Restoration);
     }
 
@@ -381,7 +397,7 @@ mod tests {
             old: from.attributes.as_path.clone(),
             new: to.attributes.as_path.clone(),
         };
-        let t = RouteTransition::new(Some(from), to, kind);
+        let t = synth_transition(Some(from), to, kind);
         let json = serde_json::to_string(&t).unwrap();
         let parsed: RouteTransition = serde_json::from_str(&json).unwrap();
         assert_eq!(t, parsed);
@@ -401,9 +417,10 @@ mod tests {
     fn state_change_construction() {
         let state = sample_state("192.0.2.0/24", vec![11537, 1101], "rv2:AS6447");
         let key = RouteKey::new("rv2", "185.1.8.65".parse().unwrap(), &state.prefix);
-        let sc = StateChange::new(key, None, state, Continuity::Known);
+        let ev = synth_evidence();
+        let after = EvidencedRouteState::present(state, ev.clone());
+        let sc = StateChange::new(key, None, None, after, ev, Continuity::Known);
         assert_eq!(sc.continuity, Continuity::Known);
-        assert!(sc.from.is_none());
     }
 
     #[test]
