@@ -156,7 +156,7 @@ fn run_inner(
         }
 
         // ── Check derived RIB cache ──────────────────────────────
-        let transit_asn = manifest.target.internet2_asn;
+        let transit_asn = manifest.target.managed_network_asn;
         let origin_asns = manifest.target.origin_asns.clone();
         let rib_key = crate::derived_cache::rib_cache_key(
             &cached_rib.sha256,
@@ -236,7 +236,7 @@ fn run_inner(
         let mut origin_match: usize = 0;
         let mut transit_match: usize = 0;
         let collector_id = collector.clone();
-        let transit_asn = manifest.target.internet2_asn;
+        let transit_asn = manifest.target.managed_network_asn;
         let origin_asns = manifest.target.origin_asns.clone();
         let mut collector_obs: Vec<RouteObservation> = Vec::new();
 
@@ -539,7 +539,7 @@ fn run_inner(
             &transitions,
             &target_set,
             cooldown_end,
-            manifest.target.internet2_asn,
+            manifest.target.managed_network_asn,
         ))
     } else {
         None

@@ -7,6 +7,8 @@
 
 use serde::{Deserialize, Serialize};
 
+use crate::plan::TransitPredicateMapping;
+
 /// A reviewed event manifest.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Manifest {
@@ -44,7 +46,11 @@ pub struct LocalWindow {
 pub struct ManifestTarget {
     pub label: String,
     pub origin_asns: Vec<u32>,
-    pub internet2_asn: u32,
+    /// Legacy field — prefer transit_predicate for new manifests.
+    #[serde(default, alias = "internet2_asn")]
+    pub managed_network_asn: u32,
+    #[serde(default)]
+    pub transit_predicate: TransitPredicateMapping,
     #[serde(default)]
     pub prefix_selection: String,
     #[serde(default)]

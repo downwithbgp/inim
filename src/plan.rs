@@ -153,7 +153,7 @@ pub fn plan_analysis(
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     use chrono::{TimeZone, Utc};
 
     fn sample_window() -> EventWindow {
