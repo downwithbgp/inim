@@ -461,7 +461,6 @@ pub fn classify_session_relationship(
 }
 
 // ── Operational sentence rendering (Part 4) ─────────────────────────
-
 /// Render one episode as a concise, data-supported operational sentence.
 ///
 /// Rules enforced here (and by the required tests):
@@ -1198,5 +1197,333 @@ mod tests {
         assert_eq!(*asn, 64500);
         assert_eq!(role, "regional-re");
         assert_eq!(*rel, RelationshipKind::Direct);
+    }
+}
+
+// ── Regional observed breadth (Part 6) ──────────────────────────────
+
+/// Regional summary of public-observer breadth.
+///
+/// "Observed breadth" (also "public-observer breadth") describes how many
+/// eligible observer sessions saw the target and how many changed. It is
+/// NOT outage severity, global scope, or a percentage of the Internet
+/// affected; no severity score is computed anywhere.
+///
+/// The denominator is ALWAYS visible: `eligible_observer_sessions` is
+/// reported alongside `changed_observer_sessions`. The three coverage
+/// states never collapse into one zero:
+/// - `NoChange` — qualifying baseline existed, no route-state change.
+/// - `NoBaselineVisibility` — target not visible at that session.
+/// - `IncompleteCoverage` — observation could not be completed.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RegionObservationSummary {
+    pub region: String,
+    /// Sessions with a qualifying baseline at this region (denominator).
+    pub eligible_observer_sessions: usize,
+    pub changed_observer_sessions: usize,
+    pub unchanged_observer_sessions: usize,
+    /// Sessions where the target was not visible (no qualifying baseline).
+    pub sessions_without_baseline_visibility: usize,
+    /// Sessions where the observation could not be completed.
+    pub sessions_with_incomplete_coverage: usize,
+    pub changed_streams: usize,
+    pub baseline_streams: usize,
+    pub changed_prefixes: usize,
+    /// First observed change in this region (UTC), if any.
+    pub first_change: Option<String>,
+    /// Last observed restoration in this region (UTC), if any.
+    pub last_restoration: Option<String>,
+}
+
+/// Build regional breadth summaries from episodes.
+///
+/// `eligible_sessions` is the denominator per region: every observer
+/// session that had a qualifying baseline. `no_baseline_sessions` and
+/// `incomplete_sessions` are reported separately per region and never
+/// counted as unchanged. Regions without any eligible session are
+/// omitted (they carry no observation to summarize).
+pub fn regional_breadth(
+    episodes: &[ObserverEpisode],
+    no_baseline_sessions: &[(String, String)],
+    incomplete_sessions: &[(String, String)],
+) -> Vec<RegionObservationSummary> {
+    let mut by_region: BTreeMap<String, RegionObservationSummary> = BTreeMap::new();
+
+    // Count per-region eligible/changed sessions and stream/prefix totals.
+    for ep in episodes {
+        let r = by_region
+            .entry(ep.observer_region.clone())
+            .or_insert_with(|| RegionObservationSummary {
+                region: ep.observer_region.clone(),
+                eligible_observer_sessions: 0,
+                changed_observer_sessions: 0,
+                unchanged_observer_sessions: 0,
+                sessions_without_baseline_visibility: 0,
+                sessions_with_incomplete_coverage: 0,
+                changed_streams: 0,
+                baseline_streams: 0,
+                changed_prefixes: 0,
+                first_change: None,
+                last_restoration: None,
+            });
+        r.eligible_observer_sessions += 1;
+        if ep.effect_kind != EffectKind::NoRouteStateChange {
+            r.changed_observer_sessions += 1;
+        } else {
+            r.unchanged_observer_sessions += 1;
+        }
+        r.baseline_streams += ep.baseline_stream_count;
+        r.changed_streams += ep.changed_stream_count;
+        r.changed_prefixes += ep.distinct_prefix_count;
+        if let Some(fc) = &ep.first_change {
+            if r.first_change
+                .as_deref()
+                .map(|f| fc.as_str() < f)
+                .unwrap_or(true)
+            {
+                r.first_change = Some(fc.clone());
+            }
+        }
+        if let Some(lr) = &ep.restoration_end {
+            if r.last_restoration
+                .as_deref()
+                .map(|l| lr.as_str() > l)
+                .unwrap_or(true)
+            {
+                r.last_restoration = Some(lr.clone());
+            }
+        }
+    }
+
+    // No-baseline and incomplete sessions are per-region facts derived
+    // from run coverage; they are never added to the unchanged count.
+    for (region, _session) in no_baseline_sessions {
+        let r = by_region
+            .entry(region.clone())
+            .or_insert_with(|| RegionObservationSummary {
+                region: region.clone(),
+                eligible_observer_sessions: 0,
+                changed_observer_sessions: 0,
+                unchanged_observer_sessions: 0,
+                sessions_without_baseline_visibility: 0,
+                sessions_with_incomplete_coverage: 0,
+                changed_streams: 0,
+                baseline_streams: 0,
+                changed_prefixes: 0,
+                first_change: None,
+                last_restoration: None,
+            });
+        r.sessions_without_baseline_visibility += 1;
+    }
+    for (region, _session) in incomplete_sessions {
+        let r = by_region
+            .entry(region.clone())
+            .or_insert_with(|| RegionObservationSummary {
+                region: region.clone(),
+                eligible_observer_sessions: 0,
+                changed_observer_sessions: 0,
+                unchanged_observer_sessions: 0,
+                sessions_without_baseline_visibility: 0,
+                sessions_with_incomplete_coverage: 0,
+                changed_streams: 0,
+                baseline_streams: 0,
+                changed_prefixes: 0,
+                first_change: None,
+                last_restoration: None,
+            });
+        r.sessions_with_incomplete_coverage += 1;
+    }
+
+    by_region.into_values().collect()
+}
+
+#[cfg(test)]
+mod breadth_tests {
+    use super::*;
+
+    fn ep(
+        region: &str,
+        kind: EffectKind,
+        changed_streams: usize,
+        prefixes: usize,
+        first: &str,
+    ) -> ObserverEpisode {
+        ObserverEpisode {
+            analysis_run: 1,
+            observer_session: format!("catalog/rrc06 peer 192.0.2.1 region {region}"),
+            observer_site: "site".to_string(),
+            observer_region: region.to_string(),
+            peer_asn: Some(64500),
+            peer_label: "AS64500".to_string(),
+            peer_role: "regional-re".to_string(),
+            relationship: RelationshipKind::Direct,
+            named_path_plane: "Plane A".to_string(),
+            effect_kind: kind,
+            first_change: Some(first.to_string()),
+            peak_interval: None,
+            last_change: Some(first.to_string()),
+            restoration_start: None,
+            restoration_end: Some("2019-08-21T17:02:00Z".to_string()),
+            baseline_stream_count: changed_streams.max(1),
+            changed_stream_count: changed_streams,
+            distinct_prefix_count: prefixes,
+            route_instance_count: changed_streams,
+            unresolved_count: 0,
+            coverage_status: CoverageStatus::NoChange,
+            representative_evidence: String::new(),
+            streams: Vec::new(),
+        }
+    }
+
+    #[test]
+    fn breadth_always_has_visible_denominator() {
+        let episodes = vec![
+            ep(
+                "AMER",
+                EffectKind::TemporaryStreamAbsence,
+                11,
+                11,
+                "2019-08-21T16:45:25Z",
+            ),
+            ep(
+                "AMER",
+                EffectKind::NoRouteStateChange,
+                0,
+                0,
+                "2019-08-21T16:45:25Z",
+            ),
+        ];
+        let rows = regional_breadth(&episodes, &[], &[]);
+        let amer = rows.iter().find(|r| r.region == "AMER").unwrap();
+        assert_eq!(amer.eligible_observer_sessions, 2, "denominator visible");
+        assert_eq!(amer.changed_observer_sessions, 1);
+        assert_eq!(amer.unchanged_observer_sessions, 1);
+        // changed / eligible renders as 1/2, never as a bare count.
+        assert!(amer.changed_observer_sessions <= amer.eligible_observer_sessions);
+    }
+
+    #[test]
+    fn no_change_and_no_baseline_are_distinct() {
+        let episodes = vec![ep(
+            "APAC",
+            EffectKind::NoRouteStateChange,
+            0,
+            0,
+            "2019-08-21T16:45:25Z",
+        )];
+        let rows = regional_breadth(&episodes, &[("APAC".to_string(), "s1".to_string())], &[]);
+        let apac = rows.iter().find(|r| r.region == "APAC").unwrap();
+        assert_eq!(apac.unchanged_observer_sessions, 1);
+        assert_eq!(
+            apac.sessions_without_baseline_visibility, 1,
+            "no-baseline is a separate fact from unchanged"
+        );
+        assert_eq!(apac.changed_observer_sessions, 0);
+    }
+
+    #[test]
+    fn incomplete_coverage_is_not_counted_as_unchanged() {
+        let episodes = vec![ep(
+            "EMEA",
+            EffectKind::NoRouteStateChange,
+            0,
+            0,
+            "2019-08-21T16:45:25Z",
+        )];
+        let rows = regional_breadth(&episodes, &[], &[("EMEA".to_string(), "s9".to_string())]);
+        let emea = rows.iter().find(|r| r.region == "EMEA").unwrap();
+        assert_eq!(emea.unchanged_observer_sessions, 1);
+        assert_eq!(
+            emea.sessions_with_incomplete_coverage, 1,
+            "incomplete sessions are visible, not silently unchanged"
+        );
+    }
+
+    #[test]
+    fn regional_summary_uses_observer_site_region() {
+        let episodes = vec![
+            ep(
+                "AMER",
+                EffectKind::TemporaryStreamAbsence,
+                11,
+                11,
+                "2019-08-21T16:45:25Z",
+            ),
+            ep(
+                "APAC",
+                EffectKind::NoRouteStateChange,
+                0,
+                0,
+                "2019-08-21T16:45:25Z",
+            ),
+            ep(
+                "EMEA",
+                EffectKind::PathReplacement,
+                3,
+                2,
+                "2019-08-21T16:50:00Z",
+            ),
+        ];
+        let rows = regional_breadth(&episodes, &[], &[]);
+        assert_eq!(rows.len(), 3);
+        assert!(rows
+            .iter()
+            .any(|r| r.region == "AMER" && r.changed_observer_sessions == 1));
+        assert!(rows
+            .iter()
+            .any(|r| r.region == "APAC" && r.changed_observer_sessions == 0));
+        assert!(rows
+            .iter()
+            .any(|r| r.region == "EMEA" && r.changed_prefixes == 2));
+    }
+
+    #[test]
+    fn broader_observation_is_not_rendered_as_greater_severity() {
+        // More observers changing is broader observation, not "worse".
+        let wide = regional_breadth(
+            &[
+                ep("AMER", EffectKind::TemporaryStreamAbsence, 11, 11, "T1"),
+                ep("EMEA", EffectKind::TemporaryStreamAbsence, 11, 11, "T1"),
+                ep("APAC", EffectKind::TemporaryStreamAbsence, 11, 11, "T1"),
+            ],
+            &[],
+            &[],
+        );
+        let total_changed: usize = wide.iter().map(|r| r.changed_observer_sessions).sum();
+        // The model reports counts; no severity score field exists.
+        assert_eq!(total_changed, 3);
+        for r in &wide {
+            assert!(
+                !r.region.contains("severity")
+                    && r.changed_observer_sessions <= r.eligible_observer_sessions
+            );
+        }
+    }
+
+    #[test]
+    fn breadth_first_change_and_last_restoration_are_exact() {
+        let episodes = vec![
+            ep(
+                "AMER",
+                EffectKind::TemporaryStreamAbsence,
+                11,
+                11,
+                "2019-08-21T16:45:25Z",
+            ),
+            ep(
+                "AMER",
+                EffectKind::PathReplacement,
+                3,
+                2,
+                "2019-08-21T16:50:00Z",
+            ),
+        ];
+        let rows = regional_breadth(&episodes, &[], &[]);
+        let amer = rows.iter().find(|r| r.region == "AMER").unwrap();
+        assert_eq!(amer.first_change.as_deref(), Some("2019-08-21T16:45:25Z"));
+        assert_eq!(
+            amer.last_restoration.as_deref(),
+            Some("2019-08-21T17:02:00Z")
+        );
     }
 }
