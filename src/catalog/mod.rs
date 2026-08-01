@@ -35,6 +35,7 @@ pub mod target_research;
 #[cfg(test)]
 pub mod tests;
 pub mod web;
+pub mod workbench;
 
 pub use domain::*;
 pub use status::CatalogStatus;

@@ -520,6 +520,48 @@ pub fn list_waves(
     Ok(out)
 }
 
+/// A run's transitions in deterministic order (full records).
+pub fn list_transitions(
+    conn: &Connection,
+    run_id: i64,
+) -> Result<Vec<super::domain::RunTransitionRecord>, String> {
+    let mut stmt = conn
+        .prepare(
+            "SELECT id, run_id, seq, kind, occurred_utc, run_phase, collector, peer_ip,
+                    prefix, path_id, material_path_changed, communities_changed, announced,
+                    withdrawn, observation_id, archive_sha256
+             FROM run_transitions WHERE run_id = ?1 ORDER BY seq",
+        )
+        .map_err(|e| format!("catalog query failed: {e}"))?;
+    let rows = stmt
+        .query_map([run_id], |row| {
+            Ok(super::domain::RunTransitionRecord {
+                id: row.get(0)?,
+                run_id: row.get(1)?,
+                seq: row.get(2)?,
+                kind: row.get(3)?,
+                occurred_utc: row.get(4)?,
+                run_phase: row.get(5)?,
+                collector: row.get(6)?,
+                peer_ip: row.get(7)?,
+                prefix: row.get(8)?,
+                path_id: row.get(9)?,
+                material_path_changed: row.get(10)?,
+                communities_changed: row.get(11)?,
+                announced: row.get(12)?,
+                withdrawn: row.get(13)?,
+                observation_id: row.get(14)?,
+                archive_sha256: row.get(15)?,
+            })
+        })
+        .map_err(|e| format!("catalog query failed: {e}"))?;
+    let mut out = Vec::new();
+    for r in rows {
+        out.push(r.map_err(|e| format!("catalog query failed: {e}"))?);
+    }
+    Ok(out)
+}
+
 /// Most recent sync run for a source.
 pub fn latest_sync(
     conn: &Connection,
