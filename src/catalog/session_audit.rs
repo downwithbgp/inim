@@ -1,0 +1,379 @@
+//! Historical collector-session audit (Session 35, Part 3).
+//!
+//! For every RouteViews and RIS collector considered by the 2019 pilot,
+//! derive the historical peer sessions from the BASELINE RIB's actual MRT
+//! peer metadata (peer IP + peer ASN from the MRT header, address family,
+//! origin-matching route counts, distinct prefixes, path-class membership
+//! against the reviewed service planes). Current peer lists are supporting
+//! context only and never override these rows.
+//!
+//! The audit consumes the versioned origin-scoped source extraction cache:
+//! a RIB is parsed once and its origin-matching observations are reused by
+//! the audit, the origin-only inventory, and every plane-specific run.
+
+use crate::catalog::netprofile::{
+    audit_sessions, CollectorLocationRegistry, PathEvidence, ServicePlaneProfile, SessionAuditRow,
+};
+use crate::domain::observation::IngestRole;
+use crate::ingest::IngestContext;
+use crate::ingest::ObservationStream;
+use std::collections::VecDeque;
+use std::path::{Path, PathBuf};
+use std::sync::Mutex;
+
+/// One discovered baseline RIB for the audit.
+#[derive(Debug, Clone)]
+pub struct RibSource {
+    pub family: String,
+    pub collector: String,
+    pub local_path: PathBuf,
+    pub rib_timestamp_utc: String,
+}
+
+/// Options for a session audit run.
+#[derive(Debug, Clone)]
+pub struct SessionAuditOptions {
+    pub profile: ServicePlaneProfile,
+    pub registry: CollectorLocationRegistry,
+    /// (cache directory, source family) pairs to scan for baseline RIBs.
+    pub caches: Vec<(PathBuf, String)>,
+    /// Filename date filter, e.g. "20190821".
+    pub date: String,
+    pub origin_asns: Vec<u32>,
+    pub jobs: usize,
+    /// Directory under which `extracted/` lives (the shared cache root).
+    pub extraction_cache: PathBuf,
+}
+
+/// Discover baseline RIBs under the cache directories.
+///
+/// Deterministic: per collector, the earliest RIB file whose name contains
+/// the date filter wins; collectors are sorted by (family, collector).
+pub fn discover_ribs(opts: &SessionAuditOptions) -> Result<Vec<RibSource>, String> {
+    let mut out: Vec<RibSource> = Vec::new();
+    for (cache_dir, family) in &opts.caches {
+        let entries = std::fs::read_dir(cache_dir)
+            .map_err(|e| format!("cannot read cache dir {}: {e}", cache_dir.display()))?;
+        let mut collectors: Vec<String> = Vec::new();
+        for e in entries.flatten() {
+            let p = e.path();
+            if p.is_dir() {
+                collectors.push(e.file_name().to_string_lossy().to_string());
+            }
+        }
+        collectors.sort();
+        for collector in collectors {
+            let rib_dir = cache_dir.join(&collector).join("rib");
+            if !rib_dir.is_dir() {
+                continue;
+            }
+            let mut candidates: Vec<(String, PathBuf)> = Vec::new();
+            for e in std::fs::read_dir(&rib_dir)
+                .map_err(|e| format!("cannot read {}: {e}", rib_dir.display()))?
+                .flatten()
+            {
+                let p = e.path();
+                if p.is_file() {
+                    let name = e.file_name().to_string_lossy().to_string();
+                    if name.contains(&opts.date) && !name.ends_with(".sha256") {
+                        candidates.push((name.clone(), p));
+                    }
+                }
+            }
+            candidates.sort();
+            if let Some((name, path)) = candidates.into_iter().next() {
+                out.push(RibSource {
+                    family: family.clone(),
+                    collector: collector.clone(),
+                    local_path: path,
+                    rib_timestamp_utc: filename_timestamp_utc(&name),
+                });
+            }
+        }
+    }
+    out.sort_by_key(|a| (a.family.clone(), a.collector.clone()));
+    Ok(out)
+}
+
+/// Parse "bview.20190821.0000.gz" / "rib.20190821.0200.bz2" into UTC.
+fn filename_timestamp_utc(name: &str) -> String {
+    // Find the YYYYMMDD.HHMM segment.
+    let bytes = name.as_bytes();
+    let mut best = String::new();
+    let mut i = 0;
+    while i + 13 <= bytes.len() {
+        let seg = &name[i..i + 13];
+        let mut ok = true;
+        for (k, c) in seg.bytes().enumerate() {
+            if k == 8 {
+                if c != b'.' {
+                    ok = false;
+                    break;
+                }
+            } else if !c.is_ascii_digit() {
+                ok = false;
+                break;
+            }
+        }
+        if ok {
+            best = format!(
+                "{}-{}-{}T{}:{}:00Z",
+                &seg[0..4],
+                &seg[4..6],
+                &seg[6..8],
+                &seg[9..11],
+                &seg[11..13]
+            );
+            break;
+        }
+        i += 1;
+    }
+    best
+}
+
+fn source_sha(local_path: &Path) -> Result<String, String> {
+    let sidecar = format!("{}.sha256", local_path.display());
+    if let Ok(raw) = std::fs::read_to_string(&sidecar) {
+        let digest = raw.split_whitespace().next().unwrap_or("").to_string();
+        if digest.len() == 64 {
+            return Ok(digest);
+        }
+    }
+    // Fall back to hashing the file (only when the sidecar is missing).
+    use sha2::Digest;
+    let mut hasher = sha2::Sha256::new();
+    let file = std::fs::File::open(local_path)
+        .map_err(|e| format!("cannot open {}: {e}", local_path.display()))?;
+    let mut reader = std::io::BufReader::new(file);
+    std::io::copy(&mut reader, &mut hasher)
+        .map_err(|e| format!("cannot hash {}: {e}", local_path.display()))?;
+    Ok(hasher
+        .finalize()
+        .iter()
+        .map(|b| format!("{b:02x}"))
+        .collect())
+}
+
+/// Parse one RIB (or reuse its source extraction) and return the
+/// origin-matching path evidence.
+fn load_origin_routes(
+    opts: &SessionAuditOptions,
+    rib: &RibSource,
+) -> Result<(String, Vec<PathEvidence>), String> {
+    use crate::domain::observation::{CollectorId, ObservationKind};
+    let sha = source_sha(&rib.local_path)?;
+    let key = crate::catalog::source_extract::extraction_key(
+        &sha,
+        &rib.family,
+        &rib.collector,
+        &opts.origin_asns,
+    );
+    let cached =
+        crate::catalog::source_extract::load_origin_extraction(&opts.extraction_cache, &key);
+    let observations = match cached {
+        Some(obs) => {
+            eprintln!(
+                "  [{} {}] source extraction hit ({} routes)",
+                rib.family,
+                rib.collector,
+                obs.len()
+            );
+            obs
+        }
+        None => {
+            let ctx = IngestContext {
+                role: IngestRole::Rib,
+                collector: CollectorId(rib.collector.clone()),
+                input_path: rib.local_path.clone(),
+                source_url: None,
+                source_sha: Some(sha.clone()),
+                origin_asn_filters: opts.origin_asns.clone(),
+                archive_order: 0,
+            };
+            let stream = ObservationStream::from_local_file(rib.local_path.clone(), ctx)
+                .map_err(|e| format!("failed to open RIB {}: {e}", rib.local_path.display()))?;
+            let mut obs = Vec::new();
+            for result in stream {
+                match result {
+                    Ok(o) => obs.push(o),
+                    Err(e) => {
+                        eprintln!(
+                            "  [{} {}] RIB parse error (skipping): {e}",
+                            rib.family, rib.collector
+                        );
+                    }
+                }
+            }
+            if let Err(e) = crate::catalog::source_extract::save_origin_extraction(
+                &opts.extraction_cache,
+                &key,
+                &obs,
+            ) {
+                eprintln!("  warning: failed to save source extraction: {e}");
+            }
+            obs
+        }
+    };
+
+    let mut routes = Vec::new();
+    for o in observations {
+        // Only RIB entries with attributes carry path evidence.
+        if o.kind != ObservationKind::RibEntry {
+            continue;
+        }
+        let attrs = match &o.attributes {
+            Some(a) => a,
+            None => continue,
+        };
+        let af = if o.prefix.0.contains(':') {
+            "ipv6"
+        } else {
+            "ipv4"
+        };
+        routes.push(PathEvidence {
+            peer_ip: o.peer_ip.to_string(),
+            peer_asn: o.peer_asn.0,
+            address_family: af.to_string(),
+            prefix: o.prefix.0.clone(),
+            as_path: attrs.as_path.clone(),
+        });
+    }
+    Ok((sha, routes))
+}
+
+/// Run the full session audit over all discovered baseline RIBs.
+///
+/// Rows are deterministic: sorted by (family, collector, peer IP, address
+/// family, peer ASN) before returning.
+pub fn run_session_audit(opts: &SessionAuditOptions) -> Result<Vec<SessionAuditRow>, String> {
+    let ribs = discover_ribs(opts)?;
+    if ribs.is_empty() {
+        return Err("no baseline RIBs found under the given cache directories".to_string());
+    }
+    eprintln!(
+        "session audit: {} baseline RIB(s), jobs={}",
+        ribs.len(),
+        opts.jobs
+    );
+
+    type LoadResult = Result<(String, Vec<PathEvidence>), String>;
+    let results: Mutex<Vec<(usize, LoadResult)>> = Mutex::new(Vec::new());
+    let queue: Mutex<VecDeque<usize>> = Mutex::new((0..ribs.len()).collect());
+    let jobs = opts.jobs.max(1);
+
+    std::thread::scope(|scope| {
+        for _ in 0..jobs {
+            let queue = &queue;
+            let results = &results;
+            let ribs = &ribs;
+            let opts = &opts;
+            scope.spawn(move || loop {
+                let idx = queue.lock().unwrap().pop_front();
+                let Some(idx) = idx else { break };
+                let rib = &ribs[idx];
+                eprintln!(
+                    "  [{} {}] loading RIB {}",
+                    rib.family,
+                    rib.collector,
+                    rib.local_path.display()
+                );
+                let res = load_origin_routes(opts, rib);
+                results.lock().unwrap().push((idx, res));
+            });
+        }
+    });
+
+    let mut ordered: Vec<(usize, LoadResult)> = results.into_inner().unwrap();
+    ordered.sort_by_key(|(idx, _)| *idx);
+
+    let mut rows: Vec<SessionAuditRow> = Vec::new();
+    for (rib, (_, res)) in ribs.iter().zip(ordered) {
+        let (sha, routes) = res.map_err(|e| format!("{}: {e}", rib.collector))?;
+        let mut collector_rows = audit_sessions(
+            &opts.profile,
+            &opts.registry,
+            &rib.family,
+            &rib.collector,
+            &rib.rib_timestamp_utc,
+            &sha,
+            &routes,
+        );
+        rows.append(&mut collector_rows);
+    }
+
+    rows.sort_by(|a, b| {
+        (
+            a.source_family.clone(),
+            a.collector.clone(),
+            a.peer_ip.clone(),
+            a.address_family.clone(),
+            a.peer_asn,
+        )
+            .cmp(&(
+                b.source_family.clone(),
+                b.collector.clone(),
+                b.peer_ip.clone(),
+                b.address_family.clone(),
+                b.peer_asn,
+            ))
+    });
+    Ok(rows)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn filename_timestamp_parses_ris_and_routeviews_names() {
+        assert_eq!(
+            filename_timestamp_utc("bview.20190821.0000.gz"),
+            "2019-08-21T00:00:00Z"
+        );
+        assert_eq!(
+            filename_timestamp_utc("rib.20190821.0200.bz2"),
+            "2019-08-21T02:00:00Z"
+        );
+        assert_eq!(
+            filename_timestamp_utc("updates.20190821.1600.gz"),
+            "2019-08-21T16:00:00Z"
+        );
+    }
+
+    #[test]
+    fn discover_ribs_picks_earliest_matching_file() {
+        let dir = std::env::temp_dir().join(format!("inim-audit-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        let rib_dir = dir.join("rrc00").join("rib");
+        std::fs::create_dir_all(&rib_dir).unwrap();
+        std::fs::write(rib_dir.join("bview.20190821.0000.gz"), "x").unwrap();
+        std::fs::write(rib_dir.join("bview.20190821.0800.gz"), "y").unwrap();
+        std::fs::write(rib_dir.join("bview.20190821.0000.gz.sha256"), "z").unwrap();
+        let opts = SessionAuditOptions {
+            profile: ServicePlaneProfile {
+                service_planes: vec![],
+                asn_roles: vec![],
+                updated_utc: String::new(),
+                provenance: String::new(),
+            },
+            registry: CollectorLocationRegistry {
+                as_of: String::new(),
+                collectors: vec![],
+            },
+            caches: vec![(dir.clone(), "ris".to_string())],
+            date: "20190821".to_string(),
+            origin_asns: vec![2603],
+            jobs: 2,
+            extraction_cache: dir.clone(),
+        };
+        let ribs = discover_ribs(&opts).unwrap();
+        assert_eq!(ribs.len(), 1);
+        assert_eq!(ribs[0].collector, "rrc00");
+        assert!(ribs[0]
+            .local_path
+            .to_string_lossy()
+            .ends_with("bview.20190821.0000.gz"));
+        assert_eq!(ribs[0].rib_timestamp_utc, "2019-08-21T00:00:00Z");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+}

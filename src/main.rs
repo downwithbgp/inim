@@ -253,6 +253,39 @@ enum CatalogCommands {
         #[arg(long, value_name = "KIND", default_value = "grnoc-public-task-viewer")]
         source_kind: String,
     },
+    /// Audit historical collector sessions from baseline RIB peer metadata.
+    SessionAudit {
+        #[arg(
+            long,
+            value_name = "DIR",
+            default_value = "case-studies/manlan-2019/pilot"
+        )]
+        root: PathBuf,
+        /// Reviewed network profile (network-profile.json).
+        #[arg(long, value_name = "PATH")]
+        profile: Option<PathBuf>,
+        /// Reviewed collector locations (collector-locations.json).
+        #[arg(long, value_name = "PATH")]
+        locations: Option<PathBuf>,
+        /// Cache directory + source family, repeatable: --cache DIR:family.
+        #[arg(long, value_name = "DIR:FAMILY", required = true)]
+        cache: Vec<String>,
+        /// Filename date filter for baseline RIBs (e.g. 20190821).
+        #[arg(long, value_name = "DATE", default_value = "20190821")]
+        date: String,
+        /// Target origin ASNs (comma-separated).
+        #[arg(long, value_name = "ASNS", default_value = "2603")]
+        origin_asns: String,
+        /// Shared cache root for the extraction cache (default: first --cache dir).
+        #[arg(long, value_name = "DIR")]
+        extraction_cache: Option<PathBuf>,
+        /// Parallel parse workers.
+        #[arg(long, value_name = "N", default_value = "4")]
+        jobs: usize,
+        /// Output JSON path.
+        #[arg(long, value_name = "PATH", default_value = "session-audit.json")]
+        out: PathBuf,
+    },
 }
 
 /// Ticket-relationship administration.
@@ -1179,6 +1212,28 @@ fn cmd_catalog(stdout: &mut dyn Write, command: &CatalogCommands) -> i32 {
             file,
             source_kind,
         } => cmd_corpus_review(stdout, db, file, source_kind),
+        CatalogCommands::SessionAudit {
+            root,
+            profile,
+            locations,
+            cache,
+            date,
+            origin_asns,
+            extraction_cache,
+            jobs,
+            out,
+        } => cmd_session_audit(
+            stdout,
+            root,
+            profile.as_deref(),
+            locations.as_deref(),
+            cache,
+            date,
+            origin_asns,
+            extraction_cache.as_deref(),
+            *jobs,
+            out,
+        ),
         CatalogCommands::AnalysisQueue { db, state } => {
             cmd_analysis_queue(stdout, db, state.as_deref())
         }
@@ -2254,6 +2309,108 @@ fn cmd_corpus_review(
 }
 
 /// `inim catalog analysis-queue` — print the derived readiness queue.
+#[allow(clippy::too_many_arguments)] // CLI arg passthrough; each maps to one flag
+fn cmd_session_audit(
+    stdout: &mut dyn Write,
+    root: &std::path::Path,
+    profile: Option<&std::path::Path>,
+    locations: Option<&std::path::Path>,
+    cache: &[String],
+    date: &str,
+    origin_asns: &str,
+    extraction_cache: Option<&std::path::Path>,
+    jobs: usize,
+    out: &std::path::Path,
+) -> i32 {
+    use inim::catalog::netprofile::{CollectorLocationRegistry, ServicePlaneProfile};
+    use inim::catalog::session_audit::{run_session_audit, SessionAuditOptions};
+
+    let profile_path = profile
+        .map(|p| p.to_path_buf())
+        .unwrap_or_else(|| root.join("network-profile.json"));
+    let locations_path = locations
+        .map(|p| p.to_path_buf())
+        .unwrap_or_else(|| root.join("collector-locations.json"));
+    let profile = match ServicePlaneProfile::load(&profile_path) {
+        Ok(p) => p,
+        Err(e) => {
+            let _ = writeln!(stdout, "error: {e}");
+            return EXIT_INVALID_INPUT;
+        }
+    };
+    let registry = match CollectorLocationRegistry::load(&locations_path) {
+        Ok(r) => r,
+        Err(e) => {
+            let _ = writeln!(stdout, "error: {e}");
+            return EXIT_INVALID_INPUT;
+        }
+    };
+
+    let mut caches: Vec<(std::path::PathBuf, String)> = Vec::new();
+    for entry in cache {
+        let Some((dir, family)) = entry.split_once(':') else {
+            let _ = writeln!(stdout, "error: --cache expects DIR:FAMILY, got {entry:?}");
+            return EXIT_INVALID_INPUT;
+        };
+        caches.push((std::path::PathBuf::from(dir), family.to_string()));
+    }
+    let origins: Vec<u32> = match origin_asns
+        .split(',')
+        .map(|s| s.trim().parse::<u32>())
+        .collect::<Result<Vec<_>, _>>()
+    {
+        Ok(v) if !v.is_empty() => v,
+        _ => {
+            let _ = writeln!(stdout, "error: --origin-asns expects comma-separated ASNs");
+            return EXIT_INVALID_INPUT;
+        }
+    };
+    let extraction_cache = extraction_cache
+        .map(|p| p.to_path_buf())
+        .unwrap_or_else(|| caches[0].0.clone());
+
+    let opts = SessionAuditOptions {
+        profile,
+        registry,
+        caches,
+        date: date.to_string(),
+        origin_asns: origins,
+        jobs,
+        extraction_cache,
+    };
+    match run_session_audit(&opts) {
+        Ok(rows) => {
+            let json = match serde_json::to_string_pretty(&rows) {
+                Ok(j) => j,
+                Err(e) => {
+                    let _ = writeln!(stdout, "error: cannot serialize audit: {e}");
+                    return EXIT_INVALID_INPUT;
+                }
+            };
+            if let Some(parent) = out.parent() {
+                if !parent.as_os_str().is_empty() {
+                    let _ = std::fs::create_dir_all(parent);
+                }
+            }
+            if let Err(e) = std::fs::write(out, json) {
+                let _ = writeln!(stdout, "error: cannot write {}: {e}", out.display());
+                return EXIT_INVALID_INPUT;
+            }
+            let _ = writeln!(
+                stdout,
+                "session audit: {} row(s) written to {}",
+                rows.len(),
+                out.display()
+            );
+            EXIT_SUCCESS
+        }
+        Err(e) => {
+            let _ = writeln!(stdout, "error: {e}");
+            EXIT_INVALID_INPUT
+        }
+    }
+}
+
 fn cmd_analysis_queue(
     stdout: &mut dyn Write,
     db: &std::path::Path,
