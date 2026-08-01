@@ -159,6 +159,11 @@ enum Commands {
         #[arg(long, default_value_t = false)]
         no_derived_cache: bool,
 
+        /// Stage A: stop after Broker discovery + RIB preflight (no UPDATE
+        /// acquisition, no analysis). Prints preflight JSON to stdout.
+        #[arg(long, default_value_t = false)]
+        preflight_only: bool,
+
         /// Force rebuild of all derived caches (ignore and overwrite).
         #[arg(long, default_value_t = false)]
         rebuild_derived_cache: bool,
@@ -334,6 +339,7 @@ fn run(cli: &Cli) -> i32 {
             no_derived_cache,
             rebuild_derived_cache,
             jobs,
+            preflight_only,
         } => {
             let discovery = inim::discover::LiveArchiveDiscovery;
             let cache_control = inim::orchestrate::CacheControl {
@@ -350,6 +356,7 @@ fn run(cli: &Cli) -> i32 {
                 out,
                 &discovery,
                 cache_control,
+                *preflight_only,
             )
         }
     }
@@ -528,6 +535,7 @@ fn cmd_analyze(
     out: &std::path::Path,
     discovery: &dyn inim::discover::ArchiveDiscovery,
     cache_control: inim::orchestrate::CacheControl,
+    preflight_only: bool,
 ) -> i32 {
     let Some(manifest_path) = manifest_path else {
         return run_analyze_synthetic(stdout, event_path);
@@ -574,7 +582,14 @@ fn cmd_analyze(
         out,
         discovery,
         cache_control,
+        preflight_only,
     );
+
+    if preflight_only {
+        // Stage A: the preflight JSON was already printed by the runner;
+        // do not emit an analysis outcome or write outputs.
+        return EXIT_SUCCESS;
+    }
 
     let json = serde_json::to_string_pretty(&outcome).unwrap_or_default();
     let _ = writeln!(stdout, "{json}");
@@ -1270,6 +1285,7 @@ mod tests {
             &out_dir,
             &discovery,
             inim::orchestrate::CacheControl::default(),
+            false,
         );
         assert_eq!(code, EXIT_ANALYSIS_BLOCKED);
         let text = String::from_utf8(out.into_inner()).unwrap();
@@ -1293,6 +1309,7 @@ mod tests {
             &out_dir,
             &discovery,
             inim::orchestrate::CacheControl::default(),
+            false,
         );
         let text = String::from_utf8(out.into_inner()).unwrap();
         // A blocked plan produces a plan artifact, never an AnalysisOutcome.
@@ -1319,6 +1336,7 @@ mod tests {
             &out_dir,
             &discovery,
             inim::orchestrate::CacheControl::default(),
+            false,
         );
         assert_eq!(code, EXIT_ANALYSIS_BLOCKED);
         assert_eq!(discovery.call_count(), 0);
@@ -1341,6 +1359,7 @@ mod tests {
             &out_dir,
             &discovery,
             inim::orchestrate::CacheControl::default(),
+            false,
         );
         assert_eq!(code, EXIT_ANALYSIS_BLOCKED);
         // No MRT parsing implies no analysis artifacts are written.

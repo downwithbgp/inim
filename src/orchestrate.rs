@@ -52,6 +52,7 @@ pub fn run_real_analysis(
     out_dir: &Path,
     discovery: &dyn ArchiveDiscovery,
     cache_control: CacheControl,
+    preflight_only: bool,
 ) -> AnalysisOutcome {
     let mut timings: Vec<(String, f64)> = Vec::new();
     let t0 = Instant::now();
@@ -62,6 +63,7 @@ pub fn run_real_analysis(
         out_dir,
         discovery,
         cache_control,
+        preflight_only,
         &mut timings,
     ) {
         Ok(outcome) => {
@@ -77,6 +79,7 @@ pub fn run_real_analysis(
 
 // ── Inner pipeline ──────────────────────────────────────────────────
 
+#[allow(clippy::too_many_arguments)]
 fn run_inner(
     event_path: &Path,
     manifest_path: &Path,
@@ -84,6 +87,7 @@ fn run_inner(
     out_dir: &Path,
     discovery: &dyn ArchiveDiscovery,
     cache_control: CacheControl,
+    preflight_only: bool,
     timings: &mut Vec<(String, f64)>,
 ) -> Result<AnalysisOutcome, String> {
     // ── Parse ticket + manifest ───────────────────────────────────
@@ -389,6 +393,35 @@ fn run_inner(
         target_set.total_streams(),
         retained_collectors.len()
     );
+
+    // ── Stage A (Session 31): metadata + RIB preflight only ─────────
+    if preflight_only {
+        let per_collector: Vec<serde_json::Value> = per_collector_counts
+            .iter()
+            .map(|(c, parsed, origin, transit, streams)| {
+                serde_json::json!({
+                    "collector": c,
+                    "rib_records_parsed": parsed,
+                    "origin_matching_routes": origin,
+                    "transit_matching_routes": transit,
+                    "frozen_streams": streams,
+                })
+            })
+            .collect();
+        let out = serde_json::json!({
+            "status": "preflight-only",
+            "event_id": manifest.event_id,
+            "collectors": manifest.collectors,
+            "per_collector": per_collector,
+            "qualifying_frozen_streams": target_set.total_streams(),
+            "qualifying_prefixes": target_set.frozen_prefixes().len(),
+            "stopped": "no updates acquired; no analysis executed",
+        });
+        println!("{}", serde_json::to_string_pretty(&out).unwrap_or_default());
+        return Ok(AnalysisOutcome::Incomplete {
+            failure: "preflight-only stage (no updates acquired, by design)".to_string(),
+        });
+    }
 
     // ── Phase B: UPDATE discovery + cache + ingest (retained only) ──
     eprintln!("→ Broker discovery: UPDATE files");
@@ -945,6 +978,7 @@ mod tests {
             &dir.path().join("out"),
             &FailingDiscovery,
             CacheControl::default(),
+            false,
         );
         match outcome {
             AnalysisOutcome::Incomplete { failure } => {

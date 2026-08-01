@@ -450,8 +450,14 @@ mod tests {
         {
             // The real-world AAR uses compressed object streams; the
             // raw-byte scan cannot count them, so the pdfinfo fallback must.
-            let real = std::fs::read("/tmp/MANLAN-20190821-Postmortem.pdf");
-            if let Ok(bytes) = real {
+            // Located via its catalog-relative storage path (sha prefix).
+            let dir = std::path::Path::new("data/documents/d29df26a2699");
+            let real = std::fs::read_dir(dir).ok().and_then(|mut it| {
+                it.next()
+                    .and_then(|e| e.ok())
+                    .and_then(|e| std::fs::read(e.path()).ok())
+            });
+            if let Some(bytes) = real {
                 assert_eq!(pdfinfo_page_count(&bytes), Some(15));
             }
         }
