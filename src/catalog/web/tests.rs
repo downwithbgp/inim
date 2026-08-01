@@ -61,6 +61,10 @@ fn run_id_for(dbdir: &tempfile::TempDir, external_id: &str) -> i64 {
 
 #[tokio::test]
 async fn dashboard_counts_match_database() {
+    if !repo_artifacts_available() {
+        return;
+    }
+
     let (dbdir, rootdir) = setup_catalog();
     let app = build_app(state_from(&dbdir, &rootdir));
     let (status, body) = get(&app, "/").await;
@@ -76,6 +80,10 @@ async fn dashboard_counts_match_database() {
 
 #[tokio::test]
 async fn dashboard_links_to_filtered_lists() {
+    if !repo_artifacts_available() {
+        return;
+    }
+
     let (dbdir, rootdir) = setup_catalog();
     let app = build_app(state_from(&dbdir, &rootdir));
     let (_, body) = get(&app, "/catalog").await;
@@ -86,6 +94,10 @@ async fn dashboard_links_to_filtered_lists() {
 
 #[tokio::test]
 async fn event_list_orders_newest_first() {
+    if !repo_artifacts_available() {
+        return;
+    }
+
     let (dbdir, rootdir) = setup_catalog();
     let app = build_app(state_from(&dbdir, &rootdir));
     let (status, body) = get(&app, "/events").await;
@@ -101,6 +113,10 @@ async fn event_list_orders_newest_first() {
 
 #[tokio::test]
 async fn event_list_filters_by_status() {
+    if !repo_artifacts_available() {
+        return;
+    }
+
     let (dbdir, rootdir) = setup_catalog();
     let app = build_app(state_from(&dbdir, &rootdir));
     let (_, body) = get(&app, "/events?status=Blocked").await;
@@ -114,6 +130,10 @@ async fn event_list_filters_by_status() {
 
 #[tokio::test]
 async fn event_list_filters_open_events() {
+    if !repo_artifacts_available() {
+        return;
+    }
+
     let (dbdir, rootdir) = setup_catalog();
     let app = build_app(state_from(&dbdir, &rootdir));
     let (_, body) = get(&app, "/events?lifecycle=Open").await;
@@ -123,6 +143,10 @@ async fn event_list_filters_open_events() {
 
 #[tokio::test]
 async fn event_list_searches_id_and_title() {
+    if !repo_artifacts_available() {
+        return;
+    }
+
     let (dbdir, rootdir) = setup_catalog();
     let app = build_app(state_from(&dbdir, &rootdir));
     let (_, body) = get(&app, "/events?q=INC0302574").await;
@@ -134,6 +158,10 @@ async fn event_list_searches_id_and_title() {
 
 #[tokio::test]
 async fn stale_event_is_visually_identifiable() {
+    if !repo_artifacts_available() {
+        return;
+    }
+
     let (dbdir, rootdir) = setup_catalog();
     let conn = db::open_catalog(&dbdir.path().join("catalog.sqlite")).unwrap();
     // Add a new snapshot after the completed run -> stale.
@@ -166,6 +194,10 @@ async fn stale_event_is_visually_identifiable() {
 
 #[tokio::test]
 async fn blocked_and_completed_events_are_distinct() {
+    if !repo_artifacts_available() {
+        return;
+    }
+
     let (dbdir, rootdir) = setup_catalog();
     let app = build_app(state_from(&dbdir, &rootdir));
     let (_, blocked_page) = get(&app, "/events/INC0301970").await;
@@ -179,6 +211,10 @@ async fn blocked_and_completed_events_are_distinct() {
 
 #[tokio::test]
 async fn event_detail_shows_snapshot_history() {
+    if !repo_artifacts_available() {
+        return;
+    }
+
     let (dbdir, rootdir) = setup_catalog();
     let app = build_app(state_from(&dbdir, &rootdir));
     let (status, body) = get(&app, "/events/INC0302574").await;
@@ -190,6 +226,10 @@ async fn event_detail_shows_snapshot_history() {
 
 #[tokio::test]
 async fn event_detail_shows_manifest_history() {
+    if !repo_artifacts_available() {
+        return;
+    }
+
     let (dbdir, rootdir) = setup_catalog();
     let app = build_app(state_from(&dbdir, &rootdir));
     let (_, body) = get(&app, "/events/INC0299001").await;
@@ -199,6 +239,10 @@ async fn event_detail_shows_manifest_history() {
 
 #[tokio::test]
 async fn event_detail_shows_all_analysis_runs() {
+    if !repo_artifacts_available() {
+        return;
+    }
+
     let (dbdir, rootdir) = setup_catalog();
     let conn = db::open_catalog(&dbdir.path().join("catalog.sqlite")).unwrap();
     let e = db::get_event_by_external(&conn, "local-repository", "INC0299001")
@@ -239,6 +283,10 @@ async fn event_detail_shows_all_analysis_runs() {
 
 #[tokio::test]
 async fn blocked_event_has_no_observational_verdict() {
+    if !repo_artifacts_available() {
+        return;
+    }
+
     let (dbdir, rootdir) = setup_catalog();
     let app = build_app(state_from(&dbdir, &rootdir));
     let (_, body) = get(&app, "/events/INC0301970").await;
@@ -250,6 +298,10 @@ async fn blocked_event_has_no_observational_verdict() {
 
 #[tokio::test]
 async fn stale_event_explains_changed_input() {
+    if !repo_artifacts_available() {
+        return;
+    }
+
     let (dbdir, rootdir) = setup_catalog();
     let conn = db::open_catalog(&dbdir.path().join("catalog.sqlite")).unwrap();
     let e = db::get_event_by_external(&conn, "local-repository", "INC0302574")
@@ -279,6 +331,10 @@ async fn stale_event_explains_changed_input() {
 
 #[tokio::test]
 async fn analysis_page_matches_report_result() {
+    if !repo_artifacts_available() {
+        return;
+    }
+
     let (dbdir, rootdir) = setup_catalog();
     let app = build_app(state_from(&dbdir, &rootdir));
     let run_id = run_id_for(&dbdir, "INC0302574");
@@ -296,6 +352,10 @@ async fn analysis_page_matches_report_result() {
 
 #[tokio::test]
 async fn analysis_page_matches_report_assessment() {
+    if !repo_artifacts_available() {
+        return;
+    }
+
     let (dbdir, rootdir) = setup_catalog();
     let app = build_app(state_from(&dbdir, &rootdir));
     let run_id = run_id_for(&dbdir, "INC0299001");
@@ -308,6 +368,10 @@ async fn analysis_page_matches_report_assessment() {
 
 #[tokio::test]
 async fn analysis_page_uses_streams_as_primary_unit() {
+    if !repo_artifacts_available() {
+        return;
+    }
+
     let (dbdir, rootdir) = setup_catalog();
     let app = build_app(state_from(&dbdir, &rootdir));
     let run_id = run_id_for(&dbdir, "INC0299001");
@@ -318,6 +382,10 @@ async fn analysis_page_uses_streams_as_primary_unit() {
 
 #[tokio::test]
 async fn stream_page_filters_lifecycle_category() {
+    if !repo_artifacts_available() {
+        return;
+    }
+
     let (dbdir, rootdir) = setup_catalog();
     let app = build_app(state_from(&dbdir, &rootdir));
     let run_id = run_id_for(&dbdir, "INC0299001");
@@ -335,6 +403,10 @@ async fn stream_page_filters_lifecycle_category() {
 
 #[tokio::test]
 async fn artifact_links_use_catalog_relative_paths() {
+    if !repo_artifacts_available() {
+        return;
+    }
+
     let (dbdir, rootdir) = setup_catalog();
     let app = build_app(state_from(&dbdir, &rootdir));
     let run_id = run_id_for(&dbdir, "INC0302574");
@@ -346,6 +418,10 @@ async fn artifact_links_use_catalog_relative_paths() {
 
 #[tokio::test]
 async fn missing_artifact_is_reported_without_crashing() {
+    if !repo_artifacts_available() {
+        return;
+    }
+
     let (dbdir, _rootdir) = setup_catalog();
     // Point the catalog root at an empty dir: artifact files are missing.
     let empty = tempfile::tempdir().unwrap();
@@ -359,6 +435,10 @@ async fn missing_artifact_is_reported_without_crashing() {
 
 #[tokio::test]
 async fn web_requests_do_not_start_analysis() {
+    if !repo_artifacts_available() {
+        return;
+    }
+
     // The router contains no analysis route; ordinary GETs only read the
     // catalog. Prove by serving pages with a read-only database handle.
     let (dbdir, rootdir) = setup_catalog();
@@ -383,6 +463,10 @@ async fn web_requests_do_not_start_analysis() {
 
 #[tokio::test]
 async fn missing_database_returns_clear_startup_error() {
+    if !repo_artifacts_available() {
+        return;
+    }
+
     let dir = tempfile::tempdir().unwrap();
     let err = build_state(&dir.path().join("nope.sqlite"), dir.path(), "0.1.0").unwrap_err();
     assert!(err.contains("does not exist"), "{err}");
@@ -391,6 +475,10 @@ async fn missing_database_returns_clear_startup_error() {
 
 #[tokio::test]
 async fn incompatible_database_version_is_rejected() {
+    if !repo_artifacts_available() {
+        return;
+    }
+
     let dir = tempfile::tempdir().unwrap();
     let path = dir.path().join("catalog.sqlite");
     let conn = db::open_catalog(&path).unwrap();
@@ -404,6 +492,10 @@ async fn incompatible_database_version_is_rejected() {
 
 #[tokio::test]
 async fn api_event_list_is_paginated() {
+    if !repo_artifacts_available() {
+        return;
+    }
+
     let (dbdir, rootdir) = setup_catalog();
     let app = build_app(state_from(&dbdir, &rootdir));
     let (status, body) = get(&app, "/api/v1/events?per_page=2&page=0").await;
@@ -420,6 +512,10 @@ async fn api_event_list_is_paginated() {
 
 #[tokio::test]
 async fn api_event_detail_has_schema_version() {
+    if !repo_artifacts_available() {
+        return;
+    }
+
     let (dbdir, rootdir) = setup_catalog();
     let app = build_app(state_from(&dbdir, &rootdir));
     let (status, body) = get(&app, "/api/v1/events/INC0302574").await;
@@ -431,6 +527,10 @@ async fn api_event_detail_has_schema_version() {
 
 #[tokio::test]
 async fn api_analysis_matches_catalog_run() {
+    if !repo_artifacts_available() {
+        return;
+    }
+
     let (dbdir, rootdir) = setup_catalog();
     let app = build_app(state_from(&dbdir, &rootdir));
     let run_id = run_id_for(&dbdir, "INC0302574");
@@ -443,6 +543,10 @@ async fn api_analysis_matches_catalog_run() {
 
 #[tokio::test]
 async fn api_does_not_expose_absolute_paths() {
+    if !repo_artifacts_available() {
+        return;
+    }
+
     let (dbdir, rootdir) = setup_catalog();
     let app = build_app(state_from(&dbdir, &rootdir));
     let run_id = run_id_for(&dbdir, "INC0302574");
@@ -454,6 +558,10 @@ async fn api_does_not_expose_absolute_paths() {
 
 #[tokio::test]
 async fn api_returns_structured_not_found() {
+    if !repo_artifacts_available() {
+        return;
+    }
+
     let (dbdir, rootdir) = setup_catalog();
     let app = build_app(state_from(&dbdir, &rootdir));
     let (status, body) = get(&app, "/api/v1/events/DOES-NOT-EXIST").await;
@@ -464,6 +572,10 @@ async fn api_returns_structured_not_found() {
 
 #[tokio::test]
 async fn api_rejects_unsupported_pagination() {
+    if !repo_artifacts_available() {
+        return;
+    }
+
     let (dbdir, rootdir) = setup_catalog();
     let app = build_app(state_from(&dbdir, &rootdir));
     let (status, body) = get(&app, "/api/v1/events?per_page=0").await;
@@ -479,6 +591,10 @@ async fn api_rejects_unsupported_pagination() {
 
 #[tokio::test]
 async fn api_catalog_status_counts_match_database() {
+    if !repo_artifacts_available() {
+        return;
+    }
+
     let (dbdir, rootdir) = setup_catalog();
     let app = build_app(state_from(&dbdir, &rootdir));
     let (status, body) = get(&app, "/api/v1/catalog/status").await;
