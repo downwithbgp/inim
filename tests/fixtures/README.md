@@ -60,6 +60,36 @@ All synthetic observation data used in unit tests is generated in code
   GRNOC data (see the secrets audit).
 - **Packaging:** **include** — required for CLI/planning tests.
 
+### 3b. Public Task Viewer response fixtures — `grnoc/viewer/*.json`
+
+- **Purpose:** drive viewer-response parsing tests (Session 33,
+  Part 1): envelope parsing, lossless raw-value preservation, unknown
+  field tolerance, per-item failure isolation.
+- **Source:** the GlobalNOC Public Task Viewer JSON responses captured
+  during the protocol audit on 2026-08-01
+  (`https://ticket-viewer.grnoc.iu.edu/api/get_incidents` and
+  `/api/get_change_requests`; see
+  `docs/sources/GRNOC_PUBLIC_TASK_VIEWER.md`).
+  - `INC0227937.json` — public incident record (AMPATH circuit, 2025).
+  - `INC0301970.json` — public incident record (Indiana GigaPOP peer,
+    2026), matching the existing generic `grnoc/INC0301970.json`.
+  - `CHG0038258.json` — public change-request record (MAN LAN core node
+    maintenance, 2019) with planned/actual windows and maintenance type.
+  - `malformed.json` — deliberately truncated envelope exercising the
+    per-item failure path (not a real response).
+- **Original author/project:** Indiana University GlobalNOC (public
+  operational announcements).
+- **Exact or minimized:** exact copies of the JSON responses as
+  received (field order normalized by JSON serialization).
+- **Upstream license:** public operational announcements; no code
+  involved.
+- **Modified:** no content changes; only serialization formatting.
+- **Why redistribution is permitted:** the records are public tickets
+  from a public viewer, retrievable by anyone without authentication;
+  they contain no private notes, contact data, or authenticated content.
+- **Packaging:** **include** — required for the viewer-response parsing
+  tests to run from a packaged crate.
+
 ### 4. Generated expected-output fixtures (none committed)
 
 Expected outputs are asserted in code (report wording, exit codes,

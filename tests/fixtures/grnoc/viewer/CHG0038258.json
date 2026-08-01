@@ -1,0 +1,19 @@
+{
+ "total": 1,
+ "result": [
+  {
+   "number": "CHG0038258",
+   "short_description": "Maintenance 1 of 2 Completed - MAN LAN Core Node (sw.net.manlan)",
+   "description": "Please note this was maintenance window 1 of 2:\r\n\r\nThe listed assets are now available after MAN LAN Engineers performed hardware maintenance. Some peering sessions remain unavailable after the completion of this maintenance, and are being tracked in Internet2 ticket INC0040257. No further impact is expected.\r\n\r\n",
+   "u_outgoing_notification_text": "Please note this was maintenance window 1 of 2:\r\n\r\nThe listed assets are now available after MAN LAN Engineers performed hardware maintenance. Some peering sessions remain unavailable after the completion of this maintenance, and are being tracked in Internet2 ticket INC0040257. No further impact is expected.\r\n\r\n",
+   "start_date": "1566360000",
+   "end_date": "1566392400",
+   "state": "3",
+   "u_maintenance_type": "Hardware",
+   "priority": "3",
+   "work_start": "1566362318",
+   "work_end": "1566392400",
+   "opened_at": "1565802831"
+  }
+ ]
+}

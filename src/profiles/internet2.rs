@@ -118,6 +118,12 @@ mod tests {
             description: "".into(),
             source_url: "".into(),
             timezone: Some("EDT".into()),
+            state_code: None,
+            priority_code: None,
+            planned_start: None,
+            planned_end: None,
+            maintenance_type: None,
+            notification_text: None,
         };
         let ctx = apply(&record);
         assert_eq!(ctx.transit_asn, 11537);
@@ -138,6 +144,12 @@ mod tests {
             description: "".into(),
             source_url: "".into(),
             timezone: Some("EDT".into()),
+            state_code: None,
+            priority_code: None,
+            planned_start: None,
+            planned_end: None,
+            maintenance_type: None,
+            notification_text: None,
         };
         let ctx = apply(&record);
         use crate::domain::expectation::ExpectationKind;
@@ -162,6 +174,12 @@ mod tests {
             description: "".into(),
             source_url: "".into(),
             timezone: None,
+            state_code: None,
+            priority_code: None,
+            planned_start: None,
+            planned_end: None,
+            maintenance_type: None,
+            notification_text: None,
         };
         let ctx = apply_indiana_gigapop(&record);
         use crate::domain::expectation::ExpectationKind;

@@ -1,0 +1,17 @@
+{
+ "total": 1,
+ "result": [
+  {
+   "number": "INC0227937",
+   "short_description": "Brief Outage Resolved - VNOC Operator AMPATH Various Circuits",
+   "description": "The listed affected is available following a brief outage. The VNOC contacted the vendor to investigate. The circuit was affected with a flap during the time reported as service switched back to its main route after previous event over our provider network from Santos, Brazil on July 30 19:33:54 UTC. No further outages are expected.",
+   "u_outgoing_notification_text": "The listed affected is available following a brief outage. The VNOC contacted the vendor to investigate. The circuit was affected with a flap during the time reported as service switched back to its main route after previous event over our provider network from Santos, Brazil on July 30 19:33:54 UTC. No further outages are expected.",
+   "state": "7",
+   "category": "Circuit",
+   "work_start": "1753932540",
+   "work_end": "1753932600",
+   "opened_at": "1753933418",
+   "priority": "2"
+  }
+ ]
+}
