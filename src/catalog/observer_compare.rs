@@ -88,24 +88,6 @@ fn run_family(conn: &Connection, run_id: i64) -> String {
     }
 }
 
-/// Collectors observed in a run (from its imported streams).
-fn run_collectors(conn: &Connection, run_id: i64) -> Result<Vec<String>, String> {
-    let mut stmt = conn
-        .prepare(
-            "SELECT DISTINCT collector FROM stream_lifecycle_summaries
-             WHERE run_id = ?1 ORDER BY collector",
-        )
-        .map_err(|e| format!("catalog read failed: {e}"))?;
-    let rows = stmt
-        .query_map([run_id], |r| r.get::<_, String>(0))
-        .map_err(|e| format!("catalog read failed: {e}"))?;
-    let mut out = Vec::new();
-    for r in rows {
-        out.push(r.map_err(|e| format!("catalog read failed: {e}"))?);
-    }
-    Ok(out)
-}
-
 /// Linked runs of a case study (deterministic order).
 fn linked_runs(conn: &Connection, case_study_id: i64) -> Result<Vec<i64>, String> {
     let mut stmt = conn
@@ -125,12 +107,12 @@ fn linked_runs(conn: &Connection, case_study_id: i64) -> Result<Vec<i64>, String
     Ok(out)
 }
 
+/// One stream summary row: (collector, peer, prefix, withdrawn,
+/// restored, transit_state).
+type StreamRow = (String, String, String, i64, i64, String);
+
 /// Stream summaries of one run, keyed by (collector, prefix).
-fn run_streams(
-    conn: &Connection,
-    run_id: i64,
-) -> Result<Vec<(String, String, String, i64, i64, String)>, String> {
-    // (collector, peer, prefix, withdrawn, restored, transit_state)
+fn run_streams(conn: &Connection, run_id: i64) -> Result<Vec<StreamRow>, String> {
     let mut stmt = conn
         .prepare(
             "SELECT collector, peer_ip, prefix, withdrawn, restored, transit_state
@@ -255,18 +237,16 @@ pub fn build_observer_comparison(
         }
         let transitions = run_transitions(conn, *run_id)?;
         for (kind, occurred, peer, prefix) in &transitions {
-            for ((collector, _), _) in &per_collector_prefix {
+            for (collector, _) in per_collector_prefix.keys() {
                 let key = (collector.clone(), prefix.clone());
                 // Update the matching row(s): first change, absence,
                 // path replacement, transit departure.
                 for row in rows.iter_mut().rev() {
-                    if row.prefix != *prefix || row.collector != *collector {
+                    if row.prefix != *prefix || &row.collector != collector {
                         continue;
                     }
-                    if is_withdrawal(kind) {
-                        if row.temporary_absence.is_none() {
-                            row.temporary_absence = Some(format!("withdrawn at {occurred}"));
-                        }
+                    if is_withdrawal(kind) && row.temporary_absence.is_none() {
+                        row.temporary_absence = Some(format!("withdrawn at {occurred}"));
                     }
                     if is_restoration(kind) {
                         row.restoration_utc = Some(occurred.clone());

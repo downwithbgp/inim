@@ -1114,11 +1114,6 @@ fn observer_conclusion(
     c: &crate::catalog::observer_compare::ObserverComparison,
     target_label: &str,
 ) -> String {
-    let target = if target_label.is_empty() {
-        "the reviewed target"
-    } else {
-        target_label
-    };
     let target_sentence = if target_label.is_empty() {
         "the reviewed target".to_string()
     } else {
