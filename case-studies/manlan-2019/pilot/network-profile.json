@@ -1,0 +1,30 @@
+{
+  "updated_utc": "2026-08-02T00:00:00Z",
+  "provenance": "Reviewed analyst interpretation (Session 35). AS11537 is the Internet2 R&E IP research-and-education routing/transit plane; AS11164 is the Internet2 Peer Exchange (I2PX) settlement-free/public peering plane. These are distinct routing planes; collector sessions may relate to either or neither. ASN-role entries below are reviewed mappings for ASNs observed in the 2019 NORDUnet baseline paths (see pilot/session-audit-2019.json); ASNs without a reviewed mapping display as unclassified observed ASN.",
+  "service_planes": [
+    {
+      "id": "internet2-re",
+      "display_label": "Internet2 R&E",
+      "asns": [11537]
+    },
+    {
+      "id": "internet2-i2px",
+      "display_label": "Internet2 Peer Exchange",
+      "asns": [11164]
+    }
+  ],
+  "asn_roles": [
+    {
+      "asn": 2603,
+      "role": "national-re"
+    },
+    {
+      "asn": 11537,
+      "role": "internet2-re"
+    },
+    {
+      "asn": 11164,
+      "role": "internet2-i2px"
+    }
+  ]
+}

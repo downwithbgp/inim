@@ -308,3 +308,135 @@ fn screenshot_output_is_gitignored_and_not_packaged() {
         "tmp/ must be excluded from the crate package"
     );
 }
+
+// ────────────────────────────────────────────────────────────────────────────
+// Session 35: reviewed service-plane model.
+//
+// The Internet2 R&E (AS11537) and I2PX (AS11164) identities are REVIEWED
+// PROFILE DATA (case-studies/*/pilot/network-profile.json), never control
+// flow. The gate below has two parts:
+//   1. The I2PX plane identity (`11164`/`i2px`) must not appear ANYWHERE
+//      in src/ — production code or tests — because it did not exist before
+//      this session and no code path may name it.
+//   2. `11537`/`internet2` may appear only in the files that already
+//      contained them at Session 35 start (pre-existing doc comments naming
+//      the operator, the GRNOC ticket-title source under src/sources and
+//      src/profiles, legacy single-plane verdicts in src/assess.rs, legacy
+//      manifest migration fixtures, and older test fixtures). The live hit
+//      set must EQUAL the frozen set, so any new file referencing the
+//      plane identities fails the gate.
+// ────────────────────────────────────────────────────────────────────────────
+
+#[test]
+fn production_source_contains_no_internet2_specific_plane_branch() {
+    let frozen_11537: &[&str] = &[
+        "src/assess.rs",
+        "src/catalog/batch.rs",
+        "src/catalog/target_research.rs",
+        "src/cohort.rs",
+        "src/compare.rs",
+        "src/derived_cache.rs",
+        "src/discover.rs",
+        "src/domain/observation.rs",
+        "src/domain/route.rs",
+        "src/fixtures.rs",
+        "src/lifecycle.rs",
+        "src/main.rs",
+        "src/manifest.rs",
+        "src/output.rs",
+        "src/profiles/internet2.rs",
+        "src/profiles/mod.rs",
+        "src/routes.rs",
+        "src/sources/internet2/ticket.rs",
+        "src/target.rs",
+        "src/tokenize.rs",
+        "src/waves.rs",
+    ];
+    let frozen_internet2: &[&str] = &[
+        "src/assess.rs",
+        "src/catalog/discovery.rs",
+        "src/catalog/import.rs",
+        "src/catalog/relationships.rs",
+        "src/catalog/web/tests.rs",
+        "src/compare.rs",
+        "src/conventions/grnoc.rs",
+        "src/domain/assessment.rs",
+        "src/domain/entity.rs",
+        "src/domain/event.rs",
+        "src/domain/expectation.rs",
+        "src/main.rs",
+        "src/manifest.rs",
+        "src/orchestrate.rs",
+        "src/profiles/internet2.rs",
+        "src/profiles/mod.rs",
+        "src/report.rs",
+        "src/sequitur/grammar.rs",
+        "src/sequitur/mod.rs",
+        "src/sources/grnoc.rs",
+        "src/sources/internet2/mod.rs",
+        "src/sources/internet2/ticket.rs",
+        "src/sources/mod.rs",
+        "src/tokenize.rs",
+    ];
+
+    // 1. The I2PX plane identity is data-only: zero occurrences in src/.
+    for token in ["11164", "i2px"] {
+        let hits = rs_files_containing(token);
+        assert!(
+            hits.is_empty(),
+            "plane identity {token:?} must not appear in src/ (data-only): {hits:?}"
+        );
+    }
+
+    // 2. Pre-existing tokens: live hit set must equal the frozen set.
+    for (token, frozen) in [("11537", frozen_11537), ("internet2", frozen_internet2)] {
+        let mut live: Vec<String> = rs_files_containing(token);
+        live.sort();
+        let mut expected: Vec<String> = frozen
+            .iter()
+            .map(|p| p.to_string())
+            .collect();
+        expected.sort();
+        assert_eq!(
+            live, expected,
+            "src/ files referencing {token:?} changed since Session 35 start; \
+             new plane references must live in profile data files, not source"
+        );
+    }
+}
+
+/// The reviewed service-plane profile data (not source) declares the two
+/// planes with their reviewed ASNs; display labels are presentation data.
+#[test]
+fn reviewed_service_plane_profile_declares_two_planes() {
+    let text = read("case-studies/manlan-2019/pilot/network-profile.json");
+    let profile: serde_json::Value = serde_json::from_str(&text)
+        .expect("network-profile.json must be valid JSON");
+    let planes = profile["service_planes"].as_array().expect("service_planes");
+    assert_eq!(planes.len(), 2, "exactly two reviewed service planes");
+    let re = planes.iter().find(|p| p["asns"][0] == 11537)
+        .expect("R&E plane with ASN 11537");
+    let i2px = planes.iter().find(|p| p["asns"][0] == 11164)
+        .expect("I2PX plane with ASN 11164");
+    assert_eq!(re["id"], "internet2-re");
+    assert_eq!(i2px["id"], "internet2-i2px");
+    assert_ne!(re["display_label"], i2px["display_label"]);
+    // ASN-role entries are data too.
+    assert!(profile["asn_roles"].as_array().map(|a| a.len() >= 3).unwrap_or(false));
+}
+
+fn rs_files_containing(token: &str) -> Vec<String> {
+    let mut out = Vec::new();
+    for entry in walk_rs_files() {
+        let content = std::fs::read_to_string(&entry).unwrap_or_default();
+        if content.to_lowercase().contains(&token.to_lowercase()) {
+            let rel = entry
+                .strip_prefix(manifest_dir())
+                .unwrap_or(&entry)
+                .display()
+                .to_string();
+            out.push(rel);
+        }
+    }
+    out
+}

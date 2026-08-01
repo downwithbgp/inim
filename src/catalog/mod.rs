@@ -20,6 +20,7 @@ pub mod import;
 pub mod migrations;
 #[cfg(test)]
 pub mod mock_server;
+pub mod netprofile;
 pub mod observer_compare;
 pub mod phase_summary;
 pub mod relationships;
