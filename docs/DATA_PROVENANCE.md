@@ -163,3 +163,40 @@ withdrawal audit) never contain benchmark timing, and the routing verdict
 never depends on performance measurements. Acquisition (download) time is
 reported separately from parsing time; parser-scaling benchmarks run with
 all raw archives already local.
+
+## Corpus acquisition and redistribution policy (Session 33)
+
+### Acquisition
+- Public-source acquisition is polite, bounded, and incremental: 1
+  concurrent request, 0.25 requests/second (one every 4 s), burst 1,
+  budget 100 requests per sync by default; higher rates require explicit
+  flags. Stop conditions: repeated 429/403, unexpected authentication,
+  robots prohibition, schema incompatibility affecting most items.
+  Permanent 404s are never retried.
+- Discovery is explicit only: analyst seeds, document/case-study
+  references, ticket-description references, and scoped public search.
+  There is no blind numeric-ID enumeration and no "download everything"
+  mode.
+- Corpus completeness is never assumed; the corpus is labeled a locally
+  acquired public-ticket corpus.
+
+### Local retention
+- The local database retains public source snapshots (raw payloads +
+  normalized fields) for reproducibility, with per-fetch HTTP provenance
+  and discovery provenance. No session cookies or secrets are stored.
+- Snapshots are immutable; a changed payload creates a new snapshot and
+  old snapshots remain linked to their historical runs.
+
+### Redistribution
+- Before distributing a corpus dump, separately review: source terms,
+  attribution, personal names or contact details, redistribution
+  expectations, document copyright, and ticket-description content.
+- The crate package must not contain the downloaded corpus.
+- Source-controlled fixtures remain minimal and provenance-documented
+  (see `tests/fixtures/README.md`).
+- inim does not claim MIT ownership over public ticket content.
+- Corpus export is **metadata-only by default** (`inim catalog corpus
+  export`): external ids, hashes, source URLs, and optional normalized
+  fields; no raw payload export. Raw-payload export requires a separate
+  redistribution review before any future implementation.
+- Public corpus publication is not implemented in this session.
