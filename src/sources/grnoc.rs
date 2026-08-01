@@ -452,10 +452,10 @@ mod tests {
         assert!(inc.planned_start.is_none());
         assert!(inc.planned_end.is_none());
         assert!(inc.maintenance_type.is_none());
-        // CHG0038258 has no category field and no notification text
+        // CHG0099999 has no category field and no notification text
         // mismatch: category absent -> empty, planned window present.
         let resp =
-            ViewerResponse::from_file("tests/fixtures/grnoc/viewer/CHG0038258.json").unwrap();
+            ViewerResponse::from_file("tests/fixtures/grnoc/viewer/CHG0099999.json").unwrap();
         let chg = resp.result[0].to_grnoc_record();
         assert_eq!(chg.category, "");
         assert_eq!(chg.state, "Closed");

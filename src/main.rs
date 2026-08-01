@@ -2284,7 +2284,7 @@ mod session33_cli_tests {
             "--db",
             "c.sqlite",
             "--seed",
-            "CHG0038258",
+            "CHG0099999",
             "--seed",
             "INC0040257",
             "--case-study",
@@ -2315,7 +2315,7 @@ mod session33_cli_tests {
                 show_access_policy,
             })) => {
                 assert_eq!(db.to_string_lossy(), "c.sqlite");
-                assert_eq!(seed, vec!["CHG0038258", "INC0040257"]);
+                assert_eq!(seed, vec!["CHG0099999", "INC0040257"]);
                 assert_eq!(case_study, vec!["manlan-2019"]);
                 assert!(expand_references);
                 assert_eq!(max_requests, Some(10));

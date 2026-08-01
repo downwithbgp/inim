@@ -297,7 +297,7 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         write_record(
             dir.path(),
-            "CHG0038258",
+            "CHG0099999",
             "Tracked in INC0040257.",
             "2019-08-21T04:00:00Z",
             "2019-08-21T05:00:00Z",

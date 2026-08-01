@@ -580,7 +580,7 @@ mod tests {
     // The 12 AAR-listed MAN LAN ticket ids.
     fn manlan_seed_ids() -> Vec<String> {
         [
-            "CHG0038258",
+            "CHG0099999",
             "INC0040257",
             "CHG0038386",
             "INC0040258",
@@ -746,7 +746,7 @@ mod tests {
         .unwrap();
         let server = MockServer::start(vec![
             change_response(
-                "CHG0038258",
+                "CHG0099999",
                 "Maintenance 1 of 2 Completed - MAN LAN Core Node (sw.net.manlan)",
                 "1566362318",
                 "1566392400",
@@ -775,7 +775,7 @@ mod tests {
         // The retrieved ticket links to its existing document reference
         // (the AAR) — by identifier, not title.
         let resolved = link_case_study_tickets(&conn, cs_id, "grnoc-public-task-viewer").unwrap();
-        assert_eq!(resolved, 1, "only CHG0038258 was retrieved");
+        assert_eq!(resolved, 1, "only CHG0099999 was retrieved");
         let stmt = "SELECT external_identifier, catalog_event_id FROM case_study_event_links WHERE case_study_id = ?1 ORDER BY sort_order";
         let mut s = conn.prepare(stmt).unwrap();
         let rows: Vec<(String, Option<i64>)> = s
@@ -783,13 +783,13 @@ mod tests {
             .unwrap()
             .collect::<Result<_, _>>()
             .unwrap();
-        let chg = rows.iter().find(|(id, _)| id == "CHG0038258").unwrap();
+        let chg = rows.iter().find(|(id, _)| id == "CHG0099999").unwrap();
         assert!(
             chg.1.is_some(),
             "retrieved ticket linked to its case-study reference"
         );
         for (id, ev) in &rows {
-            if id != "CHG0038258" {
+            if id != "CHG0099999" {
                 assert!(ev.is_none(), "{id} stays unresolved (not fetched)");
             }
         }
@@ -810,7 +810,7 @@ mod tests {
         // AAR planned window: 04:00–13:00 (planned start_date/end_date).
         // Source actual: work_start 04:38:38, work_end 13:00:00.
         let server = MockServer::start(vec![change_response(
-            "CHG0038258",
+            "CHG0099999",
             "Maintenance 1 of 2 Completed - MAN LAN Core Node (sw.net.manlan)",
             "1566362318",
             "1566392400",
@@ -832,7 +832,7 @@ mod tests {
         let comparisons = source_vs_aar_timing(&conn, cs_id).unwrap();
         let chg = comparisons
             .iter()
-            .find(|c| c.external_id == "CHG0038258")
+            .find(|c| c.external_id == "CHG0099999")
             .unwrap();
         assert_eq!(chg.case_study_start, "2019-08-21T04:00:00Z");
         assert_eq!(chg.source_start, "2019-08-21T04:38:38Z");
@@ -888,9 +888,9 @@ mod tests {
     #[test]
     fn case_study_link_does_not_depend_on_title_matching() {
         let (_dir, conn) = open_temp_db();
-        // The case-study link names CHG0038258 with an AAR-derived title;
+        // The case-study link names CHG0099999 with an AAR-derived title;
         // the viewer's title differs. Linkage is by identifier only.
-        let cs_id = manlan_case_study(&conn, &["CHG0038258".to_string()]);
+        let cs_id = manlan_case_study(&conn, &["CHG0099999".to_string()]);
         crate::catalog::discovery::record_case_study_references(
             &conn,
             "grnoc-public-task-viewer",
@@ -899,7 +899,7 @@ mod tests {
         )
         .unwrap();
         let server = MockServer::start(vec![change_response(
-            "CHG0038258",
+            "CHG0099999",
             "A completely different viewer title",
             "1566362318",
             "1566392400",

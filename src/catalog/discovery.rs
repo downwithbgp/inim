@@ -24,7 +24,7 @@ use crate::catalog::domain::*;
 use crate::catalog::store;
 
 /// Conservative ticket-identifier syntax: family + at least 5 digits,
-/// word-bounded. Matches `INC0040257`, `CHG0038258`, `TASK0038206`.
+/// word-bounded. Matches `INC0040257`, `CHG0099999`, `TASK0038206`.
 pub fn ticket_identifier_regex() -> Regex {
     Regex::new(r"\b(INC|CHG|TASK)[0-9]{5,}\b").expect("static identifier regex")
 }
@@ -258,7 +258,7 @@ mod tests {
             imported_utc: "2026-08-01T00:00:00Z".to_string(),
         };
         let doc_id = store::insert_reference_document(&conn, &doc).unwrap();
-        let ids = vec!["CHG0038258".to_string(), "INC0040257".to_string()];
+        let ids = vec!["CHG0099999".to_string(), "INC0040257".to_string()];
         let n = record_document_references(
             &conn,
             "grnoc-public-task-viewer",
@@ -291,9 +291,9 @@ mod tests {
         std::fs::create_dir_all(&src).unwrap();
         // A fetched ticket whose public description names INC0040257.
         std::fs::write(
-            src.join("CHG0038258.json"),
+            src.join("CHG0099999.json"),
             r#"{
-                "number": "CHG0038258",
+                "number": "CHG0099999",
                 "short_description": "Maintenance - MAN LAN",
                 "description": "Some peering sessions remain unavailable and are being tracked in Internet2 ticket INC0040257.",
                 "start": "2019-08-21T04:00:00Z"
@@ -370,13 +370,13 @@ mod tests {
         // The extractor yields only identifiers present in the text —
         // never numeric neighbors.
         let refs = extract_ticket_references(
-            "The remaining sessions are tracked in INC0040257. See CHG0038258.",
+            "The remaining sessions are tracked in INC0040257. See CHG0099999.",
         );
         assert_eq!(
             refs.iter()
                 .map(|r| r.external_id.as_str())
                 .collect::<Vec<_>>(),
-            vec!["INC0040257", "CHG0038258"]
+            vec!["INC0040257", "CHG0099999"]
         );
         // Spans are exact byte offsets into the source.
         let text = "tracked in INC0040257.";

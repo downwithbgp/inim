@@ -329,15 +329,15 @@ mod tests {
 
     #[test]
     fn exact_source_span_is_preserved() {
-        let text = "See CHG0038258 for the maintenance window.";
+        let text = "See CHG0099999 for the maintenance window.";
         let refs = extract_with_kind(text, 120);
         assert_eq!(refs.len(), 1);
-        assert_eq!(&text[refs[0].start..refs[0].end], "CHG0038258");
+        assert_eq!(&text[refs[0].start..refs[0].end], "CHG0099999");
     }
 
     #[test]
     fn tracking_language_supports_tracks_remaining_impact() {
-        // The exact wording from CHG0038258's public description.
+        // The exact wording from CHG0099999's public description.
         let text = "Some peering sessions remain unavailable after the completion of this maintenance, and are being tracked in Internet2 ticket INC0040257.";
         let refs = extract_with_kind(text, 120);
         assert_eq!(refs.len(), 1);
@@ -385,7 +385,7 @@ mod tests {
     fn relationships_retain_snapshot_provenance() {
         let (_dir, conn) = open_temp_db();
         let dir = tempfile::tempdir().unwrap();
-        write_record(dir.path(), "CHG0038258", "Tracked in INC0040257.");
+        write_record(dir.path(), "CHG0099999", "Tracked in INC0040257.");
         sync_dir(&conn, dir.path());
         extract_relationships_from_snapshots(
             &conn,
@@ -466,7 +466,7 @@ mod tests {
         let (_dir, conn) = open_temp_db();
         let dir = tempfile::tempdir().unwrap();
         // A references INC0040257, which is NOT in the catalog yet.
-        write_record(dir.path(), "CHG0038258", "Tracked in INC0040257.");
+        write_record(dir.path(), "CHG0099999", "Tracked in INC0040257.");
         sync_dir(&conn, dir.path());
         extract_relationships_from_snapshots(
             &conn,
@@ -495,7 +495,7 @@ mod tests {
     fn relationship_import_is_idempotent() {
         let (_dir, conn) = open_temp_db();
         let dir = tempfile::tempdir().unwrap();
-        write_record(dir.path(), "CHG0038258", "Tracked in INC0040257.");
+        write_record(dir.path(), "CHG0099999", "Tracked in INC0040257.");
         sync_dir(&conn, dir.path());
         extract_relationships_from_snapshots(
             &conn,
@@ -517,7 +517,7 @@ mod tests {
     fn conflicting_reviewed_relationship_is_not_overwritten() {
         let (_dir, conn) = open_temp_db();
         let dir = tempfile::tempdir().unwrap();
-        write_record(dir.path(), "CHG0038258", "Tracked in INC0040257.");
+        write_record(dir.path(), "CHG0099999", "Tracked in INC0040257.");
         sync_dir(&conn, dir.path());
         extract_relationships_from_snapshots(
             &conn,

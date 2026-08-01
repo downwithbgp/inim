@@ -73,8 +73,11 @@ All synthetic observation data used in unit tests is generated in code
   - `INC0227937.json` — public incident record (AMPATH circuit, 2025).
   - `INC0301970.json` — public incident record (Indiana GigaPOP peer,
     2026), matching the existing generic `grnoc/INC0301970.json`.
-  - `CHG0038258.json` — public change-request record (MAN LAN core node
-    maintenance, 2019) with planned/actual windows and maintenance type.
+  - `CHG0099999.json` — public change-request record (MAN LAN core node
+    maintenance, 2019) with planned/actual windows and maintenance type;
+    the ticket identifier in the file name and `number` field is replaced
+    by a neutral placeholder so production sources stay incident-neutral
+    (structure and all other fields unchanged).
   - `malformed.json` — deliberately truncated envelope exercising the
     per-item failure path (not a real response).
 - **Original author/project:** Indiana University GlobalNOC (public

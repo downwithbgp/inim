@@ -376,7 +376,7 @@ mod tests {
         let snapshots = db::list_snapshots(&conn, event_id).unwrap();
         // A manifest whose target has NO origin_asns (only a candidate
         // suggestion in the label) is not a reviewed mapping.
-        let payload = r#"{"target":{"label":"Candidate: NORDUnet (UNREVIEWED)","transit_predicate":{"status":"Unresolved"}}}"#;
+        let payload = r#"{"target":{"label":"Candidate: SampleNet (UNREVIEWED)","transit_predicate":{"status":"Unresolved"}}}"#;
         let manifest =
             crate::catalog::tests::sample_manifest_revision(event_id, snapshots[0].id, payload);
         super::super::store::insert_manifest_revision(&conn, &manifest).unwrap();
