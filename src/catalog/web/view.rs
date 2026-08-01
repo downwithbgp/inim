@@ -1105,7 +1105,20 @@ fn research_state_for(conn: &rusqlite::Connection, slug: &str) -> Result<String,
 /// Part 9). Multi-observer corresponding changes use the reviewed
 /// sentence; single-observer observations say so directly; disagreement
 /// is never hidden.
-fn observer_conclusion(c: &crate::catalog::observer_compare::ObserverComparison) -> String {
+/// Narrow conclusion wording for the observer comparison (Session 34,
+/// Part 9). The reviewed target label comes from the case-study plan
+/// data (never hard-coded in source); multi-observer corresponding
+/// changes use the reviewed sentence; a single-observer signature says
+/// so directly; disagreement is never hidden.
+fn observer_conclusion(
+    c: &crate::catalog::observer_compare::ObserverComparison,
+    target_label: &str,
+) -> String {
+    let target = if target_label.is_empty() {
+        "the reviewed target"
+    } else {
+        target_label
+    };
     let multi = c
         .statements
         .iter()
@@ -1115,13 +1128,21 @@ fn observer_conclusion(c: &crate::catalog::observer_compare::ObserverComparison)
         .iter()
         .any(|s| s.statement == "Observed only at one selected collector");
     if multi {
-        "Similar transient route-state disruption was observed at multiple selected public collectors for the reviewed NORDUnet target. This does not establish traffic loss, the Layer-2 mechanism, or a complete MAN LAN incident impact.".to_string()
+        format!(
+            "Similar transient route-state disruption was observed at multiple selected public collectors for the reviewed {target} target. This does not establish traffic loss, the Layer-2 mechanism, or a complete {target} incident impact."
+        )
     } else if single {
-        "Route-state change was observed at one selected public collector for the reviewed NORDUnet target; other selected collectors did not show a corresponding change. This does not establish traffic loss, the Layer-2 mechanism, or a complete MAN LAN incident impact.".to_string()
+        format!(
+            "Route-state change was observed at one selected public collector for the reviewed {target} target; other selected collectors did not show a corresponding change. This does not establish traffic loss, the Layer-2 mechanism, or a complete {target} incident impact."
+        )
     } else if c.statements.is_empty() {
-        "No selected observer had baseline visibility for the reviewed target; no cross-observer comparison is possible.".to_string()
+        format!(
+            "No selected observer had baseline visibility for the reviewed {target} target; no cross-observer comparison is possible."
+        )
     } else {
-        "No route-state disruption was observed at the selected public collectors for the reviewed NORDUnet target.".to_string()
+        format!(
+            "No route-state disruption was observed at the selected public collectors for the reviewed {target} target."
+        )
     }
 }
 
@@ -1692,7 +1713,12 @@ pub fn load_case_study(
     }
 
     let comparison_data = crate::catalog::observer_compare::build_observer_comparison(conn, cs_id)?;
-    let conclusion = observer_conclusion(&comparison_data);
+    let target_label = plan
+        .as_ref()
+        .map(|p| p.pilot_target.clone())
+        .filter(|t| !t.is_empty())
+        .unwrap_or_default();
+    let conclusion = observer_conclusion(&comparison_data, &target_label);
     let observer_rows = comparison_data
         .rows
         .iter()
