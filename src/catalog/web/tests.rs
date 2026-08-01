@@ -14,6 +14,12 @@ use crate::catalog::web::handlers::EventListFilters;
 use crate::catalog::web::server::{build_app, build_state};
 use crate::catalog::web::AppState;
 
+#[allow(dead_code)]
+fn repo_artifacts_available() -> bool {
+    std::path::Path::new("manifests").is_dir()
+        && std::path::Path::new("out/INC0302574/report.json").is_file()
+}
+
 fn setup_catalog() -> (tempfile::TempDir, std::path::PathBuf) {
     let dbdir = tempfile::tempdir().unwrap();
     let path = dbdir.path().join("catalog.sqlite");
