@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "pilot": "bounded-public-corpus-pilot",
+  "source": "grnoc-public-task-viewer",
+  "performed_utc": "2026-08-01T13:55:00Z",
+  "policy_used": {
+    "max_concurrency": 1,
+    "requests_per_second": 0.25,
+    "burst": 1,
+    "request_budget": 100,
+    "user_agent": "inim/0.1.0 (public-ticket corpus research; no contact configured)"
+  },
+  "requests_attempted": 10,
+  "successful_responses": 10,
+  "http_304_responses": 0,
+  "http_404_responses": 0,
+  "http_429_responses": 0,
+  "other_failures": 0,
+  "elapsed_secs": 37.9,
+  "actual_average_request_rate": 0.264,
+  "bytes_transferred": 5821,
+  "new_events": 10,
+  "changed_snapshots": 0,
+  "unchanged_events": 0,
+  "unsupported_family_skipped": 2,
+  "references_discovered": 1,
+  "ticket_ids_attempted": [
+    "CHG0038258", "INC0040257", "CHG0038386", "INC0040258", "INC0040272",
+    "TASK0038206", "INC0040289", "INC0040290", "INC0040291", "INC0040293",
+    "TASK0038211", "INC0040318"
+  ],
+  "ticket_ids_retrieved": [
+    "CHG0038258", "INC0040257", "CHG0038386", "INC0040258", "INC0040272",
+    "INC0040289", "INC0040290", "INC0040291", "INC0040293", "INC0040318"
+  ],
+  "ticket_ids_unresolved": ["TASK0038206", "TASK0038211"],
+  "case_study_links_resolved": 10,
+  "case_study_links_unresolved": 2,
+  "explicit_cross_ticket_relationships": [
+    {
+      "from": "CHG0038258",
+      "to": "INC0040257",
+      "relationship_kind": "TracksRemainingImpactIn",
+      "evidence_kind": "ExplicitTicketText",
+      "source_wording": "Some peering sessions remain unavailable after the completion of this maintenance, and are being tracked in Internet2 ticket INC0040257."
+    }
+  ],
+  "notes": [
+    "TASK-prefixed numbers are not served by the viewer endpoints (audited 2026-08-01); they were marked Unresolved without a request.",
+    "All 10 INC/CHG tickets from 2019 remain publicly retrievable.",
+    "Optional second pilot (<=100 tickets) NOT performed: the required first pilot completed cleanly and no additional analyst-supplied or public-search discovery was requested this session.",
+    "Source did not appear stressed; no retries were needed; no stop condition triggered."
+  ]
+}
