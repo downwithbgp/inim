@@ -96,3 +96,21 @@ parallel runs produce identical artifacts).
 - **Size:** 68,469 bytes (compressed)
 - **Content:** BGP4MP update records used by bgpkit-parser's own test suite.
 - **Usage:** `ingest::tests::parses_actual_mrt_fixture_into_observations`.
+
+## Local event catalog
+
+- Catalog events are source-neutral identities; GRNOC Public Task Viewer
+  is the first source adapter (`EventCatalogSource`).
+- Event snapshots preserve the raw source payload, retrieval timestamp,
+  source URL, content SHA-256, normalized fields, and parser version.
+  Snapshots are immutable: a changed ticket creates a new snapshot; the
+  latest event view is derived from the latest snapshot.
+- Reviewed manifest revisions are immutable and reference the exact
+  snapshot reviewed against. Analysis plans reference the exact manifest
+  revision; analysis runs reference the exact plan.
+- Observations and stream lifecycles are associated with an AnalysisRun,
+  never with a mutable event. Artifact paths are relative to the catalog
+  root; SQLite never stores raw MRT data or machine-specific absolute
+  paths.
+- The catalog database uses versioned migrations (`PRAGMA user_version`),
+  foreign keys, and WAL mode; migrations and imports are transactional.

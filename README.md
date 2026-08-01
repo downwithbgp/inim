@@ -76,8 +76,37 @@ cargo clippy --all-targets -- -D warnings
 inim plan    --event <ticket.json> --manifest <manifest.json> [--out <dir>]
 inim analyze --event <ticket.json> --manifest <manifest.json> [--cache <dir>] [--out <dir>] [--jobs N] [--no-derived-cache|--rebuild-derived-cache]
 inim migrate-manifest --input <legacy.json> --output <canonical.json> [--statement ... --reviewed-by ... --date ...]
-inim compare --a <event-out-dir> --b <event-out-dir> --out <comparison-dir>
+inim compare --a <event-out-dir> --b <event-out-dir> [--blocked <plan-dir>] --out <comparison-dir>
+inim catalog init --db data/inim.sqlite
+inim catalog import --db data/inim.sqlite --root .
+inim catalog sync grnoc --db data/inim.sqlite --source-dir <dir>
+inim serve --db data/inim.sqlite --root . --bind 127.0.0.1:8080
 ```
+
+### Local event catalog and web UI
+
+The **web UI is the intended primary analyst interface**. The CLI remains
+the administration, automation, and debugging interface.
+
+- The catalog is source-neutral: `CatalogEvent`, immutable
+  `EventSnapshot` records, reviewed `ManifestRevision` records, exact
+  `AnalysisPlan` records, and immutable `AnalysisRun` records with
+  artifact paths and hashes. **GRNOC Public Task Viewer** is the first
+  catalog source adapter.
+- Source snapshots are immutable — a changed ticket creates a new
+  snapshot; reviewed manifests are revisioned; analyses reference exact
+  revisions. **Observations and stream lifecycles are associated with an
+  AnalysisRun, never directly with a mutable ticket.**
+- SQLite stores identities, revisions, status, summaries, and artifact
+  paths. Raw MRT archives, derived caches, and detailed evidence remain
+  on the filesystem.
+- The web server is **localhost-only and unauthenticated** by default
+  (loopback bind; non-loopback requires `--allow-non-loopback` and prints
+  a warning). HTTP requests **never** perform Broker discovery, MRT
+  parsing, or analysis — the web layer is read-only; analysis stays on
+  the CLI.
+- Sync only populates the catalog: it never starts planning or analysis
+  and never infers reviewed ASN mappings from names.
 
 ### Process exit status contract
 

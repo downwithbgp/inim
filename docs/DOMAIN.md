@@ -150,3 +150,34 @@ assessment.
 ### Evidence / EventAssessment
 Evidence links conclusions to source records; an assessment carries
 event id, expectation, verdict, evidence, waves, and generation time.
+
+## Catalog (Session 29)
+
+### CatalogEvent / EventSnapshot / ManifestRevision
+Source-neutral event identity; immutable snapshots of what the operator
+source said at one time (raw payload + normalized fields + source
+SHA-256); reviewed manifest revisions referencing the exact snapshot they
+were reviewed against.
+
+### AnalysisPlanRecord / AnalysisRun
+An immutable plan records exactly what inim intended to observe; an
+AnalysisRun records one execution and its evidence (software version,
+parser identity, schema versions, verdict, assessment, artifact
+references). Route observations and stream lifecycles belong to the
+AnalysisRun — never directly to a mutable event.
+
+### AnalysisArtifact / StreamLifecycleSummary / SemanticWaveSummary
+Artifact rows store kind, relative path, media type, schema version,
+SHA-256, size. Lifecycle and wave summaries are denormalized for listing
+without loading evidence artifacts.
+
+### CatalogSyncRun / EventCatalogSource
+Sync-run records; the `EventCatalogSource` trait with the GRNOC Public
+Task Viewer adapter as the first implementation.
+
+### Catalog status
+Derived (never stored as the sole truth) with documented precedence:
+Running > Failed > Stale > Blocked > Complete > Ready > NeedsReview >
+Discovered. Stale means the current event state has not yet been analyzed
+under the latest inputs — an old completed run remains historically
+complete.

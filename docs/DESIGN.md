@@ -26,6 +26,31 @@ cohort, one reconstructed lifecycle per observer-prefix stream, one
 evidence-scoped assessment. Implementation complexity exists to preserve
 correctness, provenance, and reproducibility.
 
+## Local catalog and web application
+
+The intended primary analyst interface is a local web application; the CLI
+remains the administration, automation, and debugging interface.
+
+- **Catalog** (`src/catalog/`): source-neutral identities — catalog
+  events, immutable source snapshots, reviewed manifest revisions, exact
+  analysis plans, immutable analysis runs, artifact references with
+  hashes, stream lifecycle summaries, semantic wave summaries, sync
+  runs.
+- **SQLite** (rusqlite, bundled): identities, revisions, status, searchable
+  metadata, summaries, artifact paths. Raw MRT archives, derived caches,
+  evidence appendices, and reports remain on the filesystem.
+- **GRNOC Public Task Viewer** is the first `EventCatalogSource` adapter;
+  sync populates the catalog only and never starts analysis.
+- **Web server** (Axum + Askama): server-rendered, loopback-only,
+  unauthenticated initially, read-only — HTTP requests never perform
+  Broker discovery, downloads, MRT parsing, or analysis.
+- **Association**: evidence belongs to an immutable `AnalysisRun` that
+  references an exact snapshot, manifest revision, and plan. There is no
+  `Observation.event_id` and no `RouteTransition.ticket_id`; the catalog
+  never states that an observation was "caused by" an event.
+
+See `docs/ADRs/LOCAL-CATALOG-AND-WEB.md` for the full decision record.
+
 ## Architecture overview
 
 ```

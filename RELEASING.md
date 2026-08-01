@@ -23,6 +23,21 @@ cargo deny check licenses
 
 Record the tool version (`cargo deny --version`) and the audit result.
 
+## Catalog and web verification
+
+```sh
+inim catalog init --db data/inim.sqlite
+inim catalog import --db data/inim.sqlite --root .
+inim catalog sync grnoc --db data/inim.sqlite --source-dir <dir>
+inim serve --db data/inim.sqlite --root . --bind 127.0.0.1:8080
+```
+
+- `serve` binds loopback only by default; non-loopback requires
+  `--allow-non-loopback` and prints the no-authentication warning.
+- HTTP requests never perform BGP analysis; the web layer is read-only.
+- `data/`, `*.sqlite*`, and catalog runtime state are excluded from the
+  crate package; migrations and templates are embedded in the binary.
+
 ## Packaging
 
 ```sh

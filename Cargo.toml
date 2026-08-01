@@ -11,7 +11,16 @@ categories = ["command-line-utilities", "network-programming"]
 # Packaging: exclude caches, raw MRT archives, generated event outputs,
 # validation/archived runs, and local scratch files. The crate ships only
 # source, tests/fixtures (provenance-documented, MIT-compatible), and docs.
-exclude = ["out/", "cache/", "run_stderr*.log"]
+exclude = [
+    "out/",
+    "cache/",
+    "run_stderr*.log",
+    "data/",
+    "*.sqlite",
+    "*.sqlite-wal",
+    "*.sqlite-shm",
+    "*.db",
+]
 
 [dependencies]
 clap = { version = "4", features = ["derive"] }
