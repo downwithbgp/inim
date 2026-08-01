@@ -605,7 +605,7 @@ fn cmd_catalog(stdout: &mut dyn Write, command: &CatalogCommands) -> i32 {
                     return EXIT_INVALID_INPUT;
                 }
             };
-            let Some(cs) = inim::catalog::archive_plan::find_case_study(&conn, &slug) else {
+            let Some(cs) = inim::catalog::archive_plan::find_case_study(&conn, slug) else {
                 let _ = writeln!(stdout, "error: no case study with slug '{slug}'");
                 return EXIT_INVALID_INPUT;
             };
