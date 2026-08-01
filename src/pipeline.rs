@@ -96,9 +96,7 @@ where
         match slot {
             Some(Ok(r)) => out.push((acquired[idx].take(), r)),
             Some(Err(e)) => {
-                if first_error.is_none() {
-                    first_error = Some(e);
-                }
+                first_error.get_or_insert(e);
             }
             None => {}
         }

@@ -982,7 +982,6 @@ fn process_updates_pipeline(
             let cached = &cached;
             let slots = &slots;
             let tx = tx.clone();
-            let pending = pending;
             scope.spawn(move || loop {
                 let idx = queue.lock().unwrap().pop_front();
                 let Some(idx) = idx else { break };
