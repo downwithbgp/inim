@@ -1075,3 +1075,96 @@ async fn approved_document_is_served_inline() {
         .contains("application/pdf"));
     assert!(body.contains("%PDF-1.4"), "served bytes are the document");
 }
+
+// ── Session 33: corpus pages and API ───────────────────────────────
+
+#[tokio::test]
+async fn corpus_pages_render_with_corpus_data() {
+    if !repo_artifacts_available() {
+        return;
+    }
+    let (dbdir, rootdir) = setup_catalog();
+    // Seed a viewer ticket + discovery so the corpus page has data.
+    {
+        let conn = db::open_catalog(&dbdir.path().join("catalog.sqlite")).unwrap();
+        let d = tempfile::tempdir().unwrap();
+        std::fs::write(
+            d.path().join("INC0040257.json"),
+            r#"{"number":"INC0040257","short_description":"Outage - X","description":"Tracked in INC0040257.","start":"2019-08-21T04:00:00Z","end":"2019-08-21T05:00:00Z","source_url":"https://ticket-viewer.grnoc.iu.edu/tickets/INC0040257/"}"#,
+        )
+        .unwrap();
+        let src = crate::catalog::grnoc::GrnocCatalogSource::new(
+            d.path().to_path_buf(),
+            "2026-08-01T00:00:00Z".into(),
+        );
+        crate::catalog::sync::sync_catalog(&conn, &src, "2026-08-01T00:00:00Z").unwrap();
+        drop(conn);
+    }
+    let app = build_app(state_from(&dbdir, &rootdir));
+    let (status, body) = get(&app, "/corpus").await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(
+        body.contains("Locally acquired public-ticket corpus"),
+        "{body}"
+    );
+    assert!(body.contains(">1<"), "one viewer event counted");
+    assert!(body.contains("Unknown: 1"), "task-type breakdown");
+    assert!(
+        !body.contains("Complete GRNOC archive"),
+        "completeness must not be implied"
+    );
+    assert!(body.contains("0.25 requests/second"), "policy shown");
+    // Sync runs page.
+    let (status, body) = get(&app, "/corpus/sync-runs").await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(body.contains("Corpus sync runs"), "{body}");
+    // No HTTP GET may start crawling: the corpus page does not fetch.
+    let (status, body) = get(&app, "/analysis-queue").await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(body.contains("BGP-analysis queue"), "{body}");
+    // Relationships page resolves the seeded ticket.
+    let (status, body) = get(&app, "/events/INC0040257/relationships").await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(body.contains("BGP analyzability"), "{body}");
+    assert!(body.contains("Discovery provenance"), "{body}");
+    // Candidates and batches render.
+    let (status, body) = get(&app, "/incident-candidates").await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(body.contains("Incident group candidates"), "{body}");
+    let (status, body) = get(&app, "/archive-batches").await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(body.contains("Shared raw-archive batches"), "{body}");
+}
+
+#[tokio::test]
+async fn corpus_api_is_readonly_and_enveloped() {
+    if !repo_artifacts_available() {
+        return;
+    }
+    let (dbdir, rootdir) = setup_catalog();
+    let app = build_app(state_from(&dbdir, &rootdir));
+    let (status, body) = get(&app, "/api/v1/corpus/status").await;
+    assert_eq!(status, StatusCode::OK);
+    let v: serde_json::Value = serde_json::from_str(&body).unwrap();
+    assert_eq!(v["api_version"], 1);
+    assert!(v["data"].is_object(), "{body}");
+    let (status, _body) = get(&app, "/api/v1/corpus/sync-runs").await;
+    assert_eq!(status, StatusCode::OK);
+    let (status, _body) = get(&app, "/api/v1/analysis-queue").await;
+    assert_eq!(status, StatusCode::OK);
+    let (status, _body) = get(&app, "/api/v1/incident-candidates").await;
+    assert_eq!(status, StatusCode::OK);
+    let (status, _body) = get(&app, "/api/v1/archive-batches").await;
+    assert_eq!(status, StatusCode::OK);
+    // Relationships for a missing event is 404 with the envelope.
+    let (status, body) = get(&app, "/api/v1/events/INC9999999/relationships").await;
+    assert_eq!(status, StatusCode::NOT_FOUND);
+    let v: serde_json::Value = serde_json::from_str(&body).unwrap();
+    assert!(v["error"]["message"]
+        .as_str()
+        .unwrap()
+        .contains("not found"));
+    // Raw cookies and unrestricted headers are never exposed.
+    let text = body.to_lowercase();
+    assert!(!text.contains("set-cookie"), "{text}");
+}

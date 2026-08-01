@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}inim — archive batches{% endblock %}
+{% block content %}
+<h2>Shared raw-archive batches</h2>
+<p class="muted">{{ note }}</p>
+{% for b in batches %}
+<div class="panel">
+  <h2>Case study: {{ b.case_study }}</h2>
+  <table>
+    <tr><th>Events in batch</th><td>{{ b.events }}</td></tr>
+    <tr><th>Unique archives</th><td>{{ b.unique_archives }}</td></tr>
+    <tr><th>Archives avoided through reuse</th><td>{{ b.archives_avoided }}</td></tr>
+    <tr><th>Estimated compressed bytes</th><td>{{ b.estimated_bytes }}</td></tr>
+    <tr><th>Expected parse operations</th><td>{{ b.parse_operations }}</td></tr>
+    <tr><th>Source families</th><td>{{ b.families }}</td></tr>
+    <tr><th>Batch id</th><td><code>{{ b.batch_id }}</code></td></tr>
+  </table>
+  <p class="muted">Per-event cohorts: {{ b.cohorts | join(", ") }}</p>
+</div>
+{% endfor %}
+{% if batches.is_empty() %}
+<p class="muted">No batch plans yet — store a case-study archive plan first.</p>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block title %}inim — {{ event_id }} relationships{% endblock %}
+{% block content %}
+<h2>{{ event_id }} — {{ title }}</h2>
+<p class="muted"><a href="/events/{{ event_id }}">event detail</a></p>
+
+<div class="panel">
+<h2>BGP analyzability</h2>
+<p>{{ analyzability }}</p>
+<p class="muted">{{ analyzability_reason }}</p>
+</div>
+
+<div class="panel">
+<h2>Explicit outgoing relationships</h2>
+{% if outgoing.is_empty() %}
+<p class="muted">No source-asserted relationships recorded.</p>
+{% else %}
+<table>
+  <tr><th>To</th><th>Kind</th><th>Evidence</th><th>Snapshot</th><th>Review</th><th>Note</th></tr>
+{% for r in outgoing %}
+  <tr><td>{{ r.to }}</td><td>{{ r.kind }}</td><td>{{ r.evidence }}</td>
+      <td>{% if r.snapshot_id.is_some() %}{{ r.snapshot_id.as_ref().unwrap() }}{% else %}—{% endif %}</td>
+      <td>{{ r.reviewed }}</td><td>{{ r.note }}</td></tr>
+{% endfor %}
+</table>
+{% endif %}
+</div>
+
+<div class="panel">
+<h2>Incoming relationships</h2>
+{% if incoming.is_empty() %}
+<p class="muted">No incoming source-asserted relationships.</p>
+{% else %}
+<table>
+  <tr><th>From</th><th>Kind</th><th>Evidence</th><th>Review</th><th>Note</th></tr>
+{% for r in incoming %}
+  <tr><td>{{ r.from }}</td><td>{{ r.kind }}</td><td>{{ r.evidence }}</td><td>{{ r.reviewed }}</td><td>{{ r.note }}</td></tr>
+{% endfor %}
+</table>
+{% endif %}
+</div>
+
+<div class="panel">
+<h2>Derived candidates (machine-generated, not source-asserted)</h2>
+{% if derived.is_empty() %}
+<p class="muted">No derived candidate edges.</p>
+{% else %}
+<table>
+  <tr><th>Peer</th><th>Kind</th><th>Evidence</th><th>Note</th></tr>
+{% for r in derived %}
+  <tr><td>{% if r.from == event_id %}{{ r.to }}{% else %}{{ r.from }}{% endif %}</td><td>{{ r.kind }}</td><td>{{ r.evidence }}</td><td>{{ r.note }}</td></tr>
+{% endfor %}
+</table>
+<p class="muted">Temporal overlap is not causal attribution; derived candidates require analyst review.</p>
+{% endif %}
+</div>
+
+<div class="panel">
+<h2>Discovery provenance</h2>
+{% if discoveries.is_empty() %}
+<p class="muted">No discovery records.</p>
+{% else %}
+<table>
+  <tr><th>Provenance</th><th>Status</th><th>Discovered</th></tr>
+{% for d in discoveries %}
+  <tr><td>{{ d.provenance }}</td><td>{{ d.status }}</td><td>{{ d.discovered_at }}</td></tr>
+{% endfor %}
+</table>
+{% endif %}
+</div>
+
+<div class="panel">
+<h2>Candidate incident groups</h2>
+{% if groups.is_empty() %}
+<p class="muted">Not part of any candidate group.</p>
+{% else %}
+<table>
+  <tr><th>Group</th><th>Confidence</th><th>Review</th><th>Members</th></tr>
+{% for g in groups %}
+  <tr><td>{{ g.label }}</td><td>{{ g.confidence }}</td><td>{{ g.review_status }}</td><td>{{ g.members }}</td></tr>
+{% endfor %}
+</table>
+{% endif %}
+</div>
+
+<div class="panel">
+<h2>Source-acquisition provenance</h2>
+{% if fetches.is_empty() %}
+<p class="muted">No fetch records.</p>
+{% else %}
+<table>
+  <tr><th>Fetched</th><th>Status</th><th>Method</th><th>Retries</th><th>Snapshot</th></tr>
+{% for f in fetches %}
+  <tr><td>{{ f.fetched_at }}</td><td>{{ f.http_status }}</td><td>{{ f.method }}</td><td>{{ f.retries }}</td>
+      <td>{% if f.snapshot_id.is_some() %}{{ f.snapshot_id.as_ref().unwrap() }}{% else %}—{% endif %}</td></tr>
+{% endfor %}
+</table>
+{% endif %}
+</div>
+{% endblock %}

@@ -280,3 +280,58 @@ pub async fn api_case_study_comparison(
         Err(e) => super::handlers::json_error(StatusCode::INTERNAL_SERVER_ERROR, &e),
     }
 }
+
+// ── Session 33: corpus API (read-only) ─────────────────────────────
+
+pub async fn api_corpus_status(State(state): State<SharedState>) -> Response {
+    let db = state.db.lock().unwrap();
+    match super::view::load_corpus(&db) {
+        Ok(v) => envelope(serde_json::to_value(v).unwrap_or_default()),
+        Err(e) => json_error(StatusCode::INTERNAL_SERVER_ERROR, &e),
+    }
+}
+
+pub async fn api_corpus_sync_runs(State(state): State<SharedState>) -> Response {
+    let db = state.db.lock().unwrap();
+    match super::view::load_sync_runs(&db) {
+        Ok(v) => envelope(serde_json::to_value(v).unwrap_or_default()),
+        Err(e) => json_error(StatusCode::INTERNAL_SERVER_ERROR, &e),
+    }
+}
+
+pub async fn api_event_relationships(
+    State(state): State<SharedState>,
+    AxumPath(event_id): AxumPath<String>,
+) -> Response {
+    let db = state.db.lock().unwrap();
+    match super::view::load_event_relationships(&db, &event_id) {
+        Ok(Some(v)) => envelope(serde_json::to_value(v).unwrap_or_default()),
+        Ok(None) => json_error(StatusCode::NOT_FOUND, "event not found"),
+        Err(e) => json_error(StatusCode::INTERNAL_SERVER_ERROR, &e),
+    }
+}
+
+pub async fn api_analysis_queue(State(state): State<SharedState>) -> Response {
+    let db = state.db.lock().unwrap();
+    let filters = super::view::QueueFilters::default();
+    match super::view::load_analysis_queue(&db, &filters) {
+        Ok(v) => envelope(serde_json::to_value(v).unwrap_or_default()),
+        Err(e) => json_error(StatusCode::INTERNAL_SERVER_ERROR, &e),
+    }
+}
+
+pub async fn api_incident_candidates(State(state): State<SharedState>) -> Response {
+    let db = state.db.lock().unwrap();
+    match super::view::load_incident_candidates(&db) {
+        Ok(v) => envelope(serde_json::to_value(v).unwrap_or_default()),
+        Err(e) => json_error(StatusCode::INTERNAL_SERVER_ERROR, &e),
+    }
+}
+
+pub async fn api_archive_batches(State(state): State<SharedState>) -> Response {
+    let db = state.db.lock().unwrap();
+    match super::view::load_archive_batches(&db) {
+        Ok(v) => envelope(serde_json::to_value(v).unwrap_or_default()),
+        Err(e) => json_error(StatusCode::INTERNAL_SERVER_ERROR, &e),
+    }
+}

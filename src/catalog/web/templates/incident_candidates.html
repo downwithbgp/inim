@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}inim — incident candidates{% endblock %}
+{% block content %}
+<h2>Incident group candidates</h2>
+<p class="muted">Suggested groupings only — individual events are never merged. Confidence is categorical and explainable: ExplicitlyLinked (source-asserted), StrongCandidate (reviewed case-study membership), WeakCandidate (temporal overlap alone), Rejected (analyst).</p>
+<div class="panel">
+<p>ExplicitlyLinked: {{ explicit }} · StrongCandidate: {{ strong }} · WeakCandidate: {{ weak }} · Rejected: {{ rejected }}</p>
+</div>
+{% for g in groups %}
+<div class="panel">
+  <h2>{{ g.label }} <span class="tag {% if g.confidence == "WeakCandidate" %}stale{% else %}complete{% endif %}">{{ g.confidence }}</span> <span class="tag">{{ g.review_status }}</span></h2>
+  <p>Members: {{ g.members | join(", ") }}</p>
+  <ul class="flat">
+  {% for e in g.evidence %}
+    <li><strong>{{ e.signal }}</strong> — {{ e.detail }}</li>
+  {% endfor %}
+  </ul>
+</div>
+{% endfor %}
+{% if groups.is_empty() %}
+<p class="muted">No candidate groups yet.</p>
+{% endif %}
+{% endblock %}

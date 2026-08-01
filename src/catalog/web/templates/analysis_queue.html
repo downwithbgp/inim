@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}inim — analysis queue{% endblock %}
+{% block content %}
+<h2>BGP-analysis queue</h2>
+<p class="muted">Readiness for RouteViews/RIPE RIS analysis, derived from reviewed inputs only. Separate from ticket lifecycle and sync status. No GET request starts crawling or analysis.</p>
+
+<form class="filter" method="get" action="/analysis-queue">
+  <input type="text" name="q" placeholder="search id/title" value="{{ filters.q.as_deref().unwrap_or("") }}">
+  <input type="text" name="state" placeholder="state" value="{{ filters.state.as_deref().unwrap_or("") }}">
+  <input type="text" name="task_type" placeholder="task type" value="{{ filters.task_type.as_deref().unwrap_or("") }}">
+  <select name="lifecycle">
+    <option value="">lifecycle</option>
+    <option value="Open" {% if filters.lifecycle.as_deref() == Some("Open") %}selected{% endif %}>Open</option>
+    <option value="Closed" {% if filters.lifecycle.as_deref() == Some("Closed") %}selected{% endif %}>Closed</option>
+  </select>
+  <input type="text" name="expectation" placeholder="expectation" value="{{ filters.expectation.as_deref().unwrap_or("") }}">
+  <input type="text" name="case_study" placeholder="case study" value="{{ filters.case_study.as_deref().unwrap_or("") }}">
+  <input type="text" name="date_from" placeholder="from" value="{{ filters.date_from.as_deref().unwrap_or("") }}">
+  <input type="text" name="date_to" placeholder="to" value="{{ filters.date_to.as_deref().unwrap_or("") }}">
+  <button type="submit">Filter</button>
+</form>
+
+<div class="panel">
+<table>
+  <tr><th>Event</th><th>Title</th><th>Type</th><th>Lifecycle</th><th>Start</th><th>Readiness</th><th>Expectation</th><th>Case studies</th></tr>
+{% for r in rows %}
+  <tr>
+    <td><a href="/events/{{ r.external_id }}">{{ r.external_id }}</a></td>
+    <td>{{ r.title }}</td>
+    <td>{{ r.task_type }}</td>
+    <td>{{ r.lifecycle }}</td>
+    <td>{{ r.start }}</td>
+    <td>{{ r.readiness }}</td>
+    <td>{{ r.expectation }}</td>
+    <td>{{ r.case_studies }}</td>
+  </tr>
+{% endfor %}
+</table>
+{% if rows.is_empty() %}
+<p class="muted">No events match the filters.</p>
+{% endif %}
+</div>
+{% endblock %}

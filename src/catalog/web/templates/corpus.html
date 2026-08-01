@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}inim — corpus{% endblock %}
+{% block content %}
+<h2>Public-ticket corpus</h2>
+<p class="muted">Locally acquired public-ticket corpus — not a complete GRNOC archive. Corpus completeness is never assumed; tickets enter only through explicit references, seeds, or an allowed public search.</p>
+
+<div class="panel">
+<h2>Corpus state</h2>
+<table>
+  <tr><th>Total GRNOC events</th><td>{{ total_events }}</td></tr>
+  <tr><th>Source snapshots</th><td>{{ source_snapshots }}</td><td><a href="/corpus/sync-runs">sync runs</a></td></tr>
+  <tr><th>Oldest event</th><td>{{ oldest_event }}</td></tr>
+  <tr><th>Newest event</th><td>{{ newest_event }}</td></tr>
+  <tr><th>Open tickets</th><td>{{ open_tickets }}</td></tr>
+  <tr><th>Closed tickets</th><td>{{ closed_tickets }}</td></tr>
+  <tr><th>Events needing review</th><td>{{ not_reviewed }}</td><td><a href="/analysis-queue?state=NotReviewed">queue</a></td></tr>
+  <tr><th>Events ready for planning</th><td>{{ ready_for_planning }}</td></tr>
+  <tr><th>Completed analyses</th><td>{{ completed_analyses }}</td></tr>
+  <tr><th>Stale analyses</th><td>{{ stale_analyses }}</td></tr>
+</table>
+</div>
+
+<div class="panel">
+<h2>Tickets by task type</h2>
+<ul class="flat">
+{% for (tt, n) in by_task_type %}
+  <li>{{ tt }}: {{ n }}</li>
+{% endfor %}
+</ul>
+</div>
+
+<div class="panel">
+<h2>Source health</h2>
+<ul class="flat">
+{% if !latest_sync.is_empty() %}
+  <li>Latest sync: {{ latest_sync }} ({{ sync_status }})</li>
+  <li>Failures in latest sync: {{ sync_failures }}</li>
+{% else %}
+  <li class="muted">No sync recorded yet.</li>
+{% endif %}
+</ul>
+</div>
+
+<div class="panel">
+<h2>Self-imposed request policy</h2>
+<p class="muted">{{ policy }}</p>
+<p class="muted">Stop conditions: repeated 429/403, unexpected authentication, robots prohibition, schema incompatibility affecting most items. Permanent 404s are never retried. No blind numeric-ID enumeration.</p>
+</div>
+{% endblock %}

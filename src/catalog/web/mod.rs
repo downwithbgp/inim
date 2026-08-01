@@ -49,6 +49,27 @@ pub fn build_router(state: SharedState) -> Router {
             "/case-studies/{slug}",
             axum::routing::get(handlers::case_study_detail),
         )
+        .route("/corpus", axum::routing::get(handlers::corpus))
+        .route(
+            "/corpus/sync-runs",
+            axum::routing::get(handlers::corpus_sync_runs),
+        )
+        .route(
+            "/events/{event_id}/relationships",
+            axum::routing::get(handlers::event_relationships),
+        )
+        .route(
+            "/analysis-queue",
+            axum::routing::get(handlers::analysis_queue),
+        )
+        .route(
+            "/incident-candidates",
+            axum::routing::get(handlers::incident_candidates),
+        )
+        .route(
+            "/archive-batches",
+            axum::routing::get(handlers::archive_batches),
+        )
         .route(
             "/documents/{document_id}",
             axum::routing::get(handlers::serve_document),
@@ -86,6 +107,30 @@ pub fn build_router(state: SharedState) -> Router {
         .route(
             "/api/v1/catalog/status",
             axum::routing::get(api::api_catalog_status),
+        )
+        .route(
+            "/api/v1/corpus/status",
+            axum::routing::get(api::api_corpus_status),
+        )
+        .route(
+            "/api/v1/corpus/sync-runs",
+            axum::routing::get(api::api_corpus_sync_runs),
+        )
+        .route(
+            "/api/v1/events/{event_id}/relationships",
+            axum::routing::get(api::api_event_relationships),
+        )
+        .route(
+            "/api/v1/analysis-queue",
+            axum::routing::get(api::api_analysis_queue),
+        )
+        .route(
+            "/api/v1/incident-candidates",
+            axum::routing::get(api::api_incident_candidates),
+        )
+        .route(
+            "/api/v1/archive-batches",
+            axum::routing::get(api::api_archive_batches),
         )
         .with_state(state)
 }

@@ -216,3 +216,60 @@ pub fn run_view(state: &SharedState, run_id: i64) -> Result<Option<RunView>, Str
     let db = state.db.lock().unwrap();
     super::view::load_run(&db, run_id, state)
 }
+
+// ── Session 33: corpus pages (read-only; no crawling on GET) ───────
+
+pub async fn corpus(State(state): State<SharedState>) -> Response {
+    let db = state.db.lock().unwrap();
+    match super::view::load_corpus(&db) {
+        Ok(view) => render(view),
+        Err(e) => server_error(&e),
+    }
+}
+
+pub async fn corpus_sync_runs(State(state): State<SharedState>) -> Response {
+    let db = state.db.lock().unwrap();
+    match super::view::load_sync_runs(&db) {
+        Ok(view) => render(view),
+        Err(e) => server_error(&e),
+    }
+}
+
+pub async fn event_relationships(
+    State(state): State<SharedState>,
+    AxumPath(event_id): AxumPath<String>,
+) -> Response {
+    let db = state.db.lock().unwrap();
+    match super::view::load_event_relationships(&db, &event_id) {
+        Ok(Some(view)) => render(view),
+        Ok(None) => not_found("event"),
+        Err(e) => server_error(&e),
+    }
+}
+
+pub async fn analysis_queue(
+    State(state): State<SharedState>,
+    Query(filters): Query<super::view::QueueFilters>,
+) -> Response {
+    let db = state.db.lock().unwrap();
+    match super::view::load_analysis_queue(&db, &filters) {
+        Ok(view) => render(view),
+        Err(e) => server_error(&e),
+    }
+}
+
+pub async fn incident_candidates(State(state): State<SharedState>) -> Response {
+    let db = state.db.lock().unwrap();
+    match super::view::load_incident_candidates(&db) {
+        Ok(view) => render(view),
+        Err(e) => server_error(&e),
+    }
+}
+
+pub async fn archive_batches(State(state): State<SharedState>) -> Response {
+    let db = state.db.lock().unwrap();
+    match super::view::load_archive_batches(&db) {
+        Ok(view) => render(view),
+        Err(e) => server_error(&e),
+    }
+}

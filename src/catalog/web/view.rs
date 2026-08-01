@@ -1622,3 +1622,661 @@ pub fn resolve_document_file(
         inline,
     }))
 }
+
+// ── Session 33: corpus workspace views ─────────────────────────────
+
+#[derive(Template, Serialize)]
+#[template(path = "corpus.html")]
+pub struct CorpusView {
+    pub total_events: usize,
+    pub source_snapshots: usize,
+    pub oldest_event: String,
+    pub newest_event: String,
+    pub open_tickets: usize,
+    pub closed_tickets: usize,
+    pub by_task_type: Vec<(String, usize)>,
+    pub not_reviewed: usize,
+    pub ready_for_planning: usize,
+    pub completed_analyses: usize,
+    pub stale_analyses: usize,
+    pub latest_sync: String,
+    pub sync_status: String,
+    pub sync_failures: i64,
+    pub policy: String,
+}
+
+#[derive(Template, Serialize)]
+#[template(path = "sync_runs.html")]
+pub struct SyncRunsView {
+    pub runs: Vec<SyncRunRowView>,
+}
+
+#[derive(Serialize)]
+pub struct SyncRunRowView {
+    pub id: i64,
+    pub started_at: String,
+    pub status: String,
+    pub examined: i64,
+    pub new_events: i64,
+    pub changed: i64,
+    pub unchanged: i64,
+    pub failures: i64,
+}
+
+#[derive(Template, Serialize)]
+#[template(path = "event_relationships.html")]
+pub struct EventRelationshipsView {
+    pub event_id: String,
+    pub title: String,
+    pub analyzability: String,
+    pub analyzability_reason: String,
+    pub outgoing: Vec<RelationshipRowView>,
+    pub incoming: Vec<RelationshipRowView>,
+    pub derived: Vec<RelationshipRowView>,
+    pub discoveries: Vec<DiscoveryRowView>,
+    pub groups: Vec<GroupRowView>,
+    pub fetches: Vec<FetchRowView>,
+}
+
+#[derive(Serialize)]
+pub struct RelationshipRowView {
+    pub from: String,
+    pub to: String,
+    pub kind: String,
+    pub evidence: String,
+    pub snapshot_id: Option<i64>,
+    pub reviewed: String,
+    pub note: String,
+}
+
+#[derive(Serialize)]
+pub struct DiscoveryRowView {
+    pub external_id: String,
+    pub provenance: String,
+    pub status: String,
+    pub discovered_at: String,
+}
+
+#[derive(Serialize)]
+pub struct GroupRowView {
+    pub id: i64,
+    pub label: String,
+    pub confidence: String,
+    pub review_status: String,
+    pub members: String,
+}
+
+#[derive(Serialize)]
+pub struct FetchRowView {
+    pub fetched_at: String,
+    pub http_status: i64,
+    pub method: String,
+    pub retries: i64,
+    pub snapshot_id: Option<i64>,
+}
+
+#[derive(Template, Serialize)]
+#[template(path = "analysis_queue.html")]
+pub struct AnalysisQueueView {
+    pub rows: Vec<QueueRowView>,
+    pub filters: QueueFilters,
+}
+
+#[derive(Serialize, Clone, Default, serde::Deserialize)]
+pub struct QueueFilters {
+    pub state: Option<String>,
+    pub lifecycle: Option<String>,
+    pub task_type: Option<String>,
+    pub date_from: Option<String>,
+    pub date_to: Option<String>,
+    pub expectation: Option<String>,
+    pub case_study: Option<String>,
+    pub q: Option<String>,
+}
+
+#[derive(Serialize)]
+pub struct QueueRowView {
+    pub external_id: String,
+    pub title: String,
+    pub task_type: String,
+    pub lifecycle: String,
+    pub start: String,
+    pub readiness: String,
+    pub reason: String,
+    pub expectation: String,
+    pub case_studies: String,
+}
+
+#[derive(Template, Serialize)]
+#[template(path = "incident_candidates.html")]
+pub struct IncidentCandidatesView {
+    pub groups: Vec<IncidentGroupView>,
+    pub explicit: usize,
+    pub strong: usize,
+    pub weak: usize,
+    pub rejected: usize,
+}
+
+#[derive(Serialize)]
+pub struct IncidentGroupView {
+    pub id: i64,
+    pub label: String,
+    pub confidence: String,
+    pub review_status: String,
+    pub members: Vec<String>,
+    pub evidence: Vec<GroupEvidenceView>,
+}
+
+#[derive(Serialize)]
+pub struct GroupEvidenceView {
+    pub signal: String,
+    pub detail: String,
+}
+
+#[derive(Template, Serialize)]
+#[template(path = "archive_batches.html")]
+pub struct ArchiveBatchesView {
+    pub batches: Vec<ArchiveBatchView>,
+    pub note: String,
+}
+
+#[derive(Serialize)]
+pub struct ArchiveBatchView {
+    pub case_study: String,
+    pub batch_id: String,
+    pub events: usize,
+    pub unique_archives: usize,
+    pub archives_avoided: usize,
+    pub estimated_bytes: i64,
+    pub parse_operations: usize,
+    pub families: String,
+    pub cohorts: Vec<String>,
+}
+
+// ── Corpus loaders ─────────────────────────────────────────────────
+
+pub fn load_corpus(conn: &rusqlite::Connection) -> Result<CorpusView, String> {
+    use crate::catalog::analyzability::{derive_analyzability, state as astate};
+    let events = crate::catalog::db::list_events(conn)?;
+    let grnoc: Vec<_> = events
+        .iter()
+        .filter(|e| e.source_kind == "grnoc-public-task-viewer")
+        .collect();
+    let mut snapshots = 0usize;
+    let mut open = 0usize;
+    let mut closed = 0usize;
+    let mut by_task_type: std::collections::BTreeMap<String, usize> = Default::default();
+    let mut dates: Vec<String> = Vec::new();
+    let mut not_reviewed = 0usize;
+    let mut ready_for_planning = 0usize;
+    let mut completed = 0usize;
+    let mut stale = 0usize;
+    for e in &grnoc {
+        let snaps = crate::catalog::db::list_snapshots(conn, e.id)?;
+        snapshots += snaps.len();
+        if let Some(latest) = snaps.first() {
+            if let Ok(v) = serde_json::from_str::<serde_json::Value>(&latest.normalized_json) {
+                let start = v
+                    .get("start")
+                    .and_then(|x| x.as_str())
+                    .unwrap_or("")
+                    .to_string();
+                if !start.is_empty() {
+                    dates.push(start);
+                }
+                let end = v
+                    .get("end")
+                    .and_then(|x| x.as_str())
+                    .unwrap_or("")
+                    .to_string();
+                if end.is_empty() {
+                    open += 1;
+                } else {
+                    closed += 1;
+                }
+                let tt = v
+                    .get("task_type")
+                    .and_then(|x| x.as_str())
+                    .filter(|s| !s.is_empty())
+                    .unwrap_or("Unknown")
+                    .to_string();
+                *by_task_type.entry(tt).or_insert(0) += 1;
+            }
+        }
+        let a = derive_analyzability(conn, e)?;
+        match a.readiness.as_str() {
+            astate::NOT_REVIEWED => not_reviewed += 1,
+            astate::READY_FOR_ARCHIVE_PLANNING | astate::ARCHIVE_PLAN_READY => {
+                ready_for_planning += 1
+            }
+            astate::ANALYSIS_COMPLETE => completed += 1,
+            astate::ANALYSIS_STALE => stale += 1,
+            _ => {}
+        }
+    }
+    dates.sort();
+    let latest_sync = crate::catalog::db::latest_sync(conn, "grnoc-public-task-viewer")?;
+    let (latest_sync, sync_status, sync_failures) = match &latest_sync {
+        Some(s) => (s.started_at.clone(), s.status.clone(), s.failures),
+        None => (String::new(), String::new(), 0),
+    };
+    let policy = "1 concurrent request; 0.25 requests/second (one every 4 s); burst 1; budget 100 requests per sync".to_string();
+    Ok(CorpusView {
+        total_events: grnoc.len(),
+        source_snapshots: snapshots,
+        oldest_event: dates.first().cloned().unwrap_or_default(),
+        newest_event: dates.last().cloned().unwrap_or_default(),
+        open_tickets: open,
+        closed_tickets: closed,
+        by_task_type: by_task_type.into_iter().collect(),
+        not_reviewed,
+        ready_for_planning,
+        completed_analyses: completed,
+        stale_analyses: stale,
+        latest_sync,
+        sync_status,
+        sync_failures,
+        policy: policy.to_string(),
+    })
+}
+
+pub fn load_sync_runs(conn: &rusqlite::Connection) -> Result<SyncRunsView, String> {
+    let mut stmt = conn
+        .prepare(
+            "SELECT id, started_at, status, events_examined, new_events, changed_events,
+                    unchanged_events, failures
+             FROM catalog_sync_runs WHERE source = ?1 ORDER BY id DESC",
+        )
+        .map_err(|e| format!("catalog read failed: {e}"))?;
+    let rows = stmt
+        .query_map(["grnoc-public-task-viewer"], |r| {
+            Ok(SyncRunRowView {
+                id: r.get(0)?,
+                started_at: r.get(1)?,
+                status: r.get(2)?,
+                examined: r.get(3)?,
+                new_events: r.get(4)?,
+                changed: r.get(5)?,
+                unchanged: r.get(6)?,
+                failures: r.get(7)?,
+            })
+        })
+        .map_err(|e| format!("catalog read failed: {e}"))?;
+    let mut runs = Vec::new();
+    for r in rows {
+        runs.push(r.map_err(|e| format!("catalog read failed: {e}"))?);
+    }
+    Ok(SyncRunsView { runs })
+}
+
+/// Resolve an event by either repository or viewer identity.
+fn find_event(
+    conn: &rusqlite::Connection,
+    external_id: &str,
+) -> Option<crate::catalog::domain::CatalogEvent> {
+    crate::catalog::db::get_event_by_external(conn, "local-repository", external_id)
+        .ok()
+        .flatten()
+        .or_else(|| {
+            crate::catalog::db::get_event_by_external(conn, "grnoc-public-task-viewer", external_id)
+                .ok()
+                .flatten()
+        })
+}
+
+pub fn load_event_relationships(
+    conn: &rusqlite::Connection,
+    external_id: &str,
+) -> Result<Option<EventRelationshipsView>, String> {
+    let Some(event) = find_event(conn, external_id) else {
+        return Ok(None);
+    };
+    let snaps = crate::catalog::db::list_snapshots(conn, event.id)?;
+    let title = snaps
+        .first()
+        .and_then(|s| serde_json::from_str::<serde_json::Value>(&s.normalized_json).ok())
+        .and_then(|v| {
+            v.get("title")
+                .and_then(|t| t.as_str())
+                .map(|s| s.to_string())
+        })
+        .unwrap_or_default();
+    let analyzability = crate::catalog::analyzability::derive_analyzability(conn, &event)?;
+
+    let edges = crate::catalog::store::list_relationships(conn, None)?;
+    let mut outgoing = Vec::new();
+    let mut incoming = Vec::new();
+    let mut derived = Vec::new();
+    for e in edges {
+        let is_derived = e.evidence_kind
+            == crate::catalog::domain::EVIDENCE_DERIVED_TEMPORAL_OVERLAP
+            || e.evidence_kind == crate::catalog::domain::EVIDENCE_DERIVED_ENTITY_OVERLAP;
+        let row = RelationshipRowView {
+            from: event_external(conn, e.from_event_id),
+            to: e.to_external_id.clone(),
+            kind: e.relationship_kind.clone(),
+            evidence: e.evidence_kind.clone(),
+            snapshot_id: e.source_snapshot_id,
+            reviewed: e.reviewed_status.clone(),
+            note: e.note.clone().unwrap_or_default(),
+        };
+        if e.from_event_id == event.id && !is_derived {
+            outgoing.push(row);
+        } else if e.to_event_id == Some(event.id) && !is_derived {
+            incoming.push(row);
+        } else if is_derived && (e.from_event_id == event.id || e.to_event_id == Some(event.id)) {
+            derived.push(row);
+        }
+    }
+
+    let discoveries: Vec<DiscoveryRowView> =
+        crate::catalog::store::list_discoveries(conn, "grnoc-public-task-viewer", None)?
+            .into_iter()
+            .filter(|d| d.external_id == event.external_id)
+            .map(|d| DiscoveryRowView {
+                external_id: d.external_id,
+                provenance: d.provenance,
+                status: d.status,
+                discovered_at: d.discovered_at,
+            })
+            .collect();
+
+    let fetches: Vec<FetchRowView> = crate::catalog::store::list_snapshot_fetches(conn, event.id)?
+        .into_iter()
+        .map(|f| FetchRowView {
+            fetched_at: f.fetched_at,
+            http_status: f.http_status,
+            method: f.acquisition_method,
+            retries: f.retry_count,
+            snapshot_id: f.snapshot_id,
+        })
+        .collect();
+
+    // Candidate groups containing this event.
+    let mut groups = Vec::new();
+    for g in crate::catalog::grouping::list_candidates(conn)? {
+        if g.member_event_ids.contains(&event.id) {
+            let members: Vec<String> = g
+                .member_event_ids
+                .iter()
+                .map(|id| {
+                    crate::catalog::db::get_event(conn, *id)
+                        .ok()
+                        .flatten()
+                        .map(|e| e.external_id)
+                        .unwrap_or_else(|| id.to_string())
+                })
+                .collect();
+            groups.push(GroupRowView {
+                id: g.id,
+                label: g.label,
+                confidence: g.confidence,
+                review_status: g.review_status,
+                members: members.join(", "),
+            });
+        }
+    }
+
+    Ok(Some(EventRelationshipsView {
+        event_id: event.external_id.clone(),
+        title,
+        analyzability: analyzability.readiness,
+        analyzability_reason: analyzability.reason,
+        outgoing,
+        incoming,
+        derived,
+        discoveries,
+        groups,
+        fetches,
+    }))
+}
+
+fn event_external(conn: &rusqlite::Connection, event_id: i64) -> String {
+    crate::catalog::db::get_event(conn, event_id)
+        .ok()
+        .flatten()
+        .map(|e| e.external_id)
+        .unwrap_or_else(|| format!("#{event_id}"))
+}
+
+pub fn load_analysis_queue(
+    conn: &rusqlite::Connection,
+    filters: &QueueFilters,
+) -> Result<AnalysisQueueView, String> {
+    use crate::catalog::analyzability::derive_all_analyzability;
+    let events = crate::catalog::db::list_events(conn)?;
+    let readiness: std::collections::HashMap<i64, (String, String)> =
+        derive_all_analyzability(conn)?
+            .into_iter()
+            .map(|a| (a.event_id, (a.readiness, a.reason)))
+            .collect();
+    let mut rows = Vec::new();
+    for e in &events {
+        let snaps = crate::catalog::db::list_snapshots(conn, e.id)?;
+        let Some(latest) = snaps.first() else {
+            continue;
+        };
+        let v: serde_json::Value =
+            serde_json::from_str(&latest.normalized_json).unwrap_or_default();
+        let title = v
+            .get("title")
+            .and_then(|x| x.as_str())
+            .unwrap_or("")
+            .to_string();
+        let task_type = v
+            .get("task_type")
+            .and_then(|x| x.as_str())
+            .unwrap_or("")
+            .to_string();
+        let start = v
+            .get("start")
+            .and_then(|x| x.as_str())
+            .unwrap_or("")
+            .to_string();
+        let end = v
+            .get("end")
+            .and_then(|x| x.as_str())
+            .unwrap_or("")
+            .to_string();
+        let lifecycle = if end.is_empty() { "Open" } else { "Closed" }.to_string();
+        let (readiness, reason) = readiness
+            .get(&e.id)
+            .cloned()
+            .unwrap_or_else(|| (String::new(), String::new()));
+        let expectation = latest_expectation(conn, e.id)?.unwrap_or_default();
+        let case_studies = {
+            let mut stmt = conn
+                .prepare(
+                    "SELECT c.slug FROM case_studies c
+                     JOIN case_study_event_links l ON l.case_study_id = c.id
+                     WHERE l.catalog_event_id = ?1 ORDER BY c.slug",
+                )
+                .map_err(|e| format!("catalog read failed: {e}"))?;
+            let slugs: Vec<String> = stmt
+                .query_map([e.id], |r| r.get::<_, String>(0))
+                .map_err(|e| format!("catalog read failed: {e}"))?
+                .flatten()
+                .collect();
+            slugs.join(", ")
+        };
+        if let Some(f) = &filters.state {
+            if readiness != *f {
+                continue;
+            }
+        }
+        if let Some(f) = &filters.lifecycle {
+            if lifecycle != *f {
+                continue;
+            }
+        }
+        if let Some(f) = &filters.task_type {
+            if !task_type.to_lowercase().contains(&f.to_lowercase()) {
+                continue;
+            }
+        }
+        if let Some(f) = &filters.expectation {
+            if !expectation.to_lowercase().contains(&f.to_lowercase()) {
+                continue;
+            }
+        }
+        if let Some(f) = &filters.case_study {
+            if !case_studies.split(',').any(|s| s.trim() == f) {
+                continue;
+            }
+        }
+        if let Some(f) = &filters.date_from {
+            if start < *f {
+                continue;
+            }
+        }
+        if let Some(f) = &filters.date_to {
+            if !start.is_empty() && start > *f {
+                continue;
+            }
+        }
+        if let Some(f) = &filters.q {
+            let hay = format!("{} {title}", e.external_id).to_lowercase();
+            if !hay.contains(&f.to_lowercase()) {
+                continue;
+            }
+        }
+        rows.push(QueueRowView {
+            external_id: e.external_id.clone(),
+            title,
+            task_type,
+            lifecycle,
+            start,
+            reason,
+            readiness,
+            expectation,
+            case_studies,
+        });
+    }
+    rows.sort_by(|a, b| {
+        b.start
+            .cmp(&a.start)
+            .then_with(|| a.external_id.cmp(&b.external_id))
+    });
+    Ok(AnalysisQueueView {
+        rows,
+        filters: filters.clone(),
+    })
+}
+
+pub fn load_incident_candidates(
+    conn: &rusqlite::Connection,
+) -> Result<IncidentCandidatesView, String> {
+    use crate::catalog::grouping::confidence;
+    let mut groups = Vec::new();
+    let mut explicit = 0usize;
+    let mut strong = 0usize;
+    let mut weak = 0usize;
+    let mut rejected = 0usize;
+    for g in crate::catalog::grouping::list_candidates(conn)? {
+        let members: Vec<String> = g
+            .member_event_ids
+            .iter()
+            .map(|id| event_external(conn, *id))
+            .collect();
+        let evidence: Vec<GroupEvidenceView> = g
+            .evidence
+            .iter()
+            .map(|e| GroupEvidenceView {
+                signal: e.signal.clone(),
+                detail: e.detail.clone(),
+            })
+            .collect();
+        match g.confidence.as_str() {
+            c if c == confidence::EXPLICITLY_LINKED => explicit += 1,
+            c if c == confidence::STRONG_CANDIDATE => strong += 1,
+            c if c == confidence::WEAK_CANDIDATE => weak += 1,
+            c if c == confidence::REJECTED => rejected += 1,
+            _ => {}
+        }
+        groups.push(IncidentGroupView {
+            id: g.id,
+            label: g.label,
+            confidence: g.confidence,
+            review_status: g.review_status,
+            members,
+            evidence,
+        });
+    }
+    Ok(IncidentCandidatesView {
+        groups,
+        explicit,
+        strong,
+        weak,
+        rejected,
+    })
+}
+
+pub fn load_archive_batches(conn: &rusqlite::Connection) -> Result<ArchiveBatchesView, String> {
+    use crate::catalog::archive_plan::{AnalysisHorizon, ArchivePlan};
+    use crate::catalog::batch::{plan_batch, EventPlanInput};
+    let mut batches = Vec::new();
+    let mut stmt = conn
+        .prepare(
+            "SELECT p.id, p.horizon_json, p.plan_json, c.slug FROM case_study_analysis_plans p
+             JOIN case_studies c ON c.id = p.case_study_id ORDER BY c.slug",
+        )
+        .map_err(|e| format!("catalog read failed: {e}"))?;
+    let rows = stmt
+        .query_map([], |r| {
+            Ok((
+                r.get::<_, i64>(0)?,
+                r.get::<_, String>(1)?,
+                r.get::<_, String>(2)?,
+                r.get::<_, String>(3)?,
+            ))
+        })
+        .map_err(|e| format!("catalog read failed: {e}"))?;
+    for row in rows {
+        let (plan_id, horizon_json, plan_json, slug) =
+            row.map_err(|e| format!("catalog read failed: {e}"))?;
+        let Ok(plan) = serde_json::from_str::<ArchivePlan>(&plan_json) else {
+            continue;
+        };
+        let Ok(horizon) = serde_json::from_str::<AnalysisHorizon>(&horizon_json) else {
+            continue;
+        };
+        let mut stmt2 = conn
+            .prepare(
+                "SELECT external_identifier FROM case_study_event_links
+                 WHERE case_study_id = ?1 AND catalog_event_id IS NOT NULL ORDER BY sort_order",
+            )
+            .map_err(|e| format!("catalog read failed: {e}"))?;
+        let ids: Vec<String> = stmt2
+            .query_map([plan_id], |r| r.get::<_, String>(0))
+            .map_err(|e| format!("catalog read failed: {e}"))?
+            .flatten()
+            .collect();
+        if ids.is_empty() {
+            continue;
+        }
+        let inputs: Vec<EventPlanInput> = ids
+            .iter()
+            .map(|id| EventPlanInput {
+                event_id: id.clone(),
+                horizon: horizon.clone(),
+                plan: plan.clone(),
+            })
+            .collect();
+        let batch = plan_batch(&inputs);
+        batches.push(ArchiveBatchView {
+            case_study: slug,
+            batch_id: batch.batch_id,
+            events: batch.events.len(),
+            unique_archives: batch.unique_archives.len(),
+            archives_avoided: batch.archives_avoided_through_reuse,
+            estimated_bytes: batch.estimated_compressed_bytes,
+            parse_operations: batch.expected_parse_operations,
+            families: batch.source_families.join(", "),
+            cohorts: batch.events.iter().map(|e| e.event_id.clone()).collect(),
+        });
+    }
+    Ok(ArchiveBatchesView {
+        batches,
+        note: "Batch plans are deterministic groupings of per-event raw archive requirements; archive reuse never merges event evidence. Nothing is downloaded to produce these plans.".to_string(),
+    })
+}
