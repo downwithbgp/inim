@@ -79,3 +79,13 @@ incident. A NotDirectlyVisible claim is classified as
 `NotDirectlyObservable` in the comparison matrix — never reported as a
 missed detection; `no BGP change does not refute a Layer-2 incident`, and
 `observed BGP change does not prove the reported mechanism`.
+
+## Historical predicate validation (Session 31)
+
+A MAN LAN attachment predicate is a **candidate** until validated by
+contemporaneous observation: the 2019-08-21 RouteViews RIB (Stage A
+preflight) confirmed ContainsAny[11537] for AS2603 (33 streams), so the
+pilot predicate is reviewed-by-observation rather than assumed. A
+NotDirectlyVisible condition stays NotDirectlyObservable even when a pilot
+run exists; a narrow pilot's absence of observations never refutes
+non-BGP-visible conditions, and never extends beyond its own window.

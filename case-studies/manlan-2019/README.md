@@ -35,11 +35,30 @@ inim catalog document import --db data/inim.sqlite \
 
 ## Status (honest by design)
 
-- Target research: **incomplete** (no historical mappings reviewed yet).
-- Archive plan: produced by `inim catalog case-study plan` as a **Draft**
-  (no archives downloaded).
-- BGP analysis: **not executed**. No public-BGP conclusion is produced
-  until historical target mappings and the archive plan are reviewed.
+- **Document**: the AAR PDF is attached (SHA-256 verified, 15 pages,
+  catalog-relative storage under `data/documents/d29df26a2699/`).
+- **Target research**: reviewed (2026-08-01) in `target-research.json` —
+  6 HistoricallyReviewed (NORDUnet AS2603, ESnet AS293, GÉANT AS21320,
+  CANARIE AS6509, TWAREN AS7539, SINET AS2907 — AS9264 positively
+  excluded), 2 NotApplicableToPublicBgp (Ixia, WIX), 1
+  AmbiguousServiceIdentity (NEAAR), 1 Unresolved (OMAN). No ASN is
+  guessed; every reviewed mapping has dated sources.
+- **Path predicate**: ContainsAny[11537] (Internet2 transit presence) is a
+  candidate validated empirically by the 2019-08-21 RIB during Stage A —
+  it is kept separate from origin mappings.
+- **Archive plan**: Draft, corrected to the reconstruction contract — one
+  baseline RIB + one validation RIB + the 5-minute UPDATE sequence
+  (272 files/collector, 02:00 → 00:35 next day, proven by first/last
+  records); ~1.8 GiB compressed total (was mis-reported as 3.3 GiB with 12
+  interval RIBs).
+- **Pilot (Stage B, Complete)**: NORDUnet (AS2603) at route-views2,
+  16:00–17:30 UTC — 11/33 selected streams absent 16:45:25Z for 2 s, 30
+  path replacements, full baseline return by 17:02:19Z. See
+  `pilot/PILOT-SELECTION.md` and `pilot/pilot-result.json`. The pilot is a
+  **single-target, single-collector, bounded-window** result — it is NOT a
+  complete MAN LAN incident verdict.
+- **Full incident-wide BGP analysis**: **not executed**. No whole-incident
+  public-BGP conclusion exists.
 
 The AAR lists multiple contributors; this data file does not reproduce
 contributor names in the primary UI.

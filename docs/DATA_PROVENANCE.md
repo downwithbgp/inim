@@ -136,3 +136,19 @@ parallel runs produce identical artifacts).
 - The MAN LAN AAR PDF is not redistributed: its record carries
   redistribution status `Unknown` and no local copy exists in this
   repository; local document storage is excluded from the crate package.
+
+## Historical research and pilot provenance (Session 31)
+
+- Reviewed target mappings carry: exact ASN set, validity date, sources
+  (URLs + what each says), reviewed statement, confidence. A mapping is
+  HistoricallyReviewed only with dated evidence; AS9264-style mistakes
+  (candidate positively excluded) are recorded, not silently replaced.
+- The path predicate is validated by contemporaneous RouteViews RIB
+  observation during Stage A preflight (evidence hierarchy level 4) — the
+  2019-08-21 02:00 RIB showed 33 AS2603 routes transiting AS11537.
+- Pilot artifacts (report, transitions, withdrawal audit, evidence
+  appendix) are immutable run artifacts under
+  `case-studies/manlan-2019/pilot/out/MANLAN-2019-NORDUNET-PILOT/`;
+  `run_transitions` remains a compact index rebuilt from `transitions.json`.
+- The pilot result is one target, one collector, one window; it never
+  becomes a complete-incident verdict in any artifact or UI text.

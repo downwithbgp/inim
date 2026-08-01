@@ -254,3 +254,35 @@ derivation without misunderstanding this as a universal rule.
   Document serving validates record existence, catalog-relative path,
   canonical containment under the catalog root, SHA-256 match, and media
   allowlist (inline only for approved types).
+
+## Historical validation and pilots (Session 31)
+
+- **Reconstruction contract**: one baseline RIB (latest at or before
+  warmup_start) establishes initial state; the UPDATE sequence covers
+  [warmup_start, cooldown_end] at the archive's cadence; one optional
+  post-window validation RIB is a continuity checkpoint only and is never
+  replayed as event input. Interval RIBs are not selected as repeated
+  baselines.
+- **Target research method**: dated evidence hierarchy (operator docs →
+  contemporaneous RIR → archived PeeringDB → contemporaneous RouteViews
+  observations → reputable dated docs); current metadata is a lead only.
+  Origin identity and path predicate are separate questions; a predicate
+  (e.g. ContainsAny[11537] for Internet2 transit presence) is a candidate
+  until validated by contemporaneous RIB observation.
+- **Reviewed research record** (`target-research.json`) is canonical;
+  `inim catalog case-study apply-research` updates only research fields of
+  matching target rows (documented immutability exception with audit
+  timestamp; no new tables).
+- **Staged execution**: Stage A = broker + one baseline RIB preflight
+  (`--preflight-only`, no updates, JSON contract on stdout); Stage B =
+  short-window pilot around one documented boundary; Stage C = full run
+  only if Stage B is interpretable. No full download without reviewed
+  approval.
+- **Run-window coverage in comparisons**: a narrow pilot run can only
+  contribute observations (or no-counterpart conclusions) for claim
+  windows its own event window intersects; otherwise the comparison says
+  Indeterminate ("no linked analysis run covers this window") rather than
+  fabricating a negative.
+- **Pilot results** are reviewed data (`pilot-result.json`) recorded on the
+  plan record and rendered as "Historical pilot — <target>", explicitly
+  narrower than the whole incident.

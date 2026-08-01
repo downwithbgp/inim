@@ -82,3 +82,18 @@ Key decisions:
   containment, SHA-256, media allowlist) and read-only.
 - Future analysis runs can be linked and compared phase by phase with the
   operator timeline without implying causation.
+
+### Update (Session 31)
+
+- Case studies begin with **narrow pilots**: one target, one collector,
+  one bounded window around a documented boundary; Stage A (RIB preflight,
+  `--preflight-only`) precedes any UPDATE acquisition, and a full run
+  requires an interpretable pilot.
+- **Historical entity mappings require dated review**; the reviewed
+  research record is applied to target rows via `apply-research` (the only
+  documented mutation of research fields, with an audit timestamp), never
+  guessed from current metadata.
+- Comparisons respect **run-window coverage**: an out-of-scope run cannot
+  fabricate a negative for a claim window it never covered.
+- Pilot findings are labeled "Historical pilot — <target>" and never
+  broadened into a complete-incident conclusion.
