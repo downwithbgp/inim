@@ -46,16 +46,18 @@ stub with no usable baseline RIB.
    collector by peer count; 619 AS2603-origin routes, 11 with AS11537 in
    path. European hub with maximal peer diversity; archive volume
    ~764 MB (bview 439 MB + ~204 update files ≈ 324 MB).
-2. **rrc06** (United States) — North American vantage; 39 AS2603-origin
-   routes, 12 with AS11537 in path. Small archive volume (~29 MB total),
-   complete coverage. Geographic diversity against rrc00.
+2. **rrc06** (Otemachi, Tokyo, Japan; DIX-IE/JPIX) — Asian vantage; 39
+   AS2603-origin routes, 12 with AS11537 in path. Small archive volume
+   (~29 MB total), complete coverage. Geographic diversity against rrc00.
+   (Location corrected: rrc06 is the Tokyo collector, not a US collector;
+   see collector-locations.json, as-of 2019-09-05.)
 3. **rrc15** (São Paulo, Brazil) — South American vantage; 247
    AS2603-origin routes, 24 with AS11537 in path — the highest
    qualifying stream count. Archive volume ~461 MB.
 
 Selection criteria applied: qualifying visibility (nonzero AS11537-in-path
 streams), peer diversity (rrc00 largest), geographic diversity (Europe /
-North America / South America), manageable archive volume, complete
+Asia / South America), manageable archive volume, complete
 archive coverage (verified 01:30–18:30 UTC updates).
 
 ## Rejected collectors and reasons

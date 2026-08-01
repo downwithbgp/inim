@@ -572,3 +572,328 @@ mod tests {
         assert_eq!(roles.len(), 1);
     }
 }
+
+/// Reviewed collector-location metadata with temporal provenance.
+///
+/// Location describes where the collector's route reflector is hosted; it
+/// does NOT describe the geographic path of observed routes and never
+/// defines a network's role.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CollectorLocation {
+    pub family: String,
+    pub collector: String,
+    pub location: String,
+    pub facility: String,
+    #[serde(default)]
+    pub note: Option<String>,
+}
+
+/// A registry of collector locations, loaded from a reviewed data file.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct CollectorLocationRegistry {
+    pub as_of: String,
+    pub collectors: Vec<CollectorLocation>,
+}
+
+impl CollectorLocationRegistry {
+    pub fn load(path: &Path) -> Result<Self, String> {
+        let raw = std::fs::read_to_string(path)
+            .map_err(|e| format!("cannot read collector metadata {}: {e}", path.display()))?;
+        serde_json::from_str(&raw)
+            .map_err(|e| format!("invalid collector metadata {}: {e}", path.display()))
+    }
+
+    /// Look up a collector's reviewed location.
+    pub fn location(&self, family: &str, collector: &str) -> Option<&CollectorLocation> {
+        self.collectors
+            .iter()
+            .find(|c| c.family == family && c.collector == collector)
+    }
+}
+
+/// Path-class membership counts for one session (or collector): how many
+/// origin-matching routes contain each named plane's ASN, how many contain
+/// no plane ASN. The four-bucket (A-only / B-only / both / neither) view is
+/// a rendering of these generic counts for a two-plane profile.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub struct PathClassCounts {
+    /// Routes whose AS path contains the plane's ASN, per plane id.
+    pub per_plane_contains: Vec<(String, usize)>,
+    /// Routes containing no named-plane ASN.
+    pub neither_plane: usize,
+    pub total: usize,
+}
+
+impl PathClassCounts {
+    /// Increment membership for every plane whose ASN appears in `path`.
+    pub fn observe(&mut self, profile: &ServicePlaneProfile, path: &[u32]) {
+        self.total += 1;
+        let mut matched = false;
+        for plane in &profile.service_planes {
+            if path.iter().any(|a| plane.asns.contains(a)) {
+                let entry = self
+                    .per_plane_contains
+                    .iter_mut()
+                    .find(|(id, _)| id == &plane.id);
+                match entry {
+                    Some((_, n)) => *n += 1,
+                    None => self.per_plane_contains.push((plane.id.clone(), 1)),
+                }
+                matched = true;
+            }
+        }
+        if !matched {
+            self.neither_plane += 1;
+        }
+    }
+}
+
+/// One historical collector session (peer) as observed in a baseline RIB.
+///
+/// The peer ASN comes from the MRT header of the historical RIB — the
+/// source of truth. Current peer lists are supporting context only and can
+/// never override these rows.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SessionAuditRow {
+    pub source_family: String,
+    pub collector: String,
+    /// Reviewed collector location (registry data, for display only).
+    pub location: String,
+    pub rib_timestamp_utc: String,
+    pub rib_source_sha: String,
+    pub peer_ip: String,
+    pub peer_asn: u32,
+    pub address_family: String,
+    /// Origin-matching route count received from this peer.
+    pub origin_route_count: usize,
+    pub distinct_prefixes: usize,
+    pub path_class: PathClassCounts,
+}
+
+/// Aggregate origin-matching routes into per-session audit rows.
+///
+/// `evidence_at` is the RIB timestamp; `source_sha` identifies the RIB.
+/// IPv4 and IPv6 sessions of the same collector stay distinct rows (the
+/// session key includes the address family).
+pub fn audit_sessions(
+    profile: &ServicePlaneProfile,
+    registry: &CollectorLocationRegistry,
+    source_family: &str,
+    collector: &str,
+    evidence_at: &str,
+    source_sha: &str,
+    routes: &[PathEvidence],
+) -> Vec<SessionAuditRow> {
+    let mut rows: Vec<SessionAuditRow> = Vec::new();
+    for route in routes {
+        let key = (&route.peer_ip, route.peer_asn, &route.address_family);
+        let row = rows.iter_mut().find(|r| {
+            r.peer_ip.as_str() == key.0 && r.peer_asn == key.1 && r.address_family.as_str() == key.2
+        });
+        match row {
+            Some(row) => {
+                row.origin_route_count += 1;
+                row.path_class.observe(profile, &route.as_path);
+            }
+            None => {
+                let mut pc = PathClassCounts::default();
+                pc.observe(profile, &route.as_path);
+                let location = registry
+                    .location(source_family, collector)
+                    .map(|c| c.location.clone())
+                    .unwrap_or_else(|| "unknown".to_string());
+                rows.push(SessionAuditRow {
+                    source_family: source_family.to_string(),
+                    collector: collector.to_string(),
+                    location,
+                    rib_timestamp_utc: evidence_at.to_string(),
+                    rib_source_sha: source_sha.to_string(),
+                    peer_ip: route.peer_ip.clone(),
+                    peer_asn: route.peer_asn,
+                    address_family: route.address_family.clone(),
+                    origin_route_count: 1,
+                    distinct_prefixes: 1,
+                    path_class: pc,
+                });
+            }
+        }
+    }
+    // Count distinct prefixes per session.
+    let mut seen: Vec<Vec<String>> = rows.iter().map(|_| Vec::new()).collect();
+    for route in routes {
+        let idx = rows
+            .iter()
+            .position(|r| {
+                r.peer_ip == route.peer_ip
+                    && r.peer_asn == route.peer_asn
+                    && r.address_family == route.address_family
+            })
+            .unwrap_or(usize::MAX);
+        if idx != usize::MAX && !seen[idx].contains(&route.prefix) {
+            seen[idx].push(route.prefix.clone());
+        }
+    }
+    for (i, row) in rows.iter_mut().enumerate() {
+        row.distinct_prefixes = seen[i].len();
+    }
+    rows
+}
+
+#[cfg(test)]
+mod session_audit_tests {
+    use super::*;
+
+    fn profile_two_planes() -> ServicePlaneProfile {
+        ServicePlaneProfile {
+            service_planes: vec![
+                NamedServicePlane {
+                    id: "re".to_string(),
+                    display_label: "R&E".to_string(),
+                    asns: vec![64500],
+                },
+                NamedServicePlane {
+                    id: "pex".to_string(),
+                    display_label: "Peer Exchange".to_string(),
+                    asns: vec![64501],
+                },
+            ],
+            asn_roles: vec![],
+            updated_utc: "2026-08-02T00:00:00Z".to_string(),
+            provenance: "test".to_string(),
+        }
+    }
+
+    fn registry() -> CollectorLocationRegistry {
+        CollectorLocationRegistry {
+            as_of: "2019-09-05".to_string(),
+            collectors: vec![
+                CollectorLocation {
+                    family: "ris".to_string(),
+                    collector: "rrc06".to_string(),
+                    location: "Otemachi, Tokyo, Japan".to_string(),
+                    facility: "DIX-IE / JPIX".to_string(),
+                    note: None,
+                },
+                CollectorLocation {
+                    family: "ris".to_string(),
+                    collector: "rrc15".to_string(),
+                    location: "Sao Paulo, Brazil".to_string(),
+                    facility: "PTTMetro".to_string(),
+                    note: None,
+                },
+            ],
+        }
+    }
+
+    fn routes_for(peer_ip: &str, peer_asn: u32, af: &str, prefixes: &[&str]) -> Vec<PathEvidence> {
+        prefixes
+            .iter()
+            .map(|p| PathEvidence {
+                peer_ip: peer_ip.to_string(),
+                peer_asn,
+                address_family: af.to_string(),
+                prefix: p.to_string(),
+                as_path: vec![peer_asn, 64500],
+            })
+            .collect()
+    }
+
+    #[test]
+    fn rrc06_location_is_not_united_states() {
+        let reg = registry();
+        let loc = reg.location("ris", "rrc06").expect("rrc06 metadata");
+        assert!(
+            !loc.location.contains("United States"),
+            "rrc06 must not be labeled United States"
+        );
+        assert!(loc.location.contains("Tokyo"));
+        assert!(loc.location.contains("Japan"));
+        assert!(loc.location.contains("Otemachi"));
+    }
+
+    #[test]
+    fn historical_session_audit_uses_rib_peer_asn() {
+        let p = profile_two_planes();
+        let reg = registry();
+        let routes = routes_for("192.0.2.1", 64500, "ipv4", &["198.51.100.0/24"]);
+        let rows = audit_sessions(
+            &p,
+            &reg,
+            "ris",
+            "rrc06",
+            "2019-08-21T00:00:00Z",
+            "sha",
+            &routes,
+        );
+        assert_eq!(rows.len(), 1);
+        // The peer ASN comes from the RIB evidence, not from any registry.
+        assert_eq!(rows[0].peer_asn, 64500);
+        assert_eq!(rows[0].origin_route_count, 1);
+        assert_eq!(rows[0].distinct_prefixes, 1);
+        // Location is display-only registry data, clearly separate.
+        assert_eq!(rows[0].location, "Otemachi, Tokyo, Japan");
+    }
+
+    #[test]
+    fn current_peer_metadata_does_not_override_historical_evidence() {
+        let p = profile_two_planes();
+        let reg = registry();
+        // A hypothetical current peer list would claim a different peer
+        // ASN for this session; the audit keeps the RIB's peer ASN.
+        let routes = routes_for("192.0.2.1", 64500, "ipv4", &["198.51.100.0/24"]);
+        let rows = audit_sessions(
+            &p,
+            &reg,
+            "ris",
+            "rrc06",
+            "2019-08-21T00:00:00Z",
+            "sha",
+            &routes,
+        );
+        assert_eq!(rows[0].peer_asn, 64500);
+        assert_eq!(rows[0].peer_ip, "192.0.2.1");
+        // The registry carries location only — no peer ASN field exists to
+        // override with.
+        let loc = reg.location("ris", "rrc06").unwrap();
+        assert!(!loc.location.is_empty());
+    }
+
+    #[test]
+    fn collector_location_and_peer_network_location_are_distinct() {
+        let p = profile_two_planes();
+        let reg = registry();
+        // Two collectors with the same peer get different location strings
+        // (collector metadata), while the peer evidence stays identical.
+        let routes = routes_for("192.0.2.9", 64500, "ipv4", &["198.51.100.0/24"]);
+        let a = audit_sessions(&p, &reg, "ris", "rrc06", "T", "sha", &routes);
+        let b = audit_sessions(&p, &reg, "ris", "rrc15", "T", "sha", &routes);
+        assert_eq!(a[0].peer_ip, b[0].peer_ip);
+        assert_eq!(a[0].peer_asn, b[0].peer_asn);
+        assert_ne!(a[0].location, b[0].location);
+        // And classification never consults location: same classification
+        // for both collectors.
+        assert_eq!(
+            classify_route(&p, 64500, &[64500]),
+            classify_route(&p, 64500, &[64500])
+        );
+    }
+
+    #[test]
+    fn ipv4_and_ipv6_sessions_remain_distinct() {
+        let p = profile_two_planes();
+        let reg = registry();
+        let mut routes = routes_for("192.0.2.1", 64500, "ipv4", &["198.51.100.0/24"]);
+        routes.extend(routes_for(
+            "2001:db8::1",
+            64500,
+            "ipv6",
+            &["2001:db8:1::/48"],
+        ));
+        let rows = audit_sessions(&p, &reg, "ris", "rrc06", "T", "sha", &routes);
+        assert_eq!(rows.len(), 2, "v4 and v6 sessions must stay distinct rows");
+        assert_eq!(rows[0].address_family, "ipv4");
+        assert_eq!(rows[1].address_family, "ipv6");
+        assert_eq!(rows[0].distinct_prefixes, 1);
+        assert_eq!(rows[1].distinct_prefixes, 1);
+    }
+}
