@@ -1161,7 +1161,7 @@ mod session32_jobs_tests {
         // before ever reaching it (main::validate_jobs).
         let auto = resolve_jobs(0, 0, 100);
         assert!(
-            auto >= 1 && auto <= 4,
+            (1..=4).contains(&auto),
             "auto fallback bounded to 4, got {auto}"
         );
     }
