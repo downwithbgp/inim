@@ -310,6 +310,7 @@ fn import_one(
             // ── Stream + wave summaries from the artifact JSONs ────
             import_stream_summaries(conn, run_id, &event_out, summary)?;
             import_wave_summaries(conn, run_id, &event_out, summary)?;
+            import_transitions(conn, run_id, &event_out, summary)?;
         }
     }
 
@@ -503,6 +504,90 @@ fn import_wave_summaries(
     Ok(())
 }
 
+/// Import per-transition records from `transitions.json` into
+/// `run_transitions` (one row per (run, seq), idempotent).
+fn import_transitions(
+    conn: &Connection,
+    run_id: i64,
+    event_out: &Path,
+    _summary: &mut ImportSummary,
+) -> Result<(), String> {
+    let path = event_out.join("transitions.json");
+    if !path.is_file() {
+        return Ok(());
+    }
+    let content =
+        std::fs::read_to_string(&path).map_err(|e| format!("cannot read transitions: {e}"))?;
+    let value: serde_json::Value =
+        serde_json::from_str(&content).map_err(|e| format!("invalid transitions.json: {e}"))?;
+    let transitions = value
+        .get("transitions")
+        .and_then(|v| v.as_array())
+        .cloned()
+        .unwrap_or_default();
+    for t in transitions {
+        let rec = RunTransitionRecord {
+            id: 0,
+            run_id,
+            seq: t.get("seq").and_then(|v| v.as_i64()).unwrap_or(0),
+            kind: t
+                .get("kind")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string(),
+            occurred_utc: t
+                .get("occurred_utc")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string(),
+            run_phase: t
+                .get("phase")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string(),
+            collector: t
+                .get("collector")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string(),
+            peer_ip: t
+                .get("peer_ip")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string(),
+            prefix: t
+                .get("prefix")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string(),
+            path_id: t.get("path_id").and_then(|v| v.as_i64()),
+            material_path_changed: t
+                .get("material_path_changed")
+                .and_then(|v| v.as_bool())
+                .unwrap_or(false),
+            communities_changed: t
+                .get("communities_changed")
+                .and_then(|v| v.as_bool())
+                .unwrap_or(false),
+            announced: t
+                .get("announced")
+                .and_then(|v| v.as_bool())
+                .unwrap_or(false),
+            withdrawn: t
+                .get("withdrawn")
+                .and_then(|v| v.as_bool())
+                .unwrap_or(false),
+            observation_id: t.get("observation_id").and_then(|v| v.as_i64()),
+            archive_sha256: t
+                .get("archive_sha256")
+                .and_then(|v| v.as_str())
+                .map(|v| v.to_string()),
+        };
+        store::insert_run_transition(conn, &rec)?;
+    }
+    Ok(())
+}
+
 /// Find a ticket fixture for an event id.
 fn ticket_fixture_for(event_id: &str) -> Option<PathBuf> {
     for base in ["tests/fixtures/internet2", "tests/fixtures/grnoc"] {
@@ -620,6 +705,64 @@ mod tests {
             plans[0].block_reason.as_deref(),
             Some("MissingReviewedTransitPredicate")
         );
+    }
+
+    #[test]
+    fn transitions_import_populates_run_rows_and_is_idempotent() {
+        if !repo_artifacts_available() {
+            return;
+        }
+        let (_dir, conn) = open_temp_db();
+        let root = temp_repo_root();
+        // Inject a transitions artifact into the completed INC0302574 out dir.
+        let out = root.path().join("out/INC0302574");
+        let artifact = r#"{
+          "schema_version": 1,
+          "event_id": "INC0302574",
+          "transitions": [
+            {"seq": 0, "kind": "Withdrawal", "occurred_utc": "2026-07-29T09:30:00Z",
+             "phase": "Event", "collector": "route-views2", "peer_ip": "128.223.51.110",
+             "prefix": "192.0.2.0/24", "path_id": null, "material_path_changed": false,
+             "communities_changed": false, "announced": false, "withdrawn": true,
+             "observation_id": 11, "archive_sha256": "abc"},
+            {"seq": 1, "kind": "PathReplacement", "occurred_utc": "2026-07-29T09:45:00Z",
+             "phase": "Event", "collector": "route-views2", "peer_ip": "128.223.51.110",
+             "prefix": "192.0.2.0/24", "path_id": 7, "material_path_changed": true,
+             "communities_changed": false, "announced": false, "withdrawn": false,
+             "observation_id": 12, "archive_sha256": "abc"}
+          ]
+        }"#;
+        std::fs::write(out.join("transitions.json"), artifact).unwrap();
+        let root2 = temp_repo_root();
+        let out2 = root2.path().join("out/INC0302574");
+        std::fs::write(out2.join("transitions.json"), artifact).unwrap();
+        // Import twice: rows are created once.
+        import_repository(&conn, root.path(), "0.1.0", Some("test")).unwrap();
+        import_repository(&conn, root2.path(), "0.1.0", Some("test")).unwrap();
+        let run_id: i64 = conn
+            .query_row(
+                "SELECT id FROM analysis_runs WHERE id = (SELECT MIN(id) FROM analysis_runs)",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_ne!(run_id, 0, "expected an imported run");
+        let _ = run_id;
+        let count: i64 = conn
+            .query_row("SELECT COUNT(*) FROM run_transitions", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(count, 2);
+        let (kind, occurred, pid, obs): (String, String, Option<i64>, Option<i64>) = conn
+            .query_row(
+                "SELECT kind, occurred_utc, path_id, observation_id FROM run_transitions WHERE seq = 1",
+                [],
+                |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?)),
+            )
+            .unwrap();
+        assert_eq!(kind, "PathReplacement");
+        assert_eq!(occurred, "2026-07-29T09:45:00Z");
+        assert_eq!(pid, Some(7));
+        assert_eq!(obs, Some(12));
     }
 
     #[test]

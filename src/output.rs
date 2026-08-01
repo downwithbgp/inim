@@ -93,6 +93,11 @@ pub fn write_outputs(ctx: &OutputContext, out_dir: &Path) -> Result<Vec<PathBuf>
         let lifecycle_path = out_dir.join("lifecycle.json");
         write_lifecycle_artifact(ctx, &lifecycle_path)?;
         files.push(lifecycle_path);
+
+        // Transitions artifact (per-transition records for phase summaries).
+        let transitions_path = out_dir.join("transitions.json");
+        write_transitions(ctx, &transitions_path)?;
+        files.push(transitions_path);
     }
 
     let limitations_path = out_dir.join("limitations.json");
@@ -1148,6 +1153,100 @@ fn write_lifecycle_artifact(ctx: &OutputContext, path: &Path) -> Result<(), Stri
     std::fs::write(path, json).map_err(|e| format!("cannot write {}: {e}", path.display()))
 }
 
+// ── transitions.json ───────────────────────────────────────────────
+
+#[derive(Serialize)]
+struct TransitionsArtifact {
+    schema_version: u32,
+    event_id: String,
+    transitions: Vec<TransitionArtifactRecord>,
+}
+
+#[derive(Serialize)]
+struct TransitionArtifactRecord {
+    seq: usize,
+    kind: String,
+    occurred_utc: String,
+    phase: String,
+    collector: String,
+    peer_ip: String,
+    prefix: String,
+    path_id: Option<u32>,
+    material_path_changed: bool,
+    communities_changed: bool,
+    announced: bool,
+    withdrawn: bool,
+    observation_id: u64,
+    archive_sha256: Option<String>,
+}
+
+/// Compact label for a transition kind (variant name only).
+pub fn transition_kind_label(kind: &crate::domain::route::TransitionKind) -> &'static str {
+    use crate::domain::route::TransitionKind;
+    match kind {
+        TransitionKind::Announcement => "Announcement",
+        TransitionKind::Withdrawal => "Withdrawal",
+        TransitionKind::Duplicate => "Duplicate",
+        TransitionKind::PathReplacement { .. } => "PathReplacement",
+        TransitionKind::AttributeChange => "AttributeChange",
+        TransitionKind::SessionReset => "SessionReset",
+        TransitionKind::Restoration => "Restoration",
+        TransitionKind::ReturnToBaseline => "ReturnToBaseline",
+    }
+}
+
+/// Human label for the run analysis phase.
+pub fn analysis_phase_label(phase: &crate::domain::route::AnalysisPhase) -> &'static str {
+    use crate::domain::route::AnalysisPhase;
+    match phase {
+        AnalysisPhase::Warmup => "Warmup",
+        AnalysisPhase::Event => "Event",
+        AnalysisPhase::Cooldown => "Cooldown",
+    }
+}
+
+/// Write the per-transition artifact used for phase-conditioned summaries.
+///
+/// `occurred_utc` is the route state timestamp when the state is present;
+/// for absent states (withdrawals) the evidence timestamp is used.
+pub fn write_transitions(ctx: &OutputContext, path: &Path) -> Result<(), String> {
+    let transitions = ctx
+        .transitions
+        .iter()
+        .enumerate()
+        .map(|(seq, t)| {
+            let occurred =
+                t.to.state
+                    .as_ref()
+                    .map(|st| st.timestamp)
+                    .unwrap_or(t.to.evidence.timestamp);
+            TransitionArtifactRecord {
+                seq,
+                kind: transition_kind_label(&t.kind).to_string(),
+                occurred_utc: occurred.to_rfc3339(),
+                phase: analysis_phase_label(&t.phase).to_string(),
+                collector: t.key.collector.clone(),
+                peer_ip: t.key.peer_ip.to_string(),
+                prefix: t.key.prefix.to_string(),
+                path_id: t.key.path_id,
+                material_path_changed: t.effects.material_path_changed,
+                communities_changed: t.effects.communities_changed,
+                announced: matches!(t.kind, crate::domain::route::TransitionKind::Announcement),
+                withdrawn: matches!(t.kind, crate::domain::route::TransitionKind::Withdrawal),
+                observation_id: t.triggering.observation_id.0,
+                archive_sha256: t.triggering.archive_sha256.clone(),
+            }
+        })
+        .collect::<Vec<_>>();
+    let artifact = TransitionsArtifact {
+        schema_version: crate::schema::TRANSITIONS_ARTIFACT_SCHEMA_VERSION,
+        event_id: ctx.event_id.to_string(),
+        transitions,
+    };
+    let json = serde_json::to_string_pretty(&artifact).map_err(|e| format!("JSON error: {e}"))?;
+    std::fs::write(path, json).map_err(|e| format!("cannot write {}: {e}", path.display()))
+}
+
 // ── limitations.json ───────────────────────────────────────────────
 
 #[derive(Serialize)]
@@ -1263,6 +1362,141 @@ mod tests {
             limitations,
             no_observable_impact: true,
         }
+    }
+
+    #[test]
+    fn transitions_artifact_records_withdrawal_timestamp_fallback() {
+        use crate::domain::observation::{Asn, CollectorId, EvidenceRef};
+        use crate::domain::route::{
+            AnalysisPhase, EvidencedRouteState, GenericTransitionEffects, RouteKey, RouteState,
+            RouteTransition, TransitionKind,
+        };
+        use chrono::TimeZone;
+
+        let t = |secs: i64| {
+            chrono::Utc.with_ymd_and_hms(2019, 8, 21, 4, 0, 0).unwrap()
+                + chrono::Duration::seconds(secs)
+        };
+        let ev = |id: u64| EvidenceRef {
+            observation_id: crate::domain::observation::ObservationId(id),
+            source_url: None,
+            archive_sha256: Some("abc123".to_string()),
+            collector: CollectorId("route-views2".to_string()),
+            peer_ip: "128.223.51.110".parse().unwrap(),
+            peer_asn: Asn(6447),
+            prefix: crate::domain::route::Prefix::from("192.0.2.0/24"),
+            timestamp: t(100),
+            element_seq: 0,
+            path_id: None,
+        };
+        let key = RouteKey::new(
+            "route-views2",
+            "128.223.51.110".parse().unwrap(),
+            &crate::domain::route::Prefix::from("192.0.2.0/24"),
+        );
+        // Withdrawal: `to` has no state; timestamp falls back to evidence.
+        let wd = RouteTransition::new(
+            key.clone(),
+            None,
+            Some(EvidencedRouteState::present(
+                RouteState {
+                    prefix: crate::domain::route::Prefix::from("192.0.2.0/24"),
+                    attributes: crate::domain::route::RouteAttributes::from_as_path(vec![
+                        6447, 65002, 65001,
+                    ]),
+                    timestamp: t(90),
+                    observer: "route-views2:128.223.51.110".into(),
+                    path_id: None,
+                },
+                ev(1),
+            )),
+            EvidencedRouteState::absent(ev(2)),
+            ev(2),
+            TransitionKind::Withdrawal,
+            GenericTransitionEffects::default(),
+            AnalysisPhase::Event,
+        );
+        // Path replacement: material change.
+        let mut effects = GenericTransitionEffects::default();
+        effects.material_path_changed = true;
+        let pr = RouteTransition::new(
+            key,
+            None,
+            Some(EvidencedRouteState::present(
+                RouteState {
+                    prefix: crate::domain::route::Prefix::from("192.0.2.0/24"),
+                    attributes: crate::domain::route::RouteAttributes::from_as_path(vec![
+                        6447, 65002, 65001,
+                    ]),
+                    timestamp: t(200),
+                    observer: "route-views2:128.223.51.110".into(),
+                    path_id: None,
+                },
+                ev(3),
+            )),
+            EvidencedRouteState::present(
+                RouteState {
+                    prefix: crate::domain::route::Prefix::from("192.0.2.0/24"),
+                    attributes: crate::domain::route::RouteAttributes::from_as_path(vec![
+                        6447, 9999, 65001,
+                    ]),
+                    timestamp: t(300),
+                    observer: "route-views2:128.223.51.110".into(),
+                    path_id: None,
+                },
+                ev(4),
+            ),
+            ev(4),
+            TransitionKind::PathReplacement {
+                old: crate::domain::route::AsPath(vec![6447, 65002, 65001]),
+                new: crate::domain::route::AsPath(vec![6447, 9999, 65001]),
+            },
+            effects,
+            AnalysisPhase::Event,
+        );
+
+        let outcome = sample_outcome();
+        let collectors = vec![];
+        let ribs = vec![];
+        let updates = vec![];
+        let transitions = vec![wd, pr];
+        let waves = vec![];
+        let semantic_waves = vec![];
+        let lifecycles = vec![];
+        let limitations = vec![];
+        let ctx = make_ctx(
+            &outcome,
+            &collectors,
+            &ribs,
+            &updates,
+            &transitions,
+            &waves,
+            &semantic_waves,
+            &lifecycles,
+            &limitations,
+        );
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("transitions.json");
+        write_transitions(&ctx, &path).unwrap();
+        let v: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
+        assert_eq!(v["schema_version"], 1);
+        assert_eq!(v["event_id"], "TEST");
+        let rows = v["transitions"].as_array().unwrap();
+        assert_eq!(rows.len(), 2);
+        // Withdrawal: absent state falls back to evidence timestamp.
+        assert_eq!(rows[0]["kind"], "Withdrawal");
+        assert_eq!(rows[0]["withdrawn"], true);
+        assert_eq!(rows[0]["announced"], false);
+        assert_eq!(rows[0]["occurred_utc"], t(100).to_rfc3339());
+        assert_eq!(rows[0]["collector"], "route-views2");
+        assert_eq!(rows[0]["observation_id"], 2);
+        assert_eq!(rows[0]["archive_sha256"], "abc123");
+        // Path replacement: state timestamp, material flag, kind label.
+        assert_eq!(rows[1]["kind"], "PathReplacement");
+        assert_eq!(rows[1]["material_path_changed"], true);
+        assert_eq!(rows[1]["occurred_utc"], t(300).to_rfc3339());
+        assert_eq!(rows[1]["phase"], "Event");
     }
 
     #[test]

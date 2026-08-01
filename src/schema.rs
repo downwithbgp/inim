@@ -42,6 +42,7 @@ pub const EVIDENCE_APPENDIX_SCHEMA_VERSION: u32 = 1;
 
 /// Lifecycle artifact schema.
 pub const LIFECYCLE_ARTIFACT_SCHEMA_VERSION: u32 = 1;
+pub const TRANSITIONS_ARTIFACT_SCHEMA_VERSION: u32 = 1;
 
 /// Withdrawal audit artifact schema.
 pub const WITHDRAWAL_AUDIT_SCHEMA_VERSION: u32 = 1;
