@@ -1417,8 +1417,10 @@ mod tests {
             AnalysisPhase::Event,
         );
         // Path replacement: material change.
-        let mut effects = GenericTransitionEffects::default();
-        effects.material_path_changed = true;
+        let effects = GenericTransitionEffects {
+            material_path_changed: true,
+            ..Default::default()
+        };
         let pr = RouteTransition::new(
             key,
             None,
