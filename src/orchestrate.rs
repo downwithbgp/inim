@@ -452,8 +452,9 @@ fn run_inner(
     // Compute targetset hash once for all UPDATE cache keys
     let tshash = crate::derived_cache::targetset_hash(&target_set);
 
-    // Phase B1: Collect all tasks (serial I/O — broker queries + downloads)
-    let mut tasks: Vec<UpdateTask> = Vec::new();
+    // Phase B1: pre-assign archive_order from discovery order; downloads
+    // happen later in the pipeline with a bounded download worker pool.
+    let mut pending: Vec<(u64, crate::discover::ArchiveItem)> = Vec::new();
     let mut archive_order: u64 = 0;
 
     for collector in &retained_collectors {
@@ -483,55 +484,36 @@ fn run_inner(
 
         eprintln!("  {collector}: {} UPDATE files selected", selected.len());
 
-        for item in &selected {
-            let cu = cache_archive(item, cache_dir)
-                .map_err(|e| format!("failed to cache UPDATE: {e}"))?;
-            collected_updates.push(cu.clone());
+        for item in selected {
             let ao = archive_order;
             archive_order += 1;
-            tasks.push(UpdateTask {
-                collector: collector.clone(),
-                archive_order: ao,
-                url: cu.url.clone(),
-                local_path: cu.local_path.clone(),
-                sha256: cu.sha256.clone(),
-            });
+            pending.push((ao, item.clone()));
         }
     }
 
-    // Phase B2: Process tasks (parallel or serial)
-    let task_count = tasks.len();
-    if task_count == 0 {
-        // No tasks, nothing to do
-    } else {
-        let effective_jobs = resolve_jobs(cache_control.jobs, cache_control.parse_jobs, task_count);
+    // Deduplicate identical archive URLs (duplicate broker records).
+    let mut seen_urls: std::collections::HashSet<String> = std::collections::HashSet::new();
+    pending.retain(|(_, it)| seen_urls.insert(it.url.clone()));
 
-        if effective_jobs <= 1 {
-            // Serial path
-            process_tasks_serial(
-                &tasks,
-                cache_dir,
-                &tshash,
-                cache_control,
-                &target_set,
-                &frozen_prefixes,
-                &mut update_observations,
-                &mut archive_metrics,
-            );
-        } else {
-            // Parallel path
-            process_tasks_parallel(
-                &tasks,
-                cache_dir,
-                &tshash,
-                cache_control,
-                &target_set,
-                &frozen_prefixes,
-                &mut update_observations,
-                &mut archive_metrics,
-                effective_jobs,
-            );
+    // Phase B1+B2: bounded download -> bounded parse pipeline. Downloads
+    // and parses overlap (download N while parsing M); `archive_order` was
+    // pre-assigned from discovery order, so parallel completion cannot
+    // reorder archives. Results merge in archive order; observation ids
+    // are assigned after the global deterministic sort.
+    let pipeline_results = process_updates_pipeline(
+        &pending,
+        cache_dir,
+        &tshash,
+        cache_control,
+        &target_set,
+        &frozen_prefixes,
+    )?;
+    for (cu, result) in pipeline_results {
+        if let Some(cu) = cu {
+            collected_updates.push(cu);
         }
+        archive_metrics.push(result.metric.clone());
+        update_observations.extend(result.observations);
     }
 
     timings.push((
@@ -953,104 +935,164 @@ fn process_one_update_file(
     }
 }
 
-/// Process UPDATE tasks serially.
-#[allow(clippy::too_many_arguments)]
-fn process_tasks_serial(
-    tasks: &[UpdateTask],
+/// Run the bounded download -> parse pipeline for UPDATE archives.
+///
+/// - `download_jobs` workers pull archive indices from a bounded queue and
+///   cache each file (atomic writes); each cached archive is handed to the
+///   bounded parse channel (capacity = parse_jobs).
+/// - `parse_jobs` workers own their parser state (one `ObservationStream`
+///   per archive) and write each result into its pre-assigned slot.
+/// - Results merge in `archive_order`; a failure records the exact archive
+///   identity in its slot and never cancels completed cache entries.
+/// - Memory: at most `download_jobs` in-flight downloads plus `parse_jobs`
+///   decompressed archives retained in the bounded channel plus the
+///   merged observation vector.
+fn process_updates_pipeline(
+    pending: &[(u64, crate::discover::ArchiveItem)],
     cache_dir: &Path,
     tshash: &str,
     cache_control: CacheControl,
     target_set: &TargetSet,
     frozen_prefixes: &std::collections::HashSet<Prefix>,
-    update_observations: &mut Vec<RouteObservation>,
-    archive_metrics: &mut Vec<crate::perf::ArchiveMetric>,
-) {
-    for (i, task) in tasks.iter().enumerate() {
-        let result = process_one_update_file(
-            task,
-            cache_dir,
-            tshash,
-            cache_control,
-            target_set,
-            frozen_prefixes,
-        );
-        eprintln!(
-            "  [{col} updates {idx}/{total}] done: {parsed} parsed, {pfx} prefix, {cpf} coll+pref, {adm} admitted ({ann} ann, {wd} wd){cache}",
-            col = task.collector,
-            idx = i + 1,
-            total = tasks.len(),
-            parsed = result.counters.total_elements_parsed,
-            pfx = result.counters.target_prefix_matches,
-            cpf = result.counters.collector_prefix_matches,
-            adm = result.counters.full_targetkey_matches,
-            ann = result.counters.admitted_announcements,
-            wd = result.counters.admitted_withdrawals,
-            cache = if result.cache_hit { " [cache hit]" } else { "" },
-        );
-        archive_metrics.push(result.metric.clone());
-        update_observations.extend(result.observations);
+) -> Result<Vec<(Option<crate::discover::CachedArchive>, UpdateFileResult)>, String> {
+    let n = pending.len();
+    if n == 0 {
+        return Ok(Vec::new());
     }
-}
+    let parse_jobs = resolve_jobs(cache_control.jobs, cache_control.parse_jobs, n);
+    let download_jobs = cache_control.download_jobs.max(1).min(n);
 
-/// Process UPDATE tasks in parallel using std::thread::scope.
-#[allow(clippy::too_many_arguments)]
-fn process_tasks_parallel(
-    tasks: &[UpdateTask],
-    cache_dir: &Path,
-    tshash: &str,
-    cache_control: CacheControl,
-    target_set: &TargetSet,
-    frozen_prefixes: &std::collections::HashSet<Prefix>,
-    update_observations: &mut Vec<RouteObservation>,
-    archive_metrics: &mut Vec<crate::perf::ArchiveMetric>,
-    jobs: usize,
-) {
-    let chunk_size = tasks.len().div_ceil(jobs);
+    let queue: std::sync::Mutex<std::collections::VecDeque<usize>> =
+        std::sync::Mutex::new((0..n).collect());
+    let slots: std::sync::Mutex<Vec<Option<Result<UpdateFileResult, String>>>> =
+        std::sync::Mutex::new((0..n).map(|_| None).collect());
+    let cached: std::sync::Mutex<Vec<Option<crate::discover::CachedArchive>>> =
+        std::sync::Mutex::new((0..n).map(|_| None).collect());
+    let (tx, rx) =
+        std::sync::mpsc::sync_channel::<(usize, crate::discover::CachedArchive)>(parse_jobs);
+    // mpsc::Receiver is Send but not Sync; a Mutex makes it shareable
+    // across the scoped parse workers (each lock is a single recv).
+    let rx = std::sync::Mutex::new(rx);
 
-    std::thread::scope(|s| {
-        let mut handles = Vec::new();
-        for chunk in tasks.chunks(chunk_size) {
-            let chunk: Vec<UpdateTask> = chunk
-                .iter()
-                .map(|t| UpdateTask {
-                    collector: t.collector.clone(),
-                    archive_order: t.archive_order,
-                    url: t.url.clone(),
-                    local_path: t.local_path.clone(),
-                    sha256: t.sha256.clone(),
-                })
-                .collect();
-            handles.push(s.spawn(move || {
-                let mut results = Vec::with_capacity(chunk.len());
-                for task in &chunk {
-                    results.push(process_one_update_file(
-                        task,
+    std::thread::scope(|scope| {
+        // Download workers: cache archives; hand completed files to the
+        // bounded parse queue (pipeline overlap).
+        for _ in 0..download_jobs {
+            let queue = &queue;
+            let cached = &cached;
+            let slots = &slots;
+            let tx = tx.clone();
+            let pending = pending;
+            scope.spawn(move || loop {
+                let idx = queue.lock().unwrap().pop_front();
+                let Some(idx) = idx else { break };
+                let (_, item) = &pending[idx];
+                match cache_archive(item, cache_dir) {
+                    Ok(cu) => {
+                        cached.lock().unwrap()[idx] = Some(cu.clone());
+                        if tx.send((idx, cu)).is_err() {
+                            break; // parse stage gone
+                        }
+                    }
+                    Err(e) => {
+                        slots.lock().unwrap()[idx] =
+                            Some(Err(format!("failed to cache UPDATE {}: {e}", item.url)));
+                    }
+                }
+            });
+        }
+        drop(tx); // release the main sender so the channel closes when done
+
+        // Parse workers: one archive at a time, each owning its parser.
+        for _ in 0..parse_jobs {
+            let rx = &rx;
+            let slots = &slots;
+            let pending = pending;
+            scope.spawn(move || {
+                while let Ok((idx, cu)) = rx.lock().unwrap().recv() {
+                    let (ao, _item) = &pending[idx];
+                    let task = UpdateTask {
+                        collector: cu.collector_id.clone(),
+                        archive_order: *ao,
+                        url: cu.url.clone(),
+                        local_path: cu.local_path.clone(),
+                        sha256: cu.sha256.clone(),
+                    };
+                    let result = process_one_update_file(
+                        &task,
                         cache_dir,
                         tshash,
                         cache_control,
                         target_set,
                         frozen_prefixes,
-                    ));
+                    );
+                    slots.lock().unwrap()[idx] = Some(Ok(result));
                 }
-                results
-            }));
-        }
-
-        // Join handles in order (preserves deterministic archive order)
-        for handle in handles {
-            match handle.join() {
-                Ok(chunk_results) => {
-                    for result in chunk_results {
-                        archive_metrics.push(result.metric.clone());
-                        update_observations.extend(result.observations);
-                    }
-                }
-                Err(_) => {
-                    eprintln!("  ERROR: worker thread panicked");
-                }
-            }
+            });
         }
     });
+
+    // Merge in archive order; surface the first failure.
+    let slots = slots.into_inner().unwrap();
+    let cached = cached.into_inner().unwrap();
+    let mut out = Vec::with_capacity(n);
+    let mut first_error: Option<String> = None;
+    let empty_metric = |url: &str| crate::perf::ArchiveMetric {
+        archive_url: url.to_string(),
+        archive_sha256: url.to_string(),
+        compressed_bytes: 0,
+        parse_wall_secs: 0.0,
+        parsed_elements: 0,
+        admitted_observations: 0,
+        derived_cache_write_secs: 0.0,
+        cache_hit: false,
+    };
+    for (idx, slot) in slots.into_iter().enumerate() {
+        match slot {
+            Some(Ok(result)) => {
+                let url = &pending[idx].1.url;
+                let name = url.rsplit('/').next().unwrap_or(url);
+                eprintln!(
+                    "  [{}] {}: parsed={} adm={}{}",
+                    pending[idx].1.collector_id,
+                    name,
+                    result.counters.total_elements_parsed,
+                    result.observations.len(),
+                    if result.cache_hit { " [cache hit]" } else { "" },
+                );
+                out.push((cached[idx].clone(), result));
+            }
+            Some(Err(e)) => {
+                if first_error.is_none() {
+                    first_error = Some(e);
+                }
+                out.push((
+                    cached[idx].clone(),
+                    UpdateFileResult {
+                        observations: Vec::new(),
+                        counters: crate::derived_cache::UpdateAdmissionCounters::default(),
+                        cache_hit: false,
+                        metric: empty_metric(&pending[idx].1.url),
+                    },
+                ));
+            }
+            None => {
+                out.push((
+                    cached[idx].clone(),
+                    UpdateFileResult {
+                        observations: Vec::new(),
+                        counters: crate::derived_cache::UpdateAdmissionCounters::default(),
+                        cache_hit: false,
+                        metric: empty_metric(&pending[idx].1.url),
+                    },
+                ));
+            }
+        }
+    }
+    if let Some(e) = first_error {
+        return Err(e);
+    }
+    Ok(out)
 }
 
 #[cfg(test)]

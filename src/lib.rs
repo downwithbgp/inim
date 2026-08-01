@@ -20,6 +20,7 @@ pub mod orchestrate;
 pub mod outcome;
 pub mod output;
 pub mod perf;
+pub mod pipeline;
 pub mod plan;
 pub mod profiles;
 pub mod report;
