@@ -1855,3 +1855,230 @@ mod timeline_tests {
         );
     }
 }
+
+// ── Internal-investigation cues (Part 11) ───────────────────────────
+
+/// One suggested internal check, labeled as an investigation CUE.
+///
+/// Cues are bound to OBSERVED external facts (session, interval, plane,
+/// prefixes) — they never name an unreviewed device, never claim root
+/// cause, and never generate device commands.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct InvestigationCue {
+    pub text: String,
+    /// The observed fact this cue is traceable to (session + interval).
+    pub traceable_to: String,
+}
+
+/// Build investigation cues from episodes.
+///
+/// Cue templates only reference reviewed identities: the collector site,
+/// the reviewed plane label, the observer session, and the analysis
+/// interval. "Check advertisements for these prefixes toward <plane>"
+/// and "Check the session corresponding to the reviewed attachment
+/// during <interval>" are the supported shapes.
+pub fn build_investigation_cues(episodes: &[ObserverEpisode]) -> Vec<InvestigationCue> {
+    let mut cues = Vec::new();
+    for ep in episodes {
+        if ep.effect_kind == EffectKind::NoRouteStateChange {
+            continue;
+        }
+        let interval = match (&ep.first_change, &ep.last_change) {
+            (Some(a), Some(b)) if a == b => format!("{a} UTC"),
+            (Some(a), Some(b)) => format!("{a}–{b} UTC"),
+            _ => "the analysis window".to_string(),
+        };
+        let plane = &ep.named_path_plane;
+        let session = &ep.observer_session;
+        let prefixes: Vec<&str> = ep
+            .streams
+            .iter()
+            .map(|s| s.prefix.as_str())
+            .collect::<std::collections::BTreeSet<_>>()
+            .into_iter()
+            .take(8)
+            .collect();
+        let prefix_text = if prefixes.is_empty() {
+            "the selected prefixes".to_string()
+        } else {
+            prefixes.join(", ")
+        };
+
+        cues.push(InvestigationCue {
+            text: format!("Check advertisements for these prefixes toward {plane}: {prefix_text}."),
+            traceable_to: format!("{session} during {interval}"),
+        });
+        cues.push(InvestigationCue {
+            text: format!(
+                "Check the session corresponding to the reviewed attachment during {interval}."
+            ),
+            traceable_to: session.clone(),
+        });
+        if matches!(
+            ep.effect_kind,
+            EffectKind::NamedPlaneDeparture | EffectKind::PathReplacement
+        ) {
+            cues.push(InvestigationCue {
+                text: format!(
+                    "Compare local route selection for prefixes that departed the {plane} path but remained visible externally."
+                ),
+                traceable_to: format!("{session} during {interval}"),
+            });
+        }
+        if ep.effect_kind == EffectKind::TemporaryStreamAbsence {
+            cues.push(InvestigationCue {
+                text:
+                    "Review whether restored visibility also restored the expected baseline path."
+                        .to_string(),
+                traceable_to: format!("{session} during {interval}"),
+            });
+        }
+    }
+    // Deterministic: dedupe identical cues preserving first occurrence.
+    let mut seen: Vec<String> = Vec::new();
+    cues.retain(|c| {
+        if seen.contains(&c.text) {
+            false
+        } else {
+            seen.push(c.text.clone());
+            true
+        }
+    });
+    cues
+}
+
+#[cfg(test)]
+mod cue_tests {
+    use super::*;
+
+    fn ep(kind: EffectKind, session: &str, plane: &str, prefix: &str) -> ObserverEpisode {
+        ObserverEpisode {
+            analysis_run: 1,
+            observer_session: session.to_string(),
+            observer_site: "site".to_string(),
+            observer_region: "AMER".to_string(),
+            peer_asn: Some(64500),
+            peer_label: "AS64500".to_string(),
+            peer_role: "regional-re".to_string(),
+            relationship: RelationshipKind::Direct,
+            named_path_plane: plane.to_string(),
+            effect_kind: kind,
+            first_change: Some("2019-08-21T16:45:25Z".to_string()),
+            peak_interval: None,
+            last_change: Some("2019-08-21T17:02:00Z".to_string()),
+            restoration_start: None,
+            restoration_end: None,
+            baseline_stream_count: 1,
+            changed_stream_count: 1,
+            distinct_prefix_count: 1,
+            route_instance_count: 1,
+            unresolved_count: 0,
+            coverage_status: CoverageStatus::NoChange,
+            representative_evidence: String::new(),
+            streams: vec![EpisodeStream {
+                prefix: prefix.to_string(),
+                category: "Withdrawn".to_string(),
+                withdrawn: true,
+                restored: true,
+                baseline_instances: 1,
+                transition_count: 2,
+                add_path_ambiguous: false,
+                evidence_refs: "[]".to_string(),
+            }],
+        }
+    }
+
+    #[test]
+    fn investigation_cue_is_traceable_to_observation() {
+        let eps = vec![ep(
+            EffectKind::TemporaryStreamAbsence,
+            "catalog/rrc06 peer 192.0.2.1",
+            "Plane A",
+            "198.51.100.0/24",
+        )];
+        let cues = build_investigation_cues(&eps);
+        assert!(!cues.is_empty());
+        for cue in &cues {
+            assert!(
+                cue.traceable_to.contains("rrc06") || cue.traceable_to.contains("192.0.2.1"),
+                "cue must trace to the observed session: {}",
+                cue.traceable_to
+            );
+            assert!(
+                cue.text.starts_with("Check ") || cue.text.starts_with("Review "),
+                "cue wording: {}",
+                cue.text
+            );
+        }
+    }
+
+    #[test]
+    fn cue_does_not_name_unreviewed_device() {
+        let eps = vec![ep(
+            EffectKind::TemporaryStreamAbsence,
+            "catalog/rrc06 peer 192.0.2.1",
+            "Plane A",
+            "198.51.100.0/24",
+        )];
+        let cues = build_investigation_cues(&eps);
+        for cue in &cues {
+            let lower = cue.text.to_lowercase();
+            assert!(
+                !lower.contains("router")
+                    && !lower.contains("circuit")
+                    && !lower.contains("switch"),
+                "cue must not name a device: {}",
+                cue.text
+            );
+        }
+    }
+
+    #[test]
+    fn cue_does_not_claim_root_cause() {
+        let eps = vec![ep(
+            EffectKind::NamedPlaneDeparture,
+            "catalog/rrc06 peer 192.0.2.1",
+            "Plane A",
+            "198.51.100.0/24",
+        )];
+        let cues = build_investigation_cues(&eps);
+        for cue in &cues {
+            let lower = cue.text.to_lowercase();
+            assert!(
+                !lower.contains("root cause")
+                    && !lower.contains("caused")
+                    && !lower.contains("diagnosis"),
+                "cue must not claim root cause: {}",
+                cue.text
+            );
+        }
+    }
+
+    #[test]
+    fn cue_uses_reviewed_plane_or_attachment_identity() {
+        let eps = vec![ep(
+            EffectKind::NamedPlaneDeparture,
+            "catalog/rrc06 peer 192.0.2.1",
+            "Plane A",
+            "198.51.100.0/24",
+        )];
+        let cues = build_investigation_cues(&eps);
+        assert!(cues.iter().any(|c| c.text.contains("Plane A")));
+        assert!(cues.iter().any(|c| c.text.contains("reviewed attachment")));
+        assert!(
+            cues.iter().any(|c| c.text.contains("198.51.100.0/24")),
+            "prefix identity must appear in the advertisement cue"
+        );
+    }
+
+    #[test]
+    fn no_change_episodes_produce_no_cues() {
+        let eps = vec![ep(
+            EffectKind::NoRouteStateChange,
+            "catalog/rrc06 peer 192.0.2.1",
+            "Plane A",
+            "198.51.100.0/24",
+        )];
+        assert!(build_investigation_cues(&eps).is_empty());
+    }
+}
