@@ -330,4 +330,123 @@ mod tests {
         );
         assert!(batch_a.deterministic);
     }
+
+    #[test]
+    fn shared_raw_archive_can_feed_independent_runs() {
+        // Two events whose cohorts need the SAME raw archive (same
+        // family, collector, URL) share one ArchiveConsumer; each event
+        // keeps its own independent BatchEventPlan.
+        let (h1, p1) = plan_for("2019-08-21T04:00:00Z", "2019-08-21T06:00:00Z");
+        let (h2, p2) = plan_for("2019-08-21T05:00:00Z", "2019-08-21T07:00:00Z");
+        let batch = plan_batch(&[
+            input("A", h1.clone(), p1.clone()),
+            input("B", h2.clone(), p2.clone()),
+        ]);
+        let shared = batch
+            .unique_archives
+            .iter()
+            .find(|a| a.consumers.len() == 2)
+            .expect("shared archive must exist");
+        assert_eq!(shared.consumers, vec!["A".to_string(), "B".to_string()]);
+        // The per-event plans are exactly the standalone plans.
+        let a = batch.events.iter().find(|e| e.event_id == "A").unwrap();
+        let b = batch.events.iter().find(|e| e.event_id == "B").unwrap();
+        assert_eq!(a.plan, p1);
+        assert_eq!(b.plan, p2);
+        // Cohorts are single-member — evidence is never merged.
+        assert_eq!(a.cohort, vec!["A".to_string()]);
+        assert_eq!(b.cohort, vec!["B".to_string()]);
+        // Deterministic: same inputs, same batch.
+        let again = plan_batch(&[input("A", h1, p1), input("B", h2, p2)]);
+        assert_eq!(
+            serde_json::to_string(&batch).unwrap(),
+            serde_json::to_string(&again).unwrap()
+        );
+    }
+
+    #[test]
+    fn incompatible_cohorts_do_not_share_wrong_derived_cache() {
+        // Raw archives may be shared, but DERIVED caches are keyed on
+        // cohort identity (origin ASNs + predicate + family). Two events
+        // over the same archive with different targets must get
+        // different derived cache keys — no wrong reuse.
+        use crate::domain::route::TransitPredicate;
+        let k1 = crate::derived_cache::rib_cache_key(
+            "sha",
+            "rrc00",
+            &[2603],
+            &TransitPredicate::ContainsAny(vec![11537]),
+            1,
+            "RipeRis",
+        );
+        let k2 = crate::derived_cache::rib_cache_key(
+            "sha",
+            "rrc00",
+            &[64500],
+            &TransitPredicate::ContainsAny(vec![11537]),
+            1,
+            "RipeRis",
+        );
+        assert_ne!(k1, k2, "different cohorts must not share derived caches");
+        let t1 = crate::derived_cache::update_cache_key("sha", "rrc00", "targetset-A", "RipeRis");
+        let t2 = crate::derived_cache::update_cache_key("sha", "rrc00", "targetset-B", "RipeRis");
+        assert_ne!(t1, t2);
+        // Families differ -> keys differ even for identical cohorts.
+        let k3 = crate::derived_cache::rib_cache_key(
+            "sha",
+            "rrc00",
+            &[2603],
+            &TransitPredicate::ContainsAny(vec![11537]),
+            1,
+            "RouteViews",
+        );
+        assert_ne!(k1, k3);
+    }
+
+    #[test]
+    fn failed_run_does_not_invalidate_successful_batch_member() {
+        // A blocked event (no reviewed entity mapping) still plans as a
+        // member with its own blocked state; the successful member's
+        // plan is untouched and the batch still deduplicates correctly.
+        let (h1, p1) = plan_for("2019-08-21T04:00:00Z", "2019-08-21T06:00:00Z");
+        let (h2, p2) = plan_for("2019-08-21T05:00:00Z", "2019-08-21T07:00:00Z");
+        let mut blocked = p2.clone();
+        blocked
+            .blocked_targets
+            .push(crate::catalog::archive_plan::BlockedTarget {
+                source_label: "SampleNet".to_string(),
+                reason: "MissingReviewedEntityMapping".to_string(),
+            });
+        let batch = plan_batch(&[
+            input("OK", h1.clone(), p1.clone()),
+            input("BLOCKED", h2.clone(), blocked.clone()),
+        ]);
+        let ok = batch.events.iter().find(|e| e.event_id == "OK").unwrap();
+        assert_eq!(ok.plan, p1, "successful member's plan must be unchanged");
+        let blk = batch
+            .events
+            .iter()
+            .find(|e| e.event_id == "BLOCKED")
+            .unwrap();
+        assert!(!blk.plan.blocked_targets.is_empty());
+        // The batch still computed the unique archive set for both.
+        assert!(!batch.unique_archives.is_empty());
+        // A failed run of one member never rewrites another's identity.
+        assert_eq!(
+            batch.batch_id,
+            plan_batch(&[input("OK", h1, p1), input("BLOCKED", h2, blocked),]).batch_id
+        );
+    }
+
+    #[test]
+    fn standalone_and_batched_run_artifacts_match() {
+        // The batch plan is a pure grouping of standalone plans: every
+        // per-event plan inside the batch equals the standalone plan
+        // (archive URLs, sizes, families), so standalone and batched
+        // runs produce identical artifacts.
+        let (h1, p1) = plan_for("2019-08-21T04:00:00Z", "2019-08-21T06:00:00Z");
+        let batch = plan_batch(&[input("A", h1, p1.clone())]);
+        let member = &batch.events[0];
+        assert_eq!(member.plan, p1);
+    }
 }
