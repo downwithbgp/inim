@@ -176,6 +176,16 @@ pub fn import_document(
         )
         .ok();
     if let Some((rev_id, revision, document_id, local_path)) = existing {
+        // The content is already cataloged. If the file was only referenced
+        // by metadata (local_path NULL), attach it now: this is an
+        // availability update, never a content overwrite.
+        if local_path.is_none() {
+            conn.execute(
+                "UPDATE document_revisions SET local_path = ?1 WHERE id = ?2",
+                rusqlite::params![rel, rev_id],
+            )
+            .map_err(|e| format!("catalog write failed: {e}"))?;
+        }
         return Ok(DocumentImportOutcome {
             document_id,
             revision_id: rev_id,
