@@ -1071,3 +1071,116 @@ pub fn list_group_candidates(conn: &Connection) -> Result<Vec<IncidentGroupCandi
     }
     Ok(out)
 }
+
+// ── Reviewed ticket interpretations (Session 34, Part 1) ───────────
+
+/// Insert or replace the reviewed interpretation for one catalog event.
+/// One review per event (UNIQUE catalog_event_id); the source snapshot is
+/// never touched. Returns true when a row was inserted or replaced.
+pub fn upsert_ticket_review(conn: &Connection, review: &TicketReview) -> Result<bool, String> {
+    let result = conn
+        .execute(
+            "INSERT INTO ticket_reviews
+               (catalog_event_id, external_id, reviewed_roles_json,
+                entity_labels_json, linked_change_ids_json,
+                analysis_applicability, applicability_rationale,
+                relationship_to_case_study, review_status, reviewer,
+                reviewed_at, provenance_json, source_document_id)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)
+             ON CONFLICT(catalog_event_id) DO UPDATE SET
+               external_id = excluded.external_id,
+               reviewed_roles_json = excluded.reviewed_roles_json,
+               entity_labels_json = excluded.entity_labels_json,
+               linked_change_ids_json = excluded.linked_change_ids_json,
+               analysis_applicability = excluded.analysis_applicability,
+               applicability_rationale = excluded.applicability_rationale,
+               relationship_to_case_study = excluded.relationship_to_case_study,
+               review_status = excluded.review_status,
+               reviewer = excluded.reviewer,
+               reviewed_at = excluded.reviewed_at,
+               provenance_json = excluded.provenance_json,
+               source_document_id = excluded.source_document_id",
+            params![
+                review.catalog_event_id,
+                review.external_id,
+                serde_json::to_string(&review.reviewed_roles).unwrap_or_default(),
+                serde_json::to_string(&review.entity_labels).unwrap_or_default(),
+                serde_json::to_string(&review.linked_change_ids).unwrap_or_default(),
+                review.analysis_applicability,
+                review.applicability_rationale,
+                review.relationship_to_case_study,
+                review.review_status,
+                review.reviewer,
+                review.reviewed_at,
+                serde_json::to_string(&review.provenance).unwrap_or_default(),
+                review.source_document_id,
+            ],
+        )
+        .map_err(|e| format!("catalog write failed: {e}"))?;
+    Ok(result > 0)
+}
+
+fn row_to_ticket_review(row: &rusqlite::Row<'_>) -> rusqlite::Result<TicketReview> {
+    Ok(TicketReview {
+        id: row.get(0)?,
+        catalog_event_id: row.get(1)?,
+        external_id: row.get(2)?,
+        reviewed_roles: serde_json::from_str(&row.get::<_, String>(3)?).unwrap_or_default(),
+        entity_labels: serde_json::from_str(&row.get::<_, String>(4)?).unwrap_or_default(),
+        linked_change_ids: serde_json::from_str(&row.get::<_, String>(5)?).unwrap_or_default(),
+        analysis_applicability: row.get(6)?,
+        applicability_rationale: row.get(7)?,
+        relationship_to_case_study: row.get(8)?,
+        review_status: row.get(9)?,
+        reviewer: row.get(10)?,
+        reviewed_at: row.get(11)?,
+        provenance: serde_json::from_str(&row.get::<_, String>(12)?).unwrap_or_default(),
+        source_document_id: row.get(13)?,
+    })
+}
+
+/// All reviewed interpretations, deterministic order.
+pub fn list_ticket_reviews(conn: &Connection) -> Result<Vec<TicketReview>, String> {
+    let mut stmt = conn
+        .prepare(
+            "SELECT id, catalog_event_id, external_id, reviewed_roles_json,
+                    entity_labels_json, linked_change_ids_json,
+                    analysis_applicability, applicability_rationale,
+                    relationship_to_case_study, review_status, reviewer,
+                    reviewed_at, provenance_json, source_document_id
+             FROM ticket_reviews ORDER BY external_id, id",
+        )
+        .map_err(|e| format!("catalog read failed: {e}"))?;
+    let rows = stmt
+        .query_map([], row_to_ticket_review)
+        .map_err(|e| format!("catalog read failed: {e}"))?;
+    let mut out = Vec::new();
+    for row in rows {
+        out.push(row.map_err(|e| format!("catalog read failed: {e}"))?);
+    }
+    Ok(out)
+}
+
+/// The reviewed interpretation for one event, if any.
+pub fn get_ticket_review(
+    conn: &Connection,
+    catalog_event_id: i64,
+) -> Result<Option<TicketReview>, String> {
+    let mut stmt = conn
+        .prepare(
+            "SELECT id, catalog_event_id, external_id, reviewed_roles_json,
+                    entity_labels_json, linked_change_ids_json,
+                    analysis_applicability, applicability_rationale,
+                    relationship_to_case_study, review_status, reviewer,
+                    reviewed_at, provenance_json, source_document_id
+             FROM ticket_reviews WHERE catalog_event_id = ?1",
+        )
+        .map_err(|e| format!("catalog read failed: {e}"))?;
+    let mut rows = stmt
+        .query_map([catalog_event_id], row_to_ticket_review)
+        .map_err(|e| format!("catalog read failed: {e}"))?;
+    match rows.next() {
+        None => Ok(None),
+        Some(r) => Ok(Some(r.map_err(|e| format!("catalog read failed: {e}"))?)),
+    }
+}

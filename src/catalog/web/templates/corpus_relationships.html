@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}inim — corpus relationships{% endblock %}
+{% block content %}
+<h2>Reviewed ticket interpretations &amp; relationship graph</h2>
+<p class="muted">Reviewed case-study roles are analyst interpretation stored separately from the immutable source snapshots — they never replace source task types. Missing source fields are never backfilled without a cited document (AAR) provenance. Derived edges (temporal/entity overlap) are candidates, never causal.</p>
+
+<h3>Reviewed interpretations</h3>
+<div class="panel">
+<table>
+  <tr><th>Ticket</th><th>Source task type</th><th>Reviewed role(s)</th><th>Entity / asset labels</th><th>Linked changes</th><th>Applicability</th><th>Status</th><th>Reviewer</th></tr>
+{% for r in reviews %}
+  <tr>
+    <td><a href="/events/{{ r.external_id }}">{{ r.external_id }}</a></td>
+    <td>{{ r.task_type }}</td>
+    <td>{{ r.roles }}</td>
+    <td>{{ r.entity_labels }}</td>
+    <td>{{ r.linked_changes }}</td>
+    <td>{{ r.applicability }}</td>
+    <td>{{ r.review_status }}</td>
+    <td>{{ r.reviewer }}</td>
+  </tr>
+{% endfor %}
+</table>
+{% if reviews.is_empty() %}
+<p class="muted">No reviewed interpretations yet.</p>
+{% endif %}
+</div>
+
+<h3>Relationship graph audit</h3>
+<p class="muted">{{ audit.len() }} edge(s) · {{ unresolved }} unresolved reference(s). Unresolved targets (e.g. TASK records with no source snapshot) remain document references; no snapshot is manufactured.</p>
+<div class="panel">
+<table>
+  <tr><th>Source</th><th>Destination</th><th>Relationship</th><th>Evidence</th><th>Exact source</th><th>Review</th></tr>
+{% for a in audit %}
+  <tr>
+    <td><a href="/events/{{ a.from }}">{{ a.from }}</a></td>
+    <td>{% if a.unresolved %}{{ a.to }} <span class="tag stale">unresolved reference</span>{% else %}<a href="/events/{{ a.to }}">{{ a.to }}</a>{% endif %}</td>
+    <td>{{ a.kind }}</td>
+    <td>{{ a.evidence }}</td>
+    <td class="muted">{{ a.source }}</td>
+    <td>{{ a.review_status }}</td>
+  </tr>
+{% endfor %}
+</table>
+{% if audit.is_empty() %}
+<p class="muted">No relationship edges yet.</p>
+{% endif %}
+</div>
+{% endblock %}

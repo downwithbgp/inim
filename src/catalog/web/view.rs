@@ -1773,6 +1773,95 @@ pub struct GroupEvidenceView {
     pub detail: String,
 }
 
+// ── Reviewed relationship graph (Session 34, Parts 1–2) ────────────
+
+#[derive(Template, Serialize)]
+#[template(path = "corpus_relationships.html")]
+pub struct CorpusRelationshipsView {
+    pub reviews: Vec<ReviewRowView>,
+    pub audit: Vec<AuditRowView>,
+    pub unresolved: usize,
+}
+
+#[derive(Serialize)]
+pub struct ReviewRowView {
+    pub external_id: String,
+    pub task_type: String,
+    pub roles: String,
+    pub entity_labels: String,
+    pub linked_changes: String,
+    pub applicability: String,
+    pub review_status: String,
+    pub reviewer: String,
+}
+
+#[derive(Serialize)]
+pub struct AuditRowView {
+    pub from: String,
+    pub to: String,
+    pub unresolved: bool,
+    pub kind: String,
+    pub evidence: String,
+    pub source: String,
+    pub review_status: String,
+}
+
+/// Load the reviewed interpretations + full graph audit for the corpus.
+pub fn load_corpus_relationships(
+    conn: &rusqlite::Connection,
+) -> Result<CorpusRelationshipsView, String> {
+    use crate::catalog::review::graph_audit;
+    const SOURCE_KIND: &str = "grnoc-public-task-viewer";
+
+    let reviews = crate::catalog::store::list_ticket_reviews(conn)?;
+    let mut review_rows = Vec::new();
+    for r in &reviews {
+        let mut task_type = String::new();
+        if let Ok(Some(snap)) =
+            crate::catalog::db::list_snapshots(conn, r.catalog_event_id).map(|s| s.first().cloned())
+        {
+            if let Ok(v) = serde_json::from_str::<serde_json::Value>(&snap.normalized_json) {
+                task_type = v
+                    .get("task_type")
+                    .and_then(|x| x.as_str())
+                    .unwrap_or("")
+                    .to_string();
+            }
+        }
+        review_rows.push(ReviewRowView {
+            external_id: r.external_id.clone(),
+            task_type,
+            roles: r.reviewed_roles.join(", "),
+            entity_labels: r.entity_labels.join(", "),
+            linked_changes: r.linked_change_ids.join(", "),
+            applicability: r.analysis_applicability.clone(),
+            review_status: r.review_status.clone(),
+            reviewer: r.reviewer.clone(),
+        });
+    }
+
+    let audit = graph_audit(conn, SOURCE_KIND)?;
+    let unresolved = audit.iter().filter(|r| !r.to_resolved).count();
+    let audit_rows = audit
+        .into_iter()
+        .map(|r| AuditRowView {
+            from: r.from_external,
+            to: r.to_external,
+            unresolved: !r.to_resolved,
+            kind: r.relationship_kind,
+            evidence: r.evidence_kind,
+            source: r.exact_source,
+            review_status: r.review_status,
+        })
+        .collect();
+
+    Ok(CorpusRelationshipsView {
+        reviews: review_rows,
+        audit: audit_rows,
+        unresolved,
+    })
+}
+
 #[derive(Template, Serialize)]
 #[template(path = "archive_batches.html")]
 pub struct ArchiveBatchesView {

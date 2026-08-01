@@ -5,10 +5,10 @@
 //! reopened database at the current version is a no-op.
 
 /// Current catalog schema version.
-pub const CATALOG_SCHEMA_VERSION: u32 = 6;
+pub const CATALOG_SCHEMA_VERSION: u32 = 7;
 
 /// Ordered migrations. Index i migrates user_version i -> i+1.
-pub const MIGRATIONS: &[&str] = &[V1, V2, V3, V4, V5, V6];
+pub const MIGRATIONS: &[&str] = &[V1, V2, V3, V4, V5, V6, V7];
 
 const V1: &str = r#"
 CREATE TABLE catalog_events (
@@ -404,4 +404,35 @@ CREATE TABLE incident_group_candidates (
 );
 
 CREATE INDEX idx_groups_confidence ON incident_group_candidates(confidence);
+"#;
+
+/// V7 (Session 34, Part 1): reviewed ticket interpretations.
+///
+/// A reviewed interpretation is analyst-reviewed case-study context for
+/// one catalog ticket. It is stored SEPARATELY from the source snapshot:
+/// `event_snapshots.raw_payload`/`normalized_json` are never modified by
+/// review. Every interpretation field carries per-field provenance; a
+/// value inferred from a reference document (e.g. the AAR) must cite that
+/// document (`source_document_id`). Missing source fields stay missing —
+/// they are never backfilled without cited provenance.
+const V7: &str = r#"
+CREATE TABLE ticket_reviews (
+    id                        INTEGER PRIMARY KEY,
+    catalog_event_id          INTEGER NOT NULL REFERENCES catalog_events(id),
+    external_id               TEXT NOT NULL,
+    reviewed_roles_json       TEXT NOT NULL,
+    entity_labels_json        TEXT NOT NULL,
+    linked_change_ids_json    TEXT NOT NULL,
+    analysis_applicability    TEXT NOT NULL,
+    applicability_rationale   TEXT NOT NULL,
+    relationship_to_case_study TEXT NOT NULL,
+    review_status             TEXT NOT NULL,
+    reviewer                  TEXT NOT NULL,
+    reviewed_at               TEXT NOT NULL,
+    provenance_json           TEXT NOT NULL,
+    source_document_id        INTEGER REFERENCES reference_documents(id),
+    UNIQUE (catalog_event_id)
+);
+
+CREATE INDEX idx_reviews_external ON ticket_reviews(external_id);
 "#;

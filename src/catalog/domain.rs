@@ -228,6 +228,14 @@ pub const RELATIONSHIP_RELATED_TASK: &str = "RelatedTask";
 pub const RELATIONSHIP_UNKNOWN_REFERENCE: &str = "UnknownReference";
 /// Machine-derived overlap candidate — explicitly NOT a causal edge.
 pub const RELATIONSHIP_TEMPORAL_OVERLAP: &str = "TemporalOverlap";
+/// Machine-derived shared-reviewed-entity overlap — NOT a causal edge.
+pub const RELATIONSHIP_ENTITY_OVERLAP: &str = "EntityOverlap";
+/// Session 34 reviewed kinds (assigned by analyst review, never by
+/// automatic wording classification).
+pub const RELATIONSHIP_ROLLBACK_FOR: &str = "RollbackFor";
+pub const RELATIONSHIP_PARTICIPANT_IMPACT_DURING: &str = "ParticipantImpactDuring";
+pub const RELATIONSHIP_ALARM_DURING: &str = "AlarmDuring";
+pub const RELATIONSHIP_OPERATIONAL_TASK_DURING: &str = "OperationalTaskDuring";
 
 /// Evidence kinds: explicit provenance vs derived candidates.
 pub const EVIDENCE_EXPLICIT_TICKET_TEXT: &str = "ExplicitTicketText";
@@ -496,4 +504,84 @@ pub struct IncidentGroupCandidate {
     pub evidence_fingerprint: String,
     pub created_utc: String,
     pub updated_utc: String,
+}
+
+// ── Reviewed ticket interpretation (Session 34, Part 1) ────────────
+
+/// Reviewed case-study roles for a ticket. These are analyst-reviewed
+/// case-study roles and NEVER replace the source task type.
+pub mod reviewed_role {
+    pub const CHANGE_WINDOW: &str = "ChangeWindow";
+    pub const PRIMARY_INCIDENT: &str = "PrimaryIncident";
+    pub const PARTICIPANT_IMPACT: &str = "ParticipantImpact";
+    pub const ALARM_OR_TELEMETRY: &str = "AlarmOrTelemetry";
+    pub const ROLLBACK_OR_RECOVERY: &str = "RollbackOrRecovery";
+    pub const OPERATIONAL_TASK: &str = "OperationalTask";
+    pub const OTHER: &str = "Other";
+
+    pub const ALL: &[&str] = &[
+        CHANGE_WINDOW,
+        PRIMARY_INCIDENT,
+        PARTICIPANT_IMPACT,
+        ALARM_OR_TELEMETRY,
+        ROLLBACK_OR_RECOVERY,
+        OPERATIONAL_TASK,
+        OTHER,
+    ];
+}
+
+/// Analysis applicability of a ticket to public-BGP analysis (reviewed).
+pub mod applicability {
+    pub const POTENTIALLY_VISIBLE: &str = "PotentiallyVisibleInPublicBgp";
+    pub const NOT_APPLICABLE: &str = "NotApplicableToPublicBgp";
+    pub const TARGET_NOT_YET_MAPPED: &str = "ApplicableTargetNotYetMapped";
+}
+
+/// One per-field provenance citation for a reviewed interpretation.
+///
+/// `source` is either `SnapshotField:<field>` (the value is directly
+/// present in the source snapshot) or a citation to a reference document
+/// (`source_document_id` required, e.g. the AAR). A review may never
+/// backfill a missing source field without a document citation.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct ReviewProvenance {
+    /// Which interpretation field this entry supports
+    /// (roles | entity_labels | linked_change_ids | applicability |
+    /// relationship_to_case_study | window | task_type).
+    pub field: String,
+    /// `SnapshotField:<field>` or a document citation string.
+    pub source: String,
+    /// Exact wording or document section that supports the value.
+    pub detail: String,
+    /// Required when `source` is a reference-document citation.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source_document_id: Option<i64>,
+}
+
+/// Analyst-reviewed interpretation of one catalog ticket.
+///
+/// Stored separately from `event_snapshots`; importing or updating a
+/// review never modifies source snapshot content.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct TicketReview {
+    pub id: i64,
+    pub catalog_event_id: i64,
+    pub external_id: String,
+    /// Reviewed case-study roles (vocabulary `reviewed_role::ALL`).
+    pub reviewed_roles: Vec<String>,
+    /// Affected entity / asset labels (reviewed).
+    pub entity_labels: Vec<String>,
+    /// Maintenance/change identifiers the ticket is reviewed as linked to.
+    pub linked_change_ids: Vec<String>,
+    pub analysis_applicability: String,
+    pub applicability_rationale: String,
+    /// Relationship to the case study (case-study vocabulary).
+    pub relationship_to_case_study: String,
+    pub review_status: String,
+    pub reviewer: String,
+    pub reviewed_at: String,
+    /// Per-field provenance; every non-empty field must be covered.
+    pub provenance: Vec<ReviewProvenance>,
+    /// Reference document cited by provenance entries (e.g. the AAR).
+    pub source_document_id: Option<i64>,
 }

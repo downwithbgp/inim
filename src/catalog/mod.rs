@@ -22,6 +22,7 @@ pub mod migrations;
 pub mod mock_server;
 pub mod phase_summary;
 pub mod relationships;
+pub mod review;
 pub mod status;
 pub mod store;
 pub mod sync;

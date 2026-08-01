@@ -266,6 +266,14 @@ pub async fn incident_candidates(State(state): State<SharedState>) -> Response {
     }
 }
 
+pub async fn corpus_relationships(State(state): State<SharedState>) -> Response {
+    let db = state.db.lock().unwrap();
+    match super::view::load_corpus_relationships(&db) {
+        Ok(view) => render(view),
+        Err(e) => server_error(&e),
+    }
+}
+
 pub async fn archive_batches(State(state): State<SharedState>) -> Response {
     let db = state.db.lock().unwrap();
     match super::view::load_archive_batches(&db) {

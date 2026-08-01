@@ -240,6 +240,19 @@ enum CatalogCommands {
         #[arg(long, value_name = "PATH")]
         out: Option<PathBuf>,
     },
+    /// Import a reviewed-interpretation file (ticket reviews + reviewed
+    /// relationship edges) into the corpus. Reviewed data is stored
+    /// separately from source snapshots; snapshots are never modified.
+    CorpusReview {
+        #[arg(long, value_name = "PATH")]
+        db: PathBuf,
+        /// Reviewed-interpretation file (ticket-reviews.json).
+        #[arg(value_name = "FILE")]
+        file: PathBuf,
+        /// Source kind the reviews apply to.
+        #[arg(long, value_name = "KIND", default_value = "grnoc-public-task-viewer")]
+        source_kind: String,
+    },
 }
 
 /// Ticket-relationship administration.
@@ -251,6 +264,16 @@ enum RelationshipsCommands {
     Rebuild {
         #[arg(long, value_name = "PATH")]
         db: PathBuf,
+    },
+    /// Print the reviewed relationship-graph audit: source node,
+    /// destination or unresolved reference, relationship, evidence kind,
+    /// exact source, review status. Read-only.
+    Audit {
+        #[arg(long, value_name = "PATH")]
+        db: PathBuf,
+        /// Source kind to audit (default: grnoc-public-task-viewer).
+        #[arg(long, value_name = "KIND", default_value = "grnoc-public-task-viewer")]
+        source_kind: String,
     },
 }
 
@@ -1133,6 +1156,14 @@ fn cmd_catalog(stdout: &mut dyn Write, command: &CatalogCommands) -> i32 {
         CatalogCommands::Relationships(RelationshipsCommands::Rebuild { db }) => {
             cmd_relationships_rebuild(stdout, db)
         }
+        CatalogCommands::Relationships(RelationshipsCommands::Audit { db, source_kind }) => {
+            cmd_relationships_audit(stdout, db, source_kind)
+        }
+        CatalogCommands::CorpusReview {
+            db,
+            file,
+            source_kind,
+        } => cmd_corpus_review(stdout, db, file, source_kind),
         CatalogCommands::AnalysisQueue { db, state } => {
             cmd_analysis_queue(stdout, db, state.as_deref())
         }
@@ -2005,6 +2036,204 @@ fn cmd_relationships_rebuild(stdout: &mut dyn Write, db: &std::path::Path) -> i3
     let _ = writeln!(
         stdout,
         "relationships rebuilt: {extracted} explicit edge(s) extracted, {resolved} target(s) resolved, {overlaps} overlap candidate(s), {groups} group candidate(s)"
+    );
+    EXIT_SUCCESS
+}
+
+/// `inim catalog relationships audit` — print the reviewed graph audit.
+fn cmd_relationships_audit(stdout: &mut dyn Write, db: &std::path::Path, source_kind: &str) -> i32 {
+    let conn = match inim::catalog::db::open_catalog(db) {
+        Ok(c) => c,
+        Err(e) => {
+            let _ = writeln!(stdout, "error: {e}");
+            return EXIT_INVALID_INPUT;
+        }
+    };
+    let rows = match inim::catalog::review::graph_audit(&conn, source_kind) {
+        Ok(r) => r,
+        Err(e) => {
+            let _ = writeln!(stdout, "error: {e}");
+            return EXIT_INVALID_INPUT;
+        }
+    };
+    let unresolved = rows.iter().filter(|r| !r.to_resolved).count();
+    for r in &rows {
+        let target = if r.to_resolved {
+            r.to_external.clone()
+        } else {
+            format!("{} (unresolved reference)", r.to_external)
+        };
+        let _ = writeln!(
+            stdout,
+            "{} -> {} | {} | {} | source: {} | {}",
+            r.from_external,
+            target,
+            r.relationship_kind,
+            r.evidence_kind,
+            r.exact_source,
+            r.review_status
+        );
+    }
+    let _ = writeln!(
+        stdout,
+        "graph audit: {} edge(s), {unresolved} unresolved reference(s)",
+        rows.len()
+    );
+    EXIT_SUCCESS
+}
+
+/// `inim catalog corpus review <file>` — import reviewed interpretations
+/// and reviewed relationship edges. Never modifies source snapshots.
+fn cmd_corpus_review(
+    stdout: &mut dyn Write,
+    db: &std::path::Path,
+    file: &std::path::Path,
+    source_kind: &str,
+) -> i32 {
+    let conn = match inim::catalog::db::open_catalog(db) {
+        Ok(c) => c,
+        Err(e) => {
+            let _ = writeln!(stdout, "error: {e}");
+            return EXIT_INVALID_INPUT;
+        }
+    };
+    let raw = match std::fs::read_to_string(file) {
+        Ok(r) => r,
+        Err(e) => {
+            let _ = writeln!(stdout, "error: cannot read {}: {e}", file.display());
+            return EXIT_INVALID_INPUT;
+        }
+    };
+    let parsed: serde_json::Value = match serde_json::from_str(&raw) {
+        Ok(v) => v,
+        Err(e) => {
+            let _ = writeln!(stdout, "error: invalid review file {}: {e}", file.display());
+            return EXIT_INVALID_INPUT;
+        }
+    };
+    let slug = parsed
+        .get("case_study")
+        .and_then(|v| v.as_str())
+        .unwrap_or("");
+    let reviewer = parsed
+        .get("reviewer")
+        .and_then(|v| v.as_str())
+        .unwrap_or("analyst");
+    let reviewed_at = parsed
+        .get("reviewed_at")
+        .and_then(|v| v.as_str())
+        .unwrap_or("");
+    if reviewed_at.is_empty() {
+        let _ = writeln!(stdout, "error: review file needs a reviewed_at timestamp");
+        return EXIT_INVALID_INPUT;
+    }
+
+    // Resolve the case study's reference document (AAR) for citations.
+    let aar_document_id = if slug.is_empty() {
+        None
+    } else {
+        match inim::catalog::archive_plan::find_case_study(&conn, slug) {
+            Some(cs) => {
+                match inim::catalog::review::case_study_document(&conn, cs.id, "AfterActionReport")
+                {
+                    Ok(d) => d,
+                    Err(e) => {
+                        let _ = writeln!(stdout, "error: {e}");
+                        return EXIT_INVALID_INPUT;
+                    }
+                }
+            }
+            None => {
+                let _ = writeln!(stdout, "error: no case study with slug '{slug}'");
+                return EXIT_INVALID_INPUT;
+            }
+        }
+    };
+
+    use inim::catalog::review::{import_reviewed_edge, validate_review};
+    use inim::catalog::store;
+
+    let mut reviews = 0usize;
+    let mut edges = 0usize;
+    if let Some(list) = parsed.get("reviews").and_then(|v| v.as_array()) {
+        for item in list {
+            let entry: inim::catalog::review::ReviewFileEntry =
+                match serde_json::from_value(item.clone()) {
+                    Ok(r) => r,
+                    Err(e) => {
+                        let _ = writeln!(stdout, "error: invalid review entry: {e}");
+                        return EXIT_INVALID_INPUT;
+                    }
+                };
+            let review = entry.into_review(reviewer, reviewed_at);
+            let review = match validate_review(&conn, source_kind, review, aar_document_id) {
+                Ok(r) => r,
+                Err(e) => {
+                    let _ = writeln!(stdout, "error: {e}");
+                    return EXIT_INVALID_INPUT;
+                }
+            };
+            match store::upsert_ticket_review(&conn, &review) {
+                Ok(_) => reviews += 1,
+                Err(e) => {
+                    let _ = writeln!(stdout, "error: {e}");
+                    return EXIT_INVALID_INPUT;
+                }
+            }
+        }
+    }
+    if let Some(list) = parsed.get("relationships").and_then(|v| v.as_array()) {
+        for item in list {
+            let from = item.get("from").and_then(|v| v.as_str()).unwrap_or("");
+            let to = item.get("to").and_then(|v| v.as_str()).unwrap_or("");
+            let kind = item.get("kind").and_then(|v| v.as_str()).unwrap_or("");
+            let evidence = item.get("evidence").and_then(|v| v.as_str()).unwrap_or("");
+            let note = item.get("note").and_then(|v| v.as_str()).map(String::from);
+            let document_cited = item
+                .get("document_cited")
+                .and_then(|v| v.as_bool())
+                .unwrap_or(false);
+            if from.is_empty() || to.is_empty() || kind.is_empty() || evidence.is_empty() {
+                let _ = writeln!(
+                    stdout,
+                    "error: relationship entry needs from/to/kind/evidence"
+                );
+                return EXIT_INVALID_INPUT;
+            }
+            match import_reviewed_edge(
+                &conn,
+                source_kind,
+                &inim::catalog::review::ReviewedEdgeInput {
+                    from: from.to_string(),
+                    to: to.to_string(),
+                    kind: kind.to_string(),
+                    evidence: evidence.to_string(),
+                    note,
+                    document_cited,
+                },
+                aar_document_id,
+                reviewed_at,
+            ) {
+                Ok(true) => edges += 1,
+                Ok(false) => {}
+                Err(e) => {
+                    let _ = writeln!(stdout, "error: {e}");
+                    return EXIT_INVALID_INPUT;
+                }
+            }
+        }
+    }
+    // Derive entity-overlap candidate edges from reviewed entity labels.
+    let entity_overlaps = match inim::catalog::review::derive_entity_overlaps(&conn, reviewed_at) {
+        Ok(n) => n,
+        Err(e) => {
+            let _ = writeln!(stdout, "error: {e}");
+            return EXIT_INVALID_INPUT;
+        }
+    };
+    let _ = writeln!(
+        stdout,
+        "review imported by {reviewer}: {reviews} ticket review(s), {edges} reviewed edge(s), {entity_overlaps} derived entity-overlap edge(s) (source snapshots unchanged)"
     );
     EXIT_SUCCESS
 }

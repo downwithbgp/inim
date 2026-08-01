@@ -67,6 +67,10 @@ pub fn build_router(state: SharedState) -> Router {
             axum::routing::get(handlers::incident_candidates),
         )
         .route(
+            "/corpus/relationships",
+            axum::routing::get(handlers::corpus_relationships),
+        )
+        .route(
             "/archive-batches",
             axum::routing::get(handlers::archive_batches),
         )
