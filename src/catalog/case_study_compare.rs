@@ -431,7 +431,7 @@ mod tests {
         let sid = crate::catalog::tests::sample_snapshot(e, r#"{"title":"t"}"#);
         let sid = store::insert_snapshot(conn, e, &sid).unwrap();
         let mid = store::insert_manifest_revision(
-            &conn,
+            conn,
             &crate::catalog::tests::sample_manifest_revision(e, sid, r#"{"o":1}"#),
         )
         .unwrap();
