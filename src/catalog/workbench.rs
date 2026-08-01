@@ -1527,3 +1527,331 @@ mod breadth_tests {
         );
     }
 }
+
+// ── Incident timeline (Part 9) ──────────────────────────────────────
+
+/// A timeline lane: one observer session's evidence on a shared UTC axis.
+///
+/// Lanes never interpolate unobserved state: markers carry EXACT
+/// timestamps of observed events. Intervals (absence, path-change,
+/// restoration) span only between observed timestamps; an unresolved
+/// episode gets NO fabricated restoration marker.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TimelineLane {
+    /// Lane identity is the observer session.
+    pub observer_session: String,
+    pub region: String,
+    pub collector: String,
+    /// Analysis-window boundaries (exact, from the run plan).
+    pub window_start: String,
+    pub window_end: String,
+    /// Operator-reported anchors (case-study phases/claims), distinct
+    /// from BGP evidence markers.
+    pub operator_anchors: Vec<TimelineMarker>,
+    pub first_route_change: Option<TimelineMarker>,
+    /// Absence interval [start, end] of observed withdrawals.
+    pub absence_interval: Option<(String, String)>,
+    /// Path-change interval [start, end].
+    pub path_change_interval: Option<(String, String)>,
+    /// Restoration interval [start, end].
+    pub restoration_interval: Option<(String, String)>,
+    /// Unresolved end state: no restoration was observed.
+    pub unresolved_end_state: bool,
+}
+
+/// One timeline marker with its evidence class.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TimelineMarker {
+    pub timestamp_utc: String,
+    pub label: String,
+    /// "operator" (operator-reported anchor) or "bgp" (BGP evidence).
+    pub kind: String,
+}
+
+/// Build timeline lanes from episodes and operator anchors.
+///
+/// `operator_anchors` is a map session-key → markers (from reviewed
+/// case-study phases/claims). Lanes are ordered deterministically by
+/// (window start, region, collector). Exact timestamps only — no
+/// interpolation between discrete BGP observations.
+pub fn build_timeline(
+    episodes: &[ObserverEpisode],
+    window_start: &str,
+    window_end: &str,
+    operator_anchors: &BTreeMap<String, Vec<TimelineMarker>>,
+) -> Vec<TimelineLane> {
+    let mut lanes: BTreeMap<String, TimelineLane> = BTreeMap::new();
+    for ep in episodes {
+        let lane = lanes
+            .entry(ep.observer_session.clone())
+            .or_insert_with(|| TimelineLane {
+                observer_session: ep.observer_session.clone(),
+                region: ep.observer_region.clone(),
+                collector: collector_from_session(&ep.observer_session).to_string(),
+                window_start: window_start.to_string(),
+                window_end: window_end.to_string(),
+                operator_anchors: operator_anchors
+                    .get(&ep.observer_session)
+                    .cloned()
+                    .unwrap_or_default(),
+                first_route_change: None,
+                absence_interval: None,
+                path_change_interval: None,
+                restoration_interval: None,
+                unresolved_end_state: false,
+            });
+        if let Some(fc) = &ep.first_change {
+            if lane.first_route_change.is_none() {
+                lane.first_route_change = Some(TimelineMarker {
+                    timestamp_utc: fc.clone(),
+                    label: "first route change".to_string(),
+                    kind: "bgp".to_string(),
+                });
+            }
+        }
+        match ep.effect_kind {
+            EffectKind::TemporaryStreamAbsence | EffectKind::RouteWithdrawal => {
+                let (start, end) = (
+                    ep.first_change.clone().unwrap_or_default(),
+                    ep.last_change.clone().unwrap_or_default(),
+                );
+                let interval = (start, end);
+                let better = match &lane.absence_interval {
+                    None => true,
+                    Some((s, e)) => interval.0 < *s || (interval.0 == *s && interval.1 > *e),
+                };
+                if better {
+                    lane.absence_interval = Some(interval);
+                }
+                if ep.effect_kind == EffectKind::RouteWithdrawal {
+                    lane.unresolved_end_state = true;
+                }
+            }
+            EffectKind::PathReplacement
+            | EffectKind::PrependChange
+            | EffectKind::MixedRouteChange => {
+                let interval = (
+                    ep.first_change.clone().unwrap_or_default(),
+                    ep.last_change.clone().unwrap_or_default(),
+                );
+                let better = match &lane.path_change_interval {
+                    None => true,
+                    Some((s, e)) => interval.0 < *s || (interval.0 == *s && interval.1 > *e),
+                };
+                if better {
+                    lane.path_change_interval = Some(interval);
+                }
+            }
+            EffectKind::NamedPlaneDeparture | EffectKind::NamedPlaneReturn => {
+                let interval = (
+                    ep.first_change.clone().unwrap_or_default(),
+                    ep.last_change.clone().unwrap_or_default(),
+                );
+                let better = match &lane.path_change_interval {
+                    None => true,
+                    Some((s, e)) => interval.0 < *s || (interval.0 == *s && interval.1 > *e),
+                };
+                if better {
+                    lane.path_change_interval = Some(interval);
+                }
+            }
+            EffectKind::NoRouteStateChange => {}
+        }
+        if let (Some(rs), Some(re)) = (&ep.restoration_start, &ep.restoration_end) {
+            let interval = (rs.clone(), re.clone());
+            let better = match &lane.restoration_interval {
+                None => true,
+                Some((s, e)) => interval.0 < *s || (interval.0 == *s && interval.1 > *e),
+            };
+            if better {
+                lane.restoration_interval = Some(interval);
+            }
+        }
+    }
+    lanes.into_values().collect()
+}
+
+#[cfg(test)]
+mod timeline_tests {
+    use super::*;
+
+    fn ep(
+        kind: EffectKind,
+        session: &str,
+        region: &str,
+        first: &str,
+        last: &str,
+    ) -> ObserverEpisode {
+        ObserverEpisode {
+            analysis_run: 1,
+            observer_session: session.to_string(),
+            observer_site: "site".to_string(),
+            observer_region: region.to_string(),
+            peer_asn: Some(64500),
+            peer_label: "AS64500".to_string(),
+            peer_role: "regional-re".to_string(),
+            relationship: RelationshipKind::Direct,
+            named_path_plane: "Plane A".to_string(),
+            effect_kind: kind,
+            first_change: Some(first.to_string()),
+            peak_interval: None,
+            last_change: Some(last.to_string()),
+            restoration_start: Some(first.to_string()),
+            restoration_end: Some(last.to_string()),
+            baseline_stream_count: 1,
+            changed_stream_count: 1,
+            distinct_prefix_count: 1,
+            route_instance_count: 1,
+            unresolved_count: 0,
+            coverage_status: CoverageStatus::NoChange,
+            representative_evidence: String::new(),
+            streams: Vec::new(),
+        }
+    }
+
+    #[test]
+    fn operator_and_bgp_timeline_markers_are_distinct() {
+        let mut anchors = BTreeMap::new();
+        anchors.insert(
+            "catalog/rrc06 peer 192.0.2.1".to_string(),
+            vec![TimelineMarker {
+                timestamp_utc: "2019-08-21T16:50:00Z".to_string(),
+                label: "reported interface disable".to_string(),
+                kind: "operator".to_string(),
+            }],
+        );
+        let eps = vec![ep(
+            EffectKind::TemporaryStreamAbsence,
+            "catalog/rrc06 peer 192.0.2.1",
+            "APAC",
+            "2019-08-21T16:45:25Z",
+            "2019-08-21T16:45:27Z",
+        )];
+        let lanes = build_timeline(
+            &eps,
+            "2019-08-21T16:00:00Z",
+            "2019-08-21T17:30:00Z",
+            &anchors,
+        );
+        let lane = &lanes[0];
+        assert_eq!(lane.operator_anchors.len(), 1);
+        assert_eq!(lane.operator_anchors[0].kind, "operator");
+        assert_eq!(lane.first_route_change.as_ref().unwrap().kind, "bgp");
+        assert_ne!(
+            lane.operator_anchors[0].kind,
+            lane.first_route_change.as_ref().unwrap().kind,
+            "operator and BGP markers must be visibly distinct"
+        );
+    }
+
+    #[test]
+    fn timeline_does_not_interpolate_unobserved_state() {
+        let eps = vec![ep(
+            EffectKind::TemporaryStreamAbsence,
+            "catalog/rrc06 peer 192.0.2.1",
+            "APAC",
+            "2019-08-21T16:45:25Z",
+            "2019-08-21T16:45:27Z",
+        )];
+        let lanes = build_timeline(
+            &eps,
+            "2019-08-21T16:00:00Z",
+            "2019-08-21T17:30:00Z",
+            &BTreeMap::new(),
+        );
+        let lane = &lanes[0];
+        // Interval endpoints are EXACT observed timestamps.
+        assert_eq!(
+            lane.absence_interval.as_ref().unwrap().0,
+            "2019-08-21T16:45:25Z"
+        );
+        assert_eq!(
+            lane.absence_interval.as_ref().unwrap().1,
+            "2019-08-21T16:45:27Z"
+        );
+        // No synthetic midpoint or extrapolated marker exists.
+        assert!(lane
+            .first_route_change
+            .as_ref()
+            .unwrap()
+            .timestamp_utc
+            .starts_with("2019-08-21T16:45:"));
+        assert_eq!(lane.path_change_interval, None);
+    }
+
+    #[test]
+    fn lane_identity_is_observer_session() {
+        let eps = vec![
+            ep(
+                EffectKind::TemporaryStreamAbsence,
+                "catalog/rrc06 peer 192.0.2.1",
+                "APAC",
+                "2019-08-21T16:45:25Z",
+                "2019-08-21T16:45:27Z",
+            ),
+            ep(
+                EffectKind::TemporaryStreamAbsence,
+                "catalog/rrc00 peer 192.0.2.9",
+                "EMEA",
+                "2019-08-21T16:45:25Z",
+                "2019-08-21T16:45:27Z",
+            ),
+        ];
+        let lanes = build_timeline(&eps, "W0", "W1", &BTreeMap::new());
+        assert_eq!(lanes.len(), 2, "one lane per observer session");
+        assert!(lanes.iter().all(|l| l.observer_session.contains("peer ")));
+    }
+
+    #[test]
+    fn event_order_is_preserved() {
+        let eps = vec![
+            ep(
+                EffectKind::TemporaryStreamAbsence,
+                "catalog/rrc06 peer 192.0.2.1",
+                "APAC",
+                "2019-08-21T16:45:25Z",
+                "2019-08-21T16:45:27Z",
+            ),
+            ep(
+                EffectKind::PathReplacement,
+                "catalog/rrc06 peer 192.0.2.1",
+                "APAC",
+                "2019-08-21T16:50:00Z",
+                "2019-08-21T17:02:03Z",
+            ),
+        ];
+        let lanes = build_timeline(&eps, "W0", "W1", &BTreeMap::new());
+        let lane = &lanes[0];
+        let first = lane
+            .first_route_change
+            .as_ref()
+            .unwrap()
+            .timestamp_utc
+            .clone();
+        let absence = lane.absence_interval.as_ref().unwrap();
+        let path = lane.path_change_interval.as_ref().unwrap();
+        // Chronological order preserved: absence before path change.
+        assert!(absence.0 < path.0);
+        assert!(first == "2019-08-21T16:45:25Z");
+    }
+
+    #[test]
+    fn unresolved_episode_has_no_fabricated_restoration() {
+        let mut e = ep(
+            EffectKind::RouteWithdrawal,
+            "catalog/rrc06 peer 192.0.2.1",
+            "APAC",
+            "2019-08-21T16:45:25Z",
+            "2019-08-21T16:45:27Z",
+        );
+        e.restoration_start = None;
+        e.restoration_end = None;
+        let lanes = build_timeline(&[e], "W0", "W1", &BTreeMap::new());
+        let lane = &lanes[0];
+        assert!(lane.unresolved_end_state, "withdrawal without restoration");
+        assert_eq!(
+            lane.restoration_interval, None,
+            "no fabricated restoration interval"
+        );
+    }
+}
