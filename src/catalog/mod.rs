@@ -4,6 +4,7 @@
 //! See `docs/ADRs/LOCAL-CATALOG-AND-WEB.md` for the architecture decision.
 
 pub mod db;
+pub mod document;
 pub mod domain;
 pub mod grnoc;
 pub mod import;

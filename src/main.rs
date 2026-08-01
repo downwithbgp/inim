@@ -185,9 +185,44 @@ enum CatalogCommands {
         #[arg(long, value_name = "DIR", default_value = ".")]
         root: PathBuf,
     },
+    /// Manage reference documents.
+    #[command(subcommand)]
+    Document(DocumentCommands),
     /// Synchronize a catalog source into the catalog.
     #[command(subcommand)]
     Sync(SyncSource),
+}
+
+/// Reference-document subcommands.
+#[derive(Subcommand)]
+enum DocumentCommands {
+    /// Import an external reference document into the catalog.
+    ///
+    /// The file is copied to `<root>/data/documents/<sha12>/<basename>` and
+    /// the catalog records the catalog-relative path, SHA-256, media type,
+    /// and best-effort PDF metadata.
+    Import {
+        #[arg(long, value_name = "PATH")]
+        db: PathBuf,
+        /// Document file to import (basename is used for storage).
+        #[arg(long, value_name = "FILE")]
+        file: PathBuf,
+        /// Source URL of the document.
+        #[arg(long, value_name = "URL")]
+        source_url: String,
+        /// Reviewed document title (defaults to the file name).
+        #[arg(long, value_name = "TITLE")]
+        title: Option<String>,
+        /// Document type (e.g. AfterActionReport).
+        #[arg(long, value_name = "TYPE")]
+        doc_type: Option<String>,
+        /// Provenance note for the document record.
+        #[arg(long, value_name = "TEXT")]
+        provenance: Option<String>,
+        /// Catalog root (default: current directory).
+        #[arg(long, value_name = "DIR", default_value = ".")]
+        root: PathBuf,
+    },
 }
 
 /// Catalog source adapters.
@@ -519,6 +554,52 @@ fn cmd_catalog(stdout: &mut dyn Write, command: &CatalogCommands) -> i32 {
                 EXIT_INVALID_INPUT
             }
         },
+        CatalogCommands::Document(DocumentCommands::Import {
+            db,
+            file,
+            source_url,
+            title,
+            doc_type,
+            provenance,
+            root,
+        }) => {
+            let conn = match inim::catalog::db::open_catalog(db) {
+                Ok(c) => c,
+                Err(e) => {
+                    let _ = writeln!(stdout, "error: {e}");
+                    return EXIT_INVALID_INPUT;
+                }
+            };
+            match inim::catalog::document::import_document(
+                &conn,
+                root,
+                file,
+                source_url,
+                title.as_deref(),
+                doc_type.as_deref(),
+                provenance.as_deref(),
+            ) {
+                Ok(o) => {
+                    let _ = writeln!(
+                        stdout,
+                        "document imported: id={} revision={} sha256={} path={} media={} pages={}",
+                        o.document_id,
+                        o.revision,
+                        o.sha256,
+                        o.relative_path,
+                        o.media_type,
+                        o.page_count
+                            .map(|n| n.to_string())
+                            .unwrap_or_else(|| "n/a".to_string())
+                    );
+                }
+                Err(e) => {
+                    let _ = writeln!(stdout, "error: {e}");
+                    return EXIT_INVALID_INPUT;
+                }
+            }
+            EXIT_SUCCESS
+        }
         CatalogCommands::Import { db, root } => {
             let conn = match inim::catalog::db::open_catalog(db) {
                 Ok(c) => c,
