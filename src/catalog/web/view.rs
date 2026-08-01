@@ -1745,6 +1745,14 @@ pub struct QueueRowView {
     pub reason: String,
     pub expectation: String,
     pub case_studies: String,
+    /// Reviewed case-study role(s), when a reviewed interpretation exists.
+    pub reviewed_roles: String,
+    /// Archive-plan status (none / Draft / Ready).
+    pub archive_plan_status: String,
+    /// Existing analysis runs for this event.
+    pub runs: usize,
+    /// Derived next analyst action (never executed automatically).
+    pub next_action: String,
 }
 
 #[derive(Template, Serialize)]
@@ -2230,6 +2238,36 @@ pub fn load_analysis_queue(
                 continue;
             }
         }
+        // Session 34: reviewed roles, archive-plan status, existing runs,
+        // and the derived next analyst action.
+        let review = crate::catalog::store::get_ticket_review(conn, e.id)?;
+        let reviewed_roles = review
+            .as_ref()
+            .map(|r| r.reviewed_roles.join(", "))
+            .unwrap_or_default();
+        let applicability = review
+            .as_ref()
+            .map(|r| r.analysis_applicability.as_str())
+            .unwrap_or("");
+        let archive_plan_status = {
+            let mut stmt = conn
+                .prepare(
+                    "SELECT p.status FROM analysis_plans p
+                     JOIN manifest_revisions m ON m.id = p.manifest_revision_id
+                     WHERE m.event_id = ?1 ORDER BY p.id DESC LIMIT 1",
+                )
+                .map_err(|e| format!("catalog read failed: {e}"))?;
+            let status: Option<String> = stmt.query_row([e.id], |r| r.get::<_, String>(0)).ok();
+            match status {
+                Some(s) if s == "Ready" => "Ready".to_string(),
+                Some(_) => "Draft".to_string(),
+                None => "none".to_string(),
+            }
+        };
+        let runs = crate::catalog::db::list_runs_for_event(conn, e.id)?.len();
+        let next_action =
+            crate::catalog::analyzability::next_analyst_action(&readiness, applicability)
+                .to_string();
         rows.push(QueueRowView {
             external_id: e.external_id.clone(),
             title,
@@ -2240,6 +2278,10 @@ pub fn load_analysis_queue(
             readiness,
             expectation,
             case_studies,
+            reviewed_roles,
+            archive_plan_status,
+            runs,
+            next_action,
         });
     }
     rows.sort_by(|a, b| {

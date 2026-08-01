@@ -1,8 +1,9 @@
 # ADR: RIPE RIS observer support — audit result and scope
 
-**Status:** Accepted (planning/discovery ready; execution deferred)
+**Status:** Accepted (planning/discovery ready; execution supported)
 
-**Date:** 2026-08-01 (Session 33, Part 10)
+**Date:** 2026-08-01 (Session 33, Part 10); execution status updated
+2026-08-01 (Session 34, Part 4)
 
 ## Context
 
@@ -40,12 +41,17 @@ the existing BGP acquisition abstraction was audited:
 - `CollectorPlan` carries `source_family`; the plan's observer scope
   reports it. Stored plans predating this change default to RouteViews
   on read.
-- **Execution (download + parse) of RIS archives is deferred**: the
-  acquisition pipeline (cache layout, manifest observer schema, pilot
-  execution) has been exercised only against RouteViews. RIS planning
-  is `Ready`; RIS execution is `Unsupported` until a future session
-  validates real RIS archives end-to-end. This is a documented status,
-  not a silent partial implementation.
+- **Execution (download + parse) of RIS archives is supported** (Session
+  34, Part 4): the reviewed manifest carries `source_family` (default
+  `RouteViews`, so pre-existing manifests parse unchanged); the
+  orchestrator discovers through the family's broker project
+  (`routeviews`/`riperis`); derived RIB/UPDATE caches are keyed on
+  (family, collector) so identities can never collide; reports name the
+  family (`RIPE RIS` vs `RouteViews`); mixed-source archive ordering is
+  deterministic (total order on (ts_start, url)). A real 2019 RIS
+  update fixture (`tests/fixtures/ris/`) exercises the shared
+  ingestion path. RIS planning was already `Ready`; execution is no
+  longer `Unsupported`.
 
 ## Consequences
 
@@ -57,4 +63,6 @@ the existing BGP acquisition abstraction was audited:
 - No report or verdict change: RIS observers are rendered under their
   own collector names; the report never labels a RIS observer as
   RouteViews.
-- No live RIS analysis was executed in Session 33 (per scope).
+- No live RIS analysis was executed in Session 33 (per scope). Session 34
+  executed the reviewed NORDUnet pilot against selected RIS collectors
+  (see `case-studies/manlan-2019/pilot/`).

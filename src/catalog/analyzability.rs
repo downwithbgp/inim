@@ -198,6 +198,130 @@ pub fn derive_all_analyzability(conn: &Connection) -> Result<Vec<Analyzability>,
     Ok(out)
 }
 
+/// Next analyst action for a queue row, derived from the readiness state
+/// and the reviewed analysis applicability (Session 34, Part 10).
+///
+/// Deterministic; never executed automatically — a future POST/job
+/// workflow remains separate. Vocabulary:
+/// Review entity mapping · Review transit predicate · Run RIB preflight ·
+/// Review archive volume · Analyze · No public-BGP target ·
+/// Inspect stale run.
+pub fn next_analyst_action(readiness: &str, applicability: &str) -> &'static str {
+    if applicability == applicability::NOT_APPLICABLE {
+        return "No public-BGP target";
+    }
+    match readiness {
+        state::NOT_REVIEWED | state::NEEDS_ENTITY_MAPPING => "Review entity mapping",
+        state::NEEDS_TRANSIT_PREDICATE => "Review transit predicate",
+        state::NEEDS_ANALYSIS_WINDOW => "Review analysis window",
+        state::NOT_APPLICABLE => "No public-BGP target",
+        state::READY_FOR_ARCHIVE_PLANNING | state::INSUFFICIENT_BASELINE_VISIBILITY => {
+            "Run RIB preflight"
+        }
+        state::ARCHIVE_PLAN_READY => "Review archive volume",
+        state::ANALYSIS_COMPLETE => "Analyze",
+        state::ANALYSIS_STALE | state::ANALYSIS_FAILED => "Inspect stale run",
+        state::ANALYSIS_RUNNING => "Analyze",
+        _ => "Review entity mapping",
+    }
+}
+
+#[cfg(test)]
+mod session34_queue_action_tests {
+    use super::*;
+
+    #[test]
+    fn next_action_mapping_is_deterministic_and_never_executes() {
+        use crate::catalog::domain::applicability;
+        let cases = [
+            (
+                state::NOT_REVIEWED,
+                applicability::POTENTIALLY_VISIBLE,
+                "Review entity mapping",
+            ),
+            (
+                state::NEEDS_ENTITY_MAPPING,
+                applicability::POTENTIALLY_VISIBLE,
+                "Review entity mapping",
+            ),
+            (
+                state::NEEDS_TRANSIT_PREDICATE,
+                applicability::POTENTIALLY_VISIBLE,
+                "Review transit predicate",
+            ),
+            (
+                state::NEEDS_ANALYSIS_WINDOW,
+                applicability::POTENTIALLY_VISIBLE,
+                "Review analysis window",
+            ),
+            (
+                state::READY_FOR_ARCHIVE_PLANNING,
+                applicability::POTENTIALLY_VISIBLE,
+                "Run RIB preflight",
+            ),
+            (
+                state::INSUFFICIENT_BASELINE_VISIBILITY,
+                applicability::POTENTIALLY_VISIBLE,
+                "Run RIB preflight",
+            ),
+            (
+                state::ARCHIVE_PLAN_READY,
+                applicability::POTENTIALLY_VISIBLE,
+                "Review archive volume",
+            ),
+            (
+                state::ANALYSIS_COMPLETE,
+                applicability::POTENTIALLY_VISIBLE,
+                "Analyze",
+            ),
+            (
+                state::ANALYSIS_STALE,
+                applicability::POTENTIALLY_VISIBLE,
+                "Inspect stale run",
+            ),
+            (
+                state::ANALYSIS_FAILED,
+                applicability::POTENTIALLY_VISIBLE,
+                "Inspect stale run",
+            ),
+            (
+                state::NOT_APPLICABLE,
+                applicability::POTENTIALLY_VISIBLE,
+                "No public-BGP target",
+            ),
+            // Reviewed applicability overrides everything.
+            (
+                state::ANALYSIS_COMPLETE,
+                applicability::NOT_APPLICABLE,
+                "No public-BGP target",
+            ),
+            (
+                state::READY_FOR_ARCHIVE_PLANNING,
+                applicability::NOT_APPLICABLE,
+                "No public-BGP target",
+            ),
+        ];
+        for (readiness, app, expected) in cases {
+            assert_eq!(
+                next_analyst_action(readiness, app),
+                expected,
+                "readiness={readiness} applicability={app}"
+            );
+        }
+        // Deterministic: repeated calls agree.
+        assert_eq!(
+            next_analyst_action(
+                state::ARCHIVE_PLAN_READY,
+                applicability::POTENTIALLY_VISIBLE
+            ),
+            next_analyst_action(
+                state::ARCHIVE_PLAN_READY,
+                applicability::POTENTIALLY_VISIBLE
+            )
+        );
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
