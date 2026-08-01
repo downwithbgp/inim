@@ -5,10 +5,10 @@
 //! reopened database at the current version is a no-op.
 
 /// Current catalog schema version.
-pub const CATALOG_SCHEMA_VERSION: u32 = 5;
+pub const CATALOG_SCHEMA_VERSION: u32 = 6;
 
 /// Ordered migrations. Index i migrates user_version i -> i+1.
-pub const MIGRATIONS: &[&str] = &[V1, V2, V3, V4, V5];
+pub const MIGRATIONS: &[&str] = &[V1, V2, V3, V4, V5, V6];
 
 const V1: &str = r#"
 CREATE TABLE catalog_events (
@@ -382,4 +382,26 @@ CREATE UNIQUE INDEX uq_relationship_dedup ON ticket_relationships(
 CREATE INDEX idx_rel_from ON ticket_relationships(from_event_id);
 CREATE INDEX idx_rel_to ON ticket_relationships(to_event_id);
 CREATE INDEX idx_rel_external ON ticket_relationships(to_external_id);
+"#;
+
+/// V6 (Session 33, Part 9): candidate incident groups.
+///
+/// Groups are suggestions with categorical confidence; they never
+/// replace individual CatalogEvents. The evidence fingerprint makes
+/// regeneration idempotent and keeps rejected groups suppressed until
+/// the evidence actually changes.
+const V6: &str = r#"
+CREATE TABLE incident_group_candidates (
+    id                   INTEGER PRIMARY KEY,
+    label                TEXT NOT NULL,
+    member_ids_json      TEXT NOT NULL,
+    evidence_json        TEXT NOT NULL,
+    confidence           TEXT NOT NULL,
+    review_status        TEXT NOT NULL DEFAULT 'Unreviewed',
+    evidence_fingerprint TEXT NOT NULL UNIQUE,
+    created_utc          TEXT NOT NULL,
+    updated_utc          TEXT NOT NULL
+);
+
+CREATE INDEX idx_groups_confidence ON incident_group_candidates(confidence);
 "#;

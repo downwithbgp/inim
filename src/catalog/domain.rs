@@ -473,3 +473,27 @@ pub struct RunTransitionRecord {
     pub observation_id: Option<i64>,
     pub archive_sha256: Option<String>,
 }
+
+/// One evidence signal behind a candidate group.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub struct GroupEvidence {
+    pub signal: String,
+    pub detail: String,
+}
+
+/// A candidate group of tickets that may describe parts of one incident.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct IncidentGroupCandidate {
+    pub id: i64,
+    pub label: String,
+    /// Sorted catalog event ids of the members.
+    pub member_event_ids: Vec<i64>,
+    pub evidence: Vec<GroupEvidence>,
+    pub confidence: String,
+    pub review_status: String,
+    /// Deterministic hash of members + evidence; regeneration skips
+    /// rejected fingerprints until the evidence changes.
+    pub evidence_fingerprint: String,
+    pub created_utc: String,
+    pub updated_utc: String,
+}

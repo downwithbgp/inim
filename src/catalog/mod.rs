@@ -4,6 +4,7 @@
 //! See `docs/ADRs/LOCAL-CATALOG-AND-WEB.md` for the architecture decision.
 
 pub mod access;
+pub mod analyzability;
 pub mod archive_plan;
 pub mod case_study_compare;
 pub mod case_study_import;
@@ -13,6 +14,7 @@ pub mod document;
 pub mod domain;
 pub mod grnoc;
 pub mod grnoc_viewer;
+pub mod grouping;
 pub mod import;
 pub mod migrations;
 #[cfg(test)]

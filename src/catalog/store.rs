@@ -1008,3 +1008,66 @@ pub fn has_reviewed_edge(
         .map_err(|e| format!("catalog read failed: {e}"))?;
     Ok(count > 0)
 }
+
+// ── Incident group candidates (Session 33, Part 9) ─────────────────
+
+/// Insert a candidate group; idempotent per evidence fingerprint.
+pub fn insert_group_candidate(
+    conn: &Connection,
+    candidate: &IncidentGroupCandidate,
+) -> Result<bool, String> {
+    let result = conn
+        .execute(
+            "INSERT OR IGNORE INTO incident_group_candidates
+           (label, member_ids_json, evidence_json, confidence, review_status,
+            evidence_fingerprint, created_utc, updated_utc)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+            params![
+                candidate.label,
+                serde_json::to_string(&candidate.member_event_ids).unwrap_or_default(),
+                serde_json::to_string(&candidate.evidence).unwrap_or_default(),
+                candidate.confidence,
+                candidate.review_status,
+                candidate.evidence_fingerprint,
+                candidate.created_utc,
+                candidate.updated_utc
+            ],
+        )
+        .map_err(|e| format!("catalog write failed: {e}"))?;
+    Ok(result > 0)
+}
+
+/// All candidate groups, newest first.
+pub fn list_group_candidates(conn: &Connection) -> Result<Vec<IncidentGroupCandidate>, String> {
+    let mut stmt = conn
+        .prepare(
+            "SELECT id, label, member_ids_json, evidence_json, confidence,
+                    review_status, evidence_fingerprint, created_utc, updated_utc
+             FROM incident_group_candidates ORDER BY id DESC",
+        )
+        .map_err(|e| format!("catalog read failed: {e}"))?;
+    let rows = stmt
+        .query_map([], |r| {
+            let members: Vec<i64> =
+                serde_json::from_str(&r.get::<_, String>(2)?).unwrap_or_default();
+            let evidence: Vec<GroupEvidence> =
+                serde_json::from_str(&r.get::<_, String>(3)?).unwrap_or_default();
+            Ok(IncidentGroupCandidate {
+                id: r.get(0)?,
+                label: r.get(1)?,
+                member_event_ids: members,
+                evidence,
+                confidence: r.get(4)?,
+                review_status: r.get(5)?,
+                evidence_fingerprint: r.get(6)?,
+                created_utc: r.get(7)?,
+                updated_utc: r.get(8)?,
+            })
+        })
+        .map_err(|e| format!("catalog read failed: {e}"))?;
+    let mut out = Vec::new();
+    for row in rows {
+        out.push(row.map_err(|e| format!("catalog read failed: {e}"))?);
+    }
+    Ok(out)
+}
