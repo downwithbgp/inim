@@ -262,3 +262,46 @@ fn package_file_list() -> Vec<String> {
         .map(|l| l.to_string())
         .collect()
 }
+
+// ── Screenshot harness checks (Session 32, Part 12) ─────────────────
+
+/// The harness must be loopback-only, use the deterministic demo catalog,
+/// write gitignored output, and shut the server down on failure.
+#[test]
+fn screenshot_harness_uses_loopback_and_cleanup() {
+    let script = read("scripts/screenshot-review.sh");
+    // Loopback binding only.
+    assert!(
+        script.contains("127.0.0.1"),
+        "harness must bind loopback"
+    );
+    assert!(!script.contains("0.0.0.0"), "no wildcard binds");
+    // Deterministic demo catalog.
+    assert!(
+        script.contains("data/inim.sqlite"),
+        "harness must use the deterministic demo catalog"
+    );
+    // Server shutdown on failure (trap + kill).
+    assert!(script.contains("trap cleanup EXIT"), "cleanup trap required");
+    assert!(script.contains("kill \"$SERVER_PID\""), "server kill required");
+    // Browser-unavailable message.
+    assert!(
+        script.contains("browser unavailable"),
+        "clear failure message required"
+    );
+}
+
+/// Screenshot output must be gitignored and excluded from the package.
+#[test]
+fn screenshot_output_is_gitignored_and_not_packaged() {
+    let gitignore = read(".gitignore");
+    assert!(
+        gitignore.lines().any(|l| l.trim() == "tmp/"),
+        "tmp/ must be gitignored"
+    );
+    let toml = read("Cargo.toml");
+    assert!(
+        toml.contains("\"tmp/\""),
+        "tmp/ must be excluded from the crate package"
+    );
+}
