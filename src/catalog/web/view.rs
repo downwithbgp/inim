@@ -809,3 +809,682 @@ pub fn load_catalog_status_json(conn: &rusqlite::Connection) -> Result<serde_jso
         "latest_completed_analysis": dashboard.latest_completed,
     }))
 }
+
+// ── Case-study views (Session 30, Parts 11-13) ─────────────────────
+
+#[derive(Template)]
+#[template(path = "case_studies.html")]
+pub struct CaseStudyListView {
+    pub rows: Vec<CaseStudyRowView>,
+}
+
+#[derive(Serialize)]
+pub struct CaseStudyRowView {
+    pub slug: String,
+    pub title: String,
+    pub date: String,
+    pub status: String,
+    pub documents: usize,
+    pub events: usize,
+    pub runs: usize,
+    pub research_state: String,
+    pub latest_result: String,
+}
+
+#[derive(Template)]
+#[template(path = "case_study.html")]
+pub struct CaseStudyView {
+    pub slug: String,
+    pub title: String,
+    pub date: String,
+    pub status: String,
+    pub summary: String,
+    pub what_happened: String,
+    pub what_bgp_showed: String,
+    pub what_bgp_could_not_show: Vec<String>,
+    pub phases: Vec<PhaseView>,
+    pub related_tickets: Vec<RelatedTicketView>,
+    pub documents: Vec<DocumentView>,
+    pub targets: Vec<TargetView>,
+    pub plan: Option<PlanView>,
+    pub runs: Vec<RunLinkView>,
+    pub phase_summaries: Vec<PhaseSummaryView>,
+    pub comparison: Vec<ComparisonRowView>,
+    pub observability_potentially_visible: usize,
+    pub observability_indirectly_visible: usize,
+    pub observability_not_directly_visible: usize,
+    pub observability_unknown: usize,
+}
+
+#[derive(Serialize)]
+pub struct PhaseView {
+    pub label: String,
+    pub start_utc: String,
+    pub end_utc: String,
+    pub start_precision: String,
+    pub end_precision: String,
+    pub description: String,
+    pub source_section: String,
+    pub review_status: String,
+}
+
+#[derive(Serialize)]
+pub struct RelatedTicketView {
+    pub external_id: String,
+    pub relationship: String,
+    pub reviewed_note: String,
+    /// Link to the catalog event page when a snapshot-backed event exists.
+    pub event_href: Option<String>,
+}
+
+#[derive(Serialize)]
+pub struct DocumentView {
+    pub id: i64,
+    pub title: String,
+    pub source_url: String,
+    pub doc_type: String,
+    pub media_type: String,
+    pub sha256: String,
+    pub pages: String,
+    pub redistribution_status: String,
+    pub provenance: String,
+    /// A validated /documents/<id> href when a local copy exists.
+    pub href: Option<String>,
+}
+
+#[derive(Serialize)]
+pub struct TargetView {
+    pub source_label: String,
+    pub role_in_report: String,
+    pub candidate_org: String,
+    pub candidate_asns: String,
+    pub historical_validity_status: String,
+    pub research_status: String,
+    pub provenance: String,
+    pub reviewed_note: String,
+}
+
+#[derive(Serialize)]
+pub struct PlanView {
+    pub status: String,
+    pub warmup_start: String,
+    pub incident_start: String,
+    pub incident_end: String,
+    pub cooldown_end: String,
+    pub collectors: Vec<String>,
+    pub estimated_bytes: i64,
+    pub blocked_targets: Vec<String>,
+    pub skipped_targets: Vec<String>,
+    pub notes: Vec<String>,
+}
+
+#[derive(Serialize)]
+pub struct RunLinkView {
+    pub id: i64,
+    pub started_at: String,
+    pub verdict: String,
+    pub assessment: String,
+}
+
+#[derive(Serialize)]
+pub struct PhaseSummaryView {
+    pub run_id: i64,
+    pub phase_label: String,
+    pub phase_start: String,
+    pub phase_end: String,
+    pub active_streams_entering: usize,
+    pub announcements: usize,
+    pub withdrawals: usize,
+    pub path_changes: usize,
+    pub transit_departures: usize,
+    pub restorations: usize,
+    pub semantic_waves: Vec<String>,
+    pub first_evidence_utc: String,
+    pub last_evidence_utc: String,
+    pub evidence_observation_ids: Vec<i64>,
+}
+
+#[derive(Serialize)]
+pub struct ComparisonRowView {
+    pub operator_report: String,
+    pub operator_time: String,
+    pub bgp_observation: String,
+    pub interpretation: String,
+    pub limitation: String,
+}
+
+/// Load the case-study list (deterministic order by slug).
+pub fn load_case_studies(conn: &rusqlite::Connection) -> Result<CaseStudyListView, String> {
+    let mut stmt = conn
+        .prepare(
+            "SELECT cs.id, cs.slug, cs.title, cs.start_utc, cs.status,
+                    (SELECT COUNT(*) FROM case_study_event_links l WHERE l.case_study_id = cs.id
+                      AND l.catalog_event_id IS NOT NULL),
+                    (SELECT COUNT(*) FROM case_study_analysis_links a WHERE a.case_study_id = cs.id),
+                    (SELECT COUNT(*) FROM case_study_document_links d WHERE d.case_study_id = cs.id)
+             FROM case_studies cs ORDER BY cs.slug",
+        )
+        .map_err(|e| format!("catalog read failed: {e}"))?;
+    let rows = stmt
+        .query_map([], |r| {
+            Ok((
+                r.get::<_, String>(1)?,
+                r.get::<_, String>(2)?,
+                r.get::<_, Option<String>>(3)?,
+                r.get::<_, String>(4)?,
+                r.get::<_, i64>(5)?,
+                r.get::<_, i64>(6)?,
+                r.get::<_, i64>(7)?,
+            ))
+        })
+        .map_err(|e| format!("catalog read failed: {e}"))?;
+    let mut out = Vec::new();
+    for row in rows {
+        let (slug, title, start, status, events, runs, documents) =
+            row.map_err(|e| format!("catalog read failed: {e}"))?;
+        let research_state = research_state_for(conn, &slug)?;
+        let latest_result = if runs == 0 {
+            "no analysis runs; no BGP verdict".to_string()
+        } else {
+            "analysis runs linked (see detail)".to_string()
+        };
+        out.push(CaseStudyRowView {
+            slug,
+            title,
+            date: start.unwrap_or_default(),
+            status,
+            documents: documents as usize,
+            events: events as usize,
+            runs: runs as usize,
+            research_state,
+            latest_result,
+        });
+    }
+    Ok(CaseStudyListView { rows: out })
+}
+
+/// Research/readiness state: all targets reviewed vs pending.
+fn research_state_for(conn: &rusqlite::Connection, slug: &str) -> Result<String, String> {
+    let total: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM case_study_targets t
+             JOIN case_studies cs ON cs.id = t.case_study_id WHERE cs.slug = ?1",
+            [slug],
+            |r| r.get(0),
+        )
+        .unwrap_or(0);
+    let unresolved: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM case_study_targets t
+             JOIN case_studies cs ON cs.id = t.case_study_id
+             WHERE cs.slug = ?1 AND t.research_status != 'HistoricallyReviewed'",
+            [slug],
+            |r| r.get(0),
+        )
+        .unwrap_or(0);
+    Ok(if total == 0 {
+        "no analysis targets".to_string()
+    } else if unresolved == 0 {
+        "target research complete".to_string()
+    } else {
+        format!("target research incomplete ({unresolved}/{total} unresolved)")
+    })
+}
+
+/// Load the case-study detail view; None when the slug is unknown.
+pub fn load_case_study(
+    conn: &rusqlite::Connection,
+    slug: &str,
+) -> Result<Option<CaseStudyView>, String> {
+    let Some(cs) = crate::catalog::archive_plan::find_case_study(conn, slug) else {
+        return Ok(None);
+    };
+    let cs_id = cs.id;
+
+    // Phases.
+    let mut phases = Vec::new();
+    {
+        let mut stmt = conn
+            .prepare(
+                "SELECT label, start_utc, end_utc, start_precision, end_precision,
+                        description, source_page_or_section, review_status
+                 FROM case_study_phases WHERE case_study_id = ?1 ORDER BY sort_order",
+            )
+            .map_err(|e| format!("catalog read failed: {e}"))?;
+        let rows = stmt
+            .query_map([cs_id], |r| {
+                Ok((
+                    r.get::<_, String>(0)?,
+                    r.get::<_, String>(1)?,
+                    r.get::<_, String>(2)?,
+                    r.get::<_, String>(3)?,
+                    r.get::<_, String>(4)?,
+                    r.get::<_, String>(5)?,
+                    r.get::<_, String>(6)?,
+                    r.get::<_, String>(7)?,
+                ))
+            })
+            .map_err(|e| format!("catalog read failed: {e}"))?;
+        for row in rows {
+            let (label, start, end, sp, ep, desc, section, review) =
+                row.map_err(|e| format!("catalog read failed: {e}"))?;
+            phases.push(PhaseView {
+                label,
+                start_utc: start,
+                end_utc: end,
+                start_precision: sp,
+                end_precision: ep,
+                description: desc,
+                source_section: section,
+                review_status: review,
+            });
+        }
+    }
+
+    // Related tickets.
+    let mut related_tickets = Vec::new();
+    {
+        let mut stmt = conn
+            .prepare(
+                "SELECT l.external_identifier, l.relationship,
+                        COALESCE(l.reviewed_note, ''), l.catalog_event_id
+                 FROM case_study_event_links l
+                 WHERE l.case_study_id = ?1 ORDER BY l.sort_order",
+            )
+            .map_err(|e| format!("catalog read failed: {e}"))?;
+        let rows = stmt
+            .query_map([cs_id], |r| {
+                Ok((
+                    r.get::<_, String>(0)?,
+                    r.get::<_, String>(1)?,
+                    r.get::<_, String>(2)?,
+                    r.get::<_, Option<i64>>(3)?,
+                ))
+            })
+            .map_err(|e| format!("catalog read failed: {e}"))?;
+        for row in rows {
+            let (external_id, relationship, note, event_id) =
+                row.map_err(|e| format!("catalog read failed: {e}"))?;
+            let event_href = event_id.map(|_| format!("/events/{external_id}"));
+            related_tickets.push(RelatedTicketView {
+                external_id,
+                relationship,
+                reviewed_note: note,
+                event_href,
+            });
+        }
+    }
+
+    // Documents (latest revision per document).
+    let mut documents = Vec::new();
+    {
+        let mut stmt = conn
+            .prepare(
+                "SELECT d.id, d.title, COALESCE(d.source_url, ''), d.doc_type,
+                        d.redistribution_status, d.provenance, r.media_type, r.sha256,
+                        r.page_count, r.local_path
+                 FROM reference_documents d
+                 JOIN case_study_document_links l ON l.document_id = d.id
+                 LEFT JOIN document_revisions r ON r.id = (
+                     SELECT id FROM document_revisions r2
+                     WHERE r2.document_id = d.id ORDER BY r2.revision DESC LIMIT 1)
+                 WHERE l.case_study_id = ?1
+                 ORDER BY d.title",
+            )
+            .map_err(|e| format!("catalog read failed: {e}"))?;
+        let rows = stmt
+            .query_map([cs_id], |r| {
+                Ok((
+                    r.get::<_, i64>(0)?,
+                    r.get::<_, String>(1)?,
+                    r.get::<_, String>(2)?,
+                    r.get::<_, String>(3)?,
+                    r.get::<_, String>(4)?,
+                    r.get::<_, String>(5)?,
+                    r.get::<_, Option<String>>(6)?,
+                    r.get::<_, Option<String>>(7)?,
+                    r.get::<_, Option<i64>>(8)?,
+                    r.get::<_, Option<String>>(9)?,
+                ))
+            })
+            .map_err(|e| format!("catalog read failed: {e}"))?;
+        for row in rows {
+            let (id, title, url, doc_type, redist, prov, media, sha, pages, local) =
+                row.map_err(|e| format!("catalog read failed: {e}"))?;
+            documents.push(DocumentView {
+                id,
+                title,
+                source_url: url,
+                doc_type,
+                media_type: media.unwrap_or_default(),
+                sha256: sha.unwrap_or_default(),
+                pages: pages
+                    .map(|p| p.to_string())
+                    .unwrap_or_else(|| "n/a".to_string()),
+                redistribution_status: redist,
+                provenance: prov,
+                href: local
+                    .filter(|p| !p.is_empty())
+                    .map(|_| format!("/documents/{id}")),
+            });
+        }
+    }
+
+    // Targets.
+    let mut targets = Vec::new();
+    {
+        let mut stmt = conn
+            .prepare(
+                "SELECT source_label, role_in_report, COALESCE(candidate_org_identity, ''),
+                        COALESCE(candidate_origin_asns_json, '[]'),
+                        COALESCE(candidate_predicate, ''),
+                        historical_validity_status, research_status,
+                        COALESCE(provenance, ''), COALESCE(reviewed_note, '')
+                 FROM case_study_targets WHERE case_study_id = ?1 ORDER BY sort_order",
+            )
+            .map_err(|e| format!("catalog read failed: {e}"))?;
+        let rows = stmt
+            .query_map([cs_id], |r| {
+                Ok((
+                    r.get::<_, String>(0)?,
+                    r.get::<_, String>(1)?,
+                    r.get::<_, String>(2)?,
+                    r.get::<_, String>(3)?,
+                    r.get::<_, String>(4)?,
+                    r.get::<_, String>(5)?,
+                    r.get::<_, String>(6)?,
+                    r.get::<_, String>(7)?,
+                    r.get::<_, String>(8)?,
+                ))
+            })
+            .map_err(|e| format!("catalog read failed: {e}"))?;
+        for row in rows {
+            let (label, role, org, asns, _pred, hv, rs, prov, note) =
+                row.map_err(|e| format!("catalog read failed: {e}"))?;
+            targets.push(TargetView {
+                source_label: label,
+                role_in_report: role,
+                candidate_org: org,
+                candidate_asns: if asns == "[]" || asns.is_empty() {
+                    "none reviewed (no guesses)".to_string()
+                } else {
+                    asns
+                },
+                historical_validity_status: hv,
+                research_status: rs,
+                provenance: prov,
+                reviewed_note: note,
+            });
+        }
+    }
+
+    // Analysis plan.
+    let plan = crate::catalog::archive_plan::load_plan(conn, cs_id).map(|p| {
+        let horizon: crate::catalog::archive_plan::AnalysisHorizon = serde_json::from_str(
+            &p.horizon_json,
+        )
+        .unwrap_or(crate::catalog::archive_plan::AnalysisHorizon {
+            warmup_start_utc: String::new(),
+            incident_start_utc: String::new(),
+            incident_end_utc: String::new(),
+            cooldown_end_utc: String::new(),
+            warmup_hours: 0,
+            cooldown_hours: 0,
+            review_required: true,
+        });
+        let ap: crate::catalog::archive_plan::ArchivePlan = serde_json::from_str(&p.plan_json)
+            .unwrap_or(crate::catalog::archive_plan::ArchivePlan {
+                collectors: Vec::new(),
+                blocked_targets: Vec::new(),
+                skipped_targets: Vec::new(),
+                estimated_total_bytes: 0,
+                estimated_total_is_estimate: true,
+                notes: Vec::new(),
+            });
+        PlanView {
+            status: p.status,
+            warmup_start: horizon.warmup_start_utc,
+            incident_start: horizon.incident_start_utc,
+            incident_end: horizon.incident_end_utc,
+            cooldown_end: horizon.cooldown_end_utc,
+            collectors: ap
+                .collectors
+                .iter()
+                .map(|c| {
+                    format!(
+                        "{} ({} RIBs, {} updates)",
+                        c.collector,
+                        c.ribs.len(),
+                        c.updates.len()
+                    )
+                })
+                .collect(),
+            estimated_bytes: ap.estimated_total_bytes,
+            blocked_targets: ap
+                .blocked_targets
+                .iter()
+                .map(|b| format!("{} — {}", b.source_label, b.reason))
+                .collect(),
+            skipped_targets: ap
+                .skipped_targets
+                .iter()
+                .map(|b| format!("{} — {}", b.source_label, b.reason))
+                .collect(),
+            notes: ap.notes,
+        }
+    });
+
+    // Linked runs.
+    let mut runs = Vec::new();
+    {
+        let mut stmt = conn
+            .prepare(
+                "SELECT r.id, r.started_at, COALESCE(r.verdict, ''), COALESCE(r.assessment, '')
+                 FROM analysis_runs r
+                 JOIN case_study_analysis_links l ON l.run_id = r.id
+                 WHERE l.case_study_id = ?1 ORDER BY r.id",
+            )
+            .map_err(|e| format!("catalog read failed: {e}"))?;
+        let rows = stmt
+            .query_map([cs_id], |r| {
+                Ok((
+                    r.get::<_, i64>(0)?,
+                    r.get::<_, String>(1)?,
+                    r.get::<_, String>(2)?,
+                    r.get::<_, String>(3)?,
+                ))
+            })
+            .map_err(|e| format!("catalog read failed: {e}"))?;
+        for row in rows {
+            let (id, started, verdict, assessment) =
+                row.map_err(|e| format!("catalog read failed: {e}"))?;
+            runs.push(RunLinkView {
+                id,
+                started_at: started,
+                verdict,
+                assessment,
+            });
+        }
+    }
+
+    // Phase-conditioned BGP summaries (per linked run).
+    let mut phase_summaries = Vec::new();
+    for run in &runs {
+        let rs = crate::catalog::phase_summary::summarize_run(conn, run.id, cs_id)?;
+        for p in &rs.phases {
+            phase_summaries.push(PhaseSummaryView {
+                run_id: run.id,
+                phase_label: p.label.clone(),
+                phase_start: p.start_utc.clone(),
+                phase_end: p.end_utc.clone(),
+                active_streams_entering: p.active_streams_entering,
+                announcements: p.announcements,
+                withdrawals: p.withdrawals,
+                path_changes: p.path_changes,
+                transit_departures: p.transit_departures,
+                restorations: p.restorations,
+                semantic_waves: p.semantic_waves.clone(),
+                first_evidence_utc: p.first_evidence_utc.clone().unwrap_or_default(),
+                last_evidence_utc: p.last_evidence_utc.clone().unwrap_or_default(),
+                evidence_observation_ids: p.evidence_observation_ids.clone(),
+            });
+        }
+    }
+
+    // Comparison matrix.
+    let mut comparison = Vec::new();
+    for row in crate::catalog::case_study_compare::build_comparison(conn, cs_id)? {
+        comparison.push(ComparisonRowView {
+            operator_report: row.operator_report,
+            operator_time: row.operator_time.unwrap_or_default(),
+            bgp_observation: row.bgp_observation,
+            interpretation: row.interpretation,
+            limitation: row.limitation,
+        });
+    }
+
+    // Observability classification counts.
+    let obs = |o: &str| -> usize {
+        conn.query_row(
+            "SELECT COUNT(*) FROM case_study_claims c WHERE c.case_study_id = ?1 AND c.observability = ?2",
+            rusqlite::params![cs_id, o],
+            |r| r.get(0),
+        )
+        .unwrap_or(0) as usize
+    };
+
+    // First-screen derived summaries.
+    let what_happened = format!(
+        "{} ({} – {} UTC)",
+        cs.summary,
+        cs.start_utc.as_deref().unwrap_or("unknown"),
+        cs.end_utc.as_deref().unwrap_or("unknown")
+    );
+    let what_bgp_showed = if runs.is_empty() {
+        "Historical analysis not yet executed. No event-conditioned AnalysisRun is linked to this case study. No public-BGP conclusion is produced until historical target mappings and the archive plan are reviewed.".to_string()
+    } else {
+        let total_transitions: usize = phase_summaries
+            .iter()
+            .map(|p| p.announcements + p.withdrawals + p.path_changes + p.restorations)
+            .sum();
+        format!(
+            "{total_transitions} route-state stream-counts observed across {} linked run(s); see the phase-conditioned summaries and comparison matrix below.",
+            runs.len()
+        )
+    };
+    let mut what_bgp_could_not_show = Vec::new();
+    {
+        let mut stmt = conn
+            .prepare(
+                "SELECT claim_text, observability_rationale FROM case_study_claims
+                 WHERE case_study_id = ?1 AND observability IN ('NotDirectlyVisible', 'IndirectlyVisible')
+                 ORDER BY sort_order",
+            )
+            .map_err(|e| format!("catalog read failed: {e}"))?;
+        let rows = stmt
+            .query_map([cs_id], |r| {
+                Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?))
+            })
+            .map_err(|e| format!("catalog read failed: {e}"))?;
+        for row in rows {
+            let (text, rationale) = row.map_err(|e| format!("catalog read failed: {e}"))?;
+            what_bgp_could_not_show.push(format!("{text} — {rationale}"));
+        }
+    }
+
+    Ok(Some(CaseStudyView {
+        slug: cs.slug,
+        title: cs.title,
+        date: cs.start_utc.unwrap_or_default(),
+        status: cs.status,
+        summary: cs.summary,
+        what_happened,
+        what_bgp_showed,
+        what_bgp_could_not_show,
+        phases,
+        related_tickets,
+        documents,
+        targets,
+        plan,
+        runs,
+        phase_summaries,
+        comparison,
+        observability_potentially_visible: obs(
+            crate::catalog::domain::OBSERVABILITY_POTENTIALLY_VISIBLE,
+        ),
+        observability_indirectly_visible: obs(
+            crate::catalog::domain::OBSERVABILITY_INDIRECTLY_VISIBLE,
+        ),
+        observability_not_directly_visible: obs(
+            crate::catalog::domain::OBSERVABILITY_NOT_DIRECTLY_VISIBLE,
+        ),
+        observability_unknown: obs(crate::catalog::domain::OBSERVABILITY_UNKNOWN),
+    }))
+}
+
+/// A resolved document file ready to serve.
+pub struct DocumentServe {
+    pub path: std::path::PathBuf,
+    pub media_type: String,
+    /// Inline only for approved media types; everything else is an attachment.
+    pub inline: bool,
+}
+
+/// Resolve and validate a document file for serving.
+///
+/// Security: the record must exist, the stored path must be catalog-relative
+/// (no absolute paths, no `..`), the resolved path must remain under the
+/// catalog root (canonical containment), the file must exist, and its
+/// SHA-256 must match the recorded revision.
+pub fn resolve_document_file(
+    conn: &rusqlite::Connection,
+    catalog_root: &std::path::Path,
+    document_id: i64,
+) -> Result<Option<DocumentServe>, String> {
+    let row: Option<(String, String, Option<String>)> = conn
+        .query_row(
+            "SELECT r.media_type, r.sha256, r.local_path
+             FROM document_revisions r
+             JOIN reference_documents d ON d.id = r.document_id
+             WHERE d.id = ?1 AND r.local_path IS NOT NULL
+             ORDER BY r.revision DESC LIMIT 1",
+            [document_id],
+            |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?)),
+        )
+        .ok();
+    let Some((media_type, sha256, Some(rel))) = row else {
+        return Ok(None);
+    };
+    if rel.is_empty() || rel.starts_with('/') || rel.contains("..") || rel.contains('\\') {
+        return Err(format!("document path is not catalog-relative: {rel}"));
+    }
+    let resolved = catalog_root.join(&rel);
+    let root_canon = catalog_root
+        .canonicalize()
+        .map_err(|e| format!("cannot resolve catalog root: {e}"))?;
+    let file_canon = resolved
+        .canonicalize()
+        .map_err(|e| format!("cannot resolve document file: {e}"))?;
+    if !file_canon.starts_with(&root_canon) {
+        return Err("document file resolves outside the catalog root".to_string());
+    }
+    if !file_canon.is_file() {
+        return Err("document file is missing".to_string());
+    }
+    let bytes =
+        std::fs::read(&file_canon).map_err(|e| format!("cannot read document file: {e}"))?;
+    let actual = crate::catalog::document::hex_sha256(&bytes);
+    if actual != sha256 {
+        return Err(format!(
+            "document hash mismatch: recorded {sha256}, file {actual}"
+        ));
+    }
+    let inline = crate::catalog::document::MEDIA_TYPE_ALLOWLIST
+        .iter()
+        .any(|(_, mt)| *mt == media_type);
+    Ok(Some(DocumentServe {
+        path: file_canon,
+        media_type,
+        inline,
+    }))
+}

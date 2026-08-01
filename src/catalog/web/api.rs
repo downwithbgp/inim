@@ -120,3 +120,162 @@ pub async fn api_catalog_status(State(state): State<SharedState>) -> Response {
         Err(e) => json_error(StatusCode::INTERNAL_SERVER_ERROR, &e),
     }
 }
+
+// ── Case-study API (Session 30, Part 12) ───────────────────────────
+
+/// GET /api/v1/case-studies — paginated list.
+pub async fn api_case_studies(
+    State(state): State<SharedState>,
+    Query(params): Query<PageParams>,
+) -> Response {
+    let (page, per_page) = match parse_page(&params) {
+        Ok(p) => p,
+        Err(r) => return r,
+    };
+    let db = state.db.lock().unwrap();
+    match super::view::load_case_studies(&db) {
+        Ok(list) => {
+            let all = list
+                .rows
+                .iter()
+                .map(|r| {
+                    serde_json::json!({
+                        "slug": r.slug,
+                        "title": r.title,
+                        "date_utc": r.date,
+                        "status": r.status,
+                        "documents": r.documents,
+                        "linked_events": r.events,
+                        "linked_analyses": r.runs,
+                        "target_research": r.research_state,
+                        "latest_result": r.latest_result,
+                    })
+                })
+                .collect::<Vec<_>>();
+            let start = (page * per_page).min(all.len());
+            let end = (start + per_page).min(all.len());
+            envelope(serde_json::json!({
+                "total": all.len(),
+                "page": page,
+                "per_page": per_page,
+                "case_studies": &all[start..end],
+            }))
+        }
+        Err(e) => super::handlers::json_error(StatusCode::INTERNAL_SERVER_ERROR, &e),
+    }
+}
+
+/// GET /api/v1/case-studies/:slug — full metadata (no local paths, no raw
+/// extracted text, no internal notes).
+pub async fn api_case_study(
+    State(state): State<SharedState>,
+    AxumPath(slug): AxumPath<String>,
+) -> Response {
+    let db = state.db.lock().unwrap();
+    match super::view::load_case_study(&db, &slug) {
+        Ok(Some(v)) => envelope(serde_json::json!({
+            "slug": v.slug,
+            "title": v.title,
+            "date_utc": v.date,
+            "status": v.status,
+            "summary": v.summary,
+            "what_happened": v.what_happened,
+            "what_bgp_showed": v.what_bgp_showed,
+            "what_bgp_could_not_show": v.what_bgp_could_not_show,
+            "phases": v.phases.iter().map(|p| serde_json::json!({
+                "label": p.label, "start_utc": p.start_utc, "end_utc": p.end_utc,
+                "start_precision": p.start_precision, "end_precision": p.end_precision,
+                "description": p.description, "source_section": p.source_section,
+                "review_status": p.review_status,
+            })).collect::<Vec<_>>(),
+            "related_tickets": v.related_tickets.iter().map(|t| serde_json::json!({
+                "external_identifier": t.external_id, "relationship": t.relationship,
+                "reviewed_note": t.reviewed_note, "linked_event": t.event_href.is_some(),
+            })).collect::<Vec<_>>(),
+            "documents": v.documents.iter().map(|d| serde_json::json!({
+                "id": d.id, "title": d.title, "source_url": d.source_url,
+                "doc_type": d.doc_type, "media_type": d.media_type, "sha256": d.sha256,
+                "pages": d.pages, "redistribution_status": d.redistribution_status,
+                "provenance": d.provenance, "local_copy": d.href.is_some(),
+            })).collect::<Vec<_>>(),
+            "targets": v.targets.iter().map(|t| serde_json::json!({
+                "source_label": t.source_label, "role_in_report": t.role_in_report,
+                "candidate_org": t.candidate_org, "candidate_origin_asns": t.candidate_asns,
+                "historical_validity_status": t.historical_validity_status,
+                "research_status": t.research_status, "provenance": t.provenance,
+            })).collect::<Vec<_>>(),
+            "analysis_plan": v.plan.as_ref().map(|p| serde_json::json!({
+                "status": p.status, "warmup_start_utc": p.warmup_start,
+                "incident_start_utc": p.incident_start, "incident_end_utc": p.incident_end,
+                "cooldown_end_utc": p.cooldown_end, "collectors": p.collectors,
+                "estimated_bytes": p.estimated_bytes, "blocked_targets": p.blocked_targets,
+                "notes": p.notes,
+            })),
+            "runs": v.runs.iter().map(|r| serde_json::json!({
+                "id": r.id, "started_at": r.started_at, "verdict": r.verdict,
+                "assessment": r.assessment,
+            })).collect::<Vec<_>>(),
+            "observability": {
+                "potentially_visible": v.observability_potentially_visible,
+                "indirectly_visible": v.observability_indirectly_visible,
+                "not_directly_visible": v.observability_not_directly_visible,
+                "unknown": v.observability_unknown,
+            },
+        })),
+        Ok(None) => super::handlers::json_error(StatusCode::NOT_FOUND, "case study not found"),
+        Err(e) => super::handlers::json_error(StatusCode::INTERNAL_SERVER_ERROR, &e),
+    }
+}
+
+/// GET /api/v1/case-studies/:slug/timeline — reviewed phases plus
+/// phase-conditioned run summaries.
+pub async fn api_case_study_timeline(
+    State(state): State<SharedState>,
+    AxumPath(slug): AxumPath<String>,
+) -> Response {
+    let db = state.db.lock().unwrap();
+    match super::view::load_case_study(&db, &slug) {
+        Ok(Some(v)) => envelope(serde_json::json!({
+            "slug": v.slug,
+            "phases": v.phases.iter().map(|p| serde_json::json!({
+                "label": p.label, "start_utc": p.start_utc, "end_utc": p.end_utc,
+                "start_precision": p.start_precision, "end_precision": p.end_precision,
+                "description": p.description, "source_section": p.source_section,
+            })).collect::<Vec<_>>(),
+            "phase_summaries": v.phase_summaries.iter().map(|p| serde_json::json!({
+                "run_id": p.run_id, "phase": p.phase_label,
+                "active_streams_entering": p.active_streams_entering,
+                "announcements": p.announcements, "withdrawals": p.withdrawals,
+                "path_changes": p.path_changes, "transit_departures": p.transit_departures,
+                "restorations": p.restorations, "semantic_waves": p.semantic_waves,
+                "first_evidence_utc": p.first_evidence_utc,
+                "last_evidence_utc": p.last_evidence_utc,
+                "evidence_observation_ids": p.evidence_observation_ids,
+            })).collect::<Vec<_>>(),
+        })),
+        Ok(None) => super::handlers::json_error(StatusCode::NOT_FOUND, "case study not found"),
+        Err(e) => super::handlers::json_error(StatusCode::INTERNAL_SERVER_ERROR, &e),
+    }
+}
+
+/// GET /api/v1/case-studies/:slug/comparison — reviewed comparison rows.
+pub async fn api_case_study_comparison(
+    State(state): State<SharedState>,
+    AxumPath(slug): AxumPath<String>,
+) -> Response {
+    let db = state.db.lock().unwrap();
+    match super::view::load_case_study(&db, &slug) {
+        Ok(Some(v)) => envelope(serde_json::json!({
+            "slug": v.slug,
+            "rows": v.comparison.iter().map(|c| serde_json::json!({
+                "operator_report": c.operator_report,
+                "operator_time": c.operator_time,
+                "bgp_observation": c.bgp_observation,
+                "interpretation": c.interpretation,
+                "limitation": c.limitation,
+            })).collect::<Vec<_>>(),
+        })),
+        Ok(None) => super::handlers::json_error(StatusCode::NOT_FOUND, "case study not found"),
+        Err(e) => super::handlers::json_error(StatusCode::INTERNAL_SERVER_ERROR, &e),
+    }
+}

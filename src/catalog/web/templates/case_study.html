@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+{% block title %}inim catalog — {{ title }}{% endblock %}
+{% block content %}
+<h2>{{ title }}</h2>
+<p class="muted">{{ slug }} · {{ date }} UTC · {{ status }}</p>
+
+<div class="panel">
+  <h3>What happened</h3>
+  <p>{{ what_happened }}</p>
+</div>
+
+<div class="panel">
+  <h3>What public BGP showed</h3>
+  <p>{{ what_bgp_showed }}</p>
+</div>
+
+<div class="panel">
+  <h3>What BGP could not show</h3>
+  {% if what_bgp_could_not_show.is_empty() %}
+  <p class="muted">No claims classified as indirectly or not directly observable.</p>
+  {% else %}
+  <ul class="flat">
+  {% for item in what_bgp_could_not_show %}
+    <li>{{ item }}</li>
+  {% endfor %}
+  </ul>
+  {% endif %}
+</div>
+
+<p class="muted">Observability classification: {{ observability_potentially_visible }} potentially visible · {{ observability_indirectly_visible }} indirectly visible · {{ observability_not_directly_visible }} not directly visible · {{ observability_unknown }} unknown.</p>
+
+<h3>Incident timeline (reviewed phases)</h3>
+<table>
+<thead><tr><th>Phase</th><th>Start (UTC)</th><th>End (UTC)</th><th>Precision</th><th>Description</th><th>Source</th></tr></thead>
+<tbody>
+{% for p in phases %}
+<tr>
+  <td>{{ p.label }}</td>
+  <td>{{ p.start_utc }}</td>
+  <td>{{ p.end_utc }}</td>
+  <td>{% if p.start_precision == "exact" %}exact{% else %}~summarized{% endif %} → {% if p.end_precision == "exact" %}exact{% else %}~summarized{% endif %}</td>
+  <td>{{ p.description }}</td>
+  <td class="muted">{{ p.source_section }}</td>
+</tr>
+{% else %}
+<tr><td colspan="6" class="muted">No reviewed phases.</td></tr>
+{% endfor %}
+</tbody>
+</table>
+
+<h3>Related tickets</h3>
+<table>
+<thead><tr><th>Identifier</th><th>Relationship</th><th>Reviewed note</th></tr></thead>
+<tbody>
+{% for t in related_tickets %}
+<tr>
+  <td>{% if t.event_href.is_some() %}<a href="{{ t.event_href.as_ref().unwrap() }}">{{ t.external_id }}</a>{% else %}{{ t.external_id }} <span class="muted">(document-referenced; no source snapshot)</span>{% endif %}</td>
+  <td>{{ t.relationship }}</td>
+  <td class="muted">{{ t.reviewed_note }}</td>
+</tr>
+{% else %}
+<tr><td colspan="3" class="muted">No related tickets recorded.</td></tr>
+{% endfor %}
+</tbody>
+</table>
+
+<h3>Source documents</h3>
+<table>
+<thead><tr><th>Document</th><th>Type</th><th>Media</th><th>SHA-256</th><th>Pages</th><th>Redistribution</th><th>Provenance</th></tr></thead>
+<tbody>
+{% for d in documents %}
+<tr>
+  <td>{% if d.href.is_some() %}<a href="{{ d.href.as_ref().unwrap() }}">{{ d.title }}</a>{% else %}{{ d.title }}{% endif %}</td>
+  <td>{{ d.doc_type }}</td>
+  <td>{{ d.media_type }}</td>
+  <td><code>{{ d.sha256 }}</code></td>
+  <td>{{ d.pages }}</td>
+  <td>{{ d.redistribution_status }}</td>
+  <td class="muted">{{ d.provenance }}</td>
+</tr>
+{% else %}
+<tr><td colspan="7" class="muted">No source documents recorded.</td></tr>
+{% endfor %}
+</tbody>
+</table>
+
+<h3>Reviewed analysis targets</h3>
+<table>
+<thead><tr><th>Source label</th><th>Role in report</th><th>Candidate org</th><th>Candidate origin ASNs</th><th>Validity</th><th>Research</th><th>Provenance</th></tr></thead>
+<tbody>
+{% for t in targets %}
+<tr>
+  <td>{{ t.source_label }}</td>
+  <td>{{ t.role_in_report }}</td>
+  <td>{{ t.candidate_org }}</td>
+  <td>{{ t.candidate_asns }}</td>
+  <td>{{ t.historical_validity_status }}</td>
+  <td>{{ t.research_status }}</td>
+  <td class="muted">{{ t.provenance }}</td>
+</tr>
+{% else %}
+<tr><td colspan="7" class="muted">No analysis targets recorded.</td></tr>
+{% endfor %}
+</tbody>
+</table>
+
+<h3>Historical analysis plan</h3>
+{% if plan.is_some() %}
+{% let p = plan.as_ref().unwrap() %}
+<table>
+<tbody>
+  <tr><th>Status</th><td>{{ p.status }} (review required before execution)</td></tr>
+  <tr><th>Horizon</th><td>warmup {{ p.warmup_start }} · incident {{ p.incident_start }} → {{ p.incident_end }} · cooldown to {{ p.cooldown_end }}</td></tr>
+  <tr><th>Collectors</th><td>{% for c in p.collectors %}{{ c }}<br>{% endfor %}</td></tr>
+  <tr><th>Estimated volume</th><td>~{{ p.estimated_bytes }} bytes (estimate; no archives downloaded)</td></tr>
+  {% if !p.blocked_targets.is_empty() %}
+  <tr><th>Blocked targets</th><td>{% for b in p.blocked_targets %}{{ b }}<br>{% endfor %}</td></tr>
+  {% endif %}
+  {% if !p.skipped_targets.is_empty() %}
+  <tr><th>Not applicable</th><td>{% for b in p.skipped_targets %}{{ b }}<br>{% endfor %}</td></tr>
+  {% endif %}
+</tbody>
+</table>
+<ul class="flat">
+{% for n in p.notes %}
+<li class="muted">{{ n }}</li>
+{% endfor %}
+</ul>
+{% else %}
+<p class="muted">No historical archive plan yet. Run <code>inim catalog case-study plan</code> to produce a draft plan without downloading archives.</p>
+{% endif %}
+
+<h3>Analysis runs</h3>
+<table>
+<thead><tr><th>Run</th><th>Started</th><th>Verdict</th><th>Assessment</th></tr></thead>
+<tbody>
+{% for r in runs %}
+<tr>
+  <td><a href="/analyses/{{ r.id }}">{{ r.id }}</a></td>
+  <td>{{ r.started_at }}</td>
+  <td>{{ r.verdict }}</td>
+  <td>{{ r.assessment }}</td>
+</tr>
+{% else %}
+<tr><td colspan="4" class="muted">No analysis runs linked. Historical analysis has not been executed.</td></tr>
+{% endfor %}
+</tbody>
+</table>
+
+<h3>Phase-conditioned BGP summaries</h3>
+{% if phase_summaries.is_empty() %}
+<p class="muted">No phase-conditioned summaries: no analysis run is linked.</p>
+{% else %}
+<table>
+<thead><tr><th>Run</th><th>Phase</th><th>Active entering</th><th>Ann.</th><th>With.</th><th>Path chg.</th><th>Departed</th><th>Restored</th><th>Waves</th><th>First evidence</th><th>Evidence ids</th></tr></thead>
+<tbody>
+{% for p in phase_summaries %}
+<tr>
+  <td>{{ p.run_id }}</td>
+  <td>{{ p.phase_label }} ({{ p.phase_start }} → {{ p.phase_end }})</td>
+  <td>{{ p.active_streams_entering }}</td>
+  <td>{{ p.announcements }}</td>
+  <td>{{ p.withdrawals }}</td>
+  <td>{{ p.path_changes }}</td>
+  <td>{{ p.transit_departures }}</td>
+  <td>{{ p.restorations }}</td>
+  <td>{% for w in p.semantic_waves %}{{ w }} {% endfor %}</td>
+  <td>{{ p.first_evidence_utc }}</td>
+  <td>{% for e in p.evidence_observation_ids %}{{ e }} {% endfor %}</td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+{% endif %}
+
+<h3>Operator report vs public BGP (reviewed comparison)</h3>
+<p class="muted">Temporal consistency does not prove causation. This is reviewed interpretation, not a causal claim.</p>
+<table>
+<thead><tr><th>Operator-reported</th><th>Time</th><th>Public BGP</th><th>Interpretation</th><th>Limitation</th></tr></thead>
+<tbody>
+{% for c in comparison %}
+<tr>
+  <td>{{ c.operator_report }}</td>
+  <td>{{ c.operator_time }}</td>
+  <td>{{ c.bgp_observation }}</td>
+  <td>{{ c.interpretation }}</td>
+  <td class="muted">{{ c.limitation }}</td>
+</tr>
+{% else %}
+<tr><td colspan="5" class="muted">No reviewed comparison rows.</td></tr>
+{% endfor %}
+</tbody>
+</table>
+{% endblock %}

@@ -79,6 +79,74 @@ pub async fn event_detail(
     }
 }
 
+pub async fn case_studies(State(state): State<SharedState>) -> Response {
+    let db = state.db.lock().unwrap();
+    match super::view::load_case_studies(&db) {
+        Ok(view) => render(view),
+        Err(e) => server_error(&e),
+    }
+}
+
+pub async fn case_study_detail(
+    State(state): State<SharedState>,
+    AxumPath(slug): AxumPath<String>,
+) -> Response {
+    let db = state.db.lock().unwrap();
+    match super::view::load_case_study(&db, &slug) {
+        Ok(Some(view)) => render(view),
+        Ok(None) => not_found("case study"),
+        Err(e) => server_error(&e),
+    }
+}
+
+/// Serve a validated document file.
+///
+/// The record must exist, the stored path must stay under the catalog root
+/// (canonical containment), the file must exist, its SHA-256 must match the
+/// recorded revision, and only allowlisted media types are served inline.
+pub async fn serve_document(
+    State(state): State<SharedState>,
+    AxumPath(document_id): AxumPath<i64>,
+) -> Response {
+    let db = state.db.lock().unwrap();
+    let resolved = super::view::resolve_document_file(&db, &state.catalog_root, document_id);
+    match resolved {
+        Ok(Some(serve)) => {
+            let bytes = match std::fs::read(&serve.path) {
+                Ok(b) => b,
+                Err(e) => {
+                    return (
+                        StatusCode::INTERNAL_SERVER_ERROR,
+                        format!("cannot read document file: {e}"),
+                    )
+                        .into_response()
+                }
+            };
+            let disposition = if serve.inline { "inline" } else { "attachment" };
+            let name = serve
+                .path
+                .file_name()
+                .map(|n| n.to_string_lossy().to_string())
+                .unwrap_or_else(|| "document".to_string());
+            axum::response::Response::builder()
+                .status(StatusCode::OK)
+                .header(axum::http::header::CONTENT_TYPE, serve.media_type.clone())
+                .header(
+                    axum::http::header::CONTENT_DISPOSITION,
+                    format!("{disposition}; filename=\"{name}\""),
+                )
+                .body(axum::body::Body::from(bytes))
+                .unwrap_or_else(|_| StatusCode::INTERNAL_SERVER_ERROR.into_response())
+        }
+        Ok(None) => not_found("document"),
+        Err(e) => (
+            StatusCode::BAD_REQUEST,
+            Html(format!("<h1>Cannot serve document</h1><p>{e}</p>")),
+        )
+            .into_response(),
+    }
+}
+
 pub async fn analysis_detail(
     State(state): State<SharedState>,
     AxumPath(run_id): AxumPath<i64>,

@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}inim catalog — case studies{% endblock %}
+{% block content %}
+<h2>Case studies</h2>
+<p class="muted">Reviewed multi-ticket incident case studies. A case study groups operator-reported sources and links them to immutable analysis runs; it never owns BGP observations.</p>
+
+<table>
+<thead><tr><th>Case study</th><th>Date (UTC)</th><th>Status</th><th>Documents</th><th>Linked events</th><th>Linked analyses</th><th>Target research</th><th>Latest result</th></tr></thead>
+<tbody>
+{% for r in rows %}
+<tr>
+  <td><a href="/case-studies/{{ r.slug }}">{{ r.title }}</a></td>
+  <td>{{ r.date }}</td>
+  <td>{{ r.status }}</td>
+  <td>{{ r.documents }}</td>
+  <td>{{ r.events }}</td>
+  <td>{{ r.runs }}</td>
+  <td>{{ r.research_state }}</td>
+  <td class="muted">{{ r.latest_result }}</td>
+</tr>
+{% else %}
+<tr><td colspan="8" class="muted">No case studies imported.</td></tr>
+{% endfor %}
+</tbody>
+</table>
+{% endblock %}

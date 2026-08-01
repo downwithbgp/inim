@@ -44,6 +44,15 @@ pub fn build_router(state: SharedState) -> Router {
             "/analyses/{run_id}/streams",
             axum::routing::get(handlers::analysis_streams),
         )
+        .route("/case-studies", axum::routing::get(handlers::case_studies))
+        .route(
+            "/case-studies/{slug}",
+            axum::routing::get(handlers::case_study_detail),
+        )
+        .route(
+            "/documents/{document_id}",
+            axum::routing::get(handlers::serve_document),
+        )
         .route("/static/app.css", axum::routing::get(handlers::app_css))
         .route("/api/v1/events", axum::routing::get(api::api_events))
         .route(
@@ -57,6 +66,22 @@ pub fn build_router(state: SharedState) -> Router {
         .route(
             "/api/v1/analyses/{run_id}/streams",
             axum::routing::get(api::api_analysis_streams),
+        )
+        .route(
+            "/api/v1/case-studies",
+            axum::routing::get(api::api_case_studies),
+        )
+        .route(
+            "/api/v1/case-studies/{slug}",
+            axum::routing::get(api::api_case_study),
+        )
+        .route(
+            "/api/v1/case-studies/{slug}/timeline",
+            axum::routing::get(api::api_case_study_timeline),
+        )
+        .route(
+            "/api/v1/case-studies/{slug}/comparison",
+            axum::routing::get(api::api_case_study_comparison),
         )
         .route(
             "/api/v1/catalog/status",

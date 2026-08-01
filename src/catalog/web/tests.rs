@@ -621,3 +621,457 @@ fn event_list_filters_are_server_side() {
     };
     assert_eq!(filters.lifecycle.as_deref(), Some("Open"));
 }
+
+// ── Case-study + document tests (Session 30, Parts 11-13) ──────────
+
+use axum::http::HeaderMap;
+
+async fn get_full(app: &axum::Router, uri: &str) -> (StatusCode, String, HeaderMap) {
+    let response = app
+        .clone()
+        .oneshot(Request::builder().uri(uri).body(Body::empty()).unwrap())
+        .await
+        .unwrap();
+    let status = response.status();
+    let headers = response.headers().clone();
+    let bytes = axum::body::to_bytes(response.into_body(), 16 * 1024 * 1024)
+        .await
+        .unwrap();
+    (status, String::from_utf8_lossy(&bytes).to_string(), headers)
+}
+
+fn synthetic_pdf(title: &str) -> Vec<u8> {
+    format!(
+        "%PDF-1.4\n1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n\
+         2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n\
+         3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] >>\nendobj\n\
+         trailer\n<< /Size 4 /Root 1 0 R /Info 4 0 R >>\nstartxref\n999\n%%EOF\n\
+         4 0 obj\n<< /Title ({title}) /Author (Test) >>\nendobj\n"
+    )
+    .into_bytes()
+}
+
+/// Seed a reviewed case study with one document (file attached) into the
+/// catalog; returns (case_study_id, document_id).
+fn seed_case_study(conn: &rusqlite::Connection, root: &std::path::Path) -> (i64, i64) {
+    use crate::catalog::case_study_import::import_case_study;
+    use crate::catalog::document::{hex_sha256, import_document};
+    let pdf = synthetic_pdf("AAR");
+    let sha = hex_sha256(&pdf);
+    let data = serde_json::json!({
+        "schema_version": 1,
+        "slug": "incident-x",
+        "title": "Incident X",
+        "summary": "A reviewed operator-reported incident with Layer-2 and routing effects.",
+        "start_utc": "2019-08-21T04:00:00Z",
+        "end_utc": "2019-08-21T14:00:00Z",
+        "documents": [{
+            "title": "After Action Report",
+            "source_url": "https://example.invalid/reports/aar.pdf",
+            "doc_type": "AfterActionReport",
+            "media_type": "application/pdf",
+            "sha256": sha,
+            "page_count": 1,
+            "provenance": "operator-authored report",
+            "redistribution_status": "Unknown"
+        }],
+        "document_links": [{"document": 0, "relationship": "PrimarySource"}],
+        "phases": [{
+            "label": "Scheduled migration",
+            "start_utc": "2019-08-21T04:00:00Z",
+            "end_utc": "2019-08-21T10:00:00Z",
+            "start_precision": "exact",
+            "end_precision": "summarized",
+            "description": "Planned maintenance.",
+            "source_document": 0,
+            "source_page_or_section": "Timeline (detailed)",
+            "review_status": "Reviewed"
+        }],
+        "related_events": [{
+            "external_identifier": "INC0040257",
+            "relationship": "PrimaryIncident",
+            "reviewed_note": "referenced by AAR; not independently retrieved"
+        }],
+        "claims": [
+            {
+                "claim_type": "ReportedImpact",
+                "claim_text": "The change caused Layer-2 and Layer-3 disruption.",
+                "qualification": "operator-reported; extent varied by participant",
+                "source_document": 0,
+                "source_page_or_section": "Summary",
+                "review_status": "Reviewed",
+                "time_or_phase": "phase:0",
+                "observability": "PotentiallyVisibleInPublicBgp",
+                "observability_rationale": "Participant path changes may be visible."
+            },
+            {
+                "claim_type": "ReportedMechanism",
+                "claim_text": "Traffic replication was associated with the deployed configuration.",
+                "source_document": 0,
+                "source_page_or_section": "Summary",
+                "review_status": "Reviewed",
+                "time_or_phase": "phase:0",
+                "observability": "NotDirectlyVisible",
+                "observability_rationale": "Layer-2 replication itself is not observable in public BGP."
+            }
+        ],
+        "targets": [{
+            "source_label": "Participant A",
+            "role_in_report": "connector participant",
+            "historical_validity_status": "Unresearched",
+            "research_status": "Unresearched",
+            "provenance": "AAR context"
+        }]
+    });
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("case-study.json");
+    std::fs::write(&path, serde_json::to_string_pretty(&data).unwrap()).unwrap();
+    let summary = import_case_study(conn, &path).unwrap();
+    // Attach the local file through the document import flow.
+    let pdf_path = dir.path().join("aar.pdf");
+    std::fs::write(&pdf_path, &pdf).unwrap();
+    let outcome = import_document(
+        conn,
+        root,
+        &pdf_path,
+        "https://example.invalid/reports/aar.pdf",
+        Some("After Action Report"),
+        Some("AfterActionReport"),
+        None,
+    )
+    .unwrap();
+    (summary.case_study_id, outcome.document_id)
+}
+
+fn setup_case_study_catalog() -> (tempfile::TempDir, tempfile::TempDir, std::path::PathBuf) {
+    let dbdir = tempfile::tempdir().unwrap();
+    let rootdir = tempfile::tempdir().unwrap();
+    let db_path = dbdir.path().join("catalog.sqlite");
+    let conn = db::open_catalog(&db_path).unwrap();
+    seed_case_study(&conn, rootdir.path());
+    drop(conn);
+    (dbdir, rootdir, db_path)
+}
+
+#[tokio::test]
+async fn case_study_page_separates_reported_and_observed() {
+    if !repo_artifacts_available() {
+        return;
+    }
+    let (dbdir, rootdir, _) = setup_case_study_catalog();
+    let app = build_app(state_from(&dbdir, rootdir.path()));
+    let (status, body) = get(&app, "/case-studies/incident-x").await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(body.contains("What happened"), "first screen section");
+    assert!(
+        body.contains("A reviewed operator-reported incident"),
+        "operator summary"
+    );
+    assert!(body.contains("What public BGP showed"), "observed section");
+    assert!(
+        body.contains("Historical analysis not yet executed"),
+        "no invented verdict"
+    );
+    assert!(body.contains("What BGP could not show"), "limits section");
+    assert!(body.contains("Layer-2 replication itself is not observable in public BGP"));
+}
+
+#[tokio::test]
+async fn case_study_page_shows_document_provenance() {
+    if !repo_artifacts_available() {
+        return;
+    }
+    let (dbdir, rootdir, _) = setup_case_study_catalog();
+    let app = build_app(state_from(&dbdir, rootdir.path()));
+    let (status, body) = get(&app, "/case-studies/incident-x").await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(body.contains("After Action Report"));
+    assert!(body.contains("operator-authored report"));
+    assert!(body.contains("Unknown"), "redistribution status visible");
+    assert!(body.contains("/documents/"), "validated document link");
+    assert!(
+        !body.contains("<code>/tmp/"),
+        "no absolute local paths exposed"
+    );
+}
+
+#[tokio::test]
+async fn case_study_page_shows_related_ticket_roles() {
+    if !repo_artifacts_available() {
+        return;
+    }
+    let (dbdir, rootdir, _) = setup_case_study_catalog();
+    let app = build_app(state_from(&dbdir, rootdir.path()));
+    let (status, body) = get(&app, "/case-studies/incident-x").await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(body.contains("INC0040257"));
+    assert!(body.contains("PrimaryIncident"));
+    assert!(body.contains("document-referenced; no source snapshot"));
+}
+
+#[tokio::test]
+async fn unresolved_target_research_is_visible() {
+    if !repo_artifacts_available() {
+        return;
+    }
+    let (dbdir, rootdir, _) = setup_case_study_catalog();
+    let app = build_app(state_from(&dbdir, rootdir.path()));
+    let (_, body) = get(&app, "/case-studies/incident-x").await;
+    assert!(body.contains("Unresearched"));
+    assert!(body.contains("none reviewed (no guesses)"));
+    // The list page surfaces the incomplete research state.
+    let (_, list) = get(&app, "/case-studies").await;
+    assert!(list.contains("target research incomplete"));
+}
+
+#[tokio::test]
+async fn no_analysis_case_study_has_no_bgp_verdict() {
+    if !repo_artifacts_available() {
+        return;
+    }
+    let (dbdir, rootdir, _) = setup_case_study_catalog();
+    let app = build_app(state_from(&dbdir, rootdir.path()));
+    let (_, body) = get(&app, "/case-studies/incident-x").await;
+    assert!(body.contains("No analysis runs linked"));
+    assert!(body.contains("No phase-conditioned summaries"));
+    assert!(
+        body.contains("Indeterminate"),
+        "comparison rows show planning status"
+    );
+    assert!(
+        !body.contains("NoObservableBgpImpact"),
+        "no verdict may be invented"
+    );
+    assert!(
+        !body.contains("Consistent"),
+        "no assessment may be invented"
+    );
+}
+
+#[tokio::test]
+async fn nonobservable_conditions_are_not_shown_as_missed_detections() {
+    if !repo_artifacts_available() {
+        return;
+    }
+    let (dbdir, rootdir, _) = setup_case_study_catalog();
+    let app = build_app(state_from(&dbdir, rootdir.path()));
+    let (_, body) = get(&app, "/case-studies/incident-x").await;
+    assert!(body.contains("NotDirectlyObservable"));
+    assert!(!body.contains("missed detection"));
+    assert!(!body.contains("no BGP change"), "no false negative wording");
+}
+
+#[tokio::test]
+async fn api_case_studies_use_envelope_and_no_local_paths() {
+    if !repo_artifacts_available() {
+        return;
+    }
+    let (dbdir, rootdir, _) = setup_case_study_catalog();
+    let app = build_app(state_from(&dbdir, rootdir.path()));
+    let (status, body) = get(&app, "/api/v1/case-studies").await;
+    assert_eq!(status, StatusCode::OK);
+    let v: serde_json::Value = serde_json::from_str(&body).unwrap();
+    assert_eq!(v["api_version"], 1);
+    assert_eq!(v["data"]["total"], 1);
+    assert_eq!(v["data"]["case_studies"][0]["slug"], "incident-x");
+    let (status, body) = get(&app, "/api/v1/case-studies/incident-x").await;
+    assert_eq!(status, StatusCode::OK);
+    let v: serde_json::Value = serde_json::from_str(&body).unwrap();
+    assert!(v["data"]["what_bgp_showed"]
+        .as_str()
+        .unwrap()
+        .contains("not yet executed"));
+    assert!(v["data"]["related_tickets"][0]["linked_event"] == false);
+    // No local paths, no raw extracted text.
+    assert!(
+        !body.contains("local_path"),
+        "local paths must not be exposed"
+    );
+    assert!(
+        !body.contains(rootdir.path().to_str().unwrap()),
+        "absolute paths must not be exposed"
+    );
+    assert!(
+        !body.contains("%PDF-1.4"),
+        "raw document text must not be exposed"
+    );
+    // Timeline + comparison endpoints.
+    let (status, body) = get(&app, "/api/v1/case-studies/incident-x/timeline").await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(body.contains("\"phases\""));
+    let (status, body) = get(&app, "/api/v1/case-studies/incident-x/comparison").await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(body.contains("Indeterminate"));
+    // Structured 404.
+    let (status, body) = get(&app, "/api/v1/case-studies/unknown").await;
+    assert_eq!(status, StatusCode::NOT_FOUND);
+    assert!(body.contains("case study not found"));
+}
+
+#[tokio::test]
+async fn document_route_rejects_path_traversal() {
+    if !repo_artifacts_available() {
+        return;
+    }
+    let (dbdir, rootdir, db_path) = setup_case_study_catalog();
+    let conn = db::open_catalog(&db_path).unwrap();
+    conn.execute(
+        "UPDATE document_revisions SET local_path = '../../etc/passwd' WHERE local_path IS NOT NULL",
+        [],
+    )
+    .unwrap();
+    drop(conn);
+    let app = build_app(state_from(&dbdir, rootdir.path()));
+    let doc_id: i64 = {
+        let conn = db::open_catalog(&db_path).unwrap();
+        conn.query_row("SELECT id FROM reference_documents LIMIT 1", [], |r| {
+            r.get(0)
+        })
+        .unwrap()
+    };
+    let (status, body) = get(&app, &format!("/documents/{doc_id}")).await;
+    assert_eq!(status, StatusCode::BAD_REQUEST);
+    assert!(body.contains("not catalog-relative"), "{body}");
+}
+
+#[tokio::test]
+async fn document_route_does_not_expose_absolute_path() {
+    if !repo_artifacts_available() {
+        return;
+    }
+    let (dbdir, rootdir, db_path) = setup_case_study_catalog();
+    let conn = db::open_catalog(&db_path).unwrap();
+    conn.execute(
+        "UPDATE document_revisions SET local_path = '/etc/passwd' WHERE local_path IS NOT NULL",
+        [],
+    )
+    .unwrap();
+    drop(conn);
+    let app = build_app(state_from(&dbdir, rootdir.path()));
+    let doc_id: i64 = {
+        let conn = db::open_catalog(&db_path).unwrap();
+        conn.query_row("SELECT id FROM reference_documents LIMIT 1", [], |r| {
+            r.get(0)
+        })
+        .unwrap()
+    };
+    let (status, body) = get(&app, &format!("/documents/{doc_id}")).await;
+    assert_eq!(status, StatusCode::BAD_REQUEST);
+    assert!(body.contains("not catalog-relative"), "{body}");
+}
+
+#[tokio::test]
+async fn missing_document_file_is_reported_cleanly() {
+    if !repo_artifacts_available() {
+        return;
+    }
+    let (dbdir, rootdir, db_path) = setup_case_study_catalog();
+    let conn = db::open_catalog(&db_path).unwrap();
+    conn.execute(
+        "UPDATE document_revisions SET local_path = 'data/documents/abc123/missing.pdf' WHERE local_path IS NOT NULL",
+        [],
+    )
+    .unwrap();
+    drop(conn);
+    let app = build_app(state_from(&dbdir, rootdir.path()));
+    let doc_id: i64 = {
+        let conn = db::open_catalog(&db_path).unwrap();
+        conn.query_row("SELECT id FROM reference_documents LIMIT 1", [], |r| {
+            r.get(0)
+        })
+        .unwrap()
+    };
+    let (status, body) = get(&app, &format!("/documents/{doc_id}")).await;
+    assert_eq!(status, StatusCode::BAD_REQUEST);
+    assert!(body.contains("Cannot serve document"), "{body}");
+}
+
+#[tokio::test]
+async fn hash_mismatch_is_reported() {
+    if !repo_artifacts_available() {
+        return;
+    }
+    let (dbdir, rootdir, db_path) = setup_case_study_catalog();
+    // Corrupt the on-disk document file (different bytes, same path).
+    let rel: String = {
+        let conn = db::open_catalog(&db_path).unwrap();
+        conn.query_row(
+            "SELECT local_path FROM document_revisions WHERE local_path IS NOT NULL LIMIT 1",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap()
+    };
+    std::fs::write(rootdir.path().join(&rel), b"%PDF-1.4 corrupted").unwrap();
+    let app = build_app(state_from(&dbdir, rootdir.path()));
+    let doc_id: i64 = {
+        let conn = db::open_catalog(&db_path).unwrap();
+        conn.query_row("SELECT id FROM reference_documents LIMIT 1", [], |r| {
+            r.get(0)
+        })
+        .unwrap()
+    };
+    let (status, body) = get(&app, &format!("/documents/{doc_id}")).await;
+    assert_eq!(status, StatusCode::BAD_REQUEST);
+    assert!(body.contains("hash mismatch"), "{body}");
+}
+
+#[tokio::test]
+async fn unapproved_media_type_is_not_served_inline() {
+    if !repo_artifacts_available() {
+        return;
+    }
+    let (dbdir, rootdir, db_path) = setup_case_study_catalog();
+    let conn = db::open_catalog(&db_path).unwrap();
+    conn.execute(
+        "UPDATE document_revisions SET media_type = 'application/x-msdownload' WHERE local_path IS NOT NULL",
+        [],
+    )
+    .unwrap();
+    drop(conn);
+    let app = build_app(state_from(&dbdir, rootdir.path()));
+    let doc_id: i64 = {
+        let conn = db::open_catalog(&db_path).unwrap();
+        conn.query_row("SELECT id FROM reference_documents LIMIT 1", [], |r| {
+            r.get(0)
+        })
+        .unwrap()
+    };
+    let (status, _body, headers) = get_full(&app, &format!("/documents/{doc_id}")).await;
+    assert_eq!(status, StatusCode::OK);
+    let disposition = headers
+        .get("content-disposition")
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("");
+    assert!(disposition.starts_with("attachment"), "{disposition}");
+    assert!(!disposition.starts_with("inline"), "{disposition}");
+}
+
+#[tokio::test]
+async fn approved_document_is_served_inline() {
+    if !repo_artifacts_available() {
+        return;
+    }
+    let (dbdir, rootdir, db_path) = setup_case_study_catalog();
+    let app = build_app(state_from(&dbdir, rootdir.path()));
+    let doc_id: i64 = {
+        let conn = db::open_catalog(&db_path).unwrap();
+        conn.query_row("SELECT id FROM reference_documents LIMIT 1", [], |r| {
+            r.get(0)
+        })
+        .unwrap()
+    };
+    let (status, body, headers) = get_full(&app, &format!("/documents/{doc_id}")).await;
+    assert_eq!(status, StatusCode::OK);
+    let disposition = headers
+        .get("content-disposition")
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("");
+    assert!(disposition.starts_with("inline"), "{disposition}");
+    assert!(headers
+        .get("content-type")
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("")
+        .contains("application/pdf"));
+    assert!(body.contains("%PDF-1.4"), "served bytes are the document");
+}
