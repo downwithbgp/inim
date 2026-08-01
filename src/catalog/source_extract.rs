@@ -41,10 +41,14 @@ pub fn extraction_key(
     sorted.sort_unstable();
     sorted.dedup();
 
+    // Source family is canonicalized (lowercase) so manifests and the
+    // audit CLI always derive the same extraction identity regardless of
+    // casing ("RipeRis" vs "riperis").
+    let family_norm = source_family.to_lowercase();
     let mut hasher = <sha2::Sha256 as sha2::Digest>::new();
     hasher.update(source_sha.as_bytes());
     hasher.update(b"|");
-    hasher.update(source_family.as_bytes());
+    hasher.update(family_norm.as_bytes());
     hasher.update(b"|");
     hasher.update(collector.as_bytes());
     hasher.update(b"|");
@@ -178,6 +182,20 @@ mod tests {
         let loaded = load_origin_extraction(&dir, &key).expect("extraction must load");
         assert_eq!(loaded, rows, "roundtrip must preserve every observation");
         let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn extraction_key_canonicalizes_family_casing() {
+        let a = extraction_key("sha1", "RipeRis", "rrc00", &[64500]);
+        let b = extraction_key("sha1", "riperis", "rrc00", &[64500]);
+        assert_eq!(
+            a, b,
+            "family casing must not change the extraction identity"
+        );
+        let c = extraction_key("sha1", "RouteViews", "rrc00", &[64500]);
+        let d = extraction_key("sha1", "routeviews", "rrc00", &[64500]);
+        assert_eq!(c, d);
+        assert_ne!(a, c, "different families stay distinct");
     }
 
     #[test]
