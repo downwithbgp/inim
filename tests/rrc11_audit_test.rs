@@ -55,6 +55,8 @@ fn registry() -> CollectorLocationRegistry {
             location: "New York City, New York, US".to_string(),
             facility: "NYIIX".to_string(),
             note: None,
+            region: "AMER".to_string(),
+            multihop: false,
         }],
     }
 }

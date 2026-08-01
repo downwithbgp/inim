@@ -588,7 +588,11 @@ mod tests {
 ///
 /// Location describes where the collector's route reflector is hosted; it
 /// does NOT describe the geographic path of observed routes and never
-/// defines a network's role.
+/// defines a network's role. `region` classifies the OBSERVER SITE only
+/// (AMER/EMEA/APAC/Unknown) and is never rendered as the region of the
+/// affected network, the route path, the peer organization, or the users.
+/// `multihop` marks collectors reached via a multihop session (still a
+/// valid site region, but the UI must make the multihop nature visible).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CollectorLocation {
     pub family: String,
@@ -597,6 +601,16 @@ pub struct CollectorLocation {
     pub facility: String,
     #[serde(default)]
     pub note: Option<String>,
+    /// Observer-site region: AMER, EMEA, APAC, or Unknown.
+    #[serde(default = "default_unknown_region")]
+    pub region: String,
+    /// Whether the collector is reached via a multihop session.
+    #[serde(default)]
+    pub multihop: bool,
+}
+
+fn default_unknown_region() -> String {
+    "Unknown".to_string()
 }
 
 /// A registry of collector locations, loaded from a reviewed data file.
@@ -621,6 +635,22 @@ impl CollectorLocationRegistry {
         self.collectors
             .iter()
             .find(|c| c.family.eq_ignore_ascii_case(family) && c.collector == collector)
+    }
+
+    /// Observer-site region for a collector, or "Unknown" when the
+    /// collector has no reviewed metadata entry.
+    pub fn region(&self, family: &str, collector: &str) -> String {
+        self.location(family, collector)
+            .map(|c| c.region.clone())
+            .unwrap_or_else(default_unknown_region)
+    }
+
+    /// Whether the collector is reached via a multihop session. Unknown
+    /// collectors are treated as non-multihop (no evidence of multihop).
+    pub fn is_multihop(&self, family: &str, collector: &str) -> bool {
+        self.location(family, collector)
+            .map(|c| c.multihop)
+            .unwrap_or(false)
     }
 }
 
@@ -1070,6 +1100,8 @@ mod session_audit_tests {
                     location: "Otemachi, Tokyo, Japan".to_string(),
                     facility: "DIX-IE / JPIX".to_string(),
                     note: None,
+                    region: "APAC".to_string(),
+                    multihop: false,
                 },
                 CollectorLocation {
                     family: "ris".to_string(),
@@ -1077,6 +1109,8 @@ mod session_audit_tests {
                     location: "Sao Paulo, Brazil".to_string(),
                     facility: "PTTMetro".to_string(),
                     note: None,
+                    region: "AMER".to_string(),
+                    multihop: false,
                 },
             ],
         }
@@ -1328,6 +1362,101 @@ mod session_audit_tests {
                 "192.0.2.3".to_string()
             ]
         );
+    }
+
+    // ── Observer-site regions (Session 36, Part 5) ───────────────────
+
+    #[test]
+    fn region_classifies_observer_site_only() {
+        let reg = registry();
+        // The registry's region is the collector site region.
+        assert_eq!(reg.region("ris", "rrc06"), "APAC");
+        assert_eq!(reg.region("ris", "rrc15"), "AMER");
+        // The same registry never contains a "peer region" or an
+        // "affected-network region": there is no such field to read.
+        let loc = reg.location("ris", "rrc06").unwrap();
+        assert_eq!(loc.region, "APAC");
+        assert!(!loc.region.contains("peer"));
+    }
+
+    #[test]
+    fn peer_region_is_not_inferred_from_collector_region() {
+        let reg = registry();
+        // A peer at a Tokyo collector is NOT thereby "in Tokyo" — the
+        // region lookup applies to the collector site only, and no API
+        // derives a peer's region from it.
+        let peer_region_derived = reg.region("ris", "rrc06");
+        assert_eq!(peer_region_derived, "APAC");
+        // The collector-site region must never be rendered as the peer's
+        // location: the peer location is a separate reviewed fact (not
+        // present here) and remains unclaimed.
+        let loc = reg.location("ris", "rrc06").unwrap();
+        assert!(loc.location.contains("Tokyo"));
+        // No function returns a peer region; a peer's geographic location
+        // is never asserted by this registry.
+        assert_eq!(reg.region("ris", "does-not-exist"), "Unknown");
+    }
+
+    #[test]
+    fn multihop_collector_is_visibly_labeled() {
+        let reg = registry();
+        // rrc00 is a RIPE-NCC Multihop collector: the registry marks it
+        // and the facility name carries the same fact.
+        let mh = CollectorLocation {
+            family: "ris".to_string(),
+            collector: "rrc00".to_string(),
+            location: "Amsterdam, Netherlands".to_string(),
+            facility: "RIPE-NCC Multihop".to_string(),
+            note: None,
+            region: "EMEA".to_string(),
+            multihop: true,
+        };
+        let reg2 = CollectorLocationRegistry {
+            as_of: "2019-09-05".to_string(),
+            collectors: vec![mh],
+        };
+        assert!(reg2.is_multihop("ris", "rrc00"), "multihop must be visible");
+        // A multihop collector still has a site region.
+        assert_eq!(reg2.region("ris", "rrc00"), "EMEA");
+        // Non-multihop collectors are not labeled multihop.
+        assert!(!reg.is_multihop("ris", "rrc06"));
+        // Unknown collectors: no multihop claim.
+        assert!(!reg.is_multihop("ris", "rrc99"));
+    }
+
+    #[test]
+    fn unknown_location_maps_to_unknown_region() {
+        let reg = registry();
+        // No reviewed metadata entry → Unknown region, never a guess.
+        assert_eq!(reg.region("RouteViews", "route-views2"), "Unknown");
+        assert_eq!(reg.region("ris", "rrc99"), "Unknown");
+        // A JSON entry WITHOUT a region field deserializes as Unknown
+        // (serde default), so older data files stay valid.
+        let raw = r#"{
+          "as_of": "2019-09-05",
+          "collectors": [
+            {"family": "ris", "collector": "rrc01", "location": "London, United Kingdom", "facility": "LINX / LONAP"}
+          ]
+        }"#;
+        let parsed: CollectorLocationRegistry = serde_json::from_str(raw).unwrap();
+        assert_eq!(parsed.region("ris", "rrc01"), "Unknown");
+        assert!(!parsed.is_multihop("ris", "rrc01"));
+    }
+
+    #[test]
+    fn historical_location_metadata_is_time_scoped() {
+        // The registry carries an `as_of` date: the whole metadata set is
+        // scoped to that review date and must not be presented as current.
+        let reg = registry();
+        assert_eq!(reg.as_of, "2019-09-05");
+        // A later registry with different regions is a different data set.
+        let mut reg2 = registry();
+        reg2.as_of = "2026-08-01".to_string();
+        reg2.collectors[0].region = "EMEA".to_string();
+        assert_ne!(reg, reg2);
+        // Location lookups return the reviewed (time-scoped) entry only.
+        assert_eq!(reg.region("ris", "rrc06"), "APAC");
+        assert_eq!(reg2.region("ris", "rrc06"), "EMEA");
     }
 }
 
