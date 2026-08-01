@@ -211,6 +211,18 @@ enum CaseStudyCommands {
         #[arg(long, value_name = "PATH")]
         path: PathBuf,
     },
+    /// Apply a reviewed target-research record to a case study.
+    ///
+    /// Updates ONLY the research fields of matching target rows (mapped
+    /// ASNs, predicate status, notes, provenance, audit timestamp); the
+    /// case-study content revision is never touched.
+    ApplyResearch {
+        #[arg(long, value_name = "PATH")]
+        db: PathBuf,
+        /// Reviewed target-research record (target-research.json).
+        #[arg(long, value_name = "PATH")]
+        path: PathBuf,
+    },
     /// Build the historical-archive plan for a case study.
     ///
     /// Computes the reproducible horizon and expected archive files WITHOUT
@@ -592,6 +604,29 @@ fn cmd_catalog(stdout: &mut dyn Write, command: &CatalogCommands) -> i32 {
                 EXIT_INVALID_INPUT
             }
         },
+        CatalogCommands::CaseStudy(CaseStudyCommands::ApplyResearch { db, path }) => {
+            let conn = match inim::catalog::db::open_catalog(db) {
+                Ok(c) => c,
+                Err(e) => {
+                    let _ = writeln!(stdout, "error: {e}");
+                    return EXIT_INVALID_INPUT;
+                }
+            };
+            match inim::catalog::target_research::apply_target_research(&conn, path) {
+                Ok(s) => {
+                    let _ = writeln!(
+                        stdout,
+                        "target research applied: case_study={} applied={} missing={}",
+                        s.slug, s.targets_applied, s.targets_missing
+                    );
+                }
+                Err(e) => {
+                    let _ = writeln!(stdout, "error: {e}");
+                    return EXIT_INVALID_INPUT;
+                }
+            }
+            EXIT_SUCCESS
+        }
         CatalogCommands::CaseStudy(CaseStudyCommands::Plan {
             db,
             slug,

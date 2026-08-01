@@ -195,6 +195,7 @@ fn valid_target_status(s: &str) -> bool {
             | TARGET_STATUS_HISTORICALLY_REVIEWED
             | TARGET_STATUS_UNRESOLVED
             | TARGET_STATUS_NOT_APPLICABLE
+            | TARGET_STATUS_AMBIGUOUS_SERVICE_IDENTITY
     )
 }
 

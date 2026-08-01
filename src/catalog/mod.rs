@@ -16,6 +16,7 @@ pub mod phase_summary;
 pub mod status;
 pub mod store;
 pub mod sync;
+pub mod target_research;
 #[cfg(test)]
 pub mod tests;
 pub mod web;

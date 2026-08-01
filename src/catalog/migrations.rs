@@ -5,10 +5,10 @@
 //! reopened database at the current version is a no-op.
 
 /// Current catalog schema version.
-pub const CATALOG_SCHEMA_VERSION: u32 = 2;
+pub const CATALOG_SCHEMA_VERSION: u32 = 3;
 
 /// Ordered migrations. Index i migrates user_version i -> i+1.
-pub const MIGRATIONS: &[&str] = &[V1, V2];
+pub const MIGRATIONS: &[&str] = &[V1, V2, V3];
 
 const V1: &str = r#"
 CREATE TABLE catalog_events (
@@ -298,4 +298,12 @@ CREATE INDEX idx_cs_claims_case ON case_study_claims(case_study_id, sort_order);
 CREATE INDEX idx_cs_targets_case ON case_study_targets(case_study_id, sort_order);
 CREATE INDEX idx_doc_revisions_doc ON document_revisions(document_id, revision);
 CREATE INDEX idx_run_transitions_run ON run_transitions(run_id, occurred_utc);
+"#;
+
+/// V3 (Session 31): research-progress columns on analysis targets.
+/// Research state is applied by the reviewed apply-research flow; these are
+/// audit fields for the documented research-field mutation exception.
+const V3: &str = r#"
+ALTER TABLE case_study_targets ADD COLUMN research_updated_utc TEXT;
+ALTER TABLE case_study_targets ADD COLUMN path_predicate_status TEXT;
 "#;

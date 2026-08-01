@@ -192,6 +192,7 @@ pub const TARGET_STATUS_CANDIDATE: &str = "Candidate";
 pub const TARGET_STATUS_HISTORICALLY_REVIEWED: &str = "HistoricallyReviewed";
 pub const TARGET_STATUS_UNRESOLVED: &str = "Unresolved";
 pub const TARGET_STATUS_NOT_APPLICABLE: &str = "NotApplicableToPublicBgp";
+pub const TARGET_STATUS_AMBIGUOUS_SERVICE_IDENTITY: &str = "AmbiguousServiceIdentity";
 
 pub const PHASE_PRECISION_EXACT: &str = "exact";
 pub const PHASE_PRECISION_SUMMARIZED: &str = "summarized";

@@ -1,0 +1,221 @@
+{
+  "schema_version": 1,
+  "case_study_slug": "manlan-2019",
+  "reviewed_at": "2026-08-01",
+  "reviewer": "inim session 31 (research subagents + dated-source cross-check)",
+  "method": "Evidence hierarchy: (1) dated operator documentation, (2) contemporaneous RIR records, (3) contemporaneous PeeringDB or equivalent archived records, (4) contemporaneous RouteViews/RIS observations, (5) reputable dated technical documentation. Current metadata was used as a research lead only, never as historical proof. Origin identity and path predicate are separate questions; no ASN was inferred from an organization name alone.",
+  "path_predicate_note": "MAN LAN is an Internet2-operated exchange. The candidate externally-visible path predicate for routing through the MAN LAN / Internet2 relationship is ContainsAny[11537] (Internet2 transit presence; AS11537 holder INTERNET2-RESEARCH-EDU confirmed via RIPEStat 2026-08-01). This is a CANDIDATE predicate: it requires empirical validation against contemporaneous 2019-08-21 RouteViews observations (Stage A preflight) before any run. It is kept separate from each target's origin mapping.",
+  "targets": [
+    {
+      "source_label": "NORDUnet",
+      "entity_type": "research/education network operator (routed international backbone)",
+      "historical_asns": [2603],
+      "asn_validity_date": "2019-08-21",
+      "asn_confidence": "high",
+      "sources": [
+        {"url": "https://web.archive.org/web/20190826060247/https://www.peeringdb.com/net/1721", "note": "Wayback capture 2019-08-26: NORDUnet, Primary ASN 2603, Network Type Educational/Research, IRR as-set AS-NORDUNET, present at NYIIX (198.32.160.21); record last updated 2018-10-10"},
+        {"url": "https://stat.ripe.net/data/as-overview/data.json?resource=2603", "note": "RIPEStat as-overview: holder NORDUNET NORDUnet; RIPE DB object registered 2002-05-07 (current metadata matching 2019-era ownership)"}
+      ],
+      "reviewed_statement": "NORDUnet operated AS2603 in August 2019 with high confidence (2019-dated PeeringDB capture + registry record unchanged). Routed backbone operator, not Layer-2-only. AAR documents NORDUnet as an I2 PX participant with interface flapping at 15:33, interface disabled at 16:50, re-enabled at 20:48 (Appendix A).",
+      "path_predicate": {
+        "status": "Candidate",
+        "predicate": "ContainsAny[11537]",
+        "note": "Internet2 transit presence as MAN LAN attachment; empirical validation against the 2019-08-21 RIB required before a run"
+      },
+      "bgp_applicability": "potentially visible as origin AS2603",
+      "research_status": "HistoricallyReviewed",
+      "historical_validity_status": "HistoricallyReviewed",
+      "applicability_status": "PotentiallyVisibleInPublicBgp"
+    },
+    {
+      "source_label": "ESnet",
+      "entity_type": "research/education network operator (US DOE science network)",
+      "historical_asns": [293],
+      "asn_validity_date": "2019-08-21",
+      "asn_confidence": "high",
+      "sources": [
+        {"url": "https://web.archive.org/web/20190823091208/https://www.peeringdb.com/net/940", "note": "Wayback capture 2019-08-23: Energy Sciences Network (ESnet), Primary ASN 293, Network Type NSP, IRR as-set RADB::AS-ESNET, facilities incl. Digital Realty NYC 111 8th Ave and 32 AofA"},
+        {"url": "https://rdap.arin.net/registry/autnum/293", "note": "ARIN RDAP: autnum ESNET, registrant ESnet (Lawrence Berkeley National Laboratory), registration 1997-06-16"}
+      ],
+      "reviewed_statement": "ESnet operated AS293 in August 2019 with high confidence (2019-dated PeeringDB capture + ARIN record). Routed network operator. AAR documents ESnet shut its interface around 16:39 due to instability, disabled at 17:30, re-enabled at 20:44; availability window 16:55-22:24 (Appendix A).",
+      "path_predicate": {
+        "status": "Candidate",
+        "predicate": "ContainsAny[11537]",
+        "note": "Internet2 transit presence as MAN LAN attachment; empirical validation required"
+      },
+      "bgp_applicability": "potentially visible as origin AS293",
+      "research_status": "HistoricallyReviewed",
+      "historical_validity_status": "HistoricallyReviewed",
+      "applicability_status": "PotentiallyVisibleInPublicBgp"
+    },
+    {
+      "source_label": "GÉANT",
+      "entity_type": "research/education network operator (pan-European backbone)",
+      "historical_asns": [21320],
+      "asn_validity_date": "2019-08-21",
+      "asn_confidence": "high",
+      "sources": [
+        {"url": "https://web.archive.org/web/20190916163037/https://www.peeringdb.com/net/3386", "note": "Wayback capture 2019-09-16: GEANT IAS, Primary ASN 21320, Network Type Educational/Research, record last updated 2019-03-21"},
+        {"url": "https://en.wikipedia.org/w/index.php?title=G%C3%89ANT&oldid=900580227", "note": "Wikipedia revision 2019-06-08: GÉANT links to Internet2, ESnet among North American research networks"}
+      ],
+      "reviewed_statement": "GÉANT operated AS21320 in August 2019 with high confidence. Routed backbone operator. AAR records GÉANT still not up at 13:13 with a peering via CANARIE pingable at 13:46 (Appendix B).",
+      "path_predicate": {
+        "status": "Candidate",
+        "predicate": "ContainsAny[11537]",
+        "note": "Internet2 transit presence as MAN LAN attachment; empirical validation required"
+      },
+      "bgp_applicability": "potentially visible as origin AS21320",
+      "research_status": "HistoricallyReviewed",
+      "historical_validity_status": "HistoricallyReviewed",
+      "applicability_status": "PotentiallyVisibleInPublicBgp"
+    },
+    {
+      "source_label": "CANARIE",
+      "entity_type": "research/education network operator (Canadian NREN backbone)",
+      "historical_asns": [6509],
+      "asn_validity_date": "2019-08-21",
+      "asn_confidence": "high",
+      "sources": [
+        {"url": "https://web.archive.org/web/20190825193631/https://peeringdb.com/net/3557", "note": "Wayback capture 2019-08-25: CANARIE Inc, Primary ASN 6509, IRR as-set AS6509:AS-CANARIE, record last updated 2018-11-06"},
+        {"url": "https://en.wikipedia.org/w/index.php?title=CANARIE&oldid=902600604", "note": "Wikipedia revision 2019-06-19: CANARIE external segments extend to Manhattan Landing (MAN LAN) in New York"},
+        {"url": "https://rdap.arin.net/registry/autnum/6509", "note": "ARIN RDAP: AS6509 name CANARIE-NTN, registrant CANARIE Inc, registration 1996-05-10"}
+      ],
+      "reviewed_statement": "CANARIE operated AS6509 in August 2019 with high confidence, and had a documented MAN LAN presence (Wikipedia 2019-06-19 revision). AAR documents CANARIE dropped at 12:34, services confirmed up at 21:33; CANARIE reported performance issues ~14:14 (Appendix A/C).",
+      "path_predicate": {
+        "status": "Candidate",
+        "predicate": "ContainsAny[11537]",
+        "note": "Internet2 transit presence as MAN LAN attachment; empirical validation required"
+      },
+      "bgp_applicability": "potentially visible as origin AS6509",
+      "research_status": "HistoricallyReviewed",
+      "historical_validity_status": "HistoricallyReviewed",
+      "applicability_status": "PotentiallyVisibleInPublicBgp"
+    },
+    {
+      "source_label": "TWAREN",
+      "entity_type": "research/education network operator (Taiwan NREN, operated by NCHC)",
+      "historical_asns": [7539],
+      "asn_validity_date": "2019-08-21",
+      "asn_confidence": "high",
+      "sources": [
+        {"url": "https://web.archive.org/web/20190915064352/https://peeringdb.com/net/16281", "note": "Wayback capture 2019-09-15: TaiWan Advanced Research and Education Network (TWAREN), Primary ASN 7539, PacificWave 207.231.240.133 10G; record last updated 2018-04-06"},
+        {"url": "https://web.archive.org/web/20190822081902/https://peeringdb.com/net/1356", "note": "Wayback capture 2019-08-22: AS9264 belongs to Academia Sinica Network (ASNet), NOT TWAREN — candidate 9264 positively excluded"}
+      ],
+      "reviewed_statement": "TWAREN operated AS7539 in August 2019 (2019-dated PeeringDB capture). Candidate AS9264 was researched and positively excluded (Academia Sinica ASNet). AAR first notes TWAREN's interface not receiving light at 13:45 (Appendix B).",
+      "path_predicate": {
+        "status": "Candidate",
+        "predicate": "ContainsAny[11537]",
+        "note": "Internet2 transit presence as MAN LAN attachment; empirical validation required"
+      },
+      "bgp_applicability": "potentially visible as origin AS7539",
+      "research_status": "HistoricallyReviewed",
+      "historical_validity_status": "HistoricallyReviewed",
+      "applicability_status": "PotentiallyVisibleInPublicBgp"
+    },
+    {
+      "source_label": "SINET",
+      "entity_type": "research/education network operator (Japan NREN, NII)",
+      "historical_asns": [2907],
+      "asn_validity_date": "2019-08-21",
+      "asn_confidence": "high",
+      "sources": [
+        {"url": "https://web.archive.org/web/20190822081115/https://peeringdb.com/net/7609", "note": "Wayback capture 2019-08-22: National Institute of Informatics, Primary ASN 2907, IRR as-set JPIRR::as2907:as-sinet, record last updated 2019-05-13"},
+        {"url": "https://rdap.apnic.net/autnum/2907", "note": "APNIC RDAP: AS2907 name SINET-AS, National Institute of Informatics, record unchanged since 2008-11-28"}
+      ],
+      "reviewed_statement": "SINET operated AS2907 in August 2019 with high confidence. AAR records NORDUnet and SINET connections swapped at 15:48, with BGP not re-establishing (Appendix B).",
+      "path_predicate": {
+        "status": "Candidate",
+        "predicate": "ContainsAny[11537]",
+        "note": "Internet2 transit presence as MAN LAN attachment; empirical validation required"
+      },
+      "bgp_applicability": "potentially visible as origin AS2907",
+      "research_status": "HistoricallyReviewed",
+      "historical_validity_status": "HistoricallyReviewed",
+      "applicability_status": "PotentiallyVisibleInPublicBgp"
+    },
+    {
+      "source_label": "Ixia",
+      "entity_type": "network test-equipment vendor (acquired by Keysight 2017)",
+      "historical_asns": [],
+      "asn_validity_date": null,
+      "asn_confidence": "n/a",
+      "sources": [
+        {"url": "https://en.wikipedia.org/wiki/Ixia_(company)", "note": "Test and simulation platforms vendor; not a network operator"},
+        {"url": "https://www.peeringdb.com/api/net?name__contains=Ixia", "note": "No PeeringDB network entry for Ixia"}
+      ],
+      "reviewed_statement": "Ixia is test equipment, not a prefix-originating network. In the MAN LAN AAR it is a connector context (outage noted at 16:54). No public prefixes can be origin-conditioned to it.",
+      "path_predicate": {
+        "status": "NotApplicable",
+        "predicate": null,
+        "note": "no origin to condition"
+      },
+      "bgp_applicability": "not applicable to public BGP",
+      "research_status": "NotApplicableToPublicBgp",
+      "historical_validity_status": "NotApplicableToPublicBgp",
+      "applicability_status": "NotApplicableToPublicBgp"
+    },
+    {
+      "source_label": "NEAAR",
+      "entity_type": "research/education connectivity consortium (NEA3R: Networks for European, American, African and Arctic Research)",
+      "historical_asns": [],
+      "asn_validity_date": null,
+      "asn_confidence": "n/a",
+      "sources": [
+        {"url": "https://internet2.edu/network/initiatives-partnerships/global-networks-and-partnerships/international-peers/", "note": "Internet2 international peers table: NEAAR is a MAN LAN peer (Networks for European, American, and African Research)"},
+        {"url": "https://internationalnetworks.iu.edu/projects/NEA3R/index.html", "note": "NEA3R project: NSF IRNC-funded circuit/connectivity service partnering GÉANT, Internet2, NORDUnet, UbuntuNet Alliance"}
+      ],
+      "reviewed_statement": "NEAAR is a circuit/connectivity service that carries participant networks' prefixes rather than originating its own production address space; no ASN is documented. Identity is real but as a BGP origin it is ambiguous.",
+      "path_predicate": {
+        "status": "NotApplicable",
+        "predicate": null,
+        "note": "no own origin to condition"
+      },
+      "bgp_applicability": "ambiguous service identity; not cleanly origin-attributable",
+      "research_status": "AmbiguousServiceIdentity",
+      "historical_validity_status": "AmbiguousServiceIdentity",
+      "applicability_status": "NotApplicableToPublicBgp"
+    },
+    {
+      "source_label": "OMAN",
+      "entity_type": "unresolved (most plausible: Oman national R&E network OMREN)",
+      "historical_asns": [],
+      "asn_validity_date": null,
+      "asn_confidence": "n/a",
+      "sources": [
+        {"url": "https://www.omren.om", "note": "Oman NREN OMREN exists, but no source connects it to MAN LAN or CANARIE"},
+        {"url": "https://internet2.edu/network/initiatives-partnerships/global-networks-and-partnerships/international-peers/", "note": "MAN LAN peer lists (2021-2026 captures) contain no Oman entry; closest are Qatar and ANKABUT (UAE)"}
+      ],
+      "reviewed_statement": "The AAR states OMAN rides the CANARIE interface that was down, but no independent source confirms an Oman entity at MAN LAN. Left Unresolved; no ASN assigned.",
+      "path_predicate": {
+        "status": "Unresolved",
+        "predicate": null,
+        "note": "origin unresolved"
+      },
+      "bgp_applicability": "unknown",
+      "research_status": "Unresolved",
+      "historical_validity_status": "Unresolved",
+      "applicability_status": "Unknown"
+    },
+    {
+      "source_label": "WIX interconnect",
+      "entity_type": "exchange fabric (Washington International Exchange, Internet2 + MAX partnership)",
+      "historical_asns": [],
+      "asn_validity_date": null,
+      "asn_confidence": "n/a",
+      "sources": [
+        {"url": "https://internet2.edu/network/initiatives-partnerships/global-networks-and-partnerships/global-exchange-points-and-consortia/", "note": "WIX is an Internet2-operated global exchange point (exchange fabric, not an origin network)"},
+        {"url": "https://docs.globalnoc.iu.edu/wix/index.html", "note": "WIX NOC documentation: research and education peering point"}
+      ],
+      "reviewed_statement": "WIX is an exchange fabric: it does not originate prefixes. The AAR's WIX event (13:26-13:27 brief outage, troubleshooting resolution at 14:40) is not origin-attributable in public BGP.",
+      "path_predicate": {
+        "status": "NotApplicable",
+        "predicate": null,
+        "note": "exchange fabric, no origin"
+      },
+      "bgp_applicability": "not applicable to public BGP as an origin target",
+      "research_status": "NotApplicableToPublicBgp",
+      "historical_validity_status": "NotApplicableToPublicBgp",
+      "applicability_status": "NotApplicableToPublicBgp"
+    }
+  ]
+}
