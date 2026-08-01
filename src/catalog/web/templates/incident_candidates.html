@@ -2,9 +2,9 @@
 {% block title %}inim — incident candidates{% endblock %}
 {% block content %}
 <h2>Incident group candidates</h2>
-<p class="muted">Suggested groupings only — individual events are never merged. Confidence is categorical and explainable: ExplicitlyLinked (source-asserted), StrongCandidate (reviewed case-study membership), WeakCandidate (temporal overlap alone), Rejected (analyst).</p>
+<p class="muted">Suggested groupings only — individual events are never merged. Confidence is categorical and explainable: ExplicitlyLinked (source-asserted), StrongCandidate (reviewed case-study membership), WeakCandidate (temporal overlap plus a supporting signal: shared reviewed entity/asset, shared maintenance/change, explicit reference), TemporalCoincidence (temporal overlap alone — hidden by default, still queryable), Rejected (analyst).</p>
 <div class="panel">
-<p>ExplicitlyLinked: {{ explicit }} · StrongCandidate: {{ strong }} · WeakCandidate: {{ weak }} · Rejected: {{ rejected }}</p>
+<p>ExplicitlyLinked: {{ explicit }} · StrongCandidate: {{ strong }} · WeakCandidate: {{ weak }} · TemporalCoincidence: {{ coincidence }} (<a href="/incident-candidates?include=temporal">show</a>) · Rejected: {{ rejected }}</p>
 </div>
 {% for g in groups %}
 <div class="panel">
@@ -18,6 +18,6 @@
 </div>
 {% endfor %}
 {% if groups.is_empty() %}
-<p class="muted">No candidate groups yet.</p>
+<p class="muted">No candidate groups in the default view. Temporal-only coincidences are hidden; use <a href="/incident-candidates?include=temporal">?include=temporal</a> to see them.</p>
 {% endif %}
 {% endblock %}

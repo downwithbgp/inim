@@ -258,14 +258,20 @@ pub async fn analysis_queue(
     }
 }
 
-pub async fn incident_candidates(State(state): State<SharedState>) -> Response {
+pub async fn incident_candidates(
+    State(state): State<SharedState>,
+    query: axum::extract::Query<std::collections::HashMap<String, String>>,
+) -> Response {
+    let include_temporal = query
+        .get("include")
+        .map(|v| v == "temporal")
+        .unwrap_or(false);
     let db = state.db.lock().unwrap();
-    match super::view::load_incident_candidates(&db) {
+    match super::view::load_incident_candidates(&db, include_temporal) {
         Ok(view) => render(view),
         Err(e) => server_error(&e),
     }
 }
-
 pub async fn corpus_relationships(State(state): State<SharedState>) -> Response {
     let db = state.db.lock().unwrap();
     match super::view::load_corpus_relationships(&db) {

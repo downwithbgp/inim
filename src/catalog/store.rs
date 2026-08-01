@@ -1016,6 +1016,30 @@ pub fn insert_group_candidate(
     conn: &Connection,
     candidate: &IncidentGroupCandidate,
 ) -> Result<bool, String> {
+    // Reclassification: a derived candidate with the same evidence
+    // fingerprint may move category (e.g. WeakCandidate ->
+    // TemporalCoincidence). Rejected rows stay suppressed; the insert
+    // below refuses to resurrect them.
+    if let Some(existing) = existing_by_fingerprint(conn, &candidate.evidence_fingerprint)? {
+        if existing.confidence == crate::catalog::grouping::confidence::REJECTED {
+            return Ok(false);
+        }
+        if existing.review_status == "Unreviewed" {
+            conn.execute(
+                "UPDATE incident_group_candidates
+                 SET confidence = ?1, label = ?2, updated_utc = ?3
+                 WHERE id = ?4",
+                params![
+                    candidate.confidence,
+                    candidate.label,
+                    candidate.updated_utc,
+                    existing.id
+                ],
+            )
+            .map_err(|e| format!("catalog write failed: {e}"))?;
+        }
+        return Ok(false);
+    }
     let result = conn
         .execute(
             "INSERT OR IGNORE INTO incident_group_candidates
@@ -1035,6 +1059,85 @@ pub fn insert_group_candidate(
         )
         .map_err(|e| format!("catalog write failed: {e}"))?;
     Ok(result > 0)
+}
+
+fn existing_by_fingerprint(
+    conn: &Connection,
+    fingerprint: &str,
+) -> Result<Option<IncidentGroupCandidate>, String> {
+    let mut stmt = conn
+        .prepare(
+            "SELECT id, label, member_ids_json, evidence_json, confidence,
+                    review_status, evidence_fingerprint, created_utc, updated_utc
+             FROM incident_group_candidates WHERE evidence_fingerprint = ?1",
+        )
+        .map_err(|e| format!("catalog read failed: {e}"))?;
+    let mut rows = stmt
+        .query_map([fingerprint], |r| {
+            let members: Vec<i64> =
+                serde_json::from_str(&r.get::<_, String>(2)?).unwrap_or_default();
+            let evidence: Vec<GroupEvidence> =
+                serde_json::from_str(&r.get::<_, String>(3)?).unwrap_or_default();
+            Ok(IncidentGroupCandidate {
+                id: r.get(0)?,
+                label: r.get(1)?,
+                member_event_ids: members,
+                evidence,
+                confidence: r.get(4)?,
+                review_status: r.get(5)?,
+                evidence_fingerprint: r.get(6)?,
+                created_utc: r.get(7)?,
+                updated_utc: r.get(8)?,
+            })
+        })
+        .map_err(|e| format!("catalog read failed: {e}"))?;
+    match rows.next() {
+        None => Ok(None),
+        Some(r) => Ok(Some(r.map_err(|e| format!("catalog read failed: {e}"))?)),
+    }
+}
+
+/// Remove Unreviewed candidate rows for the same member pair whose
+/// evidence signals are a STRICT subset of the merged signals. The pair
+/// appears exactly once; superseded evidence survives inside the merged
+/// row (provenance is preserved, not deleted). Rejected or reviewed
+/// rows are never touched.
+pub fn supersede_pair_groups(
+    conn: &Connection,
+    members: &[i64],
+    merged_signals: &[String],
+) -> Result<usize, String> {
+    let mut sorted: Vec<i64> = members.to_vec();
+    sorted.sort_unstable();
+    let member_json = serde_json::to_string(&sorted).unwrap_or_default();
+    let candidates = list_group_candidates(conn)?;
+    let mut removed = 0usize;
+    for c in candidates {
+        if c.review_status != "Unreviewed" {
+            continue;
+        }
+        let mut c_members = c.member_event_ids.clone();
+        c_members.sort_unstable();
+        let same_pair = serde_json::to_string(&c_members).unwrap_or_default() == member_json;
+        if !same_pair {
+            continue;
+        }
+        let signals: Vec<&str> = c.evidence.iter().map(|e| e.signal.as_str()).collect();
+        let subset = !signals.is_empty()
+            && signals.len() < merged_signals.len()
+            && signals
+                .iter()
+                .all(|s| merged_signals.iter().any(|m| m == s));
+        if subset {
+            conn.execute(
+                "DELETE FROM incident_group_candidates WHERE id = ?1",
+                params![c.id],
+            )
+            .map_err(|e| format!("catalog write failed: {e}"))?;
+            removed += 1;
+        }
+    }
+    Ok(removed)
 }
 
 /// All candidate groups, newest first.

@@ -322,7 +322,7 @@ pub async fn api_analysis_queue(State(state): State<SharedState>) -> Response {
 
 pub async fn api_incident_candidates(State(state): State<SharedState>) -> Response {
     let db = state.db.lock().unwrap();
-    match super::view::load_incident_candidates(&db) {
+    match super::view::load_incident_candidates(&db, false) {
         Ok(v) => envelope(serde_json::to_value(v).unwrap_or_default()),
         Err(e) => json_error(StatusCode::INTERNAL_SERVER_ERROR, &e),
     }

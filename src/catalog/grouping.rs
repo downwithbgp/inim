@@ -1,19 +1,28 @@
-//! Candidate incident grouping (Session 33, Part 9).
+//! Candidate incident grouping (Session 33, Part 9; Session 34, Part 3).
 //!
 //! A correlation workspace groups tickets that MAY describe parts of one
 //! operational incident. Every candidate group states why it was
 //! suggested and carries a categorical, explainable confidence:
 //!
 //! - `ExplicitlyLinked` — source text / reference-document assertions
-//! - `StrongCandidate` — reviewed case-study membership, shared
-//!   maintenance/change references
-//! - `WeakCandidate` — temporal overlap, entity overlap alone
+//! - `StrongCandidate` — reviewed case-study membership (multi-member)
+//! - `WeakCandidate` — temporal overlap PLUS at least one supporting
+//!   signal (shared reviewed entity/asset label, shared maintenance or
+//!   change identifier, explicit reference)
+//! - `TemporalCoincidence` — temporal overlap alone; queryable but
+//!   hidden from the default analyst queue
 //! - `Rejected` — the analyst rejected the candidate
 //!
 //! There is no pseudo-scientific numerical confidence score. Groups are
 //! suggestions only: `CatalogEvent`s are never merged or replaced.
 //! A rejected candidate is not regenerated without NEW evidence (the
 //! evidence fingerprint changes when the evidence set changes).
+//!
+//! Generation is per unordered ticket pair: a pair gets ONE candidate
+//! whose evidence is the union of every supporting signal and whose
+//! category is the best applicable. Superseded Unreviewed rows (strict
+//! subset of the same pair's signals) are removed — their evidence is
+//! preserved inside the merged row.
 
 use crate::catalog::domain::*;
 use crate::catalog::store;
@@ -23,7 +32,17 @@ pub mod confidence {
     pub const EXPLICITLY_LINKED: &str = "ExplicitlyLinked";
     pub const STRONG_CANDIDATE: &str = "StrongCandidate";
     pub const WEAK_CANDIDATE: &str = "WeakCandidate";
+    pub const TEMPORAL_COINCIDENCE: &str = "TemporalCoincidence";
     pub const REJECTED: &str = "Rejected";
+}
+
+/// Supporting-signal names (stable strings; also used by the web view).
+pub mod signal {
+    pub const EXPLICIT_TICKET_TEXT: &str = "ExplicitTicketText";
+    pub const SHARED_CASE_STUDY: &str = "SharedCaseStudy";
+    pub const DERIVED_TEMPORAL_OVERLAP: &str = "DerivedTemporalOverlap";
+    pub const SHARED_REVIEWED_ENTITY: &str = "SharedReviewedEntity";
+    pub const SHARED_MAINTENANCE_CHANGE: &str = "SharedMaintenanceChange";
 }
 
 /// Deterministic evidence fingerprint: sha256 over sorted member ids and
@@ -107,6 +126,11 @@ fn upsert_group(
     if is_rejected_fingerprint(conn, &fingerprint)? {
         return Ok(false); // rejected until new evidence changes the fingerprint
     }
+    // Supersede Unreviewed rows for the same pair whose evidence is a
+    // strict subset of the merged evidence (provenance is preserved in
+    // the merged row; the pair appears exactly once).
+    let signals: Vec<String> = evidence.iter().map(|e| e.signal.clone()).collect();
+    let _ = store::supersede_pair_groups(conn, members, &signals)?;
     store::insert_group_candidate(
         conn,
         &IncidentGroupCandidate {
@@ -123,11 +147,33 @@ fn upsert_group(
     )
 }
 
-/// Generate candidate groups from the available signals:
+/// Category for a pair given its supporting signals (best applicable).
+fn classify_pair(
+    has_explicit: bool,
+    has_support: bool,
+    has_temporal: bool,
+) -> Option<&'static str> {
+    if has_explicit {
+        Some(confidence::EXPLICITLY_LINKED)
+    } else if has_support {
+        Some(confidence::WEAK_CANDIDATE)
+    } else if has_temporal {
+        Some(confidence::TEMPORAL_COINCIDENCE)
+    } else {
+        None
+    }
+}
+
+/// Merge pairwise signals into one candidate per unordered pair.
 ///
-/// 1. explicit ticket-text references → ExplicitlyLinked
-/// 2. shared reviewed case-study membership → StrongCandidate
-/// 3. derived temporal overlap → WeakCandidate
+/// Supporting signals (from edges and reviewed interpretations):
+/// - explicit ticket-text reference → ExplicitlyLinked
+/// - shared reviewed entity/asset label OR shared maintenance/change id
+///   → WeakCandidate (with or without temporal overlap)
+/// - temporal overlap alone → TemporalCoincidence
+///
+/// The shared reviewed case-study membership keeps its own multi-member
+/// StrongCandidate group (see below) — it is not duplicated per pair.
 ///
 /// Returns the number of NEW candidate rows. Deterministic order.
 pub fn generate_candidates(
@@ -136,35 +182,7 @@ pub fn generate_candidates(
 ) -> Result<usize, String> {
     let mut new_groups = 0usize;
 
-    // 1. Explicit text edges (resolved pairs only).
-    for edge in store::list_relationships(conn, None)? {
-        if edge.evidence_kind != EVIDENCE_EXPLICIT_TICKET_TEXT {
-            continue;
-        }
-        let Some(to_id) = edge.to_event_id else {
-            continue;
-        };
-        let members = [edge.from_event_id, to_id];
-        let detail = format!(
-            "{} ({}): {} -> {}",
-            edge.relationship_kind, edge.evidence_kind, edge.from_event_id, edge.to_external_id
-        );
-        if upsert_group(
-            conn,
-            &format!("Explicit link {} <-> {}", edge.from_event_id, to_id),
-            &members,
-            vec![GroupEvidence {
-                signal: "ExplicitTicketText".to_string(),
-                detail,
-            }],
-            confidence::EXPLICITLY_LINKED,
-            created_utc,
-        )? {
-            new_groups += 1;
-        }
-    }
-
-    // 2. Shared reviewed case-study membership.
+    // ── Multi-member group: shared reviewed case-study membership ────
     {
         let mut stmt = conn
             .prepare(
@@ -203,7 +221,7 @@ pub fn generate_candidates(
                 &format!("Case study {cs_id}: {title}"),
                 &members,
                 vec![GroupEvidence {
-                    signal: "SharedCaseStudy".to_string(),
+                    signal: signal::SHARED_CASE_STUDY.to_string(),
                     detail: format!("reviewed case study {cs_id} ({title})"),
                 }],
                 confidence::STRONG_CANDIDATE,
@@ -214,7 +232,30 @@ pub fn generate_candidates(
         }
     }
 
-    // 3. Derived temporal overlap (candidate only — never causal).
+    // ── Per-pair candidates (explicit / entity / maintenance / temporal)
+    // Collect every supporting signal per unordered pair.
+    let mut pairs: std::collections::BTreeMap<(i64, i64), Vec<GroupEvidence>> =
+        std::collections::BTreeMap::new();
+
+    // Explicit ticket-text edges.
+    for edge in store::list_relationships(conn, None)? {
+        if edge.evidence_kind != EVIDENCE_EXPLICIT_TICKET_TEXT {
+            continue;
+        }
+        let Some(to_id) = edge.to_event_id else {
+            continue;
+        };
+        let (a, b) = sort_pair(edge.from_event_id, to_id);
+        pairs.entry((a, b)).or_default().push(GroupEvidence {
+            signal: signal::EXPLICIT_TICKET_TEXT.to_string(),
+            detail: format!(
+                "{} ({}): {} -> {}",
+                edge.relationship_kind, edge.evidence_kind, edge.from_event_id, edge.to_external_id
+            ),
+        });
+    }
+
+    // Derived temporal-overlap edges.
     for edge in store::list_relationships(conn, None)? {
         if edge.evidence_kind != EVIDENCE_DERIVED_TEMPORAL_OVERLAP {
             continue;
@@ -222,23 +263,108 @@ pub fn generate_candidates(
         let Some(to_id) = edge.to_event_id else {
             continue;
         };
-        let members = [edge.from_event_id, to_id];
-        if upsert_group(
-            conn,
-            &format!("Temporal overlap {} <-> {}", edge.from_event_id, to_id),
-            &members,
-            vec![GroupEvidence {
-                signal: "DerivedTemporalOverlap".to_string(),
-                detail: edge.note.unwrap_or_default(),
-            }],
-            confidence::WEAK_CANDIDATE,
-            created_utc,
-        )? {
+        let (a, b) = sort_pair(edge.from_event_id, to_id);
+        pairs.entry((a, b)).or_default().push(GroupEvidence {
+            signal: signal::DERIVED_TEMPORAL_OVERLAP.to_string(),
+            detail: edge.note.unwrap_or_default(),
+        });
+    }
+
+    // Shared reviewed entity/asset labels and shared maintenance/change
+    // identifiers (from reviewed interpretations).
+    let reviews = store::list_ticket_reviews(conn)?;
+    for i in 0..reviews.len() {
+        for j in (i + 1)..reviews.len() {
+            let a = &reviews[i];
+            let b = &reviews[j];
+            let (lo, hi) = sort_pair(a.catalog_event_id, b.catalog_event_id);
+            let entry = pairs.entry((lo, hi)).or_default();
+            let shared_entities: Vec<&String> = a
+                .entity_labels
+                .iter()
+                .filter(|l| b.entity_labels.contains(l))
+                .collect();
+            if !shared_entities.is_empty() {
+                entry.push(GroupEvidence {
+                    signal: signal::SHARED_REVIEWED_ENTITY.to_string(),
+                    detail: format!(
+                        "shared reviewed entity/asset label(s): {}",
+                        shared_entities
+                            .iter()
+                            .map(|s| s.as_str())
+                            .collect::<Vec<_>>()
+                            .join(", ")
+                    ),
+                });
+            }
+            let shared_changes: Vec<&String> = a
+                .linked_change_ids
+                .iter()
+                .filter(|c| b.linked_change_ids.contains(c))
+                .collect();
+            if !shared_changes.is_empty() {
+                entry.push(GroupEvidence {
+                    signal: signal::SHARED_MAINTENANCE_CHANGE.to_string(),
+                    detail: format!(
+                        "shared reviewed maintenance/change identifier(s): {}",
+                        shared_changes
+                            .iter()
+                            .map(|s| s.as_str())
+                            .collect::<Vec<_>>()
+                            .join(", ")
+                    ),
+                });
+            }
+        }
+    }
+
+    // Emit one candidate per pair: evidence = union of all signals,
+    // category = best applicable.
+    for ((a, b), mut evidence) in pairs {
+        evidence.sort_by(|x, y| (&x.signal, &x.detail).cmp(&(&y.signal, &y.detail)));
+        evidence.dedup_by(|x, y| x.signal == y.signal && x.detail == y.detail);
+        let has_explicit = evidence
+            .iter()
+            .any(|e| e.signal == signal::EXPLICIT_TICKET_TEXT);
+        let has_support = evidence.iter().any(|e| {
+            e.signal == signal::SHARED_REVIEWED_ENTITY
+                || e.signal == signal::SHARED_MAINTENANCE_CHANGE
+        });
+        let has_temporal = evidence
+            .iter()
+            .any(|e| e.signal == signal::DERIVED_TEMPORAL_OVERLAP);
+        let Some(category) = classify_pair(has_explicit, has_support, has_temporal) else {
+            continue;
+        };
+        let label = match category {
+            c if c == confidence::EXPLICITLY_LINKED => format!("Explicit link {a} <-> {b}"),
+            c if c == confidence::WEAK_CANDIDATE => format!("Weak candidate {a} <-> {b}"),
+            _ => format!("Temporal coincidence {a} <-> {b}"),
+        };
+        let members = [a, b];
+        if upsert_group(conn, &label, &members, evidence, category, created_utc)? {
             new_groups += 1;
         }
     }
 
     Ok(new_groups)
+}
+
+fn sort_pair(a: i64, b: i64) -> (i64, i64) {
+    if a < b {
+        (a, b)
+    } else {
+        (b, a)
+    }
+}
+
+/// Candidates visible in the default analyst queue: everything except
+/// temporal-only coincidence. Coincidence remains queryable.
+pub fn default_queue_candidates(groups: &[IncidentGroupCandidate]) -> Vec<&IncidentGroupCandidate> {
+    groups
+        .iter()
+        .filter(|g| g.confidence != confidence::TEMPORAL_COINCIDENCE)
+        .collect()
 }
 
 #[cfg(test)]
@@ -292,7 +418,7 @@ mod tests {
     }
 
     #[test]
-    fn explicit_reference_creates_strong_group_candidate() {
+    fn explicit_reference_is_prominent() {
         let (_dir, conn) = open_temp_db();
         let dir = tempfile::tempdir().unwrap();
         write_record(
@@ -395,7 +521,7 @@ mod tests {
     }
 
     #[test]
-    fn temporal_overlap_alone_remains_weak() {
+    fn temporal_overlap_only_is_temporal_coincidence() {
         let (_dir, conn) = open_temp_db();
         let dir = tempfile::tempdir().unwrap();
         write_record(
@@ -418,19 +544,184 @@ mod tests {
         let n = generate_candidates(&conn, "2026-08-01T00:00:00Z").unwrap();
         assert!(n >= 1);
         let groups = list_candidates(&conn).unwrap();
+        let coincidence: Vec<_> = groups
+            .iter()
+            .filter(|g| g.confidence == confidence::TEMPORAL_COINCIDENCE)
+            .collect();
+        assert!(
+            !coincidence.is_empty(),
+            "overlap alone must be TemporalCoincidence"
+        );
+        assert!(coincidence[0]
+            .evidence
+            .iter()
+            .any(|e| e.signal == signal::DERIVED_TEMPORAL_OVERLAP));
+        // Overlap alone never produces a weak/strong/explicit group.
+        assert!(groups
+            .iter()
+            .all(|g| g.confidence != confidence::WEAK_CANDIDATE
+                && g.confidence != confidence::STRONG_CANDIDATE
+                && g.confidence != confidence::EXPLICITLY_LINKED));
+    }
+
+    #[test]
+    fn temporal_coincidence_is_hidden_by_default() {
+        let (_dir, conn) = open_temp_db();
+        let dir = tempfile::tempdir().unwrap();
+        write_record(
+            dir.path(),
+            "INC0040211",
+            "x",
+            "2019-08-21T04:00:00Z",
+            "2019-08-21T05:00:00Z",
+        );
+        write_record(
+            dir.path(),
+            "INC0040212",
+            "y",
+            "2019-08-21T04:30:00Z",
+            "2019-08-21T05:30:00Z",
+        );
+        sync_dir(&conn, dir.path());
+        derive_temporal_overlaps(&conn, "grnoc-public-task-viewer", "2026-08-01T00:00:00Z")
+            .unwrap();
+        generate_candidates(&conn, "2026-08-01T00:00:00Z").unwrap();
+        let groups = list_candidates(&conn).unwrap();
+        assert!(!groups.is_empty());
+        // The default analyst queue hides temporal-only coincidence.
+        let default_view = default_queue_candidates(&groups);
+        assert!(default_view
+            .iter()
+            .all(|g| g.confidence != confidence::TEMPORAL_COINCIDENCE));
+        assert!(default_view.is_empty());
+        // The coincidence remains queryable with its provenance intact.
+        assert!(groups
+            .iter()
+            .any(|g| g.confidence == confidence::TEMPORAL_COINCIDENCE
+                && g.evidence
+                    .iter()
+                    .any(|e| e.signal == signal::DERIVED_TEMPORAL_OVERLAP)));
+    }
+
+    #[test]
+    fn shared_asset_plus_overlap_can_be_weak_candidate() {
+        let (_dir, conn) = open_temp_db();
+        let dir = tempfile::tempdir().unwrap();
+        write_record(
+            dir.path(),
+            "INC0040221",
+            "x",
+            "2019-08-21T04:00:00Z",
+            "2019-08-21T05:00:00Z",
+        );
+        write_record(
+            dir.path(),
+            "INC0040222",
+            "y",
+            "2019-08-21T04:30:00Z",
+            "2019-08-21T05:30:00Z",
+        );
+        sync_dir(&conn, dir.path());
+        derive_temporal_overlaps(&conn, "grnoc-public-task-viewer", "2026-08-01T00:00:00Z")
+            .unwrap();
+        // Reviewed interpretations share an entity/asset label.
+        let mut r1 = crate::catalog::review::tests::sample_review("INC0040221");
+        r1.catalog_event_id = event_id(&conn, "INC0040221");
+        r1.entity_labels = vec!["sw.net.manlan (core node)".to_string()];
+        crate::catalog::store::upsert_ticket_review(&conn, &r1).unwrap();
+        let mut r2 = crate::catalog::review::tests::sample_review("INC0040222");
+        r2.catalog_event_id = event_id(&conn, "INC0040222");
+        r2.entity_labels = vec!["sw.net.manlan (core node)".to_string()];
+        crate::catalog::store::upsert_ticket_review(&conn, &r2).unwrap();
+        let n = generate_candidates(&conn, "2026-08-01T00:00:00Z").unwrap();
+        assert!(n >= 1);
+        let groups = list_candidates(&conn).unwrap();
         let weak: Vec<_> = groups
             .iter()
             .filter(|g| g.confidence == confidence::WEAK_CANDIDATE)
             .collect();
-        assert!(!weak.is_empty());
+        assert!(
+            !weak.is_empty(),
+            "shared asset + overlap must be a WeakCandidate"
+        );
         assert!(weak[0]
             .evidence
             .iter()
-            .any(|e| e.signal == "DerivedTemporalOverlap"));
-        // Overlap alone never produces a strong/explicit group.
-        assert!(groups
+            .any(|e| e.signal == signal::SHARED_REVIEWED_ENTITY));
+        assert!(weak[0]
+            .evidence
             .iter()
-            .all(|g| g.confidence != confidence::EXPLICITLY_LINKED));
+            .any(|e| e.signal == signal::DERIVED_TEMPORAL_OVERLAP));
+        // It appears in the default queue.
+        let default_view = default_queue_candidates(&groups);
+        assert!(default_view
+            .iter()
+            .any(|g| g.confidence == confidence::WEAK_CANDIDATE));
+    }
+
+    #[test]
+    fn candidate_explanation_lists_every_supporting_signal() {
+        let (_dir, conn) = open_temp_db();
+        let dir = tempfile::tempdir().unwrap();
+        write_record(
+            dir.path(),
+            "CHG0099301",
+            "Tracked in INC0040231.",
+            "2019-08-21T04:00:00Z",
+            "2019-08-21T05:00:00Z",
+        );
+        write_record(
+            dir.path(),
+            "INC0040231",
+            "x",
+            "2019-08-21T04:30:00Z",
+            "2019-08-21T05:30:00Z",
+        );
+        sync_dir(&conn, dir.path());
+        extract_relationships_from_snapshots(
+            &conn,
+            "grnoc-public-task-viewer",
+            "2026-08-01T00:00:00Z",
+        )
+        .unwrap();
+        crate::catalog::relationships::resolve_unresolved_edges(&conn, "grnoc-public-task-viewer")
+            .unwrap();
+        derive_temporal_overlaps(&conn, "grnoc-public-task-viewer", "2026-08-01T00:00:00Z")
+            .unwrap();
+        // Shared reviewed entity label as a third supporting signal.
+        let mut r1 = crate::catalog::review::tests::sample_review("CHG0099301");
+        r1.catalog_event_id = event_id(&conn, "CHG0099301");
+        r1.entity_labels = vec!["SampleParticipant".to_string()];
+        crate::catalog::store::upsert_ticket_review(&conn, &r1).unwrap();
+        let mut r2 = crate::catalog::review::tests::sample_review("INC0040231");
+        r2.catalog_event_id = event_id(&conn, "INC0040231");
+        r2.entity_labels = vec!["SampleParticipant".to_string()];
+        crate::catalog::store::upsert_ticket_review(&conn, &r2).unwrap();
+        let n = generate_candidates(&conn, "2026-08-01T00:00:00Z").unwrap();
+        assert!(n >= 1);
+        let groups = list_candidates(&conn).unwrap();
+        // The pair appears ONCE, as ExplicitlyLinked, listing every
+        // supporting signal in its explanation.
+        let pair_groups: Vec<_> = groups
+            .iter()
+            .filter(|g| g.confidence == confidence::EXPLICITLY_LINKED)
+            .collect();
+        assert_eq!(pair_groups.len(), 1);
+        let signals: Vec<&str> = pair_groups[0]
+            .evidence
+            .iter()
+            .map(|e| e.signal.as_str())
+            .collect();
+        assert!(signals.contains(&signal::EXPLICIT_TICKET_TEXT));
+        assert!(signals.contains(&signal::DERIVED_TEMPORAL_OVERLAP));
+        assert!(signals.contains(&signal::SHARED_REVIEWED_ENTITY));
+        // No duplicate pair rows linger (superseded rows are removed).
+        let pair_members = &pair_groups[0].member_event_ids;
+        let same_pair = groups
+            .iter()
+            .filter(|g| g.member_event_ids == *pair_members)
+            .count();
+        assert_eq!(same_pair, 1);
     }
 
     #[test]
@@ -464,7 +755,7 @@ mod tests {
     }
 
     #[test]
-    fn rejected_candidate_is_not_regenerated_without_new_evidence() {
+    fn rejected_candidate_remains_suppressed_without_new_evidence() {
         let (_dir, conn) = open_temp_db();
         let dir = tempfile::tempdir().unwrap();
         write_record(

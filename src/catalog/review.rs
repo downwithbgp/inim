@@ -421,7 +421,7 @@ pub fn graph_audit(conn: &Connection, source_kind: &str) -> Result<Vec<GraphAudi
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
     use crate::catalog::db;
     use crate::catalog::grnoc::GrnocCatalogSource;
@@ -468,6 +468,46 @@ mod tests {
             .unwrap()
             .unwrap()
             .id
+    }
+
+    /// A ready-to-store reviewed interpretation for tests (roles +
+    /// entity labels + applicability, snapshot-cited provenance).
+    pub(crate) fn sample_review(external: &str) -> TicketReview {
+        TicketReview {
+            id: 0,
+            catalog_event_id: 0,
+            external_id: external.to_string(),
+            reviewed_roles: vec![reviewed_role::PARTICIPANT_IMPACT.to_string()],
+            entity_labels: Vec::new(),
+            linked_change_ids: Vec::new(),
+            analysis_applicability: applicability::POTENTIALLY_VISIBLE.to_string(),
+            applicability_rationale: "test".to_string(),
+            relationship_to_case_study: "Related".to_string(),
+            review_status: "Reviewed".to_string(),
+            reviewer: "test-analyst".to_string(),
+            reviewed_at: "2026-08-01T00:00:00Z".to_string(),
+            provenance: vec![
+                ReviewProvenance {
+                    field: "roles".to_string(),
+                    source: "SnapshotField:title".to_string(),
+                    detail: "title".to_string(),
+                    source_document_id: None,
+                },
+                ReviewProvenance {
+                    field: "applicability".to_string(),
+                    source: "Analyst".to_string(),
+                    detail: "test".to_string(),
+                    source_document_id: None,
+                },
+                ReviewProvenance {
+                    field: "relationship_to_case_study".to_string(),
+                    source: "Analyst".to_string(),
+                    detail: "test".to_string(),
+                    source_document_id: None,
+                },
+            ],
+            source_document_id: None,
+        }
     }
 
     /// Insert a reference document (e.g. the AAR) and return its id.

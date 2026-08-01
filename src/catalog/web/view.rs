@@ -1754,6 +1754,7 @@ pub struct IncidentCandidatesView {
     pub explicit: usize,
     pub strong: usize,
     pub weak: usize,
+    pub coincidence: usize,
     pub rejected: usize,
 }
 
@@ -2254,14 +2255,34 @@ pub fn load_analysis_queue(
 
 pub fn load_incident_candidates(
     conn: &rusqlite::Connection,
+    include_temporal: bool,
 ) -> Result<IncidentCandidatesView, String> {
-    use crate::catalog::grouping::confidence;
-    let mut groups = Vec::new();
+    use crate::catalog::grouping::{confidence, default_queue_candidates};
+    let all = crate::catalog::grouping::list_candidates(conn)?;
     let mut explicit = 0usize;
     let mut strong = 0usize;
     let mut weak = 0usize;
+    let mut coincidence = 0usize;
     let mut rejected = 0usize;
-    for g in crate::catalog::grouping::list_candidates(conn)? {
+    for g in &all {
+        match g.confidence.as_str() {
+            c if c == confidence::EXPLICITLY_LINKED => explicit += 1,
+            c if c == confidence::STRONG_CANDIDATE => strong += 1,
+            c if c == confidence::WEAK_CANDIDATE => weak += 1,
+            c if c == confidence::TEMPORAL_COINCIDENCE => coincidence += 1,
+            c if c == confidence::REJECTED => rejected += 1,
+            _ => {}
+        }
+    }
+    // Default analyst view: temporal-only coincidence is hidden; it
+    // remains queryable (?include=temporal).
+    let mut shown: Vec<&crate::catalog::domain::IncidentGroupCandidate> =
+        default_queue_candidates(&all);
+    if include_temporal {
+        shown = all.iter().collect();
+    }
+    let mut groups = Vec::new();
+    for g in shown {
         let members: Vec<String> = g
             .member_event_ids
             .iter()
@@ -2275,18 +2296,11 @@ pub fn load_incident_candidates(
                 detail: e.detail.clone(),
             })
             .collect();
-        match g.confidence.as_str() {
-            c if c == confidence::EXPLICITLY_LINKED => explicit += 1,
-            c if c == confidence::STRONG_CANDIDATE => strong += 1,
-            c if c == confidence::WEAK_CANDIDATE => weak += 1,
-            c if c == confidence::REJECTED => rejected += 1,
-            _ => {}
-        }
         groups.push(IncidentGroupView {
             id: g.id,
-            label: g.label,
-            confidence: g.confidence,
-            review_status: g.review_status,
+            label: g.label.clone(),
+            confidence: g.confidence.clone(),
+            review_status: g.review_status.clone(),
             members,
             evidence,
         });
@@ -2296,6 +2310,7 @@ pub fn load_incident_candidates(
         explicit,
         strong,
         weak,
+        coincidence,
         rejected,
     })
 }
