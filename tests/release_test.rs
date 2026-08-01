@@ -165,3 +165,95 @@ fn readme_case_study_counts_match_current_artifacts() {
     assert!(readme.contains(&format!("{uva_withdrawn} temporarily absent")));
     assert!(readme.contains(&format!("{uva_transitions} route-instance transitions")));
 }
+
+// ── Case-study packaging + neutrality (Session 30, Part 19) ─────────
+
+/// The crate package must contain the reviewed case-study metadata and no
+/// PDF or local document storage.
+#[test]
+fn case_study_metadata_is_in_package_and_pdf_is_not() {
+    let list = package_file_list();
+    assert!(
+        list.iter()
+            .any(|p| p == "case-studies/manlan-2019/case-study.json"),
+        "reviewed case-study metadata must be packaged"
+    );
+    assert!(
+        list.iter()
+            .any(|p| p == "case-studies/manlan-2019/README.md"),
+        "case-study README must be packaged"
+    );
+    assert!(
+        list.iter().all(|p| !p.ends_with(".pdf")),
+        "no PDF may enter the crate package (redistribution rights unknown)"
+    );
+    assert!(
+        list.iter().all(|p| !p.starts_with("data/")),
+        "local document storage (data/) must be excluded from the package"
+    );
+    assert!(
+        list.iter()
+            .all(|p| !p.contains("documents/") || p.starts_with("case-studies/")),
+        "reference-document files must not be packaged"
+    );
+}
+
+/// Production source code must be incident-neutral: MAN LAN-specific names
+/// are case-study data and must not appear in `src/`.
+#[test]
+fn production_source_is_incident_neutral() {
+    let forbidden = [
+        "MANLAN",
+        "CANARIE",
+        "NORDUnet",
+        "ESnet",
+        "EVPN loop",
+        "CHG0038258",
+    ];
+    let mut found: Vec<(String, String)> = Vec::new();
+    for entry in walk_rs_files() {
+        let content = std::fs::read_to_string(&entry).unwrap_or_default();
+        for token in forbidden {
+            if content.contains(token) {
+                found.push((entry.display().to_string(), token.to_string()));
+            }
+        }
+    }
+    assert!(
+        found.is_empty(),
+        "incident-specific tokens in production source: {found:?}"
+    );
+}
+
+fn walk_rs_files() -> Vec<std::path::PathBuf> {
+    let mut out = Vec::new();
+    let src = manifest_dir().join("src");
+    let mut stack = vec![src];
+    while let Some(dir) = stack.pop() {
+        if let Ok(entries) = std::fs::read_dir(&dir) {
+            for e in entries.flatten() {
+                let p = e.path();
+                if p.is_dir() {
+                    stack.push(p);
+                } else if p.extension().map(|x| x == "rs").unwrap_or(false) {
+                    out.push(p);
+                }
+            }
+        }
+    }
+    out
+}
+
+fn package_file_list() -> Vec<String> {
+    let output = std::process::Command::new("cargo")
+        .arg("package")
+        .arg("--list")
+        .arg("--allow-dirty")
+        .output()
+        .expect("cargo package --list must run");
+    assert!(output.status.success(), "cargo package --list failed");
+    String::from_utf8_lossy(&output.stdout)
+        .lines()
+        .map(|l| l.to_string())
+        .collect()
+}

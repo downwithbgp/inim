@@ -962,7 +962,7 @@ fn relationship_type_is_not_inferred_from_ticket_number_prefix_alone() {
     // an operational task here and a CHG id is a participant incident.
     let reviewed: Vec<(&str, &str)> = vec![
         ("INC0040257", RELATIONSHIP_OPERATIONAL_TASK),
-        ("CHG0038258", RELATIONSHIP_PARTICIPANT_INCIDENT),
+        ("CHG0000001", RELATIONSHIP_PARTICIPANT_INCIDENT),
     ];
     for (sort, (ext, rel)) in reviewed.iter().enumerate() {
         store::insert_case_study_event_link(
@@ -995,7 +995,7 @@ fn relationship_type_is_not_inferred_from_ticket_number_prefix_alone() {
                 RELATIONSHIP_OPERATIONAL_TASK.to_string()
             ),
             (
-                "CHG0038258".to_string(),
+                "CHG0000001".to_string(),
                 RELATIONSHIP_PARTICIPANT_INCIDENT.to_string()
             ),
         ]
