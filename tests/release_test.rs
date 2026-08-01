@@ -172,6 +172,11 @@ fn readme_case_study_counts_match_current_artifacts() {
 /// PDF or local document storage.
 #[test]
 fn case_study_metadata_is_in_package_and_pdf_is_not() {
+    if !manifest_dir().join(".git").is_dir() {
+        // `cargo package --list` needs VCS metadata; inside an unpacked
+        // .crate there is none, so this check is skipped there.
+        return;
+    }
     let list = package_file_list();
     assert!(
         list.iter()
