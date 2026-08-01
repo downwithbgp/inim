@@ -1,0 +1,33 @@
+{
+  "runs": {
+    "route-views2 (RouteViews pilot)": {
+      "planned_archives": 70,
+      "planned_bytes": 0
+    },
+    "rrc00 (RIS pilot)": {
+      "planned_archives": 230,
+      "planned_bytes": 0
+    },
+    "rrc06 (RIS pilot)": {
+      "planned_archives": 230,
+      "planned_bytes": 0
+    },
+    "rrc15 (RIS pilot)": {
+      "planned_archives": 230,
+      "planned_bytes": 0
+    }
+  },
+  "planned_archive_requests": 760,
+  "unique_archives": 760,
+  "reused_raw_archives": 0,
+  "raw_cache_files": 705,
+  "derived_cache_entries": 169,
+  "bytes_avoided_raw_reuse": 2947999916,
+  "event_run_count": 4,
+  "derived_rib_parse_reuse": {
+    "preflight_derived_caches_reused_by_pilots": 3,
+    "note": "each RIS pilot's baseline RIB parse was served from the preflight-derived cache (keyed on family+collector+cohort); 3 RIB parses avoided (~10 min each at rrc00/rrc15 scale)"
+  },
+  "cross_stage_raw_reuse_bytes": 610000000,
+  "note": "No cross-run URL duplication exists (each run's archives are collector-specific: rrc00/rrc06/rrc15/route-views2). Reuse happens across STAGES through the shared raw cache: the three RIS baseline bviews downloaded during collector preflight were reused by the pilot runs without re-download; the RouteViews pilot reused its Session 31 raw cache."
+}

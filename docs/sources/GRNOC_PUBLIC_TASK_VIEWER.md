@@ -182,3 +182,22 @@ public responses captured during this audit (see
 `tests/fixtures/README.md` for provenance and redistribution notes).
 All tests use fixtures; the live service is never called from the test
 suite.
+
+## Session 34 update
+
+- The ten acquired MAN LAN tickets are now **reviewed operational data**
+  (reviewed case-study roles, entity labels, linked maintenance
+  identifiers, analysis applicability, per-field provenance citing
+  snapshot fields or the AAR) — stored separately from the immutable
+  snapshots; see `case-studies/manlan-2019/pilot/ticket-reviews.json`
+  and `inim catalog corpus-review`.
+- The reviewed relationship graph (explicit, document-cited, analyst-
+  reviewed, and derived edges) is auditable via
+  `inim catalog relationships audit` and `/corpus/relationships`.
+- The two TASK identifiers remain **unresolved document references**
+  (the viewer does not serve TASK records; no snapshot is
+  manufactured).
+- The bulk-access request draft
+  (`docs/sources/GRNOC_BULK_ACCESS_REQUEST.md`) now has a concise email
+  version, a technical appendix, and a user-fill section (contact email,
+  repository URL, affiliation). It has **not** been sent.

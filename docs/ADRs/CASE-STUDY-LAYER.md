@@ -123,3 +123,27 @@ retain snapshot provenance and are stored in the source-neutral
 candidates. The NORDUnet analysis remains associated with its exact
 AnalysisRun and the reviewed case study — never causally attached to
 every related ticket.
+
+### Session 34 addendum: reviewed interpretations, multi-observer runs
+
+- **Corpus acquisition and analysis review are separate stages.** Source
+  snapshots stay immutable; reviewed interpretations (`ticket_reviews`)
+  are analyst-reviewed context with per-field provenance, and reviewed
+  roles never replace source task types.
+- **Reviewed relationships** use specific kinds (RollbackFor,
+  ParticipantImpactDuring, AlarmDuring, OperationalTaskDuring) with
+  evidence kinds (AnalystReviewed / ReferenceDocument) and may carry
+  ticket-text AND document support on one edge; unavailable TASK records
+  remain unresolved document references.
+- **Candidate grouping is explainable**: one candidate per ticket pair
+  with every supporting signal; temporal overlap alone is
+  TemporalCoincidence, hidden from the default queue but queryable.
+- **RouteViews and RIPE RIS are peer observer families.** The reviewed
+  NORDUnet pilot runs independently at route-views2, rrc00, rrc06, and
+  rrc15; each run keeps its own evidence and verdict. The comparison
+  layer never merges evidence and never claims global confirmation;
+  absence of baseline visibility is not absence of impact.
+- **Batch reuse does not merge event assessments**: raw archives are
+  downloaded once per unique URL and derived caches reused only under
+  matching cohort identity; evidence IDs do not depend on batch
+  membership.
