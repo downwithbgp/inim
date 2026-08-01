@@ -169,11 +169,17 @@ fn sequitur_motif(transitions: &[&RouteTransition]) -> Option<WaveMotif> {
 
     let (best_expanded, best_indices) = motif_counts
         .into_iter()
-        .max_by_key(|(_, indices)| indices.len())
+        // Deterministic: on a count tie, the lexicographically first
+        // expanded sequence wins (HashMap iteration order is random per
+        // process and must never influence the result).
+        .max_by(|a, b| a.1.len().cmp(&b.1.len()).then_with(|| b.0.cmp(&a.0)))
         .unwrap();
 
     let expanded = best_expanded;
-    let best_groups: Vec<&GroupMotif> = best_indices.iter().map(|&i| &group_motifs[i]).collect();
+    let mut best_groups: Vec<&GroupMotif> =
+        best_indices.iter().map(|&i| &group_motifs[i]).collect();
+    // Deterministic evidence order regardless of worker/HashMap iteration.
+    best_groups.sort_by(|a, b| a.scope.cmp(&b.scope));
 
     // Build identity hash from the expanded sequence
     let motif_id = fnv1a_64(expanded.as_bytes());
