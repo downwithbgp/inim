@@ -252,7 +252,7 @@ mod counting_tests {
         let routes = vec![route(vec![64600, 64500])];
         let (per, _, _) = inventory_counts(&cs, &routes);
         assert_eq!(per.get("re"), Some(&1));
-        assert!(per.get("pex").is_none(), "I2PX classifier sees nothing");
+        assert!(!per.contains_key("pex"), "I2PX classifier sees nothing");
         // And the cohort selection itself (scan_rib_and_freeze) is
         // predicate-scoped — covered by source_extract reuse tests; here
         // we assert the two selectors are distinct predicates.
