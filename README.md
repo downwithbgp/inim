@@ -160,6 +160,24 @@ are never encoded in domain enums. `AnalysisPlanStatus::Blocked` lives in
 the library/domain; `AnalysisOutcome` only ever carries completed,
 insufficient-visibility, or incomplete results.
 
+## Concurrency and performance
+
+- Archive-level parallelism: a bounded download→parse pipeline
+  (`--download-jobs`, `--parse-jobs`) processes compressed archives
+  concurrently; each worker owns its parser; results merge in discovery
+  order and route-state reconstruction runs sequentially, so artifacts are
+  identical at any job count. `--jobs 0` is rejected (use `--parse-jobs`).
+- `--show-execution-plan` prints the effective worker topology (logical
+  CPUs, `available_parallelism`, cgroup/affinity limits) before acquisition.
+- `performance.json` (per stage + per archive) is a separate, volatile
+  artifact — never part of substantive equivalence checks, never in the
+  verdict. Benchmark: `scripts/bench_parse_scaling.sh` (local raw caches,
+  `--rebuild-update-caches`).
+- Visual review: `scripts/screenshot-review.sh` captures loopback-only
+  fixed-viewport screenshots of the deterministic demo catalog to
+  `tmp/ui-review/` (gitignored, excluded from the package) for external
+  computer-vision review.
+
 ## Workflow
 
 1. **Manifest review** — a canonical manifest (schema v2) carries the
