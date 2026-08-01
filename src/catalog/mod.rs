@@ -3,6 +3,7 @@
 //!
 //! See `docs/ADRs/LOCAL-CATALOG-AND-WEB.md` for the architecture decision.
 
+pub mod case_study_import;
 pub mod db;
 pub mod document;
 pub mod domain;

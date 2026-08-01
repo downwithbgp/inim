@@ -185,12 +185,32 @@ enum CatalogCommands {
         #[arg(long, value_name = "DIR", default_value = ".")]
         root: PathBuf,
     },
+    /// Manage incident case studies.
+    #[command(subcommand)]
+    CaseStudy(CaseStudyCommands),
     /// Manage reference documents.
     #[command(subcommand)]
     Document(DocumentCommands),
     /// Synchronize a catalog source into the catalog.
     #[command(subcommand)]
     Sync(SyncSource),
+}
+
+/// Incident case-study subcommands.
+#[derive(Subcommand)]
+enum CaseStudyCommands {
+    /// Import a reviewed case-study data file (case-study.json).
+    ///
+    /// Transactional, idempotent (slug + content hash), schema-validated;
+    /// links existing catalog events and preserves unresolved ticket
+    /// references without fabricating source snapshots.
+    Import {
+        #[arg(long, value_name = "PATH")]
+        db: PathBuf,
+        /// Case-study directory containing case-study.json, or the file itself.
+        #[arg(long, value_name = "PATH")]
+        path: PathBuf,
+    },
 }
 
 /// Reference-document subcommands.
@@ -554,6 +574,38 @@ fn cmd_catalog(stdout: &mut dyn Write, command: &CatalogCommands) -> i32 {
                 EXIT_INVALID_INPUT
             }
         },
+        CatalogCommands::CaseStudy(CaseStudyCommands::Import { db, path }) => {
+            let conn = match inim::catalog::db::open_catalog(db) {
+                Ok(c) => c,
+                Err(e) => {
+                    let _ = writeln!(stdout, "error: {e}");
+                    return EXIT_INVALID_INPUT;
+                }
+            };
+            match inim::catalog::case_study_import::import_case_study(&conn, path) {
+                Ok(summary) => {
+                    let _ = writeln!(
+                        stdout,
+                        "case study imported: id={} slug={} created={} documents={} phases={} claims={} targets={} event_links={} (linked={}, unresolved={})",
+                        summary.case_study_id,
+                        summary.slug,
+                        summary.created,
+                        summary.documents,
+                        summary.phases,
+                        summary.claims,
+                        summary.targets,
+                        summary.event_links,
+                        summary.linked_events,
+                        summary.unresolved_references
+                    );
+                }
+                Err(e) => {
+                    let _ = writeln!(stdout, "error: {e}");
+                    return EXIT_INVALID_INPUT;
+                }
+            }
+            EXIT_SUCCESS
+        }
         CatalogCommands::Document(DocumentCommands::Import {
             db,
             file,
