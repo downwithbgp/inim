@@ -29,8 +29,13 @@ pub struct CacheControl {
     pub no_derived_cache: bool,
     /// Force rebuild of all derived caches (ignore and overwrite).
     pub rebuild_derived_cache: bool,
-    /// Number of parallel parsing jobs (1 = serial, 0 = auto).
+    /// Number of parallel parsing jobs (1 = serial). 0 is rejected by the
+    /// CLI; use --parse-jobs for an explicit parse concurrency.
     pub jobs: usize,
+    /// Explicit parser-worker count; 0 = follow `jobs`.
+    pub parse_jobs: usize,
+    /// Network download concurrency (conservative default).
+    pub download_jobs: usize,
 }
 
 impl Default for CacheControl {
@@ -39,6 +44,8 @@ impl Default for CacheControl {
             no_derived_cache: false,
             rebuild_derived_cache: false,
             jobs: 1,
+            parse_jobs: 0,
+            download_jobs: 2,
         }
     }
 }
@@ -108,6 +115,8 @@ fn run_inner(
     let mut target_set = TargetSet::default();
     let mut rib_observations: Vec<RouteObservation> = Vec::new();
     let mut update_observations: Vec<RouteObservation> = Vec::new();
+    let mut archive_metrics: Vec<crate::perf::ArchiveMetric> = Vec::new();
+    let mut rib_metrics: Vec<crate::perf::ArchiveMetric> = Vec::new();
     let mut any_continuity_unknown = false;
     let mut per_collector_counts: Vec<(String, usize, usize, usize, usize)> = Vec::new();
 
@@ -293,6 +302,18 @@ fn run_inner(
             "  [{collector_id} RIB] done: {parsed} parsed, {origin_match} origin, {transit_match} transit, {streams} frozen streams, {c_pref} prefixes, {c_peers} peers ({:.1}s)",
             t_parse_elapsed
         );
+        rib_metrics.push(crate::perf::ArchiveMetric {
+            archive_url: cached_rib.url.clone(),
+            archive_sha256: cached_rib.sha256.clone(),
+            compressed_bytes: std::fs::metadata(&cached_rib.local_path)
+                .map(|m| m.len())
+                .unwrap_or(0),
+            parse_wall_secs: t_parse_elapsed,
+            parsed_elements: parsed as u64,
+            admitted_observations: streams as u64,
+            derived_cache_write_secs: 0.0,
+            cache_hit: false,
+        });
 
         per_collector_counts.push((
             collector_id.clone(),
@@ -483,7 +504,7 @@ fn run_inner(
     if task_count == 0 {
         // No tasks, nothing to do
     } else {
-        let effective_jobs = resolve_jobs(cache_control.jobs, task_count);
+        let effective_jobs = resolve_jobs(cache_control.jobs, cache_control.parse_jobs, task_count);
 
         if effective_jobs <= 1 {
             // Serial path
@@ -495,6 +516,7 @@ fn run_inner(
                 &target_set,
                 &frozen_prefixes,
                 &mut update_observations,
+                &mut archive_metrics,
             );
         } else {
             // Parallel path
@@ -506,6 +528,7 @@ fn run_inner(
                 &target_set,
                 &frozen_prefixes,
                 &mut update_observations,
+                &mut archive_metrics,
                 effective_jobs,
             );
         }
@@ -651,6 +674,39 @@ fn run_inner(
     crate::output::write_outputs(&ctx, out_dir).map_err(|e| format!("output error: {e}"))?;
     timings.push(("outputs".to_string(), t_out.elapsed().as_secs_f64()));
 
+    // ── performance.json: volatile stage + per-archive metrics ────
+    // Separate from substantive outputs; never compared for equivalence.
+    let report = crate::perf::PerformanceReport {
+        schema_version: crate::perf::PERFORMANCE_SCHEMA_VERSION,
+        host: crate::perf::host_info(
+            cache_control.jobs,
+            cache_control.parse_jobs,
+            cache_control.download_jobs,
+        ),
+        stages: timings
+            .iter()
+            .map(|(stage, secs)| crate::perf::StageTiming {
+                stage: stage.clone(),
+                wall_secs: *secs,
+                input_bytes: 0,
+                output_count: 0,
+                workers: 0,
+                cache_hits: 0,
+                cache_misses: 0,
+            })
+            .collect(),
+        archives: {
+            let mut m = rib_metrics;
+            m.extend(archive_metrics);
+            m
+        },
+        total_wall_secs: timings.last().map(|(_, s)| *s).unwrap_or(0.0),
+    };
+    let perf_path = out_dir.join("performance.json");
+    if let Err(e) = crate::perf::write_performance(&report, &perf_path) {
+        eprintln!("  warning: cannot write performance.json: {e}");
+    }
+
     Ok(AnalysisOutcome::completed(assessment))
 }
 
@@ -697,18 +753,21 @@ struct UpdateFileResult {
     observations: Vec<RouteObservation>,
     counters: crate::derived_cache::UpdateAdmissionCounters,
     cache_hit: bool,
+    metric: crate::perf::ArchiveMetric,
 }
 
 /// Resolve the effective number of parallel jobs.
-fn resolve_jobs(jobs: usize, task_count: usize) -> usize {
-    if jobs == 0 {
-        // Auto: min(available_parallelism, 4), bounded by task_count
+pub(crate) fn resolve_jobs(jobs: usize, parse_jobs: usize, task_count: usize) -> usize {
+    let requested = if parse_jobs > 0 { parse_jobs } else { jobs };
+    if requested == 0 {
+        // Auto fallback (never reached from the CLI, which rejects 0):
+        // min(available_parallelism, 4), bounded by task_count.
         let avail = std::thread::available_parallelism()
             .map(|n| n.get())
             .unwrap_or(1);
         avail.min(4).min(task_count).max(1)
     } else {
-        jobs.min(task_count).max(1)
+        requested.min(task_count).max(1)
     }
 }
 
@@ -733,10 +792,25 @@ fn process_one_update_file(
     };
 
     if let Some(cached) = cache_hit {
+        let bytes = std::fs::metadata(&task.local_path)
+            .map(|m| m.len())
+            .unwrap_or(0);
+        let parsed_el = cached.admission_counters.total_elements_parsed;
+        let admitted = cached.observations.len() as u64;
         return UpdateFileResult {
             observations: cached.observations,
             counters: cached.admission_counters,
             cache_hit: true,
+            metric: crate::perf::ArchiveMetric {
+                archive_url: task.url.clone(),
+                archive_sha256: task.sha256.clone(),
+                compressed_bytes: bytes,
+                parse_wall_secs: 0.0,
+                parsed_elements: parsed_el,
+                admitted_observations: admitted,
+                derived_cache_write_secs: 0.0,
+                cache_hit: true,
+            },
         };
     }
 
@@ -763,10 +837,21 @@ fn process_one_update_file(
                 observations: Vec::new(),
                 counters: crate::derived_cache::UpdateAdmissionCounters::default(),
                 cache_hit: false,
+                metric: crate::perf::ArchiveMetric {
+                    archive_url: task.url.clone(),
+                    archive_sha256: task.sha256.clone(),
+                    compressed_bytes: 0,
+                    parse_wall_secs: 0.0,
+                    parsed_elements: 0,
+                    admitted_observations: 0,
+                    derived_cache_write_secs: 0.0,
+                    cache_hit: false,
+                },
             };
         }
     };
 
+    let t_parse = std::time::Instant::now();
     let mut parsed: u64 = 0;
     let mut prefix_matches: u64 = 0;
     let mut coll_pref_matches: u64 = 0;
@@ -811,6 +896,10 @@ fn process_one_update_file(
         file_admitted.push(obs);
     }
 
+    let t_parse_elapsed = t_parse.elapsed().as_secs_f64();
+    let parsed_elements = parsed;
+    let admitted_count = file_admitted.len() as u64;
+
     let counters = crate::derived_cache::UpdateAdmissionCounters {
         total_elements_parsed: parsed,
         target_prefix_matches: prefix_matches,
@@ -821,6 +910,7 @@ fn process_one_update_file(
     };
 
     // Save derived cache
+    let t_cache_start = std::time::Instant::now();
     if !cache_control.no_derived_cache {
         let payload_checksum = crate::derived_cache::compute_payload_checksum(&file_admitted);
         let entry = crate::derived_cache::UpdateCacheEntry {
@@ -848,10 +938,23 @@ fn process_one_update_file(
         observations: file_admitted,
         counters,
         cache_hit: false,
+        metric: crate::perf::ArchiveMetric {
+            archive_url: task.url.clone(),
+            archive_sha256: task.sha256.clone(),
+            compressed_bytes: std::fs::metadata(&task.local_path)
+                .map(|m| m.len())
+                .unwrap_or(0),
+            parse_wall_secs: t_parse_elapsed,
+            parsed_elements,
+            admitted_observations: admitted_count,
+            derived_cache_write_secs: t_cache_start.elapsed().as_secs_f64(),
+            cache_hit: false,
+        },
     }
 }
 
 /// Process UPDATE tasks serially.
+#[allow(clippy::too_many_arguments)]
 fn process_tasks_serial(
     tasks: &[UpdateTask],
     cache_dir: &Path,
@@ -860,6 +963,7 @@ fn process_tasks_serial(
     target_set: &TargetSet,
     frozen_prefixes: &std::collections::HashSet<Prefix>,
     update_observations: &mut Vec<RouteObservation>,
+    archive_metrics: &mut Vec<crate::perf::ArchiveMetric>,
 ) {
     for (i, task) in tasks.iter().enumerate() {
         let result = process_one_update_file(
@@ -883,6 +987,7 @@ fn process_tasks_serial(
             wd = result.counters.admitted_withdrawals,
             cache = if result.cache_hit { " [cache hit]" } else { "" },
         );
+        archive_metrics.push(result.metric.clone());
         update_observations.extend(result.observations);
     }
 }
@@ -897,6 +1002,7 @@ fn process_tasks_parallel(
     target_set: &TargetSet,
     frozen_prefixes: &std::collections::HashSet<Prefix>,
     update_observations: &mut Vec<RouteObservation>,
+    archive_metrics: &mut Vec<crate::perf::ArchiveMetric>,
     jobs: usize,
 ) {
     let chunk_size = tasks.len().div_ceil(jobs);
@@ -935,6 +1041,7 @@ fn process_tasks_parallel(
             match handle.join() {
                 Ok(chunk_results) => {
                     for result in chunk_results {
+                        archive_metrics.push(result.metric.clone());
                         update_observations.extend(result.observations);
                     }
                 }
@@ -1025,5 +1132,37 @@ mod tests {
         let retained: Vec<_> = target.streams.keys().cloned().collect();
         // Even with key present, total_streams is 0, meaning no real streams
         assert!(!retained.is_empty() || retained.is_empty()); // structural test
+    }
+}
+
+#[cfg(test)]
+mod session32_jobs_tests {
+    use super::*;
+
+    #[test]
+    fn explicit_jobs_override_is_honored() {
+        // Explicit --parse-jobs wins over --jobs.
+        assert_eq!(resolve_jobs(1, 6, 100), 6);
+        assert_eq!(resolve_jobs(4, 0, 100), 4);
+    }
+
+    #[test]
+    fn effective_jobs_do_not_silently_collapse_to_one() {
+        // Requesting 24 parse workers over 100 archives must not collapse.
+        assert_eq!(resolve_jobs(1, 24, 100), 24);
+        // Bounded by task count but never below 1.
+        assert_eq!(resolve_jobs(1, 24, 5), 5);
+        assert_eq!(resolve_jobs(1, 24, 0), 1);
+    }
+
+    #[test]
+    fn zero_jobs_falls_back_to_bounded_auto_in_library() {
+        // The library keeps a bounded auto fallback; the CLI rejects 0
+        // before ever reaching it (main::validate_jobs).
+        let auto = resolve_jobs(0, 0, 100);
+        assert!(
+            auto >= 1 && auto <= 4,
+            "auto fallback bounded to 4, got {auto}"
+        );
     }
 }

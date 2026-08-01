@@ -164,6 +164,19 @@ enum Commands {
         #[arg(long, default_value_t = false)]
         preflight_only: bool,
 
+        /// Explicit parser-worker count (0 = follow --jobs).
+        #[arg(long, default_value_t = 0)]
+        parse_jobs: usize,
+
+        /// Network download concurrency (conservative; default 2).
+        #[arg(long, default_value_t = 2)]
+        download_jobs: usize,
+
+        /// Print the effective execution plan (host topology + worker
+        /// counts) and exit without acquiring anything.
+        #[arg(long, default_value_t = false)]
+        show_execution_plan: bool,
+
         /// Force rebuild of all derived caches (ignore and overwrite).
         #[arg(long, default_value_t = false)]
         rebuild_derived_cache: bool,
@@ -368,12 +381,37 @@ fn run(cli: &Cli) -> i32 {
             rebuild_derived_cache,
             jobs,
             preflight_only,
+            parse_jobs,
+            download_jobs,
+            show_execution_plan,
         } => {
+            if let Err(e) = validate_jobs(*jobs) {
+                let _ = writeln!(std::io::stderr(), "error: {e}");
+                return EXIT_INVALID_INPUT;
+            }
+            if *show_execution_plan {
+                let info = inim::perf::host_info(*jobs, *parse_jobs, *download_jobs);
+                let effective_parse = if *parse_jobs > 0 { *parse_jobs } else { *jobs };
+                let _ = writeln!(
+                    std::io::stdout(),
+                    "execution plan:\n  host logical CPUs: {}\n  available_parallelism: {}\n  --jobs: {}\n  effective parser workers: {}\n  download workers: {}\n  cgroup cpu.max: {}\n  affinity: {}",
+                    info.logical_cpus,
+                    info.available_parallelism,
+                    info.jobs,
+                    effective_parse,
+                    info.download_jobs,
+                    info.cgroup_cpu_max.as_deref().unwrap_or("unlimited"),
+                    info.cpu_affinity.as_deref().unwrap_or("unrestricted"),
+                );
+                return EXIT_SUCCESS;
+            }
             let discovery = inim::discover::LiveArchiveDiscovery;
             let cache_control = inim::orchestrate::CacheControl {
                 no_derived_cache: *no_derived_cache,
                 rebuild_derived_cache: *rebuild_derived_cache,
                 jobs: *jobs,
+                parse_jobs: *parse_jobs,
+                download_jobs: *download_jobs,
             };
             cmd_analyze(
                 &mut std::io::stdout(),
@@ -387,6 +425,16 @@ fn run(cli: &Cli) -> i32 {
                 *preflight_only,
             )
         }
+    }
+}
+
+/// Validate the --jobs value: 0 was previously "auto" and is now rejected
+/// (use --parse-jobs for explicit parse concurrency).
+fn validate_jobs(jobs: usize) -> Result<(), String> {
+    if jobs == 0 {
+        Err("--jobs 0 is no longer accepted; use --parse-jobs N (or omit both for the measured default)".to_string())
+    } else {
+        Ok(())
     }
 }
 
@@ -1501,5 +1549,23 @@ mod tests {
         assert_eq!(EXIT_INVALID_INPUT, 1);
         assert_eq!(EXIT_ANALYSIS_INCOMPLETE, 2);
         assert_eq!(EXIT_ANALYSIS_BLOCKED, 3);
+    }
+}
+
+#[cfg(test)]
+mod session32_cli_tests {
+    use super::*;
+
+    #[test]
+    fn zero_jobs_is_rejected() {
+        assert!(validate_jobs(0).is_err());
+        assert!(validate_jobs(1).is_ok());
+        assert!(validate_jobs(24).is_ok());
+    }
+
+    #[test]
+    fn jobs_error_message_names_the_replacement() {
+        let err = validate_jobs(0).unwrap_err();
+        assert!(err.contains("--parse-jobs"), "{err}");
     }
 }

@@ -636,6 +636,10 @@ fn artifact_kind(rel: &str) -> &'static str {
         "semantic-waves"
     } else if rel.ends_with("withdrawal_audit.json") {
         "withdrawal-audit"
+    } else if rel.ends_with("transitions.json") {
+        "transitions"
+    } else if rel.ends_with("performance.json") {
+        "performance"
     } else if rel.ends_with("limitations.json") {
         "limitations"
     } else if rel.ends_with("stdout.json") {

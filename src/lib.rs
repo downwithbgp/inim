@@ -19,6 +19,7 @@ pub mod observability;
 pub mod orchestrate;
 pub mod outcome;
 pub mod output;
+pub mod perf;
 pub mod plan;
 pub mod profiles;
 pub mod report;
