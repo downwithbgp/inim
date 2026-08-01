@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}inim catalog — analysis {{ run_id }} streams{% endblock %}
+{% block content %}
+<h2>Stream lifecycles — analysis run {{ run_id }}</h2>
+
+<form class="filter" method="get" action="/analyses/{{ run_id }}/streams">
+  <select name="category">
+    <option value="">any category</option>
+    <option value="Unchanged"{% if category_filter.as_deref() == Some("Unchanged") %} selected{% endif %}>Unchanged</option>
+    <option value="PrependOnly"{% if category_filter.as_deref() == Some("PrependOnly") %} selected{% endif %}>PrependOnly</option>
+    <option value="PathChangedStillViaTransit"{% if category_filter.as_deref() == Some("PathChangedStillViaTransit") %} selected{% endif %}>PathChangedStillViaTransit</option>
+    <option value="DepartedTransitPath"{% if category_filter.as_deref() == Some("DepartedTransitPath") %} selected{% endif %}>DepartedTransitPath</option>
+    <option value="Withdrawn"{% if category_filter.as_deref() == Some("Withdrawn") %} selected{% endif %}>Withdrawn</option>
+  </select>
+  <button type="submit">Filter</button>
+</form>
+
+<table>
+<thead>
+<tr>
+  <th>Collector</th><th>Peer</th><th>Prefix</th><th>Category</th>
+  <th>Baseline instances</th><th>Max active</th><th>Transitions</th>
+  <th>Withdrawn</th><th>Restored</th><th>ADD-PATH ambiguous</th>
+</tr>
+</thead>
+<tbody>
+{% for s in streams %}
+<tr>
+  <td>{{ s.collector }}</td>
+  <td>{{ s.peer_ip }}</td>
+  <td>{{ s.prefix }}</td>
+  <td>{% if s.category == "DepartedTransitPath" %}<span class="tag blocked">{{ s.category }}</span>{% else %}<span class="tag">{{ s.category }}</span>{% endif %}</td>
+  <td>{{ s.baseline_instances }}</td>
+  <td>{{ s.max_active }}</td>
+  <td>{{ s.transitions }}</td>
+  <td>{% if s.withdrawn %}yes{% else %}no{% endif %}</td>
+  <td>{% if s.restored %}yes{% else %}no{% endif %}</td>
+  <td>{% if s.ambiguous %}yes{% else %}no{% endif %}</td>
+</tr>
+{% else %}
+<tr><td colspan="10" class="muted">No streams match the filter.</td></tr>
+{% endfor %}
+</tbody>
+</table>
+{% endblock %}

@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}inim catalog — dashboard{% endblock %}
+{% block content %}
+<h2>Catalog health</h2>
+<p class="muted">This dashboard describes catalog state, not global Internet health. No severity score is shown.</p>
+
+<div class="panel">
+<table>
+  <tr><th>Total catalog events</th><td>{{ total_events }}</td><td><a href="/events">all events</a></td></tr>
+  <tr><th>Open events</th><td>{{ open_events }}</td><td><a href="/events?lifecycle=Open">open events</a></td></tr>
+  <tr><th>Events needing review</th><td>{{ needs_review }}</td><td><a href="/events?status=NeedsReview">needs review</a></td></tr>
+  <tr><th>Ready events</th><td>{{ ready }}</td><td><a href="/events?status=Ready">ready</a></td></tr>
+  <tr><th>Blocked events</th><td>{{ blocked }}</td><td><a href="/events?status=Blocked">blocked</a></td></tr>
+  <tr><th>Completed analyses</th><td>{{ complete }}</td><td><a href="/events?status=Complete">complete</a></td></tr>
+  <tr><th>Stale events</th><td>{{ stale }}</td><td><a href="/events?status=Stale">stale</a></td></tr>
+  <tr><th>Failed runs</th><td>{{ failed_runs }}</td></tr>
+</table>
+</div>
+
+<div class="panel">
+<h2>Operational state</h2>
+<ul class="flat">
+{% if !latest_sync.is_empty() %}
+  <li>Most recent GRNOC sync: {{ latest_sync }}</li>
+{% else %}
+  <li class="muted">No GRNOC sync recorded yet.</li>
+{% endif %}
+{% if !latest_completed.is_empty() %}
+  <li>Most recent completed analysis: {{ latest_completed }}</li>
+{% else %}
+  <li class="muted">No completed analysis recorded yet.</li>
+{% endif %}
+</ul>
+</div>
+{% endblock %}

@@ -4,6 +4,7 @@
 //! unplanned network events affect the globally visible routing system.
 
 pub mod assess;
+pub mod catalog;
 pub mod cohort;
 pub mod compare;
 pub mod conventions;

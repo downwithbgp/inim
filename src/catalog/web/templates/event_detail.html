@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}inim catalog — {{ event.external_id }}{% endblock %}
+{% block content %}
+<h2>{{ event.external_id }}</h2>
+<p class="muted">{{ title }}</p>
+
+<div class="panel">
+<table>
+  <tr><th>Status</th><td>{% if status == "Stale" %}<span class="tag stale">{{ status }}</span>{% elif status == "Blocked" %}<span class="tag blocked">{{ status }}</span>{% else %}<span class="tag">{{ status }}</span>{% endif %}</td></tr>
+  <tr><th>Lifecycle</th><td>{{ lifecycle }}</td></tr>
+  <tr><th>Event window</th><td>{{ start }} → {{ end }}</td></tr>
+  <tr><th>Expectation</th><td>{{ expectation }}</td></tr>
+  <tr><th>Latest result</th><td>{{ latest_result }}</td></tr>
+  <tr><th>Assessment</th><td>{{ assessment }}</td></tr>
+</table>
+{% if !stale_reason.is_empty() %}
+<p class="error">{{ stale_reason }}</p>
+{% endif %}
+</div>
+
+<h3>Analysis runs</h3>
+<table>
+<thead><tr><th>Run</th><th>Status</th><th>Started</th><th>Verdict</th><th>Assessment</th></tr></thead>
+<tbody>
+{% for r in runs %}
+<tr>
+  <td><a href="/analyses/{{ r.id }}">{{ r.id }}</a></td>
+  <td>{{ r.status }}</td>
+  <td>{{ r.started_at }}</td>
+  <td>{{ r.verdict }}</td>
+  <td>{{ r.assessment }}</td>
+</tr>
+{% else %}
+<tr><td colspan="5" class="muted">No analysis runs. {% if status == "Blocked" %}The plan is blocked before BGP observation; no impact verdict exists.{% endif %}</td></tr>
+{% endfor %}
+</tbody>
+</table>
+
+<h3>Source snapshot history (immutable)</h3>
+<table>
+<thead><tr><th>#</th><th>Fetched</th><th>Source URL</th><th>SHA-256</th><th>Payload preview</th></tr></thead>
+<tbody>
+{% for s in snapshots %}
+<tr>
+  <td>{{ s.id }}</td>
+  <td>{{ s.fetched_at }}</td>
+  <td>{{ s.source_url }}</td>
+  <td><code>{{ s.sha256 }}</code></td>
+  <td><code>{{ s.raw_preview }}</code></td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+
+<h3>Reviewed manifest revisions (immutable)</h3>
+<table>
+<thead><tr><th>#</th><th>Schema</th><th>Review status</th><th>Reviewed at</th><th>Snapshot</th><th>SHA-256</th></tr></thead>
+<tbody>
+{% for m in manifests %}
+<tr>
+  <td>{{ m.id }}</td>
+  <td>v{{ m.schema }}</td>
+  <td>{{ m.review_status }}</td>
+  <td>{{ m.reviewed_at }}</td>
+  <td>snapshot {{ m.snapshot_id }}</td>
+  <td><code>{{ m.sha256 }}</code></td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+{% endblock %}

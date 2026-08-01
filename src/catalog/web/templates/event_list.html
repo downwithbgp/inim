@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}inim catalog — events{% endblock %}
+{% block content %}
+<h2>Events</h2>
+
+<form class="filter" method="get" action="/events">
+  <input type="text" name="q" value="{{ filters.q.as_deref().unwrap_or("") }}" placeholder="search id or title">
+  <select name="status">
+    <option value="">any status</option>
+    <option value="Discovered"{% if filters.status.as_deref() == Some("Discovered") %} selected{% endif %}>Discovered</option>
+    <option value="NeedsReview"{% if filters.status.as_deref() == Some("NeedsReview") %} selected{% endif %}>NeedsReview</option>
+    <option value="Ready"{% if filters.status.as_deref() == Some("Ready") %} selected{% endif %}>Ready</option>
+    <option value="Blocked"{% if filters.status.as_deref() == Some("Blocked") %} selected{% endif %}>Blocked</option>
+    <option value="Complete"{% if filters.status.as_deref() == Some("Complete") %} selected{% endif %}>Complete</option>
+    <option value="Stale"{% if filters.status.as_deref() == Some("Stale") %} selected{% endif %}>Stale</option>
+  </select>
+  <select name="lifecycle">
+    <option value="">any lifecycle</option>
+    <option value="Open"{% if filters.lifecycle.as_deref() == Some("Open") %} selected{% endif %}>Open</option>
+    <option value="Closed"{% if filters.lifecycle.as_deref() == Some("Closed") %} selected{% endif %}>Closed</option>
+  </select>
+  <button type="submit">Filter</button>
+</form>
+
+<table>
+<thead>
+<tr>
+  <th>Event</th><th>Source</th><th>Lifecycle</th><th>Start</th><th>End</th>
+  <th>Status</th><th>Expectation</th><th>Latest result</th><th>Last seen</th>
+</tr>
+</thead>
+<tbody>
+{% for row in rows %}
+<tr>
+  <td><a href="/events/{{ row.external_id }}">{{ row.external_id }}</a><br><span class="muted">{{ row.title }}</span></td>
+  <td>{{ row.source }}</td>
+  <td>{{ row.lifecycle }}</td>
+  <td>{{ row.start }}</td>
+  <td>{{ row.end }}</td>
+  <td>{% if row.stale %}<span class="tag stale">{{ row.status }} — stale</span>{% else %}<span class="tag">{{ row.status }}</span>{% endif %}</td>
+  <td>{{ row.expectation }}</td>
+  <td>{{ row.result }}</td>
+  <td>{{ row.last_seen }}</td>
+</tr>
+{% else %}
+<tr><td colspan="9" class="muted">No events match.</td></tr>
+{% endfor %}
+</tbody>
+</table>
+{% endblock %}

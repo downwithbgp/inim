@@ -107,6 +107,28 @@ enum Commands {
         #[arg(short = 'o', long, value_name = "DIR")]
         out: PathBuf,
     },
+    /// Catalog administration: initialize, import, and synchronize the
+    /// local event catalog.
+    #[command(subcommand)]
+    Catalog(CatalogCommands),
+    /// Serve the read-only localhost catalog web UI.
+    Serve {
+        /// Catalog database path.
+        #[arg(long, value_name = "PATH")]
+        db: PathBuf,
+
+        /// Catalog root directory (artifact paths are relative to it).
+        #[arg(long, value_name = "DIR", default_value = ".")]
+        root: PathBuf,
+
+        /// Bind address. Default is loopback only.
+        #[arg(long, value_name = "ADDR", default_value = "127.0.0.1:8080")]
+        bind: String,
+
+        /// Explicitly allow a non-loopback bind (no authentication).
+        #[arg(long)]
+        allow_non_loopback: bool,
+    },
     /// Analyze a single operational event against BGP observations.
     ///
     /// Without --manifest: runs a built-in synthetic demonstration.
@@ -147,6 +169,40 @@ enum Commands {
     },
 }
 
+/// Catalog administration subcommands.
+#[derive(Subcommand)]
+enum CatalogCommands {
+    /// Initialize a new catalog database (applies all migrations).
+    Init {
+        #[arg(long, value_name = "PATH")]
+        db: PathBuf,
+    },
+    /// Import canonical manifests and analysis artifacts into the catalog.
+    Import {
+        #[arg(long, value_name = "PATH")]
+        db: PathBuf,
+        /// Repository root containing manifests/ and out/.
+        #[arg(long, value_name = "DIR", default_value = ".")]
+        root: PathBuf,
+    },
+    /// Synchronize a catalog source into the catalog.
+    #[command(subcommand)]
+    Sync(SyncSource),
+}
+
+/// Catalog source adapters.
+#[derive(Subcommand)]
+enum SyncSource {
+    /// GRNOC Public Task Viewer records (one JSON file per ticket).
+    Grnoc {
+        #[arg(long, value_name = "PATH")]
+        db: PathBuf,
+        /// Directory containing GRNOC JSON records.
+        #[arg(long, value_name = "DIR")]
+        source_dir: PathBuf,
+    },
+}
+
 fn main() {
     let cli = Cli::parse();
     let code = run(&cli);
@@ -178,6 +234,13 @@ fn run(cli: &Cli) -> i32 {
         Commands::Compare { a, b, blocked, out } => {
             cmd_compare(&mut std::io::stdout(), a, b, blocked.as_deref(), out)
         }
+        Commands::Catalog(command) => cmd_catalog(&mut std::io::stdout(), command),
+        Commands::Serve {
+            db,
+            root,
+            bind,
+            allow_non_loopback,
+        } => cmd_serve(&mut std::io::stdout(), db, root, bind, *allow_non_loopback),
         Commands::Analyze {
             event,
             manifest,
@@ -437,6 +500,142 @@ fn cmd_analyze(
     }
 }
 
+/// `inim catalog ...` administration commands.
+fn cmd_catalog(stdout: &mut dyn Write, command: &CatalogCommands) -> i32 {
+    match command {
+        CatalogCommands::Init { db } => match inim::catalog::db::open_catalog(db) {
+            Ok(conn) => {
+                let version = inim::catalog::db::current_version(&conn).unwrap_or(0);
+                drop(conn);
+                let _ = writeln!(
+                    stdout,
+                    "catalog initialized at {} (schema v{version})",
+                    db.display()
+                );
+                EXIT_SUCCESS
+            }
+            Err(e) => {
+                let _ = writeln!(stdout, "error: {e}");
+                EXIT_INVALID_INPUT
+            }
+        },
+        CatalogCommands::Import { db, root } => {
+            let conn = match inim::catalog::db::open_catalog(db) {
+                Ok(c) => c,
+                Err(e) => {
+                    let _ = writeln!(stdout, "error: {e}");
+                    return EXIT_INVALID_INPUT;
+                }
+            };
+            let version = env!("CARGO_PKG_VERSION");
+            let git = git_revision();
+            match inim::catalog::import::import_repository(&conn, root, version, git.as_deref()) {
+                Ok(summary) => {
+                    let _ = writeln!(
+                        stdout,
+                        "imported {} events, {} snapshots, {} manifests, {} plans, {} runs, {} artifacts, {} streams, {} waves",
+                        summary.events,
+                        summary.snapshots,
+                        summary.manifests,
+                        summary.plans,
+                        summary.runs,
+                        summary.artifacts,
+                        summary.streams,
+                        summary.waves
+                    );
+                    EXIT_SUCCESS
+                }
+                Err(e) => {
+                    let _ = writeln!(stdout, "error: {e}");
+                    EXIT_INVALID_INPUT
+                }
+            }
+        }
+        CatalogCommands::Sync(source) => match source {
+            SyncSource::Grnoc { db, source_dir } => {
+                let conn = match inim::catalog::db::open_catalog(db) {
+                    Ok(c) => c,
+                    Err(e) => {
+                        let _ = writeln!(stdout, "error: {e}");
+                        return EXIT_INVALID_INPUT;
+                    }
+                };
+                let fetched = chrono::Utc::now().to_rfc3339();
+                let src = inim::catalog::grnoc::GrnocCatalogSource::new(
+                    source_dir.clone(),
+                    fetched.clone(),
+                );
+                match inim::catalog::sync::sync_catalog(&conn, &src, &fetched) {
+                    Ok(summary) => {
+                        let _ = writeln!(
+                            stdout,
+                            "grnoc sync complete: {} examined, {} new, {} changed, {} unchanged, {} failures",
+                            summary.events_examined,
+                            summary.new_events,
+                            summary.changed_events,
+                            summary.unchanged_events,
+                            summary.failures
+                        );
+                        EXIT_SUCCESS
+                    }
+                    Err(e) => {
+                        let _ = writeln!(stdout, "error: {e}");
+                        EXIT_INVALID_INPUT
+                    }
+                }
+            }
+        },
+    }
+}
+
+/// Current git revision for run provenance (best effort).
+fn git_revision() -> Option<String> {
+    let out = std::process::Command::new("git")
+        .args(["rev-parse", "--short", "HEAD"])
+        .output()
+        .ok()?;
+    if out.status.success() {
+        Some(String::from_utf8_lossy(&out.stdout).trim().to_string())
+    } else {
+        None
+    }
+}
+
+/// `inim serve` — read-only localhost catalog web UI.
+fn cmd_serve(
+    stdout: &mut dyn Write,
+    db: &std::path::Path,
+    root: &std::path::Path,
+    bind: &str,
+    allow_non_loopback: bool,
+) -> i32 {
+    if let Err(e) = inim::catalog::web::server::validate_bind(bind, allow_non_loopback) {
+        let _ = writeln!(stdout, "error: {e}");
+        return EXIT_INVALID_INPUT;
+    }
+    let runtime = match tokio::runtime::Runtime::new() {
+        Ok(r) => r,
+        Err(e) => {
+            let _ = writeln!(stdout, "error: cannot start async runtime: {e}");
+            return EXIT_INVALID_INPUT;
+        }
+    };
+    let version = env!("CARGO_PKG_VERSION");
+    match runtime.block_on(inim::catalog::web::server::serve(
+        db,
+        root,
+        bind,
+        allow_non_loopback,
+        version,
+    )) {
+        Ok(()) => EXIT_SUCCESS,
+        Err(e) => {
+            let _ = writeln!(stdout, "error: {e}");
+            EXIT_INVALID_INPUT
+        }
+    }
+}
+
 fn run_analyze_synthetic(stdout: &mut dyn Write, event_path: &std::path::Path) -> i32 {
     // ── 1. Parse the Internet2 ticket fixture ────────────────────
     let ticket = match i2ticket::parse_ticket_fixture(event_path.to_string_lossy().as_ref()) {
@@ -616,6 +815,8 @@ mod tests {
             Commands::Plan { .. } => unreachable!("plan not expected"),
             Commands::MigrateManifest { .. } => unreachable!("migrate not expected"),
             Commands::Compare { .. } => unreachable!("compare not expected"),
+            Commands::Catalog(_) => unreachable!("catalog not expected"),
+            Commands::Serve { .. } => unreachable!("serve not expected"),
         }
     }
 
@@ -637,6 +838,8 @@ mod tests {
             Commands::Plan { .. } => unreachable!("plan not expected"),
             Commands::MigrateManifest { .. } => unreachable!("migrate not expected"),
             Commands::Compare { .. } => unreachable!("compare not expected"),
+            Commands::Catalog(_) => unreachable!("catalog not expected"),
+            Commands::Serve { .. } => unreachable!("serve not expected"),
         }
     }
 
@@ -654,6 +857,8 @@ mod tests {
             Commands::Plan { .. } => unreachable!("plan not expected"),
             Commands::MigrateManifest { .. } => unreachable!("migrate not expected"),
             Commands::Compare { .. } => unreachable!("compare not expected"),
+            Commands::Catalog(_) => unreachable!("catalog not expected"),
+            Commands::Serve { .. } => unreachable!("serve not expected"),
         }
     }
 
@@ -679,6 +884,8 @@ mod tests {
             Commands::Plan { .. } => unreachable!("plan not expected"),
             Commands::MigrateManifest { .. } => unreachable!("migrate not expected"),
             Commands::Compare { .. } => unreachable!("compare not expected"),
+            Commands::Catalog(_) => unreachable!("catalog not expected"),
+            Commands::Serve { .. } => unreachable!("serve not expected"),
         }
     }
 

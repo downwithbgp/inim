@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}inim catalog — analysis {{ run_id }}{% endblock %}
+{% block content %}
+<h2>Analysis run {{ run_id }} — {{ event_id }}</h2>
+<p class="muted">{{ title }} · status {{ status }} · started {{ started_at }}</p>
+
+<div class="panel">
+<h2>Result</h2>
+<p>{{ result_label }}</p>
+<p>{{ finding }}</p>
+</div>
+
+<div class="panel">
+<h2>Assessment against ticket expectation</h2>
+<p>{{ assessment }}</p>
+</div>
+
+<div class="panel">
+<h2>Observation scope</h2>
+<ul class="flat">
+{% for key in ["collectors", "baseline_observer_prefix_streams", "baseline_route_instances", "multiple_instance_streams", "archive_coverage"] %}
+  <li>{{ key }}: {{ scope.get(key).unwrap_or(&serde_json::Value::Null) }}</li>
+{% endfor %}
+</ul>
+</div>
+
+<div class="panel">
+<h2>Lifecycle counts (observer-prefix streams)</h2>
+<ul class="flat">
+{% for key in ["unchanged", "prepend_only", "material_path_changes", "streams_retaining_transit", "streams_departing_transit", "withdrawn_streams", "restored_streams", "unresolved_streams", "add_path_ambiguous_streams"] %}
+  <li>{{ key }}: {{ lifecycle.get(key).unwrap_or(&serde_json::Value::Null) }}</li>
+{% endfor %}
+</ul>
+</div>
+
+{% if waves.is_array() && !waves.as_array().unwrap().is_empty() %}
+<div class="panel">
+<h2>Semantic waves</h2>
+<ul class="flat">
+{% for w in waves.as_array().unwrap() %}
+  <li>{{ w.get("id").unwrap_or(&serde_json::Value::Null) }}: {{ w.get("label").unwrap_or(&serde_json::Value::Null) }} — {{ w.get("start").unwrap_or(&serde_json::Value::Null) }} to {{ w.get("end").unwrap_or(&serde_json::Value::Null) }} ({{ w.get("stream_count").unwrap_or(&serde_json::Value::Null) }} streams)</li>
+{% endfor %}
+</ul>
+</div>
+{% endif %}
+
+<div class="panel">
+<h2>Evidence and artifact links</h2>
+<table>
+<thead><tr><th>Kind</th><th>Path (relative to catalog root)</th><th>SHA-256</th><th>Size</th></tr></thead>
+<tbody>
+{% for a in artifacts %}
+<tr><td>{{ a.kind }}</td><td><code>{{ a.relative_path }}</code></td><td><code>{{ a.sha256 }}</code></td><td>{{ a.size }}</td></tr>
+{% endfor %}
+</tbody>
+</table>
+{% if !missing_artifacts.is_empty() %}
+<p class="error">Missing artifact files: {{ missing_artifacts.join(", ") }}</p>
+{% endif %}
+</div>
+
+<p><a href="/analyses/{{ run_id }}/streams">Stream lifecycle detail</a></p>
+{% endblock %}
