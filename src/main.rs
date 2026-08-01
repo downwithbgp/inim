@@ -360,6 +360,9 @@ enum CaseStudyCommands {
         /// Cooldown hours after the incident window (default 2).
         #[arg(long, value_name = "HOURS", default_value_t = 2)]
         cooldown_hours: i64,
+        /// Source family to plan: RouteViews (default) or RipeRis.
+        #[arg(long, value_name = "FAMILY", default_value = "RouteViews")]
+        family: String,
     },
 }
 
@@ -903,6 +906,7 @@ fn cmd_catalog(stdout: &mut dyn Write, command: &CatalogCommands) -> i32 {
             slug,
             warmup_hours,
             cooldown_hours,
+            family,
         }) => {
             let conn = match inim::catalog::db::open_catalog(db) {
                 Ok(c) => c,
@@ -922,11 +926,22 @@ fn cmd_catalog(stdout: &mut dyn Write, command: &CatalogCommands) -> i32 {
                     return EXIT_INVALID_INPUT;
                 }
             };
-            match inim::catalog::archive_plan::build_plan(
+            let families = match inim::catalog::archive_plan::SourceFamily::parse_family(family) {
+                Some(f) => vec![f],
+                None => {
+                    let _ = writeln!(
+                        stdout,
+                        "error: unknown source family '{family}' (expected RouteViews or RipeRis)"
+                    );
+                    return EXIT_INVALID_INPUT;
+                }
+            };
+            match inim::catalog::archive_plan::build_plan_for_families(
                 &cs,
                 &targets,
                 *warmup_hours,
                 *cooldown_hours,
+                &families,
             ) {
                 Ok((horizon, plan)) => {
                     if let Err(e) =

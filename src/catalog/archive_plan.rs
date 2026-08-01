@@ -66,6 +66,16 @@ impl SourceFamily {
             SourceFamily::RipeRis => "riperis",
         }
     }
+
+    /// Parse a manifest/plan family string (tolerant: accepts the
+    /// stable `as_str()` forms and the broker project names).
+    pub fn parse_family(s: &str) -> Option<SourceFamily> {
+        match s {
+            "RouteViews" | "routeviews" => Some(SourceFamily::RouteViews),
+            "RipeRis" | "riperis" | "RIPE RIS" => Some(SourceFamily::RipeRis),
+            _ => None,
+        }
+    }
 }
 
 /// 2019-era RouteViews RIB interval (seconds) and estimated sizes.
@@ -237,7 +247,7 @@ fn stamp_of(url: &str) -> String {
 }
 
 /// Family-aware archive URL for a timestamp.
-fn archive_url_for(
+pub(crate) fn archive_url_for(
     family: SourceFamily,
     collector: &str,
     t: chrono::DateTime<chrono::Utc>,

@@ -108,6 +108,13 @@ fn run_inner(
     let expectation = crate::sources::internet2::ticket::derive_expectation(&ticket);
 
     let manifest = Manifest::load(manifest_path)?;
+    let family = crate::catalog::archive_plan::SourceFamily::parse_family(&manifest.source_family)
+        .ok_or_else(|| {
+            format!(
+                "unsupported source_family '{}' in manifest (expected RouteViews or RipeRis)",
+                manifest.source_family
+            )
+        })?;
     let (event_start, event_end) = manifest.event_window()?;
     let warmup_start = event_start - chrono::Duration::minutes(manifest.warmup_minutes);
     let cooldown_end = event_end + chrono::Duration::minutes(manifest.cooldown_minutes);
@@ -131,7 +138,7 @@ fn run_inner(
     let t_broker = Instant::now();
     let all_ribs = discovery
         .query(
-            "routeviews",
+            family.broker_project(),
             &manifest
                 .collectors
                 .iter()
@@ -180,6 +187,7 @@ fn run_inner(
             &origin_asns,
             &transit_predicate,
             manifest.revision,
+            family.as_str(),
         );
         let cache_hit = if cache_control.no_derived_cache || cache_control.rebuild_derived_cache {
             None
@@ -388,9 +396,11 @@ fn run_inner(
     let mut retained_collectors: Vec<String> = target_set.streams.keys().cloned().collect();
     retained_collectors.sort();
     if retained_collectors.is_empty() {
-        return Ok(AnalysisOutcome::insufficient_visibility(
-            "No selected RouteViews observer had a pre-event route matching the reviewed Internet2 path predicate.",
-        ));
+        let visibility_msg = format!(
+            "No selected {} observer had a pre-event route matching the reviewed Internet2 path predicate.",
+            family.label()
+        );
+        return Ok(AnalysisOutcome::insufficient_visibility(&visibility_msg));
     }
     limitations.push(format!(
         "{} of {} requested collectors retained after RIB preflight ({})",
@@ -464,7 +474,7 @@ fn run_inner(
         eprintln!("  {collector}: querying UPDATE files...");
         let all_updates: Vec<_> = discovery
             .query(
-                "routeviews",
+                family.broker_project(),
                 &[collector.as_str()],
                 warmup_start - chrono::Duration::hours(24),
                 update_search_end,
@@ -510,6 +520,7 @@ fn run_inner(
         cache_control,
         &target_set,
         &frozen_prefixes,
+        family.as_str(),
     )?;
     for (cu, result) in pipeline_results {
         if let Some(cu) = cu {
@@ -650,6 +661,7 @@ fn run_inner(
         ),
         transit_predicate: Some(&transit_predicate),
         requested_collectors: &manifest.collectors,
+        source_family_label: family.label(),
         limitations: &limitations,
         no_observable_impact: matches!(
             assessment.verdict,
@@ -765,11 +777,17 @@ fn process_one_update_file(
     cache_control: CacheControl,
     target_set: &TargetSet,
     frozen_prefixes: &std::collections::HashSet<Prefix>,
+    source_family: &str,
 ) -> UpdateFileResult {
     use crate::domain::observation::{CollectorId, ObservationKind};
 
     // Check UPDATE derived cache
-    let upd_key = crate::derived_cache::update_cache_key(&task.sha256, &task.collector, tshash);
+    let upd_key = crate::derived_cache::update_cache_key(
+        &task.sha256,
+        &task.collector,
+        tshash,
+        source_family,
+    );
     let rebuild_updates =
         cache_control.rebuild_derived_cache || cache_control.rebuild_update_caches;
     let cache_hit = if cache_control.no_derived_cache || rebuild_updates {
@@ -959,6 +977,7 @@ fn process_updates_pipeline(
     cache_control: CacheControl,
     target_set: &TargetSet,
     frozen_prefixes: &std::collections::HashSet<Prefix>,
+    source_family: &str,
 ) -> Result<Vec<(Option<crate::discover::CachedArchive>, UpdateFileResult)>, String> {
     let n = pending.len();
     if n == 0 {
@@ -1031,6 +1050,7 @@ fn process_updates_pipeline(
                     cache_control,
                     target_set,
                     frozen_prefixes,
+                    source_family,
                 );
                 slots.lock().unwrap()[idx] = Some(Ok(result));
             });

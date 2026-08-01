@@ -467,3 +467,48 @@ mod tests {
         }
     }
 }
+
+#[cfg(test)]
+mod session34_ris_ingest_tests {
+    use super::*;
+
+    /// A small REAL RIPE RIS updates archive (rrc00, 2019-08-21 16:00
+    /// UTC, MRT BGP4MP, gzip) passes through the same ingestion and
+    /// reconstruction path as RouteViews archives.
+    #[test]
+    fn ris_observations_enter_shared_route_model() {
+        let fixture_path = std::path::PathBuf::from("tests/fixtures/ris/updates.20190821.1600.gz");
+        assert!(fixture_path.exists(), "RIS fixture must be committed");
+
+        let ctx = IngestContext {
+            role: IngestRole::Updates,
+            collector: CollectorId("rrc00".into()),
+            input_path: fixture_path.clone(),
+            source_url: Some(
+                "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1600.gz".to_string(),
+            ),
+            source_sha: Some(
+                "cd4ed1d6ca379344064ce30b3bd6a2691dfc7aba04bd49e25e7760f82257da19".to_string(),
+            ),
+            origin_asn_filters: vec![],
+            archive_order: 0,
+        };
+
+        let stream = ObservationStream::from_local_file(fixture_path, ctx)
+            .expect("RIS MRT fixture must open with the shared parser");
+        let observations: Vec<_> = stream.into_iter().take(200).collect();
+        let ok_count = observations.iter().filter(|r| r.is_ok()).count();
+        assert!(
+            ok_count > 0,
+            "RIS fixture must yield at least one valid observation"
+        );
+        // The shared route model: observations carry the RIS source URL
+        // and archive provenance.
+        let first = observations.iter().find_map(|r| r.as_ref().ok()).unwrap();
+        assert_eq!(
+            first.provenance.source_url.as_deref(),
+            Some("https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1600.gz")
+        );
+        assert_eq!(first.provenance.parser_representation, "bgpkit-bgp-elem");
+    }
+}

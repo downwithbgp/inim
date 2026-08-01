@@ -44,10 +44,22 @@ pub struct Manifest {
     pub cooldown_minutes: i64,
     pub target: ManifestTarget,
     pub collectors: Vec<String>,
+    /// BGP archive source family: "RouteViews" (default) or "RipeRis".
+    /// Collector identifiers are only meaningful together with their
+    /// family (`rrc00` exists only in RIPE RIS, `route-views2` only in
+    /// RouteViews).
+    #[serde(default = "default_source_family")]
+    pub source_family: String,
     #[serde(default)]
     pub collectors_provenance: String,
     #[serde(default)]
     pub analyst_notes: Vec<String>,
+}
+
+fn default_source_family() -> String {
+    crate::catalog::archive_plan::SourceFamily::RouteViews
+        .as_str()
+        .to_string()
 }
 
 fn default_schema_version() -> u32 {
@@ -476,5 +488,84 @@ mod tests {
         // No ASN value invented: no legacy field survives.
         let out = serde_json::to_string(&migrated).unwrap();
         assert!(!out.contains("11537"), "{out}");
+    }
+    #[test]
+    fn routeviews_behavior_remains_unchanged() {
+        // A manifest WITHOUT a source_family field is a RouteViews
+        // manifest (the pre-Session-34 behavior) — the default must
+        // never change for existing reviewed manifests.
+        let dir = tempfile::tempdir().unwrap();
+        let json = r#"{
+            "event_id": "RV-TEST",
+            "schema_version": 2,
+            "event_window_utc": {"start": "2019-08-21T16:00:00Z", "end": "2019-08-21T17:30:00Z"},
+            "ticket_window_local": {"start": "2019-08-21T12:00:00-04:00", "end": "2019-08-21T13:30:00-04:00", "timezone": "America/New_York"},
+            "warmup_minutes": 840,
+            "cooldown_minutes": 60,
+            "target": {
+                "label": "SampleNet (AS64500)",
+                "origin_asns": [2603],
+                "transit_predicate": {"kind": "ContainsAny", "asns": [11537]}
+            },
+            "collectors": ["route-views2"],
+            "collectors_provenance": "reviewed"
+        }"#;
+        let path = write_manifest(dir.path(), json);
+        let m = Manifest::load(&path).unwrap();
+        assert_eq!(m.source_family, "RouteViews");
+        assert_eq!(
+            crate::catalog::archive_plan::SourceFamily::parse_family(&m.source_family),
+            Some(crate::catalog::archive_plan::SourceFamily::RouteViews)
+        );
+        // RouteViews selection semantics are unchanged: latest RIB at or
+        // before warmup on the 2-hour grid.
+        use crate::discover::{select_rib, ArchiveItem};
+        let t = |s: &str| chrono::DateTime::parse_from_rfc3339(s).unwrap().to_utc();
+        let items = vec![
+            ArchiveItem {
+                project: "routeviews".into(),
+                collector_id: "route-views2".into(),
+                data_type: "rib".into(),
+                ts_start: t("2019-08-20T22:00:00Z"),
+                ts_end: t("2019-08-21T00:00:00Z"),
+                url: "http://archive.routeviews.org/bgpdata/2019.08/RIBS/rib.20190820.2200.bz2"
+                    .into(),
+                size: 1,
+            },
+            ArchiveItem {
+                project: "routeviews".into(),
+                collector_id: "route-views2".into(),
+                data_type: "rib".into(),
+                ts_start: t("2019-08-21T00:00:00Z"),
+                ts_end: t("2019-08-21T02:00:00Z"),
+                url: "http://archive.routeviews.org/bgpdata/2019.08/RIBS/rib.20190821.0000.bz2"
+                    .into(),
+                size: 1,
+            },
+            ArchiveItem {
+                project: "routeviews".into(),
+                collector_id: "route-views2".into(),
+                data_type: "rib".into(),
+                ts_start: t("2019-08-21T02:00:00Z"),
+                ts_end: t("2019-08-21T04:00:00Z"),
+                url: "http://archive.routeviews.org/bgpdata/2019.08/RIBS/rib.20190821.0200.bz2"
+                    .into(),
+                size: 1,
+            },
+        ];
+        // warmup 02:00 — the 02:00 RIB is eligible (<= warmup) and is the
+        // latest; identical to pre-Session-34 behavior.
+        let best = select_rib(&items, t("2019-08-21T02:00:00Z")).unwrap();
+        assert_eq!(
+            best.url,
+            "http://archive.routeviews.org/bgpdata/2019.08/RIBS/rib.20190821.0200.bz2"
+        );
+        // A warmup before the first RIB still falls back to the newest
+        // pre-warmup RIB — never a post-warmup file.
+        let best = select_rib(&items, t("2019-08-20T22:30:00Z")).unwrap();
+        assert_eq!(
+            best.url,
+            "http://archive.routeviews.org/bgpdata/2019.08/RIBS/rib.20190820.2200.bz2"
+        );
     }
 }

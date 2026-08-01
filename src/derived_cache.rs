@@ -88,15 +88,22 @@ pub fn transit_predicate_identity(predicate: &TransitPredicate) -> String {
 }
 
 /// Build a RIB cache key from the source SHA, collector, and predicate components.
+///
+/// `source_family` is part of the identity: a collector identifier is only
+/// meaningful together with its family (RouteViews vs RIPE RIS), so caches
+/// can never collide across families.
 pub fn rib_cache_key(
     source_sha: &str,
     collector: &str,
     origin_asns: &[u32],
     transit_predicate: &TransitPredicate,
     manifest_revision: u32,
+    source_family: &str,
 ) -> String {
     let mut hasher = Sha256::new();
     hasher.update(source_sha.as_bytes());
+    hasher.update(b"|");
+    hasher.update(source_family.as_bytes());
     hasher.update(b"|");
     hasher.update(collector.as_bytes());
     hasher.update(b"|");
@@ -301,10 +308,18 @@ pub fn assign_deterministic_ids(observations: &mut [RouteObservation]) {
 }
 
 /// Build an UPDATE cache key from archive SHA, collector, TargetSet hash,
-/// and schema versions.
-pub fn update_cache_key(source_sha: &str, collector: &str, targetset_hash: &str) -> String {
+/// and schema versions. `source_family` is part of the identity so
+/// RouteViews and RIPE RIS caches can never collide.
+pub fn update_cache_key(
+    source_sha: &str,
+    collector: &str,
+    targetset_hash: &str,
+    source_family: &str,
+) -> String {
     let mut hasher = Sha256::new();
     hasher.update(source_sha.as_bytes());
+    hasher.update(b"|");
+    hasher.update(source_family.as_bytes());
     hasher.update(b"|");
     hasher.update(collector.as_bytes());
     hasher.update(b"|");
@@ -428,6 +443,7 @@ mod tests {
             &[3333],
             &TransitPredicate::ContainsAny(vec![11537]),
             1,
+            "RouteViews",
         );
         let k2 = rib_cache_key(
             "sha",
@@ -435,6 +451,7 @@ mod tests {
             &[3333, 225],
             &TransitPredicate::ContainsAny(vec![11537]),
             1,
+            "RouteViews",
         );
         assert_ne!(k1, k2);
     }
@@ -447,6 +464,7 @@ mod tests {
             &[3333],
             &TransitPredicate::ContainsAny(vec![11537]),
             1,
+            "RouteViews",
         );
         let k2 = rib_cache_key(
             "sha",
@@ -454,6 +472,7 @@ mod tests {
             &[3333],
             &TransitPredicate::ContainsAny(vec![11538]),
             1,
+            "RouteViews",
         );
         assert_ne!(k1, k2);
     }
@@ -466,6 +485,7 @@ mod tests {
             &[3333],
             &TransitPredicate::ContainsAny(vec![11537]),
             1,
+            "RouteViews",
         );
         let k2 = rib_cache_key(
             "def",
@@ -473,6 +493,7 @@ mod tests {
             &[3333],
             &TransitPredicate::ContainsAny(vec![11537]),
             1,
+            "RouteViews",
         );
         assert_ne!(k1, k2);
     }
@@ -485,6 +506,7 @@ mod tests {
             &[3333],
             &TransitPredicate::ContainsAny(vec![11537]),
             1,
+            "RouteViews",
         );
         let k2 = rib_cache_key(
             "sha",
@@ -492,6 +514,7 @@ mod tests {
             &[3333],
             &TransitPredicate::ContainsAny(vec![11537]),
             2,
+            "RouteViews",
         );
         assert_ne!(k1, k2);
     }
@@ -505,6 +528,7 @@ mod tests {
             &[3333],
             &TransitPredicate::ContainsAny(vec![11537]),
             1,
+            "RouteViews",
         );
 
         // Miss when no cache exists
@@ -551,6 +575,7 @@ mod tests {
             &[3333],
             &TransitPredicate::ContainsAny(vec![11537]),
             1,
+            "RouteViews",
         );
         let entry = RibCacheEntry {
             schema_version: 999, // wrong
@@ -658,22 +683,22 @@ mod tests {
 
     #[test]
     fn update_cache_key_changes_with_sha_change() {
-        let k1 = update_cache_key("sha1", "rv2", "tshash");
-        let k2 = update_cache_key("sha2", "rv2", "tshash");
+        let k1 = update_cache_key("sha1", "rv2", "tshash", "RouteViews");
+        let k2 = update_cache_key("sha2", "rv2", "tshash", "RouteViews");
         assert_ne!(k1, k2);
     }
 
     #[test]
     fn update_cache_key_changes_with_collector_change() {
-        let k1 = update_cache_key("sha", "rv2", "tshash");
-        let k2 = update_cache_key("sha", "rv6", "tshash");
+        let k1 = update_cache_key("sha", "rv2", "tshash", "RouteViews");
+        let k2 = update_cache_key("sha", "rv6", "tshash", "RouteViews");
         assert_ne!(k1, k2);
     }
 
     #[test]
     fn update_cache_key_changes_with_targetset_hash_change() {
-        let k1 = update_cache_key("sha", "rv2", "hash1");
-        let k2 = update_cache_key("sha", "rv2", "hash2");
+        let k1 = update_cache_key("sha", "rv2", "hash1", "RouteViews");
+        let k2 = update_cache_key("sha", "rv2", "hash2", "RouteViews");
         assert_ne!(k1, k2);
     }
 
@@ -748,7 +773,7 @@ mod tests {
     #[test]
     fn update_cache_hit_skips_parser() {
         let dir = tempfile::tempdir().unwrap();
-        let key = update_cache_key("test_sha", "rv2", "tshash");
+        let key = update_cache_key("test_sha", "rv2", "tshash", "RouteViews");
         let obs = vec![make_test_obs(0)];
         let entry = make_test_entry("test_sha", "tshash", "rv2", obs);
         save_update_cache(dir.path(), "test_sha", &key, &entry).unwrap();
@@ -761,7 +786,7 @@ mod tests {
     #[test]
     fn zero_observation_update_cache_is_valid() {
         let dir = tempfile::tempdir().unwrap();
-        let key = update_cache_key("test_sha", "rv2", "tshash");
+        let key = update_cache_key("test_sha", "rv2", "tshash", "RouteViews");
         let entry = make_test_entry("test_sha", "tshash", "rv2", vec![]);
         save_update_cache(dir.path(), "test_sha", &key, &entry).unwrap();
 
@@ -773,7 +798,7 @@ mod tests {
     #[test]
     fn update_cache_preserves_admission_counters() {
         let dir = tempfile::tempdir().unwrap();
-        let key = update_cache_key("test_sha", "rv2", "tshash");
+        let key = update_cache_key("test_sha", "rv2", "tshash", "RouteViews");
         let entry = make_test_entry("test_sha", "tshash", "rv2", vec![make_test_obs(0)]);
         save_update_cache(dir.path(), "test_sha", &key, &entry).unwrap();
 
@@ -786,7 +811,7 @@ mod tests {
     #[test]
     fn update_cache_invalidates_on_archive_sha_change() {
         let dir = tempfile::tempdir().unwrap();
-        let key = update_cache_key("sha_old", "rv2", "tshash");
+        let key = update_cache_key("sha_old", "rv2", "tshash", "RouteViews");
         let entry = make_test_entry("sha_old", "tshash", "rv2", vec![make_test_obs(0)]);
         save_update_cache(dir.path(), "sha_old", &key, &entry).unwrap();
 
@@ -797,8 +822,8 @@ mod tests {
     #[test]
     fn update_cache_invalidates_on_target_set_change() {
         let dir = tempfile::tempdir().unwrap();
-        let key_old = update_cache_key("test_sha", "rv2", "tshash_old");
-        let key_new = update_cache_key("test_sha", "rv2", "tshash_new");
+        let key_old = update_cache_key("test_sha", "rv2", "tshash_old", "RouteViews");
+        let key_new = update_cache_key("test_sha", "rv2", "tshash_new", "RouteViews");
         let entry = make_test_entry("test_sha", "tshash_old", "rv2", vec![make_test_obs(0)]);
         save_update_cache(dir.path(), "test_sha", &key_old, &entry).unwrap();
 
@@ -809,7 +834,7 @@ mod tests {
     #[test]
     fn update_cache_invalidates_on_schema_change() {
         let dir = tempfile::tempdir().unwrap();
-        let key = update_cache_key("test_sha", "rv2", "tshash");
+        let key = update_cache_key("test_sha", "rv2", "tshash", "RouteViews");
         let mut entry = make_test_entry("test_sha", "tshash", "rv2", vec![make_test_obs(0)]);
         entry.schema_version = 999; // wrong
         save_update_cache(dir.path(), "test_sha", &key, &entry).unwrap();
@@ -820,7 +845,7 @@ mod tests {
     #[test]
     fn truncated_update_cache_is_rejected() {
         let dir = tempfile::tempdir().unwrap();
-        let key = update_cache_key("test_sha", "rv2", "tshash");
+        let key = update_cache_key("test_sha", "rv2", "tshash", "RouteViews");
         let mut entry = make_test_entry("test_sha", "tshash", "rv2", vec![make_test_obs(0)]);
         // record_count says 2 but only 1 observation
         entry.record_count = 2;
@@ -832,7 +857,7 @@ mod tests {
     #[test]
     fn corrupt_update_cache_is_recomputed() {
         let dir = tempfile::tempdir().unwrap();
-        let key = update_cache_key("test_sha", "rv2", "tshash");
+        let key = update_cache_key("test_sha", "rv2", "tshash", "RouteViews");
         let mut entry = make_test_entry("test_sha", "tshash", "rv2", vec![make_test_obs(0)]);
         // Mess up the checksum
         entry.payload_checksum = "00000000000000000000000000000001".into();
@@ -844,7 +869,7 @@ mod tests {
     #[test]
     fn cached_observation_retains_complete_provenance() {
         let dir = tempfile::tempdir().unwrap();
-        let key = update_cache_key("test_sha", "rv2", "tshash");
+        let key = update_cache_key("test_sha", "rv2", "tshash", "RouteViews");
         let obs = make_test_obs(42);
         let entry = make_test_entry("test_sha", "tshash", "rv2", vec![obs.clone()]);
         save_update_cache(dir.path(), "test_sha", &key, &entry).unwrap();
@@ -876,7 +901,7 @@ mod tests {
         // Round-trip: serialize observations, rebuild cache entry, re-load.
         // The re-loaded observations must be identical to the originals.
         let dir = tempfile::tempdir().unwrap();
-        let key = update_cache_key("test_sha", "rv2", "tshash");
+        let key = update_cache_key("test_sha", "rv2", "tshash", "RouteViews");
         let obs = vec![make_test_obs(0), make_test_obs(1)];
         let entry = make_test_entry("test_sha", "tshash", "rv2", obs.clone());
         save_update_cache(dir.path(), "test_sha", &key, &entry).unwrap();
@@ -896,6 +921,7 @@ mod tests {
             &[3333],
             &TransitPredicate::ContainsAny(vec![11537]),
             1,
+            "RouteViews",
         );
         let mut entry = RibCacheEntry {
             schema_version: RIB_CACHE_SCHEMA_VERSION,
@@ -938,6 +964,7 @@ mod tests {
             &[3333],
             &TransitPredicate::ContainsAny(vec![11537]),
             1,
+            "RouteViews",
         );
         let mut obs1 = make_test_obs(0);
         obs1.path_id = Some(1);
@@ -1003,6 +1030,7 @@ mod tests {
             &[3333],
             &TransitPredicate::ContainsAny(vec![11537]),
             1,
+            "RouteViews",
         );
         let mut obs = make_test_obs(7);
         obs.path_id = Some(4242);
@@ -1047,6 +1075,7 @@ mod tests {
             &[3333],
             &TransitPredicate::ContainsAny(vec![11537]),
             1,
+            "RouteViews",
         );
         let obs = make_test_obs(3);
         let mut entry = RibCacheEntry {
@@ -1160,6 +1189,7 @@ mod tests {
             &[3333],
             &TransitPredicate::ContainsAny(vec![11537]),
             1,
+            "RouteViews",
         );
         let key_new = rib_cache_key(
             "sha",
@@ -1167,6 +1197,7 @@ mod tests {
             &[3333],
             &TransitPredicate::ContainsAny(vec![11538]),
             1,
+            "RouteViews",
         );
         assert_ne!(key_old, key_new);
         let mut entry = RibCacheEntry {
@@ -1204,7 +1235,7 @@ mod tests {
     #[test]
     fn old_update_schema_is_rejected() {
         let dir = tempfile::tempdir().unwrap();
-        let key = update_cache_key("test_sha", "rv2", "tshash");
+        let key = update_cache_key("test_sha", "rv2", "tshash", "RouteViews");
         let mut entry = make_test_entry("test_sha", "tshash", "rv2", vec![make_test_obs(0)]);
         entry.schema_version = 1; // pre-ADD-PATH schema
         save_update_cache(dir.path(), "test_sha", &key, &entry).unwrap();
@@ -1214,7 +1245,7 @@ mod tests {
     #[test]
     fn update_cache_preserves_path_id() {
         let dir = tempfile::tempdir().unwrap();
-        let key = update_cache_key("test_sha", "rv2", "tshash");
+        let key = update_cache_key("test_sha", "rv2", "tshash", "RouteViews");
         let mut obs = make_test_obs(1);
         obs.path_id = Some(77);
         let entry = make_test_entry("test_sha", "tshash", "rv2", vec![obs]);
@@ -1227,7 +1258,7 @@ mod tests {
     #[test]
     fn update_cache_preserves_communities() {
         let dir = tempfile::tempdir().unwrap();
-        let key = update_cache_key("test_sha", "rv2", "tshash");
+        let key = update_cache_key("test_sha", "rv2", "tshash", "RouteViews");
         let mut obs = make_test_obs(2);
         obs.attributes.as_mut().unwrap().communities =
             Communities::from_strings(vec!["65535:0".into(), "11537:100".into()]);
@@ -1248,7 +1279,7 @@ mod tests {
     #[test]
     fn update_cache_preserves_complete_attributes() {
         let dir = tempfile::tempdir().unwrap();
-        let key = update_cache_key("test_sha", "rv2", "tshash");
+        let key = update_cache_key("test_sha", "rv2", "tshash", "RouteViews");
         let obs = make_test_obs(3);
         let entry = make_test_entry("test_sha", "tshash", "rv2", vec![obs.clone()]);
         save_update_cache(dir.path(), "test_sha", &key, &entry).unwrap();
@@ -1363,5 +1394,70 @@ mod tests {
             compute_payload_checksum(&serial),
             compute_payload_checksum(&parallel)
         );
+    }
+}
+
+#[cfg(test)]
+mod session34_ris_cache_tests {
+    use super::*;
+
+    /// Derived caches are family-scoped: a RIPE RIS key round-trips its
+    /// own entry and can never collide with a RouteViews key.
+    #[test]
+    fn ris_cache_roundtrip_preserves_source_family() {
+        let dir = tempfile::tempdir().unwrap();
+        let ris_key = rib_cache_key(
+            "ris_sha",
+            "rrc00",
+            &[2603],
+            &TransitPredicate::ContainsAny(vec![11537]),
+            1,
+            "RipeRis",
+        );
+        let rv_key = rib_cache_key(
+            "ris_sha",
+            "rrc00",
+            &[2603],
+            &TransitPredicate::ContainsAny(vec![11537]),
+            1,
+            "RouteViews",
+        );
+        assert_ne!(ris_key, rv_key, "family must be part of cache identity");
+
+        let entry = RibCacheEntry {
+            schema_version: RIB_CACHE_SCHEMA_VERSION,
+            parser_version: PARSER_VERSION.into(),
+            source_url: "https://data.ris.ripe.net/rrc00/2019.08/bview.20190821.0000.gz".into(),
+            source_sha256: "ris_sha".into(),
+            collector: "rrc00".into(),
+            predicate_repr: "origin=2603 transit=ContainsAny[11537]".into(),
+            entity_origin_asns: vec![2603],
+            transit_predicate_identity: "ContainsAny[11537]".into(),
+            cohort_identity: "cohort-ris".into(),
+            baseline_route_keys: vec![],
+            preflight: PreflightCounts {
+                collectors_requested: 1,
+                collectors_with_usable_ribs: 1,
+                origin_matching_routes: 1,
+                transit_matching_routes: 1,
+                frozen_streams: 0,
+                distinct_prefixes: 0,
+                distinct_peers: 0,
+            },
+            frozen_streams: vec![],
+            baseline_observations: vec![],
+            payload_checksum: bytes_to_hex(&Sha256::digest(b"[]")[..16]),
+        };
+        save_rib_cache(dir.path(), &ris_key, &entry).unwrap();
+        let loaded = load_rib_cache(dir.path(), &ris_key, "ris_sha");
+        assert!(loaded.is_some(), "RIS cache must round-trip");
+        assert_eq!(loaded.unwrap().source_sha256, "ris_sha");
+        // The RouteViews key must NOT find the RIS entry.
+        assert!(load_rib_cache(dir.path(), &rv_key, "ris_sha").is_none());
+
+        // UPDATE cache keys are family-scoped too.
+        let u_ris = update_cache_key("sha", "rrc00", "tsh", "RipeRis");
+        let u_rv = update_cache_key("sha", "rrc00", "tsh", "RouteViews");
+        assert_ne!(u_ris, u_rv);
     }
 }

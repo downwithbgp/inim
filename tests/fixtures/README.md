@@ -121,3 +121,21 @@ and `out/` (excluded from the package).
 The fixture JSON shapes and the test harness around them are original inim
 code (MIT). The upstream MRT bytes and the public ticket facts are not
 inim's own work and retain their own provenance above.
+
+### 3c. RIPE RIS archive fixture — `ris/updates.20190821.1600.gz`
+
+- **Purpose:** drive RIPE RIS execution tests (Session 34, Part 4):
+  the same ingestion/reconstruction pipeline must accept RIS MRT
+  archives (BGP4MP, gzip) exactly like RouteViews archives.
+- **Source:** RIPE RIS route collector `rrc00`
+  (`https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1600.gz`),
+  captured 2026-08-01.
+- **Exact or minimized:** exact copy of the 5-minute UPDATE archive as
+  served (1,758,208 bytes; SHA-256
+  `cd4ed1d6ca379344064ce30b3bd6a2691dfc7aba04bd49e25e7760f82257da19`).
+- **Original author/project:** RIPE NCC (public BGP data).
+- **Upstream license:** RIPE NCC public data; RIPE RIS data is publicly
+  available for research and operational use.
+- **Why redistribution is permitted:** RIPE RIS archives are published
+  for unrestricted public download; this single 5-minute sample is a
+  documented fixture.

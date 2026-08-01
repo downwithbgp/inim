@@ -44,6 +44,8 @@ pub struct OutputContext<'a> {
     pub transit_predicate: Option<&'a crate::domain::route::TransitPredicate>,
     /// Collectors requested by the reviewed manifest (before preflight).
     pub requested_collectors: &'a [String],
+    /// Source family label for report wording (e.g. RouteViews or RIS).
+    pub source_family_label: &'a str,
     pub limitations: &'a [String],
     /// Whether the report may use the NoObservableBgpImpact wording.
     pub no_observable_impact: bool,
@@ -1262,7 +1264,10 @@ struct Limitations {
 fn write_limitations(ctx: &OutputContext, path: &Path) -> Result<(), String> {
     let lim = Limitations {
         observer: vec![
-            "Analysis uses selected RouteViews collectors only. Selected collectors do not provide global visibility.".into(),
+            format!(
+                "Analysis uses selected {} collectors only. Selected collectors do not provide global visibility.",
+                ctx.source_family_label
+            ),
             "BGP route state is not traffic measurement.".into(),
         ],
         continuity_gaps: ctx.limitations.iter()
@@ -1346,6 +1351,7 @@ mod tests {
             declared_expectation: "Redundant (site code NEWA)",
             target_predicate: "origin AS3333 AND AS11537 in path",
             collectors,
+            source_family_label: "RouteViews",
             selected_ribs: ribs,
             selected_updates: updates,
             preflight: None,
@@ -1576,6 +1582,79 @@ mod tests {
         assert!(content.contains("add_path"));
         assert!(content.contains("manual_mappings"));
         assert!(content.contains("unsupported_conclusions"));
+    }
+
+    #[test]
+    fn ris_report_names_ripe_ris_not_routeviews() {
+        // A run whose manifest family is RIPE RIS must name RIPE RIS in
+        // its report and never claim RouteViews collectors.
+        use crate::domain::assessment::{Evidence, Verdict};
+        use crate::domain::event::EventId;
+        use crate::domain::expectation::{ExpectationKind, ImpactExpectation};
+        use chrono::{TimeZone, Utc};
+        let outcome = AnalysisOutcome::completed(EventAssessment {
+            event_id: EventId::from("TEST"),
+            expectation: ImpactExpectation {
+                kind: ExpectationKind::Redundant,
+                description: "test".into(),
+                provenance: "test".into(),
+            },
+            verdict: Verdict::ExpectedLossOfReachability,
+            evidence: vec![Evidence {
+                description: "none".into(),
+                source_records: vec![],
+            }],
+            waves: vec![],
+            generated_at: Utc.with_ymd_and_hms(2019, 8, 21, 17, 0, 0).unwrap(),
+        });
+        let collectors = vec!["rrc00".to_string()];
+        let ribs = vec![];
+        let updates = vec![];
+        let transitions = vec![];
+        let waves = vec![];
+        let semantic_waves = vec![];
+        let lifecycles = vec![];
+        let limitations = vec![];
+        let ctx = OutputContext {
+            outcome: &outcome,
+            event_id: "TEST",
+            ticket_title: "Test Ticket",
+            event_window: "2019-08-21 16:00:00 UTC - 2019-08-21 17:30:00 UTC",
+            warmup_window: "2019-08-21 02:00:00 UTC - 2019-08-21 16:00:00 UTC",
+            cooldown_window: "2019-08-21 17:30:00 UTC - 2019-08-21 18:30:00 UTC",
+            declared_expectation: "Redundant",
+            target_predicate: "origin AS2603 AND AS11537 in path",
+            collectors: &collectors,
+            source_family_label: "RIPE RIS",
+            selected_ribs: &ribs,
+            selected_updates: &updates,
+            preflight: None,
+            continuity: "Known",
+            transitions: &transitions,
+            waves: &waves,
+            semantic_waves: &semantic_waves,
+            lifecycles: &lifecycles,
+            ticket_lifecycle: "Closed",
+            expectation_kind_label: "redundant-attachment",
+            transit_predicate_identity: "ContainsAny[11537]",
+            transit_predicate: None,
+            requested_collectors: &collectors,
+            limitations: &limitations,
+            no_observable_impact: false,
+        };
+        let dir = tempfile::tempdir().unwrap();
+        write_outputs(&ctx, dir.path()).unwrap();
+        let limitations = std::fs::read_to_string(dir.path().join("limitations.json")).unwrap();
+        assert!(
+            limitations.contains("RIPE RIS"),
+            "RIS run must name RIPE RIS, got: {limitations}"
+        );
+        assert!(
+            !limitations.contains("RouteViews"),
+            "RIS run must not be mislabeled as RouteViews"
+        );
+        let report = std::fs::read_to_string(dir.path().join("report.txt")).unwrap();
+        assert!(report.contains("rrc00"));
     }
 
     #[test]
@@ -2019,6 +2098,7 @@ mod tests {
                 declared_expectation: "Redundant: Parenthesized site code (NEWA)",
                 target_predicate: "origin AS3333 AND baseline AS path contains AS11537",
                 collectors: &self.collectors,
+                source_family_label: "RouteViews",
                 selected_ribs: &self.ribs,
                 selected_updates: &self.updates,
                 preflight: None,

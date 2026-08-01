@@ -196,8 +196,14 @@ pub fn select_updates(
         })
         .collect();
 
-    // Sort by canonical ts_start, then dedupe by URL (keep first)
-    updates.sort_by_key(|item| canonical_ts_start(item, lower));
+    // Sort by canonical ts_start, then URL — a total order so equal
+    // timestamps cannot depend on input order (mixed-source runs stay
+    // deterministic), then dedupe by URL (keep first)
+    updates.sort_by(|a, b| {
+        canonical_ts_start(a, lower)
+            .cmp(&canonical_ts_start(b, lower))
+            .then_with(|| a.url.cmp(&b.url))
+    });
     let mut seen = std::collections::HashSet::new();
     let mut dups: Vec<String> = Vec::new();
     updates.retain(|item| {
@@ -882,5 +888,205 @@ mod tests {
         assert!(ts.is_some());
         let ts = ts.unwrap();
         assert_eq!(ts.timestamp(), t("2026-07-30T08:15:00Z").timestamp());
+    }
+}
+
+#[cfg(test)]
+mod session34_ris_tests {
+    use super::*;
+    use chrono::Utc;
+
+    fn t(s: &str) -> chrono::DateTime<Utc> {
+        chrono::DateTime::parse_from_rfc3339(s).unwrap().to_utc()
+    }
+
+    /// Parse a RIS stamp (`YYYYMMDD.HHMM`) as UTC.
+    fn ts_from_stamp(stamp: &str) -> chrono::DateTime<Utc> {
+        chrono::NaiveDateTime::parse_from_str(stamp, "%Y%m%d.%H%M")
+            .unwrap()
+            .and_utc()
+    }
+
+    fn make_ris_rib(stamp: &str, collector: &str) -> ArchiveItem {
+        ArchiveItem {
+            project: "riperis".into(),
+            collector_id: collector.into(),
+            data_type: "rib".into(),
+            ts_start: ts_from_stamp(stamp),
+            ts_end: ts_from_stamp(stamp) + chrono::Duration::hours(8),
+            url: format!("https://data.ris.ripe.net/{collector}/2019.08/bview.{stamp}.gz"),
+            size: 60_000_000,
+        }
+    }
+
+    fn make_update(ts_start: &str, ts_end: &str, collector: &str) -> ArchiveItem {
+        ArchiveItem {
+            project: "routeviews".into(),
+            collector_id: collector.into(),
+            data_type: "updates".into(),
+            ts_start: t(ts_start),
+            ts_end: t(ts_end),
+            url: format!(
+                "http://archive.routeviews.org/{collector}/updates.{}.bz2",
+                ts_start.replace(['-', ':', ' '], "")
+            ),
+            size: 5_000_000,
+        }
+    }
+
+    fn make_ris_update(stamp: &str, collector: &str) -> ArchiveItem {
+        ArchiveItem {
+            project: "riperis".into(),
+            collector_id: collector.into(),
+            data_type: "updates".into(),
+            ts_start: ts_from_stamp(stamp),
+            ts_end: ts_from_stamp(stamp) + chrono::Duration::minutes(5),
+            url: format!("https://data.ris.ripe.net/{collector}/2019.08/updates.{stamp}.gz"),
+            size: 2_000_000,
+        }
+    }
+
+    #[test]
+    fn ris_bview_selects_latest_pre_window_baseline() {
+        // RIS bviews sit on the 8-hour 00/08/16 grid. For a warmup at
+        // 02:00 UTC the pre-window baseline is the 00:00 bview.
+        let warmup = t("2019-08-21T02:00:00Z");
+        let items = vec![
+            make_ris_rib("20190820.1600", "rrc00"),
+            make_ris_rib("20190821.0000", "rrc00"),
+            make_ris_rib("20190821.0800", "rrc00"), // after warmup — not eligible
+        ];
+        let best = select_rib(&items, warmup).unwrap();
+        assert_eq!(
+            best.url,
+            "https://data.ris.ripe.net/rrc00/2019.08/bview.20190821.0000.gz"
+        );
+        assert_eq!(best.ts_start, t("2019-08-21T00:00:00Z"));
+        // The 16:00 bview from the previous day is older — never chosen.
+        assert!(best.ts_start > t("2019-08-20T16:00:00Z"));
+    }
+
+    #[test]
+    fn ris_update_selection_covers_requested_window() {
+        // RIS updates are 5-minute files. The selection must cover the
+        // full [rib-30min, cooldown_end] interval on the 5-minute grid.
+        let rib_ts = t("2019-08-21T00:00:00Z");
+        let cooldown_end = t("2019-08-21T18:30:00Z");
+        let mut items = Vec::new();
+        let mut stamp = "20190821.0000".to_string();
+        while ts_from_stamp(&stamp) <= cooldown_end {
+            items.push(make_ris_update(&stamp, "rrc00"));
+            let next = ts_from_stamp(&stamp) + chrono::Duration::minutes(5);
+            stamp = next.format("%Y%m%d.%H%M").to_string();
+        }
+        let selected = select_updates(&items, rib_ts, cooldown_end);
+        assert!(!selected.is_empty());
+        let first = selected.first().unwrap();
+        let last = selected.last().unwrap();
+        // Coverage: first file at/after rib_ts - tolerance, last file at/after cooldown_end
+        assert!(first.ts_start <= rib_ts + chrono::Duration::minutes(30));
+        assert!(last.ts_start >= cooldown_end - chrono::Duration::minutes(5));
+        // Consecutive 5-minute cadence with no gaps.
+        for w in selected.windows(2) {
+            let gap = w[1].ts_start - w[0].ts_end;
+            assert!(gap <= chrono::Duration::minutes(1), "gap {gap:?}");
+        }
+    }
+
+    #[test]
+    fn routeviews_and_ris_archive_identity_cannot_collide() {
+        // Collector identity is (family, collector): the same collector
+        // NAME in two families is still two distinct identities, and the
+        // derived-cache keys differ because family is part of the key.
+        use crate::catalog::archive_plan::SourceFamily;
+        let rv = SourceFamily::RouteViews;
+        let ris = SourceFamily::RipeRis;
+        assert_ne!(
+            format!("{}|{}", rv.as_str(), "rrc00"),
+            format!("{}|{}", ris.as_str(), "rrc00")
+        );
+        // Raw archive URLs differ by family even for the same stamp.
+        let rv_url = crate::catalog::archive_plan::archive_url_for(
+            SourceFamily::RouteViews,
+            "rrc00",
+            t("2019-08-21T00:00:00Z"),
+            "RIBS",
+        );
+        let ris_url = crate::catalog::archive_plan::archive_url_for(
+            SourceFamily::RipeRis,
+            "rrc00",
+            t("2019-08-21T00:00:00Z"),
+            "RIBS",
+        );
+        assert_ne!(rv_url, ris_url);
+        assert!(ris_url.contains("bview.20190821.0000.gz"));
+        // Cache keys never collide across families.
+        let k_rv = crate::derived_cache::rib_cache_key(
+            "sha",
+            "rrc00",
+            &[2603],
+            &crate::domain::route::TransitPredicate::ContainsAny(vec![11537]),
+            1,
+            "RouteViews",
+        );
+        let k_ris = crate::derived_cache::rib_cache_key(
+            "sha",
+            "rrc00",
+            &[2603],
+            &crate::domain::route::TransitPredicate::ContainsAny(vec![11537]),
+            1,
+            "RipeRis",
+        );
+        assert_ne!(k_rv, k_ris);
+        let u_rv = crate::derived_cache::update_cache_key("sha", "rrc00", "tsh", "RouteViews");
+        let u_ris = crate::derived_cache::update_cache_key("sha", "rrc00", "tsh", "RipeRis");
+        assert_ne!(u_rv, u_ris);
+    }
+
+    #[test]
+    fn mixed_source_artifact_order_is_deterministic() {
+        // Mixed RouteViews + RIS items selected together keep a
+        // deterministic order anchored on canonical ts_start.
+        let rib_ts = t("2019-08-21T00:00:00Z");
+        let cooldown_end = t("2019-08-21T16:05:00Z");
+        let mut items = vec![
+            make_ris_update("20190821.1600", "rrc00"),
+            make_update(
+                "2019-08-21T15:30:00Z",
+                "2019-08-21T15:45:00Z",
+                "route-views2",
+            ),
+            make_ris_update("20190821.1545", "rrc00"),
+            make_update(
+                "2019-08-21T16:00:00Z",
+                "2019-08-21T16:15:00Z",
+                "route-views2",
+            ),
+            make_ris_update("20190821.1530", "rrc00"),
+        ];
+        let first = select_updates(&items, rib_ts, cooldown_end);
+        let urls1: Vec<String> = first.iter().map(|i| i.url.clone()).collect();
+        // Deterministic chronological order across families: canonical
+        // ts_start is monotonic non-decreasing and the total order
+        // (ts_start, url) breaks ties consistently.
+        for w in first.windows(2) {
+            let a = canonical_ts_start(w[0], rib_ts - chrono::Duration::minutes(30));
+            let b = canonical_ts_start(w[1], rib_ts - chrono::Duration::minutes(30));
+            assert!(a <= b, "chronological order violated");
+            if a == b {
+                assert!(w[0].url < w[1].url, "tie must break by URL");
+            }
+        }
+        // Shuffle inputs — the selection is still identical.
+        items.reverse();
+        let second = select_updates(&items, rib_ts, cooldown_end);
+        let urls2: Vec<String> = second.iter().map(|i| i.url.clone()).collect();
+        assert_eq!(urls1, urls2);
+        assert!(urls1
+            .iter()
+            .any(|u| u.contains("rrc00") && u.contains(".gz")));
+        assert!(urls1
+            .iter()
+            .any(|u| u.contains("route-views2") && u.contains(".bz2")));
     }
 }
