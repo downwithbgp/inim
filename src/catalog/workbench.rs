@@ -460,6 +460,274 @@ pub fn classify_session_relationship(
     relationship_kind(&rels)
 }
 
+// ── Operational sentence rendering (Part 4) ─────────────────────────
+
+/// Render one episode as a concise, data-supported operational sentence.
+///
+/// Rules enforced here (and by the required tests):
+/// - The collector SITE is named at the collector's reviewed location;
+///   the peer's own location is never implied ("RRC06 at Otemachi,
+///   Tokyo, receiving routes from peer AS…" — the peer is not said to be
+///   in Tokyo unless separately reviewed).
+/// - The verb is effect-specific (became absent / was withdrawn /
+///   changed AS path / left the reviewed path plane / returned to
+///   visibility / restored its baseline path / remained changed).
+/// - Visibility restoration ("returned to visibility") is distinct from
+///   baseline restoration ("restored its baseline path").
+/// - When stream and prefix counts differ, both units are named
+///   ("14 observer-prefix streams covering 11 prefixes").
+/// - The sentence never claims traffic loss and never claims causation.
+pub fn render_episode_sentence(episode: &ObserverEpisode) -> String {
+    let site = &episode.observer_site;
+    let collector = collector_from_session(&episode.observer_session);
+    let peer = match episode.peer_asn {
+        Some(asn) => format!("peer AS{asn}"),
+        None => {
+            // Peer identity is unreviewed: name only the peer IP.
+            let ip = episode
+                .observer_session
+                .rsplit("peer ")
+                .next()
+                .unwrap_or("unreviewed peer");
+            format!("peer {ip} (ASN unreviewed)")
+        }
+    };
+    let plane = &episode.named_path_plane;
+    let unit = match (episode.changed_stream_count, episode.distinct_prefix_count) {
+        (s, p) if s == p && s == 1 => "1 selected prefix".to_string(),
+        (s, p) if s == p => format!("{s} selected prefixes"),
+        (s, p) => format!("{s} observer-prefix streams covering {p} prefixes"),
+    };
+
+    let head = format!("{collector} at {site}, receiving routes from {peer},");
+
+    match episode.effect_kind {
+        EffectKind::TemporaryStreamAbsence => {
+            let t = episode
+                .first_change
+                .clone()
+                .unwrap_or_else(|| "the observed time".to_string());
+            let restored = match (&episode.restoration_start, &episode.restoration_end) {
+                (Some(a), Some(b)) if a != b => format!(" between {a} and {b} UTC"),
+                (Some(a), _) => format!(" at {a} UTC"),
+                _ => String::new(),
+            };
+            format!(
+                "{head} saw {unit} become absent at {t} UTC and return to visibility{restored}."
+            )
+        }
+        EffectKind::RouteWithdrawal => {
+            let t = episode
+                .first_change
+                .clone()
+                .unwrap_or_else(|| "the observed time".to_string());
+            format!(
+                "{head} saw {unit} was withdrawn at {t} UTC and remained absent through the end of the analysis window."
+            )
+        }
+        EffectKind::PathReplacement => {
+            let t = episode
+                .first_change
+                .clone()
+                .unwrap_or_else(|| "the observed time".to_string());
+            let restored = match &episode.restoration_start {
+                Some(r) => format!(" Their initial path class returned by {r} UTC."),
+                None => String::new(),
+            };
+            format!("{head} saw {unit} change AS path at {t} UTC.{restored}")
+        }
+        EffectKind::NamedPlaneDeparture => {
+            let t = episode
+                .first_change
+                .clone()
+                .unwrap_or_else(|| "the observed time".to_string());
+            format!("{head} saw {unit} leave the {plane} path at {t} UTC.")
+        }
+        EffectKind::NamedPlaneReturn => {
+            let t = episode
+                .first_change
+                .clone()
+                .unwrap_or_else(|| "the observed time".to_string());
+            format!("{head} saw {unit} return to the {plane} path at {t} UTC.")
+        }
+        EffectKind::PrependChange => {
+            let t = episode
+                .first_change
+                .clone()
+                .unwrap_or_else(|| "the observed time".to_string());
+            format!(
+                "{head} saw {unit} change AS-path prepending at {t} UTC while retaining the {plane} path."
+            )
+        }
+        EffectKind::MixedRouteChange => {
+            let t = episode
+                .first_change
+                .clone()
+                .unwrap_or_else(|| "the observed time".to_string());
+            format!("{head} saw mixed route-state changes across {unit} beginning at {t} UTC.")
+        }
+        EffectKind::NoRouteStateChange => {
+            format!("{head} observed no route-state change among the selected streams.")
+        }
+    }
+}
+
+/// Extract the collector label from an observer session string of the
+/// form "<family>/<collector> peer <ip>".
+fn collector_from_session(session: &str) -> &str {
+    match session.split_once('/') {
+        Some((_, rest)) => match rest.split_once(" peer ") {
+            Some((c, _)) => c,
+            None => rest,
+        },
+        None => session,
+    }
+}
+
+#[cfg(test)]
+mod sentence_tests {
+    use super::*;
+
+    fn episode(kind: EffectKind) -> ObserverEpisode {
+        ObserverEpisode {
+            analysis_run: 1,
+            observer_session: "catalog/rrc06 peer 192.0.2.1".to_string(),
+            observer_site: "Otemachi, Tokyo, Japan".to_string(),
+            observer_region: "APAC".to_string(),
+            peer_asn: Some(64500),
+            peer_label: "AS64500".to_string(),
+            peer_role: "regional-re".to_string(),
+            relationship: RelationshipKind::Direct,
+            named_path_plane: "Plane A".to_string(),
+            effect_kind: kind,
+            first_change: Some("2019-08-21T16:45:25Z".to_string()),
+            peak_interval: None,
+            last_change: Some("2019-08-21T17:02:19Z".to_string()),
+            restoration_start: Some("2019-08-21T16:59:00Z".to_string()),
+            restoration_end: Some("2019-08-21T17:02:00Z".to_string()),
+            baseline_stream_count: 11,
+            changed_stream_count: 11,
+            distinct_prefix_count: 11,
+            route_instance_count: 11,
+            unresolved_count: 0,
+            coverage_status: CoverageStatus::NoChange,
+            representative_evidence: String::new(),
+            streams: Vec::new(),
+        }
+    }
+
+    #[test]
+    fn sentence_distinguishes_collector_site_from_peer_location() {
+        let ep = episode(EffectKind::TemporaryStreamAbsence);
+        let s = render_episode_sentence(&ep);
+        // The collector site is named; the peer is NOT said to be in Tokyo.
+        assert!(s.contains("rrc06 at Otemachi, Tokyo, Japan"), "{s}");
+        assert!(s.contains("receiving routes from peer AS64500"), "{s}");
+        assert!(
+            !s.contains("peer AS64500 at Otemachi") && !s.contains("peer in Tokyo"),
+            "peer location must not be implied from the collector site: {s}"
+        );
+    }
+
+    #[test]
+    fn sentence_uses_effect_specific_verb() {
+        let s_absent = render_episode_sentence(&episode(EffectKind::TemporaryStreamAbsence));
+        assert!(s_absent.contains("become absent"), "{s_absent}");
+        let s_withdrawn = render_episode_sentence(&episode(EffectKind::RouteWithdrawal));
+        assert!(s_withdrawn.contains("was withdrawn"), "{s_withdrawn}");
+        let s_path = render_episode_sentence(&episode(EffectKind::PathReplacement));
+        assert!(s_path.contains("change AS path"), "{s_path}");
+        let s_depart = render_episode_sentence(&episode(EffectKind::NamedPlaneDeparture));
+        assert!(s_depart.contains("leave the Plane A path"), "{s_depart}");
+        let s_prepend = render_episode_sentence(&episode(EffectKind::PrependChange));
+        assert!(
+            s_prepend.contains("change AS-path prepending"),
+            "{s_prepend}"
+        );
+        // "rerouted" is never a universal substitute.
+        assert!(!s_absent.contains("rerouted"));
+        assert!(!s_withdrawn.contains("rerouted"));
+        assert!(!s_path.contains("rerouted"));
+    }
+
+    #[test]
+    fn sentence_distinguishes_visibility_restoration_from_baseline_restoration() {
+        let s = render_episode_sentence(&episode(EffectKind::TemporaryStreamAbsence));
+        assert!(
+            s.contains("return to visibility"),
+            "visibility restoration wording: {s}"
+        );
+        assert!(
+            !s.contains("restored its baseline path"),
+            "baseline restoration is a different claim: {s}"
+        );
+        let ep = episode(EffectKind::PathReplacement);
+        let s2 = render_episode_sentence(&ep);
+        assert!(s2.contains("initial path class returned"), "{s2}");
+    }
+
+    #[test]
+    fn sentence_names_stream_and_prefix_units_when_they_differ() {
+        let mut ep = episode(EffectKind::TemporaryStreamAbsence);
+        ep.changed_stream_count = 14;
+        ep.distinct_prefix_count = 11;
+        let s = render_episode_sentence(&ep);
+        assert!(
+            s.contains("14 observer-prefix streams covering 11 prefixes"),
+            "both units must be named when they differ: {s}"
+        );
+    }
+
+    #[test]
+    fn sentence_never_claims_traffic_loss() {
+        for kind in [
+            EffectKind::TemporaryStreamAbsence,
+            EffectKind::RouteWithdrawal,
+            EffectKind::PathReplacement,
+            EffectKind::NamedPlaneDeparture,
+            EffectKind::NamedPlaneReturn,
+            EffectKind::PrependChange,
+            EffectKind::MixedRouteChange,
+            EffectKind::NoRouteStateChange,
+        ] {
+            let s = render_episode_sentence(&episode(kind));
+            assert!(
+                !s.to_lowercase().contains("traffic lost")
+                    && !s.to_lowercase().contains("traffic loss")
+                    && !s.to_lowercase().contains("downtime"),
+                "traffic-loss claim: {s}"
+            );
+        }
+    }
+
+    #[test]
+    fn sentence_never_claims_causation() {
+        for kind in [
+            EffectKind::TemporaryStreamAbsence,
+            EffectKind::RouteWithdrawal,
+            EffectKind::PathReplacement,
+            EffectKind::NamedPlaneDeparture,
+            EffectKind::NoRouteStateChange,
+        ] {
+            let s = render_episode_sentence(&episode(kind));
+            assert!(
+                !s.to_lowercase().contains("caused")
+                    && !s.to_lowercase().contains("because")
+                    && !s.to_lowercase().contains("due to"),
+                "causation claim: {s}"
+            );
+        }
+    }
+
+    #[test]
+    fn unreviewed_peer_asn_is_never_claimed() {
+        let mut ep = episode(EffectKind::TemporaryStreamAbsence);
+        ep.peer_asn = None;
+        let s = render_episode_sentence(&ep);
+        assert!(s.contains("ASN unreviewed"), "{s}");
+    }
+}
+
 /// Build a session-peer context map from reviewed audit rows.
 ///
 /// Key: (collector, peer_ip) → (peer_asn, peer_label, peer_role,
