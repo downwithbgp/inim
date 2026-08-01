@@ -1119,6 +1119,11 @@ fn observer_conclusion(
     } else {
         target_label
     };
+    let target_sentence = if target_label.is_empty() {
+        "the reviewed target".to_string()
+    } else {
+        format!("the reviewed {target_label} target")
+    };
     let multi = c
         .statements
         .iter()
@@ -1129,19 +1134,19 @@ fn observer_conclusion(
         .any(|s| s.statement == "Observed only at one selected collector");
     if multi {
         format!(
-            "Similar transient route-state disruption was observed at multiple selected public collectors for the reviewed {target} target. This does not establish traffic loss, the Layer-2 mechanism, or a complete {target} incident impact."
+            "Similar transient route-state disruption was observed at multiple selected public collectors for {target_sentence}. This does not establish traffic loss, the Layer-2 mechanism, or a complete incident impact."
         )
     } else if single {
         format!(
-            "Route-state change was observed at one selected public collector for the reviewed {target} target; other selected collectors did not show a corresponding change. This does not establish traffic loss, the Layer-2 mechanism, or a complete {target} incident impact."
+            "Route-state change was observed at one selected public collector for {target_sentence}; other selected collectors did not show a corresponding change. This does not establish traffic loss, the Layer-2 mechanism, or a complete incident impact."
         )
     } else if c.statements.is_empty() {
         format!(
-            "No selected observer had baseline visibility for the reviewed {target} target; no cross-observer comparison is possible."
+            "No selected observer had baseline visibility for {target_sentence}; no cross-observer comparison is possible."
         )
     } else {
         format!(
-            "No route-state disruption was observed at the selected public collectors for the reviewed {target} target."
+            "No route-state disruption was observed at the selected public collectors for {target_sentence}."
         )
     }
 }
