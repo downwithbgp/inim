@@ -3254,19 +3254,12 @@ mod session32_tests {
 
     #[test]
     fn pilot_summary_uses_observer_scoped_language() {
-        let report = std::fs::read_dir("case-studies/manlan-2019/pilot/out")
-            .ok()
-            .and_then(|mut it| {
-                it.find_map(|e| {
-                    let p = e.ok()?.path();
-                    if p.is_dir() && p.join("report.txt").is_file() {
-                        std::fs::read_to_string(p.join("report.txt")).ok()
-                    } else {
-                        None
-                    }
-                })
-            })
-            .unwrap_or_default();
+        // The RouteViews pilot report specifically (the out directory now
+        // also contains RIPE RIS run reports).
+        let report = std::fs::read_to_string(
+            "case-studies/manlan-2019/pilot/out/MANLAN-2019-NORDUNET-PILOT/report.txt",
+        )
+        .unwrap_or_default();
         if report.is_empty() {
             return; // artifacts not present (packaged crate)
         }
