@@ -854,6 +854,55 @@ pub struct CaseStudyView {
     pub observability_indirectly_visible: usize,
     pub observability_not_directly_visible: usize,
     pub observability_unknown: usize,
+    /// Reviewed corpus tickets related to the case study (Session 34).
+    pub public_tickets: Vec<PublicTicketView>,
+    /// Cross-observer comparison over linked runs (Session 34, Part 7).
+    pub observer_comparison: ObserverComparisonView,
+}
+
+/// One related public corpus ticket with its reviewed interpretation.
+#[derive(Serialize)]
+pub struct PublicTicketView {
+    pub external_id: String,
+    pub title: String,
+    pub task_type: String,
+    pub reviewed_roles: String,
+    pub source_window: String,
+    pub relationship_evidence: String,
+    pub readiness: String,
+    pub next_action: String,
+}
+
+/// Cross-observer comparison (rows + statements + conclusion wording).
+#[derive(Serialize, Default)]
+pub struct ObserverComparisonView {
+    pub rows: Vec<ObserverComparisonRowView>,
+    pub statements: Vec<ObserverStatementView>,
+    /// Narrow conclusion wording per the reviewed session brief.
+    pub conclusion: String,
+}
+
+#[derive(Serialize)]
+pub struct ObserverComparisonRowView {
+    pub prefix: String,
+    pub collector: String,
+    pub family: String,
+    pub peer: String,
+    pub first_change_utc: String,
+    pub temporary_absence: String,
+    pub path_replacement: String,
+    pub transit_departure: String,
+    pub restoration_utc: String,
+    pub baseline_visibility: String,
+}
+
+#[derive(Serialize)]
+pub struct ObserverStatementView {
+    pub prefix: String,
+    pub visible_at: String,
+    pub changed_at: String,
+    pub statement: String,
+    pub timing_note: String,
 }
 
 #[derive(Serialize)]
@@ -1052,6 +1101,30 @@ fn research_state_for(conn: &rusqlite::Connection, slug: &str) -> Result<String,
 }
 
 /// Load the case-study detail view; None when the slug is unknown.
+/// Narrow conclusion wording for the observer comparison (Session 34,
+/// Part 9). Multi-observer corresponding changes use the reviewed
+/// sentence; single-observer observations say so directly; disagreement
+/// is never hidden.
+fn observer_conclusion(c: &crate::catalog::observer_compare::ObserverComparison) -> String {
+    let multi = c
+        .statements
+        .iter()
+        .any(|s| s.statement.starts_with("Observed at") && s.changed_at.len() >= 2);
+    let single = c
+        .statements
+        .iter()
+        .any(|s| s.statement == "Observed only at one selected collector");
+    if multi {
+        "Similar transient route-state disruption was observed at multiple selected public collectors for the reviewed NORDUnet target. This does not establish traffic loss, the Layer-2 mechanism, or a complete MAN LAN incident impact.".to_string()
+    } else if single {
+        "Route-state change was observed at one selected public collector for the reviewed NORDUnet target; other selected collectors did not show a corresponding change. This does not establish traffic loss, the Layer-2 mechanism, or a complete MAN LAN incident impact.".to_string()
+    } else if c.statements.is_empty() {
+        "No selected observer had baseline visibility for the reviewed target; no cross-observer comparison is possible.".to_string()
+    } else {
+        "No route-state disruption was observed at the selected public collectors for the reviewed NORDUnet target.".to_string()
+    }
+}
+
 pub fn load_case_study(
     conn: &rusqlite::Connection,
     slug: &str,
@@ -1526,6 +1599,145 @@ pub fn load_case_study(
         }
     }
 
+    // ── Session 34: reviewed public tickets + observer comparison ────
+    let mut public_tickets = Vec::new();
+    {
+        let mut stmt = conn
+            .prepare(
+                "SELECT l.catalog_event_id FROM case_study_event_links l
+                 JOIN catalog_events e ON e.id = l.catalog_event_id
+                 WHERE l.case_study_id = ?1 AND l.catalog_event_id IS NOT NULL
+                   AND e.source_kind = 'grnoc-public-task-viewer'
+                 ORDER BY e.external_id",
+            )
+            .map_err(|e| format!("catalog read failed: {e}"))?;
+        let event_ids: Vec<i64> = stmt
+            .query_map([cs_id], |r| r.get::<_, i64>(0))
+            .map_err(|e| format!("catalog read failed: {e}"))?
+            .flatten()
+            .collect();
+        for event_id in event_ids {
+            let event = crate::catalog::db::get_event(conn, event_id)?
+                .ok_or_else(|| "linked event missing".to_string())?;
+            let review = crate::catalog::store::get_ticket_review(conn, event_id)?;
+            let snap = crate::catalog::db::list_snapshots(conn, event_id)?
+                .first()
+                .cloned();
+            let mut title = String::new();
+            let mut task_type = String::new();
+            let mut source_window = String::new();
+            if let Some(s) = &snap {
+                if let Ok(v) = serde_json::from_str::<serde_json::Value>(&s.normalized_json) {
+                    title = v
+                        .get("title")
+                        .and_then(|x| x.as_str())
+                        .unwrap_or("")
+                        .to_string();
+                    task_type = v
+                        .get("task_type")
+                        .and_then(|x| x.as_str())
+                        .unwrap_or("")
+                        .to_string();
+                    let start = v
+                        .get("start")
+                        .and_then(|x| x.as_str())
+                        .unwrap_or("")
+                        .to_string();
+                    let end = v
+                        .get("end")
+                        .and_then(|x| x.as_str())
+                        .unwrap_or("")
+                        .to_string();
+                    source_window = if start.is_empty() && end.is_empty() {
+                        "no source window (AAR-dated)".to_string()
+                    } else {
+                        format!("{start} → {end}")
+                    };
+                }
+            }
+            // Relationship evidence: first reviewed or explicit edge from
+            // this ticket.
+            let mut relationship_evidence = String::new();
+            for edge in crate::catalog::store::list_relationships(conn, Some(event_id))? {
+                if edge.evidence_kind == crate::catalog::domain::EVIDENCE_DERIVED_TEMPORAL_OVERLAP {
+                    continue;
+                }
+                relationship_evidence =
+                    format!("{} ({})", edge.relationship_kind, edge.evidence_kind);
+                break;
+            }
+            let analyzability = crate::catalog::analyzability::derive_analyzability(conn, &event)?;
+            let applicability = review
+                .as_ref()
+                .map(|r| r.analysis_applicability.as_str())
+                .unwrap_or("");
+            let next_action = crate::catalog::analyzability::next_analyst_action(
+                &analyzability.readiness,
+                applicability,
+            )
+            .to_string();
+            public_tickets.push(PublicTicketView {
+                external_id: event.external_id,
+                title,
+                task_type,
+                reviewed_roles: review
+                    .map(|r| r.reviewed_roles.join(", "))
+                    .unwrap_or_default(),
+                source_window,
+                relationship_evidence,
+                readiness: analyzability.readiness,
+                next_action,
+            });
+        }
+    }
+
+    let comparison_data = crate::catalog::observer_compare::build_observer_comparison(conn, cs_id)?;
+    let conclusion = observer_conclusion(&comparison_data);
+    let observer_rows = comparison_data
+        .rows
+        .iter()
+        .map(|r| ObserverComparisonRowView {
+            prefix: r.prefix.clone(),
+            collector: r.collector.clone(),
+            family: r.family.clone(),
+            peer: r.peer.clone(),
+            first_change_utc: r.first_change_utc.clone().unwrap_or_default(),
+            temporary_absence: r.temporary_absence.clone().unwrap_or_default(),
+            path_replacement: if r.path_replacement {
+                "yes".into()
+            } else {
+                "no".into()
+            },
+            transit_departure: if r.transit_departure {
+                "yes".into()
+            } else {
+                "no".into()
+            },
+            restoration_utc: r.restoration_utc.clone().unwrap_or_default(),
+            baseline_visibility: if r.baseline_visibility {
+                "yes".into()
+            } else {
+                "no".into()
+            },
+        })
+        .collect();
+    let observer_statements = comparison_data
+        .statements
+        .iter()
+        .map(|s| ObserverStatementView {
+            prefix: s.prefix.clone(),
+            visible_at: s.visible_at.join(", "),
+            changed_at: s.changed_at.join(", "),
+            statement: s.statement.clone(),
+            timing_note: s.timing_note.clone(),
+        })
+        .collect();
+    let observer_comparison = ObserverComparisonView {
+        rows: observer_rows,
+        statements: observer_statements,
+        conclusion,
+    };
+
     Ok(Some(CaseStudyView {
         slug: cs.slug,
         title: cs.title,
@@ -1543,6 +1755,8 @@ pub fn load_case_study(
         runs,
         phase_summaries,
         comparison,
+        public_tickets,
+        observer_comparison,
         observability_potentially_visible: obs(
             crate::catalog::domain::OBSERVABILITY_POTENTIALLY_VISIBLE,
         ),

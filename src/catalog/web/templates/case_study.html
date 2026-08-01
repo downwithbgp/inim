@@ -198,6 +198,69 @@
 </table>
 {% endif %}
 
+<h3>Related public tickets (reviewed)</h3>
+<p class="muted">Reviewed case-study roles are interpretation stored separately from the immutable source snapshots; they never replace source task types. Readiness is derived from reviewed inputs only.</p>
+<table>
+<thead><tr><th>Ticket</th><th>Source task type</th><th>Reviewed role(s)</th><th>Source window (UTC)</th><th>Relationship evidence</th><th>Analysis readiness</th><th>Next analyst action</th></tr></thead>
+<tbody>
+{% for t in public_tickets %}
+<tr>
+  <td><a href="/events/{{ t.external_id }}">{{ t.external_id }}</a></td>
+  <td>{{ t.task_type }}</td>
+  <td>{% if t.reviewed_roles != "" %}{{ t.reviewed_roles }}{% else %}<span class="muted">not reviewed</span>{% endif %}</td>
+  <td>{{ t.source_window }}</td>
+  <td>{{ t.relationship_evidence }}</td>
+  <td>{{ t.readiness }}</td>
+  <td>{{ t.next_action }}</td>
+</tr>
+{% else %}
+<tr><td colspan="7" class="muted">No related public tickets recorded.</td></tr>
+{% endfor %}
+</tbody>
+</table>
+
+<h3>Public-BGP observer comparison</h3>
+{% if observer_comparison.rows.is_empty() %}
+<p class="muted">No independent observer runs are linked yet (RouteViews pilot plus selected RIPE RIS runs). Comparison appears once runs are linked.</p>
+{% else %}
+<p class="muted">{{ observer_comparison.conclusion }}</p>
+<p class="muted">Each run keeps its own evidence; rows are per normalized prefix per collector. Agreement across collectors is not global proof.</p>
+<table>
+<thead><tr><th>Prefix</th><th>Collector</th><th>Family</th><th>Peer</th><th>First change (UTC)</th><th>Temporary absence</th><th>Path replacement</th><th>Transit departure</th><th>Restoration (UTC)</th><th>Baseline visibility</th></tr></thead>
+<tbody>
+{% for r in observer_comparison.rows %}
+<tr>
+  <td><code>{{ r.prefix }}</code></td>
+  <td>{{ r.collector }}</td>
+  <td>{{ r.family }}</td>
+  <td>{{ r.peer }}</td>
+  <td>{{ r.first_change_utc }}</td>
+  <td>{{ r.temporary_absence }}</td>
+  <td>{{ r.path_replacement }}</td>
+  <td>{{ r.transit_departure }}</td>
+  <td>{{ r.restoration_utc }}</td>
+  <td>{{ r.baseline_visibility }}</td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+<h4>Cross-observer statements</h4>
+<table>
+<thead><tr><th>Prefix</th><th>Visible at</th><th>Changed at</th><th>Statement</th><th>Timing detail</th></tr></thead>
+<tbody>
+{% for s in observer_comparison.statements %}
+<tr>
+  <td><code>{{ s.prefix }}</code></td>
+  <td>{{ s.visible_at }}</td>
+  <td>{{ s.changed_at }}</td>
+  <td>{{ s.statement }}</td>
+  <td class="muted">{{ s.timing_note }}</td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+{% endif %}
+
 <h3>Operator report vs public BGP (reviewed comparison)</h3>
 <p class="muted">Temporal consistency does not prove causation. This is reviewed interpretation, not a causal claim.</p>
 <table>
