@@ -272,6 +272,7 @@ pub async fn api_case_study_comparison(
                 "operator_time": c.operator_time,
                 "bgp_observation": c.bgp_observation,
                 "interpretation": c.interpretation,
+                "temporal_detail": c.temporal_detail,
                 "limitation": c.limitation,
             })).collect::<Vec<_>>(),
         })),

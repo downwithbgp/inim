@@ -201,7 +201,7 @@
 <h3>Operator report vs public BGP (reviewed comparison)</h3>
 <p class="muted">Temporal consistency does not prove causation. This is reviewed interpretation, not a causal claim.</p>
 <table>
-<thead><tr><th>Operator-reported</th><th>Time</th><th>Public BGP</th><th>Interpretation</th><th>Limitation</th></tr></thead>
+<thead><tr><th>Operator-reported</th><th>Time</th><th>Public BGP</th><th>Interpretation</th><th>Order detail</th><th>Limitation</th></tr></thead>
 <tbody>
 {% for c in comparison %}
 <tr>
@@ -209,10 +209,11 @@
   <td>{{ c.operator_time }}</td>
   <td>{{ c.bgp_observation }}</td>
   <td>{{ c.interpretation }}</td>
+  <td class="muted">{{ c.temporal_detail }}</td>
   <td class="muted">{{ c.limitation }}</td>
 </tr>
 {% else %}
-<tr><td colspan="5" class="muted">No reviewed comparison rows.</td></tr>
+<tr><td colspan="6" class="muted">No reviewed comparison rows.</td></tr>
 {% endfor %}
 </tbody>
 </table>

@@ -969,6 +969,7 @@ pub struct ComparisonRowView {
     pub operator_time: String,
     pub bgp_observation: String,
     pub interpretation: String,
+    pub temporal_detail: String,
     pub limitation: String,
 }
 
@@ -1471,6 +1472,7 @@ pub fn load_case_study(
             operator_time: row.operator_time.unwrap_or_default(),
             bgp_observation: row.bgp_observation,
             interpretation: row.interpretation,
+            temporal_detail: row.temporal_detail,
             limitation: row.limitation,
         });
     }
