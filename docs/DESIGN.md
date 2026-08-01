@@ -386,3 +386,29 @@ truth; temporal correlation is not causal attribution.
   timing differences preserved; no global-confirmation phrasing.
 - **Analyst queue**: rows show reviewed role, archive-plan status, run
   count, and a derived next action; nothing executes from an HTTP GET.
+
+## Session 35 — plane-aware analysis design
+
+- **Profile data, generic logic**: named service planes and ASN roles
+  live in `case-studies/<slug>/pilot/network-profile.json`
+  (`NamedServicePlane`, `ReviewedAsnRole`); `netprofile.rs` classifies
+  sessions generically (direct peer vs AS-in-path vs other vs
+  ambiguous). Production code contains no operator-specific branch.
+- **Session audit**: `inim catalog session-audit` parses baseline RIBs
+  once (via the source-extraction cache) and emits per-peer historical
+  facts from the MRT header — the source of truth for session
+  relationships; current peer lists are supporting context only.
+- **Cohort vs classification**: manifests carry `transit_predicate`
+  (cohort selector) and optional `path_classifiers` (named predicates
+  for classification only); `inim analyze --origin-inventory` classifies
+  every origin-matching baseline route one/both/neither without a
+  verdict.
+- **Source-extraction cache**: `cache/extracted/<key>.json.gz`,
+  versioned, keyed by (source sha, family, collector, sorted origin
+  set) — predicate-independent; within a plane batch each RIB is parsed
+  once; standalone and reused outputs are identical; evidence ids are
+  content-derived and unaffected.
+- **Cross-observer matrix**: per-observer rows with location, peer ASN,
+  direct/indirect relationship, plane, cohort predicate, and
+  departures/returns; evidence stays per-run; a missing plane baseline
+  is reported as missing, never as "no change".
