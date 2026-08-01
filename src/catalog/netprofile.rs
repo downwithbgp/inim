@@ -73,9 +73,7 @@ impl ServicePlaneProfile {
 
     /// The named plane whose ASN set contains `asn`, if any.
     pub fn plane_for_asn(&self, asn: u32) -> Option<&NamedServicePlane> {
-        self.service_planes
-            .iter()
-            .find(|p| p.asns.contains(&asn))
+        self.service_planes.iter().find(|p| p.asns.contains(&asn))
     }
 
     /// Reviewed display role for an ASN, or the unclassified label.
@@ -129,7 +127,9 @@ impl SessionRelationship {
     pub fn label(&self) -> &'static str {
         match self {
             SessionRelationship::DirectPeerToNamedPlane { .. } => "direct-peer-to-named-plane",
-            SessionRelationship::IndirectPathViaNamedPlane { .. } => "indirect-path-via-named-plane",
+            SessionRelationship::IndirectPathViaNamedPlane { .. } => {
+                "indirect-path-via-named-plane"
+            }
             SessionRelationship::OtherObservedPath => "other-observed-path",
             SessionRelationship::Ambiguous => "ambiguous",
         }
@@ -210,9 +210,9 @@ pub fn session_roles_at(
     let mut out: Vec<ScopedSessionRole> = Vec::new();
     for route in routes {
         for rel in classify_route(profile, route.peer_asn, &route.as_path) {
-            let duplicate = out.iter().any(|r: &ScopedSessionRole| {
-                r.relationship == rel
-            });
+            let duplicate = out
+                .iter()
+                .any(|r: &ScopedSessionRole| r.relationship == rel);
             if !duplicate {
                 out.push(ScopedSessionRole {
                     relationship: rel,
@@ -227,8 +227,7 @@ pub fn session_roles_at(
         role.route_count = routes
             .iter()
             .filter(|r| {
-                classify_route(profile, r.peer_asn, &r.as_path)
-                    .contains(&role.relationship)
+                classify_route(profile, r.peer_asn, &r.as_path).contains(&role.relationship)
             })
             .count();
     }
@@ -310,7 +309,10 @@ mod tests {
         let id2 = format!("{:?}", p2.service_planes[0].asns);
         assert_eq!(id1, id2);
         // And the label survives only as presentation data.
-        assert_ne!(p1.service_planes[0].display_label, p2.service_planes[0].display_label);
+        assert_ne!(
+            p1.service_planes[0].display_label,
+            p2.service_planes[0].display_label
+        );
     }
 
     #[test]
@@ -439,9 +441,18 @@ mod tests {
         let r1 = session_roles_at(&p, &key, &direct, "T");
         let r2 = session_roles_at(&p, &k2, &indirect, "T");
         let r3 = session_roles_at(&p, &k3, &other, "T");
-        assert!(matches!(r1[0].relationship, SessionRelationship::DirectPeerToNamedPlane { .. }));
-        assert!(matches!(r2[0].relationship, SessionRelationship::IndirectPathViaNamedPlane { .. }));
-        assert!(matches!(r3[0].relationship, SessionRelationship::OtherObservedPath));
+        assert!(matches!(
+            r1[0].relationship,
+            SessionRelationship::DirectPeerToNamedPlane { .. }
+        ));
+        assert!(matches!(
+            r2[0].relationship,
+            SessionRelationship::IndirectPathViaNamedPlane { .. }
+        ));
+        assert!(matches!(
+            r3[0].relationship,
+            SessionRelationship::OtherObservedPath
+        ));
     }
 
     #[test]
@@ -475,8 +486,14 @@ mod tests {
         let r2 = session_roles_at(&p, &key, &routes_t2, "T2");
         assert_eq!(r1[0].observed_at_utc, "T1");
         assert_eq!(r2[0].observed_at_utc, "T2");
-        assert!(matches!(r1[0].relationship, SessionRelationship::DirectPeerToNamedPlane { .. }));
-        assert!(matches!(r2[0].relationship, SessionRelationship::IndirectPathViaNamedPlane { .. }));
+        assert!(matches!(
+            r1[0].relationship,
+            SessionRelationship::DirectPeerToNamedPlane { .. }
+        ));
+        assert!(matches!(
+            r2[0].relationship,
+            SessionRelationship::IndirectPathViaNamedPlane { .. }
+        ));
     }
 
     #[test]
@@ -529,7 +546,10 @@ mod tests {
         let p = profile_two_planes();
         let path = vec![64600, 64601, 64500, 64000, 63999];
         let rels = classify_route(&p, 64600, &path);
-        assert!(matches!(rels[0], SessionRelationship::IndirectPathViaNamedPlane { .. }));
+        assert!(matches!(
+            rels[0],
+            SessionRelationship::IndirectPathViaNamedPlane { .. }
+        ));
         // Classification consumed a slice; the caller's full path is intact.
         assert_eq!(path.len(), 5);
         assert_eq!(path[4], 63999);
