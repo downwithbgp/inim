@@ -13,6 +13,7 @@ categories = ["command-line-utilities", "network-programming"]
 # source, tests/fixtures (provenance-documented, MIT-compatible), and docs.
 exclude = [
     "out/",
+    "tmp/",
     "cache/",
     "run_stderr*.log",
     "data/",

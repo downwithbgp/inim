@@ -271,10 +271,7 @@ fn package_file_list() -> Vec<String> {
 fn screenshot_harness_uses_loopback_and_cleanup() {
     let script = read("scripts/screenshot-review.sh");
     // Loopback binding only.
-    assert!(
-        script.contains("127.0.0.1"),
-        "harness must bind loopback"
-    );
+    assert!(script.contains("127.0.0.1"), "harness must bind loopback");
     assert!(!script.contains("0.0.0.0"), "no wildcard binds");
     // Deterministic demo catalog.
     assert!(
@@ -282,8 +279,14 @@ fn screenshot_harness_uses_loopback_and_cleanup() {
         "harness must use the deterministic demo catalog"
     );
     // Server shutdown on failure (trap + kill).
-    assert!(script.contains("trap cleanup EXIT"), "cleanup trap required");
-    assert!(script.contains("kill \"$SERVER_PID\""), "server kill required");
+    assert!(
+        script.contains("trap cleanup EXIT"),
+        "cleanup trap required"
+    );
+    assert!(
+        script.contains("kill \"$SERVER_PID\""),
+        "server kill required"
+    );
     // Browser-unavailable message.
     assert!(
         script.contains("browser unavailable"),
