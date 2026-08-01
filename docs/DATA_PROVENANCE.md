@@ -261,3 +261,26 @@ all raw archives already local.
 - **Weak temporal candidates are hidden by default.** Temporal-only
   coincidences remain stored and queryable, but do not dominate the
   analyst queue.
+
+## Session 35 — reviewed plane model provenance
+
+- The Internet2 R&E / peer-exchange plane identities (AS11537 / AS11164)
+  are reviewed profile data (`case-studies/manlan-2019/pilot/
+  network-profile.json`); they never appear as control flow in
+  production source (release gate
+  `production_source_contains_no_internet2_specific_plane_branch`).
+- Historical session relationships come from the MRT peer metadata of
+  the 2019-08-21 baseline RIBs (`session-audit-2019.json`); current
+  peer lists never override them.
+- Collector locations are recorded with temporal provenance
+  (`collector-locations.json`, as-of 2019-09-05, Internet Archive
+  snapshot 20190905014936 of the RIS peer list); RRC06 is Otemachi,
+  Tokyo, Japan — not a US collector.
+- The source-extraction cache (`cache/extracted/`) is versioned
+  (schema + parser) and keyed by content (source sha); it never changes
+  evidence ids, which are assigned deterministically from observation
+  content after sorting.
+- The GRNOC sync ceiling of 5 requests/second is reviewed local
+  operational guidance (Session 35, Part 8), not a public API
+  guarantee; rate-control responses always override the configured
+  ceiling, and the sync records its metrics for the record.

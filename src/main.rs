@@ -2128,6 +2128,57 @@ fn cmd_grnoc_sync_live(
             let _ = writeln!(stdout, "  bytes:           {}", client.bytes_transferred());
             let _ = writeln!(stdout, "  elapsed:         {:.1}s", elapsed.as_secs_f64());
             let _ = writeln!(stdout, "  avg rate:        {rate:.3} req/s");
+            let _ = writeln!(
+                stdout,
+                "  configured rate: {:.1} req/s (ceiling)",
+                client.policy().requests_per_second
+            );
+            let _ = writeln!(
+                stdout,
+                "  final effective rate: {:.2} req/s",
+                client.metrics().final_effective_rps
+            );
+            let _ = writeln!(
+                stdout,
+                "  max in-flight:   {}",
+                client.metrics().max_observed_inflight
+            );
+            let _ = writeln!(
+                stdout,
+                "  rate reductions: {} (adaptive)",
+                client.metrics().rate_reductions
+            );
+            let _ = writeln!(
+                stdout,
+                "  rate recoveries: {} (bounded)",
+                client.metrics().rate_recoveries
+            );
+            let _ = writeln!(
+                stdout,
+                "  retry-after:     {} response(s)",
+                client.metrics().retry_after_responses
+            );
+            if !client.metrics().latencies_secs.is_empty() {
+                let mut lat = client.metrics().latencies_secs.clone();
+                lat.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+                let p50 = lat[lat.len() / 2];
+                let min = lat[0];
+                let max = lat[lat.len() - 1];
+                let _ = writeln!(
+                    stdout,
+                    "  latency:         min {:.0}ms / p50 {:.0}ms / max {:.0}ms ({:.1}s total)",
+                    min * 1000.0,
+                    p50 * 1000.0,
+                    max * 1000.0,
+                    lat.iter().sum::<f64>()
+                );
+            }
+            for (status, n) in &client.metrics().status_counts {
+                let _ = writeln!(stdout, "  http {status}:        {n}");
+            }
+            for msg in &client.metrics().control_messages {
+                let _ = writeln!(stdout, "  control:         {msg}");
+            }
             // Link retrieved tickets to their case-study references.
             for slug in case_studies {
                 if let Some(cs) = inim::catalog::archive_plan::find_case_study(&conn, slug) {

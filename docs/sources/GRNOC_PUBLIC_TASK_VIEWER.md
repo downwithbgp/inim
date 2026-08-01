@@ -164,9 +164,19 @@ request draft is maintained at `docs/sources/GRNOC_BULK_ACCESS_REQUEST.md`
 The sync client implemented for this protocol (see `src/catalog/access.rs`
 and `src/catalog/grnoc_viewer.rs`) applies:
 
-- 1 concurrent request; 0.25 requests/second sustained (one request
-  every 4 s); burst 1; default budget 100 requests per sync; explicit
-  flags required to raise limits.
+- Reviewed local operational guidance (Session 35, Part 8): the
+  unauthenticated Public Task Viewer endpoints can be accessed at up to
+  **5 requests/second** without operational concern. This is reviewed
+  local guidance, NOT a publicly documented API service-level guarantee.
+  Defaults: 5 requests/second sustained (smooth token bucket; at most 2
+  immediate requests, then paced); maximum 5 in-flight; default budget
+  100 requests per sync. Values above 5 req/s require an explicit
+  `--allow-higher-rate` flag; a lower value may be selected freely.
+- Fully responsive to source feedback: the first 429 or explicit
+  throttle halves the effective rate immediately while honoring
+  `Retry-After`; repeated throttling stops the sync cleanly; sustained
+  success recovers in bounded steps up to the configured ceiling, which
+  is never exceeded.
 - A descriptive User-Agent naming `inim`, its version, and its research
   purpose (no invented contact address; a project URL is used only once
   one exists).

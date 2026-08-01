@@ -66,3 +66,23 @@ the existing BGP acquisition abstraction was audited:
 - No live RIS analysis was executed in Session 33 (per scope). Session 34
   executed the reviewed NORDUnet pilot against selected RIS collectors
   (see `case-studies/manlan-2019/pilot/`).
+
+## Session 35 addendum — source family is not a service-plane identity
+
+RIS and RouteViews remain peer observer families, but a collector's
+**source family never determines which service plane a session belongs
+to**. Session identity is `ObserverSessionKey { source_family,
+collector, peer_ip, peer_asn, address_family }`, and a session's
+relationship to a named plane (direct peer ASN membership vs AS-in-path
+membership) comes from the **historical RIB's MRT peer metadata** — never
+from the family, never from a current peer list.
+
+The 2019-08-21 session audit (`case-studies/manlan-2019/pilot/
+session-audit-2019.json`) shows why this matters: route-views2 carried a
+**direct** AS11537 session (peer 64.57.28.241) plus indirect R&E
+sessions (CENIC, APAN-JP); the RIS collectors observed AS11537-in-path
+routes only **indirectly** (CNNIC, ARTERIA, RNP). No collector had any
+AS11164 session or AS11164-in-path route, so no I2PX-plane baseline
+exists at the selected observers. An AS11537-in-path RIS observation is
+therefore an indirect R&E observation — never equivalent to a direct
+I2PX observation.

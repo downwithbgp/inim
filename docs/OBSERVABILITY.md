@@ -136,3 +136,18 @@ alone.
 - **Batch reuse does not change evidence.** Sharing raw archives or
   derived caches across runs never merges event assessments; evidence
   ids do not depend on batch membership.
+
+## Session 35 — plane-scoped observability
+
+- A named-plane cohort is observed through the exact reviewed predicate
+  that selected it; "qualifying visibility" statements name the
+  predicate and explicitly deny blanket visibility claims.
+- Direct peer sessions and AS-in-path membership are separate evidence
+  classes and render separately; an indirect R&E observation is never
+  relabeled as a direct peering-plane observation.
+- A missing plane baseline (no AS11164-in-path route at any selected
+  observer) is reported as a missing baseline — never as "no event
+  change" on that plane.
+- Different observers expose different routing-policy views; agreement
+  across them is still not global confirmation, and disagreement is
+  expected and analytically useful.

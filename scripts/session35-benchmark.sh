@@ -24,11 +24,16 @@ run_timed() {
   echo "$label|wall=$wall|user=$user|sys=$sys|maxrss_kb=$maxrss" | tee -a "$BENCH/run.log"
 }
 
-# 10.3a — one large RIS bview preflight (rrc00, fresh parse, jobs=1).
-# RIB parsing is a single stream; jobs do not parallelize one bview.
+# 10.3a — one large RIS bview preflight (rrc00, fresh parse). RIB parsing
+# is a single stream: jobs do not parallelize one bview, so two
+# representative job counts are measured (1 and 12) and the flatness is
+# documented in BENCHMARK.md.
 run_timed bview-rrc00-j1 analyze --event "$EVENT" --manifest "$MAN_RE" \
-  --cache "$CACHE" --out "$BENCH/out-bview" --preflight-only \
+  --cache "$CACHE" --out "$BENCH/out-bview-j1" --preflight-only \
   --no-derived-cache --jobs 1
+run_timed bview-rrc00-j12 analyze --event "$EVENT" --manifest "$MAN_RE" \
+  --cache "$CACHE" --out "$BENCH/out-bview-j12" --preflight-only \
+  --no-derived-cache --jobs 12
 
 # 10.3b — rrc00 UPDATE pilot at jobs 1/4/8/12/16/24 (fresh update caches).
 for j in 1 4 8 12 16 24; do

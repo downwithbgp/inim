@@ -305,3 +305,35 @@ complete.
   transit predicate · Run RIB preflight · Review archive volume ·
   Analyze · No public-BGP target · Inspect stale run. Derived from
   readiness + reviewed applicability; never executed from a GET.
+
+## Reviewed service-plane model (Session 35, Parts 1–7)
+
+- **NamedServicePlane** — reviewed profile data (`id`, `display_label`,
+  `asns`); one organization can have multiple planes (e.g. an R&E
+  routing plane and a settlement-free peering plane). Production logic
+  is plane-neutral; identities live in data files.
+- **ReviewedAsnRole** — ASN → role string (data); unknown ASNs display
+  as `unclassified observed ASN`, never as "commercial" by default.
+- **ObserverSessionKey** — `{source_family, collector, peer_ip,
+  peer_asn, address_family}`; source family never determines peer ASN.
+- **SessionRelationship** — DirectPeerToNamedPlane (peer ASN equals a
+  plane ASN), IndirectPathViaNamedPlane (path contains a plane ASN),
+  OtherObservedPath, Ambiguous. Direct and indirect are different
+  facts and never co-occur for one plane; roles are time-scoped to the
+  RIB timestamp.
+- **SessionAuditRow** — historical session facts from the MRT header
+  (peer IP, peer ASN, address family, origin route counts, distinct
+  prefixes, path-class membership). Current peer lists are supporting
+  context only.
+- **CollectorLocation** — reviewed collector metadata with temporal
+  provenance; location describes where the collector is hosted, not the
+  path of observed routes, and never defines a network role.
+- **CohortSelector vs PathClassifierSet** — manifest `transit_predicate`
+  selects the baseline cohort; `path_classifiers` classify origin-
+  matching routes into named classes (one/both/neither). Never
+  conflated: the inventory admits every origin route regardless of
+  classifier match.
+- **Source-extraction cache** — versioned, origin-scoped parse reuse
+  keyed by (source sha, family, collector, sorted origin set); predicate-
+  independent, so plane-specific runs parse each RIB once. Evidence
+  identity is content-derived and never changes with cache path.

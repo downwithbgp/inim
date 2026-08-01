@@ -75,6 +75,23 @@ pub struct GrnocViewerClient {
 }
 
 impl GrnocViewerClient {
+    /// The underlying polite client (policy + acquisition metrics).
+    pub fn polite(&self) -> &PoliteClient {
+        &self.client
+    }
+
+    /// Configured access policy (rate ceiling etc.).
+    pub fn policy(&self) -> &AccessPolicy {
+        self.client.policy()
+    }
+
+    /// Per-sync acquisition metrics.
+    pub fn metrics(&self) -> &crate::catalog::access::SyncMetrics {
+        &self.client.metrics
+    }
+}
+
+impl GrnocViewerClient {
     /// A client against the production viewer with the given policy.
     pub fn new(policy: AccessPolicy) -> Result<Self, String> {
         GrnocViewerClient::new_with_base(policy, GRNOC_VIEWER_BASE.to_string())

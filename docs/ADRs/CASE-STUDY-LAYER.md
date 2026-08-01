@@ -147,3 +147,26 @@ every related ticket.
   downloaded once per unique URL and derived caches reused only under
   matching cohort identity; evidence IDs do not depend on batch
   membership.
+
+
+## Session 35 addendum — multi-plane comparisons
+
+- A case study may expose multiple named service planes for one
+  organization (profile data: `NamedServicePlane` with distinct ASN
+  sets). Production logic is plane-neutral; the reviewed identities live
+  in `case-studies/<slug>/pilot/network-profile.json`.
+- Cohort selection (`transit_predicate`) and path classification
+  (`path_classifiers`) are separate manifest concerns: a plane-specific
+  run selects its cohort through one reviewed predicate, while
+  origin-only inventories classify every baseline route one/both/neither
+  without a verdict.
+- Each plane-specific run is an independent AnalysisRun; the
+  cross-observer matrix keeps per-observer evidence separate and labels
+  direct (peer ASN equals plane ASN) and indirect (path contains plane
+  ASN) relationships distinctly. A missing plane baseline (e.g. no
+  AS11164-in-path route anywhere) is reported as a missing baseline —
+  never as "no event change" on that plane.
+- Collector locations are reviewed metadata with temporal provenance
+  (`collector-locations.json`, as-of 2019-09-05): location describes
+  where the collector is hosted, not the path taken by observed routes,
+  and it never defines a network's role.

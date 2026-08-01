@@ -77,10 +77,14 @@ Viewer (`https://ticket-viewer.grnoc.iu.edu/`).
 >   work/planned windows, maintenance type. We do **not** retrieve or
 >   store private notes, contact data, or authenticated content.
 >
-> **How we retrieve it today (current conservative behavior)**
-> - One request at a time (no concurrent requests).
-> - One request every four seconds (0.25 req/s) — well below any
->   documented or observed rate limit.
+> **How we retrieve it today (current reviewed behavior)**
+> - Smooth limiter: at most 2 immediate requests, then paced at a
+>   sustained **5 requests/second** ceiling (reviewed local operational
+>   guidance, Session 35; NOT a publicly documented API guarantee).
+> - Maximum 5 requests in flight.
+> - Fully responsive to source feedback: 429/Retry-After reduces the
+>   effective rate immediately; repeated throttling stops the sync;
+>   sustained success recovers only in bounded steps up to the ceiling.
 > - Conditional requests where the service supports them; no polling
 >   loops that re-fetch unchanged records.
 > - A fixed request budget per sync (default 100 requests); the client
@@ -97,7 +101,8 @@ Viewer (`https://ticket-viewer.grnoc.iu.edu/`).
 >    endpoints the intended public interface?
 > 2. **Acceptable sustained rate** — what sustained request rate is
 >    acceptable for automated historical retrieval (requests/second)?
->    Is the current 0.25 req/s policy acceptable, or could it be raised?
+>    The current reviewed local policy is 5 req/s; please confirm this
+>    is acceptable or state the preferred ceiling.
 > 3. **Maximum concurrency** — how many concurrent requests may an
 >    automated client issue?
 > 4. **Preferred User-Agent / contact format** — is there a preferred
@@ -114,14 +119,19 @@ Viewer (`https://ticket-viewer.grnoc.iu.edu/`).
 >    private fields) be permitted? Under what conditions (e.g. license,
 >    attribution, notice)?
 
-## Current conservative behavior (self-imposed, in effect regardless of this request)
+## Current reviewed behavior (self-imposed, in effect regardless of this request)
 
-- One request at a time.
-- One request every four seconds (0.25 req/s).
+- Smooth token-bucket limiter: **5 requests/second** sustained ceiling
+  (reviewed local operational guidance; not a public API guarantee);
+  at most 2 immediate requests, then paced.
+- Maximum 5 requests in flight.
 - Conditional requests where supported.
 - Fixed request budget per sync (default 100 requests; `--max-requests`).
 - No numeric enumeration — exact identifiers and scoped searches only.
-- Stops on errors/429s; never treats silence as permission to go faster.
+- First 429/Retry-After halves the effective rate immediately; repeated
+  throttling stops the sync; sustained success recovers in bounded steps
+  up to the ceiling; the configured ceiling is never exceeded.
+- Never treats the absence of 429s as permission for unlimited access.
 
 ## Awaiting user input (fill before sending)
 

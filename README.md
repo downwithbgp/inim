@@ -288,10 +288,26 @@ NORDUnet pilot runs against **two independent public observer families**
   AS11537 in path at the pre-window baseline) are selected, with
   rejected collectors and reasons recorded
   (`case-studies/manlan-2019/pilot/ris-collector-selection.md`).
-- **Independent per-collector runs** — the NORDUnet pilot now has one
+- **Independent per-collector runs** — the NORDUnet pilot has one
   RouteViews run (route-views2) and one run per selected RIS collector
   (rrc00, rrc06, rrc15), each with its own evidence and verdict. No
   merged verdict exists.
+- **Reviewed service-plane model** (Session 35) — the R&E and
+  peering-plane identities are profile data, not control flow; session
+  relationships come from historical MRT peer metadata (route-views2
+  peers directly with AS11537; the RIS collectors observe AS11537-in-
+  path routes indirectly; no AS11164 baseline exists at any selected
+  observer); collector locations are reviewed metadata with temporal
+  provenance (RRC06 = Otemachi, Tokyo, Japan); plane-specific runs,
+  origin-only inventories, and the cross-observer matrix keep every
+  observer's evidence independent.
+- **Source-extraction reuse** (Session 35) — a versioned, origin-scoped
+  parse cache lets plane-specific runs and audits parse each RIB once;
+  outputs are identical standalone vs reused, evidence ids never change.
+- **GRNOC sync policy** (Session 35) — reviewed local guidance raises
+  the default ceiling to 5 requests/second (smooth limiter, burst 2,
+  max 5 in-flight) with full adaptive response to 429/Retry-After;
+  rates above 5 req/s need `--allow-higher-rate`.
 - **Cross-observer comparison** — per-prefix × collector rows and a
   bounded statement vocabulary ("Observed at multiple independent
   public collectors", "Observed only at one selected collector",
