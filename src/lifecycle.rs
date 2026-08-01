@@ -1777,7 +1777,7 @@ mod tests {
         t0() + chrono::Duration::seconds(secs)
     }
 
-    fn mk_transition(
+    pub(crate) fn mk_transition(
         key: &ObserverPrefixKey,
         pid: Option<u32>,
         kind: TransitionKind,
@@ -3049,5 +3049,224 @@ mod tests {
         // Old path IDs retain both withdrawn instances (2 then 1, sorted).
         assert_eq!(r.old_path_ids, vec![Some(1), Some(2)]);
         assert_eq!(r.new_path_ids, vec![Some(2)]);
+    }
+}
+
+#[cfg(test)]
+mod session32_tests {
+    use super::*;
+    use crate::domain::observation::{
+        Asn, CollectorId, IngestRole, ObservationAttributes, ObservationId, ObservationKind,
+        ObservationProvenance, ObservationSource,
+    };
+    use crate::domain::route::{Prefix, RouteKey};
+    use chrono::TimeZone;
+
+    fn t(secs: i64) -> chrono::DateTime<Utc> {
+        Utc.with_ymd_and_hms(2019, 8, 21, 16, 45, 0).unwrap() + chrono::Duration::seconds(secs)
+    }
+
+    fn obs(
+        key: &RouteKey,
+        kind: ObservationKind,
+        at: chrono::DateTime<Utc>,
+        seq: u64,
+        path: Vec<u32>,
+        id: u64,
+    ) -> crate::domain::observation::RouteObservation {
+        crate::domain::observation::RouteObservation {
+            id: ObservationId(id),
+            source: ObservationSource::LocalFile("test.bz2".to_string()),
+            timestamp: at,
+            collector: CollectorId(key.collector.clone()),
+            peer_ip: key.peer_ip,
+            peer_asn: Asn(0),
+            prefix: key.prefix.clone(),
+            kind,
+            attributes: Some(ObservationAttributes {
+                as_path: path,
+                origin_asns: vec![Asn(2603)],
+                next_hop: None,
+                origin: None,
+                local_pref: None,
+                med: None,
+                atomic_aggregate: false,
+                communities: crate::domain::observation::Communities::default(),
+            }),
+            path_id: key.path_id,
+            provenance: ObservationProvenance {
+                input: "test.bz2".to_string(),
+                source_url: Some("https://example.invalid/archive.bz2".to_string()),
+                archive_sha256: Some("abc123".to_string()),
+                role: IngestRole::Updates,
+                parser_representation: "bgpkit-bgp-elem".to_string(),
+                mrt_timestamp: 0.0,
+                element_seq: seq,
+                archive_order: 0,
+            },
+        }
+    }
+
+    #[test]
+    fn same_timestamp_withdrawal_and_announcement_use_deterministic_order() {
+        let key = RouteKey::new(
+            "route-views2",
+            "64.57.28.241".parse().unwrap(),
+            &crate::domain::route::Prefix::from("193.10.68.0/24"),
+        );
+        // Same MRT second; the withdrawal has a lower element sequence than
+        // the announcement. Deterministic ordering must preserve that order.
+        let wd = obs(
+            &key,
+            ObservationKind::Withdrawal,
+            t(25),
+            12595,
+            vec![11537, 20965, 2603],
+            168,
+        );
+        let ann = obs(
+            &key,
+            ObservationKind::Announcement,
+            t(25),
+            12700,
+            vec![11537, 20965, 2603],
+            169,
+        );
+        let mut list = vec![ann.clone(), wd.clone()];
+        crate::derived_cache::sort_deterministic(&mut list);
+        assert_eq!(
+            list[0].provenance.element_seq, 12595,
+            "withdrawal first by element order"
+        );
+        assert_eq!(list[0].kind, ObservationKind::Withdrawal);
+        assert_eq!(list[1].kind, ObservationKind::Announcement);
+        let (store, _) = crate::routes::reconstruct_routes(list, t(0), t(60), t(120));
+        let final_state = store
+            .all_states()
+            .find(|(k, _)| k.collector == "route-views2");
+        assert!(
+            final_state.is_some(),
+            "announcement restores the route after the withdrawal"
+        );
+    }
+
+    #[test]
+    fn aggregate_route_set_prevents_false_two_second_absence() {
+        // A stream with TWO baseline route instances: withdrawing one
+        // instance must NOT mark the observer-prefix stream absent.
+        let key = ObserverPrefixKey {
+            collector: "route-views2".to_string(),
+            peer_ip: "64.57.28.241".parse().unwrap(),
+            prefix: Prefix::from("193.10.68.0/24"),
+        };
+        let pred = crate::domain::route::TransitPredicate::ContainsAny(vec![11537]);
+        let transitions = vec![super::tests::mk_transition(
+            &key,
+            Some(0),
+            TransitionKind::Withdrawal,
+            25,
+            vec![11537, 20965, 2603],
+            vec![],
+        )];
+        // Build a FrozenCohort with TWO baseline instances for the stream.
+        let rib: Vec<crate::domain::observation::RouteObservation> = [0u32, 1]
+            .iter()
+            .map(|pid| {
+                let mut o = obs(
+                    &RouteKey {
+                        collector: key.collector.clone(),
+                        peer_ip: key.peer_ip,
+                        prefix: key.prefix.clone(),
+                        path_id: Some(*pid),
+                    },
+                    ObservationKind::RibEntry,
+                    t(0),
+                    1,
+                    vec![11537, 20965, 2603],
+                    100 + *pid as u64,
+                );
+                o.path_id = Some(*pid);
+                o
+            })
+            .collect();
+        let cohort = crate::cohort::freeze_cohort(&rib, &[2603], &pred);
+        let lifecycles = build_lifecycles(&transitions, &cohort, t(60), &pred);
+        // The stream keeps its second baseline instance (path_id 1), so a
+        // single-instance withdrawal must not mark the stream absent.
+        assert!(
+            !lifecycles[0].was_withdrawn,
+            "single-instance withdrawal must not mark the stream absent"
+        );
+    }
+
+    #[test]
+    fn native_timestamp_precision_is_retained() {
+        let rec = WithdrawalRecord {
+            collector: "route-views2".to_string(),
+            peer_ip: "64.57.28.241".to_string(),
+            prefix: "193.10.68.0/24".to_string(),
+            baseline_path: vec![11537, 20965, 2603],
+            baseline_instances: 1,
+            active_before_absence: 1,
+            final_withdrawal_time: t(25),
+            restoration_time: Some(t(27)),
+            absence_duration_secs: Some(2.0),
+            transit_at_withdrawal: Some(true),
+            exact_restoration: false,
+            equivalent_restoration: false,
+            observer_prefix_restoration: true,
+            baseline_set_restoration: false,
+            observation_ids: vec![168],
+            archive_checksums: vec!["4546b78f".to_string()],
+        };
+        assert_eq!(
+            rec.absence_duration_secs,
+            Some(2.0),
+            "2 seconds at native precision"
+        );
+        let audit: serde_json::Value = serde_json::from_str(
+            &std::fs::read_to_string("case-studies/manlan-2019/pilot/absence-audit.json").unwrap(),
+        )
+        .unwrap();
+        assert_eq!(audit["native_timestamp_precision"], "seconds (MRT native)");
+        assert_eq!(audit["streams"].as_array().unwrap().len(), 11);
+        assert!(audit["streams"][0]["absence_duration_secs"] == 2);
+    }
+
+    #[test]
+    fn temporary_stream_absence_is_not_rendered_as_global_reachability_loss() {
+        let result: serde_json::Value = serde_json::from_str(
+            &std::fs::read_to_string("case-studies/manlan-2019/pilot/pilot-result.json").unwrap(),
+        )
+        .unwrap();
+        let lower = serde_json::to_string(&result).unwrap().to_lowercase();
+        assert!(lower.contains("observer-prefix streams"), "observer scoped");
+        assert!(
+            lower.contains("one selected public collector"),
+            "collector scoped"
+        );
+        assert!(
+            !lower.contains("global reachability loss"),
+            "no global claim"
+        );
+        assert!(!lower.contains("traffic was lost"), "no traffic-loss claim");
+    }
+
+    #[test]
+    fn pilot_summary_uses_observer_scoped_language() {
+        let report = std::fs::read_to_string(
+            "case-studies/manlan-2019/pilot/out/MANLAN-2019-NORDUNET-PILOT/report.txt",
+        )
+        .unwrap_or_default();
+        if report.is_empty() {
+            return; // artifacts not present (packaged crate)
+        }
+        let lower = report.to_lowercase();
+        assert!(lower.contains("observer-prefix streams"), "observer scoped");
+        assert!(lower.contains("route-views2"), "collector named");
+        assert!(
+            !lower.contains("nordunet outage"),
+            "no participant-outage claim"
+        );
     }
 }

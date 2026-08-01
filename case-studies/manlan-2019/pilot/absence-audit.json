@@ -1,0 +1,404 @@
+{
+  "schema_version": 1,
+  "run": "MANLAN-2019-NORDUNET-PILOT (run 3)",
+  "audited_at": "2026-08-01",
+  "question": "Is the reported 2-second absence of 11 selected observer-prefix streams real aggregate stream state, or an ordering artifact?",
+  "native_timestamp_precision": "seconds (MRT native)",
+  "streams": [
+    {
+      "collector": "route-views2",
+      "peer": "64.57.28.241",
+      "prefix": "109.105.112.0/21",
+      "baseline_instances": 1,
+      "last_active_instance_withdrawal": "2019-08-21 16:45:25 UTC",
+      "first_subsequent_active_instance": "2019-08-21 16:45:27 UTC",
+      "absence_duration_secs": 2,
+      "path_before_absence": [
+        11537,
+        20965,
+        2603
+      ],
+      "path_after_absence": [
+        11537,
+        22388,
+        24489,
+        24489,
+        24489,
+        24489,
+        24490,
+        20965,
+        2603
+      ],
+      "transit_before_absence": true,
+      "transit_after_absence": true,
+      "archive_url": "http://archive.routeviews.org/bgpdata/2019.08/UPDATES/updates.20190821.1645.bz2",
+      "archive_sha256": "4546b78f8fb9ced87b93867cbb5f76e4abc11f37e564001f73f593313b9fd182",
+      "element_seq": 12595,
+      "evidence_observation_id": 168,
+      "path_replacements": 0,
+      "restorations": 1
+    },
+    {
+      "collector": "route-views2",
+      "peer": "64.57.28.241",
+      "prefix": "109.105.120.0/22",
+      "baseline_instances": 1,
+      "last_active_instance_withdrawal": "2019-08-21 16:45:25 UTC",
+      "first_subsequent_active_instance": "2019-08-21 16:45:27 UTC",
+      "absence_duration_secs": 2,
+      "path_before_absence": [
+        11537,
+        20965,
+        2603
+      ],
+      "path_after_absence": [
+        11537,
+        22388,
+        24489,
+        24489,
+        24489,
+        24489,
+        24490,
+        20965,
+        2603
+      ],
+      "transit_before_absence": true,
+      "transit_after_absence": true,
+      "archive_url": "http://archive.routeviews.org/bgpdata/2019.08/UPDATES/updates.20190821.1645.bz2",
+      "archive_sha256": "4546b78f8fb9ced87b93867cbb5f76e4abc11f37e564001f73f593313b9fd182",
+      "element_seq": 12598,
+      "evidence_observation_id": 171,
+      "path_replacements": 0,
+      "restorations": 1
+    },
+    {
+      "collector": "route-views2",
+      "peer": "64.57.28.241",
+      "prefix": "109.105.96.0/20",
+      "baseline_instances": 1,
+      "last_active_instance_withdrawal": "2019-08-21 16:45:25 UTC",
+      "first_subsequent_active_instance": "2019-08-21 16:45:27 UTC",
+      "absence_duration_secs": 2,
+      "path_before_absence": [
+        11537,
+        20965,
+        2603
+      ],
+      "path_after_absence": [
+        11537,
+        22388,
+        24489,
+        24489,
+        24489,
+        24489,
+        24490,
+        20965,
+        2603
+      ],
+      "transit_before_absence": true,
+      "transit_after_absence": true,
+      "archive_url": "http://archive.routeviews.org/bgpdata/2019.08/UPDATES/updates.20190821.1645.bz2",
+      "archive_sha256": "4546b78f8fb9ced87b93867cbb5f76e4abc11f37e564001f73f593313b9fd182",
+      "element_seq": 12597,
+      "evidence_observation_id": 170,
+      "path_replacements": 0,
+      "restorations": 1
+    },
+    {
+      "collector": "route-views2",
+      "peer": "64.57.28.241",
+      "prefix": "185.174.116.0/22",
+      "baseline_instances": 1,
+      "last_active_instance_withdrawal": "2019-08-21 16:45:25 UTC",
+      "first_subsequent_active_instance": "2019-08-21 16:45:27 UTC",
+      "absence_duration_secs": 2,
+      "path_before_absence": [
+        11537,
+        20965,
+        2603
+      ],
+      "path_after_absence": [
+        11537,
+        22388,
+        24489,
+        24489,
+        24489,
+        24489,
+        24490,
+        20965,
+        2603
+      ],
+      "transit_before_absence": true,
+      "transit_after_absence": true,
+      "archive_url": "http://archive.routeviews.org/bgpdata/2019.08/UPDATES/updates.20190821.1645.bz2",
+      "archive_sha256": "4546b78f8fb9ced87b93867cbb5f76e4abc11f37e564001f73f593313b9fd182",
+      "element_seq": 12601,
+      "evidence_observation_id": 174,
+      "path_replacements": 0,
+      "restorations": 1
+    },
+    {
+      "collector": "route-views2",
+      "peer": "64.57.28.241",
+      "prefix": "192.36.171.0/24",
+      "baseline_instances": 1,
+      "last_active_instance_withdrawal": "2019-08-21 16:45:25 UTC",
+      "first_subsequent_active_instance": "2019-08-21 16:45:27 UTC",
+      "absence_duration_secs": 2,
+      "path_before_absence": [
+        11537,
+        20965,
+        2603
+      ],
+      "path_after_absence": [
+        11537,
+        22388,
+        24489,
+        24489,
+        24489,
+        24489,
+        24490,
+        20965,
+        2603
+      ],
+      "transit_before_absence": true,
+      "transit_after_absence": true,
+      "archive_url": "http://archive.routeviews.org/bgpdata/2019.08/UPDATES/updates.20190821.1645.bz2",
+      "archive_sha256": "4546b78f8fb9ced87b93867cbb5f76e4abc11f37e564001f73f593313b9fd182",
+      "element_seq": 12600,
+      "evidence_observation_id": 173,
+      "path_replacements": 0,
+      "restorations": 1
+    },
+    {
+      "collector": "route-views2",
+      "peer": "64.57.28.241",
+      "prefix": "193.10.252.0/24",
+      "baseline_instances": 1,
+      "last_active_instance_withdrawal": "2019-08-21 16:45:25 UTC",
+      "first_subsequent_active_instance": "2019-08-21 16:45:27 UTC",
+      "absence_duration_secs": 2,
+      "path_before_absence": [
+        11537,
+        20965,
+        2603
+      ],
+      "path_after_absence": [
+        11537,
+        22388,
+        24489,
+        24489,
+        24489,
+        24489,
+        24490,
+        20965,
+        2603
+      ],
+      "transit_before_absence": true,
+      "transit_after_absence": true,
+      "archive_url": "http://archive.routeviews.org/bgpdata/2019.08/UPDATES/updates.20190821.1645.bz2",
+      "archive_sha256": "4546b78f8fb9ced87b93867cbb5f76e4abc11f37e564001f73f593313b9fd182",
+      "element_seq": 12594,
+      "evidence_observation_id": 167,
+      "path_replacements": 0,
+      "restorations": 1
+    },
+    {
+      "collector": "route-views2",
+      "peer": "64.57.28.241",
+      "prefix": "193.10.254.0/24",
+      "baseline_instances": 1,
+      "last_active_instance_withdrawal": "2019-08-21 16:45:25 UTC",
+      "first_subsequent_active_instance": "2019-08-21 16:45:27 UTC",
+      "absence_duration_secs": 2,
+      "path_before_absence": [
+        11537,
+        20965,
+        2603
+      ],
+      "path_after_absence": [
+        11537,
+        22388,
+        24489,
+        24489,
+        24489,
+        24489,
+        24490,
+        20965,
+        2603
+      ],
+      "transit_before_absence": true,
+      "transit_after_absence": true,
+      "archive_url": "http://archive.routeviews.org/bgpdata/2019.08/UPDATES/updates.20190821.1645.bz2",
+      "archive_sha256": "4546b78f8fb9ced87b93867cbb5f76e4abc11f37e564001f73f593313b9fd182",
+      "element_seq": 12599,
+      "evidence_observation_id": 172,
+      "path_replacements": 0,
+      "restorations": 1
+    },
+    {
+      "collector": "route-views2",
+      "peer": "64.57.28.241",
+      "prefix": "193.10.68.0/24",
+      "baseline_instances": 1,
+      "last_active_instance_withdrawal": "2019-08-21 16:45:25 UTC",
+      "first_subsequent_active_instance": "2019-08-21 16:45:27 UTC",
+      "absence_duration_secs": 2,
+      "path_before_absence": [
+        11537,
+        20965,
+        2603
+      ],
+      "path_after_absence": [
+        11537,
+        22388,
+        24489,
+        24489,
+        24489,
+        24489,
+        24490,
+        20965,
+        2603
+      ],
+      "transit_before_absence": true,
+      "transit_after_absence": true,
+      "archive_url": "http://archive.routeviews.org/bgpdata/2019.08/UPDATES/updates.20190821.1645.bz2",
+      "archive_sha256": "4546b78f8fb9ced87b93867cbb5f76e4abc11f37e564001f73f593313b9fd182",
+      "element_seq": 12596,
+      "evidence_observation_id": 169,
+      "path_replacements": 0,
+      "restorations": 1
+    },
+    {
+      "collector": "route-views2",
+      "peer": "64.57.28.241",
+      "prefix": "193.10.95.0/24",
+      "baseline_instances": 1,
+      "last_active_instance_withdrawal": "2019-08-21 16:45:25 UTC",
+      "first_subsequent_active_instance": "2019-08-21 16:45:27 UTC",
+      "absence_duration_secs": 2,
+      "path_before_absence": [
+        11537,
+        20965,
+        2603
+      ],
+      "path_after_absence": [
+        11537,
+        22388,
+        24489,
+        24489,
+        24489,
+        24489,
+        24490,
+        20965,
+        2603
+      ],
+      "transit_before_absence": true,
+      "transit_after_absence": true,
+      "archive_url": "http://archive.routeviews.org/bgpdata/2019.08/UPDATES/updates.20190821.1645.bz2",
+      "archive_sha256": "4546b78f8fb9ced87b93867cbb5f76e4abc11f37e564001f73f593313b9fd182",
+      "element_seq": 12592,
+      "evidence_observation_id": 165,
+      "path_replacements": 0,
+      "restorations": 1
+    },
+    {
+      "collector": "route-views2",
+      "peer": "64.57.28.241",
+      "prefix": "193.11.3.0/24",
+      "baseline_instances": 1,
+      "last_active_instance_withdrawal": "2019-08-21 16:45:25 UTC",
+      "first_subsequent_active_instance": "2019-08-21 16:45:27 UTC",
+      "absence_duration_secs": 2,
+      "path_before_absence": [
+        11537,
+        20965,
+        2603
+      ],
+      "path_after_absence": [
+        11537,
+        22388,
+        24489,
+        24489,
+        24489,
+        24489,
+        24490,
+        20965,
+        2603
+      ],
+      "transit_before_absence": true,
+      "transit_after_absence": true,
+      "archive_url": "http://archive.routeviews.org/bgpdata/2019.08/UPDATES/updates.20190821.1645.bz2",
+      "archive_sha256": "4546b78f8fb9ced87b93867cbb5f76e4abc11f37e564001f73f593313b9fd182",
+      "element_seq": 12593,
+      "evidence_observation_id": 166,
+      "path_replacements": 0,
+      "restorations": 1
+    },
+    {
+      "collector": "route-views2",
+      "peer": "64.57.28.241",
+      "prefix": "194.68.13.0/24",
+      "baseline_instances": 1,
+      "last_active_instance_withdrawal": "2019-08-21 16:45:25 UTC",
+      "first_subsequent_active_instance": "2019-08-21 16:45:27 UTC",
+      "absence_duration_secs": 2,
+      "path_before_absence": [
+        11537,
+        20965,
+        2603
+      ],
+      "path_after_absence": [
+        11537,
+        22388,
+        24489,
+        24489,
+        24489,
+        24489,
+        24490,
+        20965,
+        2603
+      ],
+      "transit_before_absence": true,
+      "transit_after_absence": true,
+      "archive_url": "http://archive.routeviews.org/bgpdata/2019.08/UPDATES/updates.20190821.1645.bz2",
+      "archive_sha256": "4546b78f8fb9ced87b93867cbb5f76e4abc11f37e564001f73f593313b9fd182",
+      "element_seq": 12602,
+      "evidence_observation_id": 175,
+      "path_replacements": 0,
+      "restorations": 1
+    }
+  ],
+  "findings": {
+    "unique_peers": [
+      "64.57.28.241"
+    ],
+    "unique_prefixes": [
+      "109.105.112.0/21",
+      "109.105.120.0/22",
+      "109.105.96.0/20",
+      "185.174.116.0/22",
+      "192.36.171.0/24",
+      "193.10.252.0/24",
+      "193.10.254.0/24",
+      "193.10.68.0/24",
+      "193.10.95.0/24",
+      "193.11.3.0/24",
+      "194.68.13.0/24"
+    ],
+    "distinct_withdrawal_stamps": [
+      "2019-08-21 16:45:25 UTC"
+    ],
+    "single_peer": true,
+    "single_timestamp": true,
+    "prefix_families": [
+      "109",
+      "185",
+      "192",
+      "193",
+      "194"
+    ],
+    "same_second_withdrawal_and_announcement": false,
+    "wording": "temporary observer-stream absence at one selected collector (11 of 33 streams, 1 peer, 2 seconds at native precision); not proof of traffic loss; not a global reachability statement"
+  }
+}
