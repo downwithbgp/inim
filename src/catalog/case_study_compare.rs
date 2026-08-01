@@ -469,7 +469,7 @@ fn temporal_detail_for(rel: &str, bgp_text: &str, window: Option<&(String, Strin
     if rel != RELATION_BEFORE && rel != RELATION_AFTER {
         return String::new();
     }
-    let Some((ws, we)) = window else {
+    let Some((ws, _we)) = window else {
         return String::new();
     };
     // The claim anchor (point or window start); the observation time is
