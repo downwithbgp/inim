@@ -215,6 +215,53 @@ pub struct SnapshotFetch {
     pub conditional_requested: bool,
 }
 
+// ── Ticket relationship graph (Session 33, Parts 6–7) ──────────────
+
+/// Neutral relationship kinds. A specific kind is used only where the
+/// surrounding source wording supports it; otherwise `References`.
+pub const RELATIONSHIP_REFERENCES: &str = "References";
+pub const RELATIONSHIP_TRACKS_REMAINING_IMPACT: &str = "TracksRemainingImpactIn";
+pub const RELATIONSHIP_SUPERSEDED_BY: &str = "SupersededBy";
+pub const RELATIONSHIP_RELATED_CHANGE: &str = "RelatedChange";
+pub const RELATIONSHIP_RELATED_INCIDENT: &str = "RelatedIncident";
+pub const RELATIONSHIP_RELATED_TASK: &str = "RelatedTask";
+pub const RELATIONSHIP_UNKNOWN_REFERENCE: &str = "UnknownReference";
+/// Machine-derived overlap candidate — explicitly NOT a causal edge.
+pub const RELATIONSHIP_TEMPORAL_OVERLAP: &str = "TemporalOverlap";
+
+/// Evidence kinds: explicit provenance vs derived candidates.
+pub const EVIDENCE_EXPLICIT_TICKET_TEXT: &str = "ExplicitTicketText";
+pub const EVIDENCE_REFERENCE_DOCUMENT: &str = "ReferenceDocument";
+pub const EVIDENCE_SHARED_CASE_STUDY: &str = "SharedCaseStudy";
+pub const EVIDENCE_ANALYST_REVIEWED: &str = "AnalystReviewed";
+pub const EVIDENCE_DERIVED_TEMPORAL_OVERLAP: &str = "DerivedTemporalOverlap";
+pub const EVIDENCE_DERIVED_ENTITY_OVERLAP: &str = "DerivedEntityOverlap";
+
+pub const REVIEW_UNREVIEWED: &str = "Unreviewed";
+pub const REVIEW_ACCEPTED: &str = "Accepted";
+pub const REVIEW_REJECTED: &str = "Rejected";
+
+/// A source-neutral ticket-to-ticket relationship edge.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TicketRelationship {
+    pub id: i64,
+    /// The ticket whose source text/document asserts the edge.
+    pub from_event_id: i64,
+    /// Resolved target; NULL while the identifier is unresolved.
+    pub to_event_id: Option<i64>,
+    /// The target ticket identifier (always present).
+    pub to_external_id: String,
+    /// One of the `RELATIONSHIP_*` kinds.
+    pub relationship_kind: String,
+    /// One of the `EVIDENCE_*` kinds.
+    pub evidence_kind: String,
+    pub source_snapshot_id: Option<i64>,
+    pub source_document_id: Option<i64>,
+    pub reviewed_status: String,
+    pub note: Option<String>,
+    pub created_utc: String,
+}
+
 // ── Case-study layer (Session 30) ──────────────────────────────────
 //
 // A CaseStudy is a reviewed grouping and interpretation of several sources

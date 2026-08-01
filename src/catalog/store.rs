@@ -887,3 +887,124 @@ pub fn update_discovery_status_rows(
     .map_err(|e| format!("catalog write failed: {e}"))?;
     Ok(())
 }
+
+// ── Ticket relationship graph (Session 33, Parts 6–7) ──────────────
+
+/// Insert a relationship edge. Idempotent: a duplicate edge (same from,
+/// target, kind, evidence, and provenance) is ignored. Returns true when
+/// a new row was inserted.
+pub fn insert_relationship(conn: &Connection, edge: &TicketRelationship) -> Result<bool, String> {
+    let result = conn
+        .execute(
+            "INSERT OR IGNORE INTO ticket_relationships
+           (from_event_id, to_event_id, to_external_id, relationship_kind,
+            evidence_kind, source_snapshot_id, source_document_id,
+            reviewed_status, note, created_utc)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+            params![
+                edge.from_event_id,
+                edge.to_event_id,
+                edge.to_external_id,
+                edge.relationship_kind,
+                edge.evidence_kind,
+                edge.source_snapshot_id,
+                edge.source_document_id,
+                edge.reviewed_status,
+                edge.note,
+                edge.created_utc
+            ],
+        )
+        .map_err(|e| format!("catalog write failed: {e}"))?;
+    Ok(result > 0)
+}
+
+fn row_to_relationship(row: &rusqlite::Row<'_>) -> rusqlite::Result<TicketRelationship> {
+    Ok(TicketRelationship {
+        id: row.get(0)?,
+        from_event_id: row.get(1)?,
+        to_event_id: row.get(2)?,
+        to_external_id: row.get(3)?,
+        relationship_kind: row.get(4)?,
+        evidence_kind: row.get(5)?,
+        source_snapshot_id: row.get(6)?,
+        source_document_id: row.get(7)?,
+        reviewed_status: row.get(8)?,
+        note: row.get(9)?,
+        created_utc: row.get(10)?,
+    })
+}
+
+/// All relationship edges, optionally filtered to one event's outgoing
+/// edges. Deterministic order.
+pub fn list_relationships(
+    conn: &Connection,
+    from_event_id: Option<i64>,
+) -> Result<Vec<TicketRelationship>, String> {
+    let mut sql = String::from(
+        "SELECT id, from_event_id, to_event_id, to_external_id, relationship_kind,
+                evidence_kind, source_snapshot_id, source_document_id,
+                reviewed_status, note, created_utc
+         FROM ticket_relationships",
+    );
+    let mut params: Vec<Box<dyn rusqlite::ToSql>> = Vec::new();
+    if let Some(id) = from_event_id {
+        sql.push_str(" WHERE from_event_id = ?1");
+        params.push(Box::new(id));
+    }
+    sql.push_str(" ORDER BY from_event_id, to_external_id, id");
+    let mut stmt = conn
+        .prepare(&sql)
+        .map_err(|e| format!("catalog read failed: {e}"))?;
+    let rows = stmt
+        .query_map(
+            rusqlite::params_from_iter(params.iter().map(|p| p.as_ref())),
+            row_to_relationship,
+        )
+        .map_err(|e| format!("catalog read failed: {e}"))?;
+    let mut out = Vec::new();
+    for r in rows {
+        out.push(r.map_err(|e| format!("catalog read failed: {e}"))?);
+    }
+    Ok(out)
+}
+
+/// Resolved neighbor event ids of one event (both directions).
+pub fn relationship_neighbors(conn: &Connection, event_id: i64) -> Result<Vec<i64>, String> {
+    let mut stmt = conn
+        .prepare(
+            "SELECT to_event_id FROM ticket_relationships
+             WHERE from_event_id = ?1 AND to_event_id IS NOT NULL
+             UNION
+             SELECT from_event_id FROM ticket_relationships
+             WHERE to_event_id = ?1 AND from_event_id IS NOT NULL
+             ORDER BY 1",
+        )
+        .map_err(|e| format!("catalog read failed: {e}"))?;
+    let rows = stmt
+        .query_map([event_id], |r| r.get::<_, i64>(0))
+        .map_err(|e| format!("catalog read failed: {e}"))?;
+    let mut out = Vec::new();
+    for r in rows {
+        out.push(r.map_err(|e| format!("catalog read failed: {e}"))?);
+    }
+    Ok(out)
+}
+
+/// Whether a reviewed edge already exists between an event and a target
+/// identifier — re-extraction must never overwrite analyst review.
+pub fn has_reviewed_edge(
+    conn: &Connection,
+    from_event_id: i64,
+    to_external_id: &str,
+) -> Result<bool, String> {
+    let count: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM ticket_relationships
+             WHERE from_event_id = ?1 AND to_external_id = ?2
+               AND reviewed_status != ?3",
+            params![from_event_id, to_external_id, REVIEW_UNREVIEWED],
+            |r| r.get(0),
+        )
+        .map_err(|e| format!("catalog read failed: {e}"))?;
+    Ok(count > 0)
+}

@@ -5,10 +5,10 @@
 //! reopened database at the current version is a no-op.
 
 /// Current catalog schema version.
-pub const CATALOG_SCHEMA_VERSION: u32 = 4;
+pub const CATALOG_SCHEMA_VERSION: u32 = 5;
 
 /// Ordered migrations. Index i migrates user_version i -> i+1.
-pub const MIGRATIONS: &[&str] = &[V1, V2, V3, V4];
+pub const MIGRATIONS: &[&str] = &[V1, V2, V3, V4, V5];
 
 const V1: &str = r#"
 CREATE TABLE catalog_events (
@@ -350,4 +350,36 @@ CREATE INDEX idx_discoveries_status ON ticket_discoveries(source_kind, status);
 CREATE INDEX idx_discoveries_id ON ticket_discoveries(external_id);
 CREATE INDEX idx_fetches_event ON snapshot_fetches(event_id, fetched_at);
 CREATE INDEX idx_fetches_sync ON snapshot_fetches(sync_run_id);
+"#;
+
+/// V5 (Session 33, Parts 6–7): ticket relationship graph.
+///
+/// Edges retain their provenance: the snapshot or document that asserted
+/// them, the evidence kind (explicit text vs derived overlap), and a
+/// review status. Derived edges stay visibly distinct from explicit
+/// ones. `to_event_id` is NULL until the external identifier resolves to
+/// a catalog event; SQLite treats NULLs as distinct in UNIQUE, so the
+/// dedup index uses COALESCE to keep imports idempotent.
+const V5: &str = r#"
+CREATE TABLE ticket_relationships (
+    id                 INTEGER PRIMARY KEY,
+    from_event_id      INTEGER NOT NULL REFERENCES catalog_events(id),
+    to_event_id        INTEGER REFERENCES catalog_events(id),
+    to_external_id     TEXT NOT NULL,
+    relationship_kind  TEXT NOT NULL,
+    evidence_kind      TEXT NOT NULL,
+    source_snapshot_id INTEGER REFERENCES event_snapshots(id),
+    source_document_id INTEGER REFERENCES reference_documents(id),
+    reviewed_status    TEXT NOT NULL DEFAULT 'Unreviewed',
+    note               TEXT,
+    created_utc        TEXT NOT NULL
+);
+
+CREATE UNIQUE INDEX uq_relationship_dedup ON ticket_relationships(
+    from_event_id, to_external_id, relationship_kind, evidence_kind,
+    COALESCE(source_snapshot_id, 0), COALESCE(source_document_id, 0)
+);
+CREATE INDEX idx_rel_from ON ticket_relationships(from_event_id);
+CREATE INDEX idx_rel_to ON ticket_relationships(to_event_id);
+CREATE INDEX idx_rel_external ON ticket_relationships(to_external_id);
 "#;
