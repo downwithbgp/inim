@@ -211,6 +211,24 @@ enum CaseStudyCommands {
         #[arg(long, value_name = "PATH")]
         path: PathBuf,
     },
+    /// Build the historical-archive plan for a case study.
+    ///
+    /// Computes the reproducible horizon and expected archive files WITHOUT
+    /// downloading anything. Targets with unresolved historical mappings are
+    /// reported as blocked. The plan is stored as Draft until reviewed.
+    Plan {
+        #[arg(long, value_name = "PATH")]
+        db: PathBuf,
+        /// Case-study slug.
+        #[arg(long, value_name = "SLUG")]
+        slug: String,
+        /// Warmup hours before the incident window (default 2).
+        #[arg(long, value_name = "HOURS", default_value_t = 2)]
+        warmup_hours: i64,
+        /// Cooldown hours after the incident window (default 2).
+        #[arg(long, value_name = "HOURS", default_value_t = 2)]
+        cooldown_hours: i64,
+    },
 }
 
 /// Reference-document subcommands.
@@ -574,6 +592,78 @@ fn cmd_catalog(stdout: &mut dyn Write, command: &CatalogCommands) -> i32 {
                 EXIT_INVALID_INPUT
             }
         },
+        CatalogCommands::CaseStudy(CaseStudyCommands::Plan {
+            db,
+            slug,
+            warmup_hours,
+            cooldown_hours,
+        }) => {
+            let conn = match inim::catalog::db::open_catalog(db) {
+                Ok(c) => c,
+                Err(e) => {
+                    let _ = writeln!(stdout, "error: {e}");
+                    return EXIT_INVALID_INPUT;
+                }
+            };
+            let Some(cs) = inim::catalog::archive_plan::find_case_study(&conn, &slug) else {
+                let _ = writeln!(stdout, "error: no case study with slug '{slug}'");
+                return EXIT_INVALID_INPUT;
+            };
+            let targets = match inim::catalog::archive_plan::list_targets(&conn, cs.id) {
+                Ok(t) => t,
+                Err(e) => {
+                    let _ = writeln!(stdout, "error: {e}");
+                    return EXIT_INVALID_INPUT;
+                }
+            };
+            match inim::catalog::archive_plan::build_plan(
+                &cs,
+                &targets,
+                *warmup_hours,
+                *cooldown_hours,
+            ) {
+                Ok((horizon, plan)) => {
+                    if let Err(e) =
+                        inim::catalog::archive_plan::save_plan(&conn, cs.id, &horizon, &plan)
+                    {
+                        let _ = writeln!(stdout, "error: {e}");
+                        return EXIT_INVALID_INPUT;
+                    }
+                    let _ = writeln!(
+                        stdout,
+                        "archive plan stored (Draft) for {}: horizon {} .. {} (warmup {}h, cooldown {}h)",
+                        cs.slug, horizon.warmup_start_utc, horizon.cooldown_end_utc,
+                        horizon.warmup_hours, horizon.cooldown_hours
+                    );
+                    for c in &plan.collectors {
+                        let _ = writeln!(
+                            stdout,
+                            "  {}: {} RIBs + {} updates (availability: {})",
+                            c.collector,
+                            c.ribs.len(),
+                            c.updates.len(),
+                            c.availability
+                        );
+                    }
+                    let _ = writeln!(
+                        stdout,
+                        "  estimated total download: ~{:.1} MiB (estimate)",
+                        plan.estimated_total_bytes as f64 / (1024.0 * 1024.0)
+                    );
+                    for b in &plan.blocked_targets {
+                        let _ = writeln!(stdout, "  blocked: {} — {}", b.source_label, b.reason);
+                    }
+                    for n in &plan.notes {
+                        let _ = writeln!(stdout, "  note: {n}");
+                    }
+                }
+                Err(e) => {
+                    let _ = writeln!(stdout, "error: {e}");
+                    return EXIT_INVALID_INPUT;
+                }
+            }
+            EXIT_SUCCESS
+        }
         CatalogCommands::CaseStudy(CaseStudyCommands::Import { db, path }) => {
             let conn = match inim::catalog::db::open_catalog(db) {
                 Ok(c) => c,
