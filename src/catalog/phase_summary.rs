@@ -459,6 +459,27 @@ mod tests {
     }
 
     #[test]
+    fn phase_summary_does_not_require_duplicate_full_evidence() {
+        let (_dir, conn) = open_temp_db();
+        // The run_transitions index stores only summary/evidence-lookup
+        // fields — full before/after route states stay in the immutable
+        // artifacts and are never duplicated in SQLite.
+        let cols: Vec<String> = conn
+            .prepare("PRAGMA table_info(run_transitions)")
+            .unwrap()
+            .query_map([], |r| r.get(1))
+            .unwrap()
+            .collect::<Result<_, _>>()
+            .unwrap();
+        for forbidden in ["before_path", "after_path", "from_path", "to_path", "raw_payload", "evidence_json"] {
+            assert!(!cols.iter().any(|c| c.contains(forbidden)), "index must not duplicate full evidence: {forbidden}");
+        }
+        for required in ["run_id", "seq", "kind", "occurred_utc", "collector", "peer_ip", "prefix", "observation_id"] {
+            assert!(cols.iter().any(|c| c == required), "index must keep {required}");
+        }
+    }
+
+    #[test]
     fn phase_summary_uses_continuous_run_state() {
         let (_dir, conn) = open_temp_db();
         let cs_id = seed_case_study(&conn);

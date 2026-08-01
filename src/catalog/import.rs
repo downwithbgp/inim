@@ -310,7 +310,7 @@ fn import_one(
             // ── Stream + wave summaries from the artifact JSONs ────
             import_stream_summaries(conn, run_id, &event_out, summary)?;
             import_wave_summaries(conn, run_id, &event_out, summary)?;
-            import_transitions(conn, run_id, &event_out, summary)?;
+            import_transitions(conn, run_id, &event_out, summary, TRANSITION_IMPORT_LIMIT)?;
         }
     }
 
@@ -504,13 +504,31 @@ fn import_wave_summaries(
     Ok(())
 }
 
+/// Sanity bound for a single run's transition import. The index is
+/// bounded: a run with more transitions than this is almost certainly a
+/// corrupt or mislabeled artifact, and the import rejects it rather than
+/// ballooning the database.
+pub const TRANSITION_IMPORT_LIMIT: usize = 1_000_000;
+
 /// Import per-transition records from `transitions.json` into
 /// `run_transitions` (one row per (run, seq), idempotent).
+///
+/// Storage audit (Session 31): `run_transitions` is a COMPACT SEARCHABLE
+/// INDEX — it stores only the fields needed for phase assignment,
+/// filtering, summary counts, and evidence lookup (kind, timestamp, key,
+/// path_id, effect facets, observation id, archive checksum). Complete
+/// before/after route states and detailed evidence stay in the immutable
+/// artifacts (`transitions.json`, `evidence_appendix.jsonl`), which are
+/// canonical. The index can be rebuilt at any time by re-importing the
+/// artifact (idempotent per (run_id, seq)). Import is bounded (see
+/// `TRANSITION_IMPORT_LIMIT`) and inserts rows one at a time inside the
+/// caller's transaction.
 fn import_transitions(
     conn: &Connection,
     run_id: i64,
     event_out: &Path,
     _summary: &mut ImportSummary,
+    limit: usize,
 ) -> Result<(), String> {
     let path = event_out.join("transitions.json");
     if !path.is_file() {
@@ -525,6 +543,12 @@ fn import_transitions(
         .and_then(|v| v.as_array())
         .cloned()
         .unwrap_or_default();
+    if transitions.len() > limit {
+        return Err(format!(
+            "transition import rejected: {} records exceeds the sanity bound of {limit} per run",
+            transitions.len()
+        ));
+    }
     for t in transitions {
         let rec = RunTransitionRecord {
             id: 0,
@@ -763,6 +787,186 @@ mod tests {
         assert_eq!(occurred, "2026-07-29T09:45:00Z");
         assert_eq!(pid, Some(7));
         assert_eq!(obs, Some(12));
+    }
+
+    #[test]
+    fn run_transition_index_references_canonical_artifact() {
+        if !repo_artifacts_available() {
+            return;
+        }
+        let (_dir, conn) = open_temp_db();
+        let root = temp_repo_root();
+        let artifact = r#"{
+          "schema_version": 1,
+          "event_id": "INC0302574",
+          "transitions": [
+            {"seq": 0, "kind": "Withdrawal", "occurred_utc": "2026-07-29T09:30:00Z",
+             "phase": "Event", "collector": "route-views2", "peer_ip": "128.223.51.110",
+             "prefix": "192.0.2.0/24", "path_id": null, "material_path_changed": false,
+             "communities_changed": false, "announced": false, "withdrawn": true,
+             "observation_id": 11, "archive_sha256": "abc"},
+            {"seq": 1, "kind": "PathReplacement", "occurred_utc": "2026-07-29T09:45:00Z",
+             "phase": "Event", "collector": "route-views2", "peer_ip": "128.223.51.110",
+             "prefix": "192.0.2.0/24", "path_id": 7, "material_path_changed": true,
+             "communities_changed": false, "announced": false, "withdrawn": false,
+             "observation_id": 12, "archive_sha256": "abc"}
+          ]
+        }"#;
+        std::fs::write(
+            root.path().join("out/INC0302574/transitions.json"),
+            artifact,
+        )
+        .unwrap();
+        let mut summary = ImportSummary::default();
+        import_repository(&conn, root.path(), "0.1.0", Some("test")).unwrap();
+        let run_id: i64 = conn
+            .query_row(
+                "SELECT run_id FROM analysis_artifacts WHERE relative_path = 'INC0302574/transitions.json'",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        // Every stored row resolves to the canonical artifact content.
+        let (obs, sha): (Option<i64>, Option<String>) = conn
+            .query_row(
+                "SELECT observation_id, archive_sha256 FROM run_transitions WHERE run_id = ?1 AND seq = 0",
+                [run_id],
+                |r| Ok((r.get(0)?, r.get(1)?)),
+            )
+            .unwrap();
+        assert_eq!(obs, Some(11));
+        assert_eq!(sha.as_deref(), Some("abc"));
+        // The artifact itself is recorded as a run artifact (canonical copy).
+        let artifact_rows: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM analysis_artifacts
+                 WHERE run_id = ?1 AND relative_path = 'INC0302574/transitions.json'",
+                [run_id],
+                |r| r.get(0),
+            )
+            .unwrap();
+        assert_eq!(artifact_rows, 1);
+        let _ = &mut summary;
+    }
+
+    #[test]
+    fn transition_import_is_streamed_or_bounded() {
+        if !repo_artifacts_available() {
+            return;
+        }
+        let (_dir, conn) = open_temp_db();
+        // A tiny bound proves the guard: 3 records with limit 2 must reject.
+        let transitions: Vec<serde_json::Value> = (0..3)
+            .map(|i| {
+                serde_json::json!({
+                    "seq": i, "kind": "Withdrawal", "occurred_utc": "2026-07-29T09:30:00Z",
+                    "phase": "Event", "collector": "route-views2", "peer_ip": "1.1.1.1",
+                    "prefix": "192.0.2.0/24", "path_id": null, "material_path_changed": false,
+                    "communities_changed": false, "announced": false, "withdrawn": true,
+                    "observation_id": i, "archive_sha256": "abc"
+                })
+            })
+            .collect();
+        let artifact = serde_json::json!({
+            "schema_version": 1, "event_id": "T1", "transitions": transitions
+        });
+        let out = tempfile::tempdir().unwrap();
+        std::fs::write(
+            out.path().join("transitions.json"),
+            serde_json::to_string(&artifact).unwrap(),
+        )
+        .unwrap();
+        let e = store::upsert_event(&conn, "grnoc", "T1", "2026-07-29T00:00:00Z").unwrap();
+        let sid = store::insert_snapshot(
+            &conn,
+            e,
+            &crate::catalog::tests::sample_snapshot(e, r#"{"t":1}"#),
+        )
+        .unwrap();
+        let mid = store::insert_manifest_revision(
+            &conn,
+            &crate::catalog::tests::sample_manifest_revision(e, sid, r#"{"o":1}"#),
+        )
+        .unwrap();
+        let pid =
+            store::insert_plan(&conn, &crate::catalog::tests::sample_plan(mid, "Ready")).unwrap();
+        let run_id = store::insert_run(
+            &conn,
+            &crate::catalog::tests::sample_run(pid, "2026-07-29T00:00:00Z"),
+        )
+        .unwrap();
+        let mut summary = ImportSummary::default();
+        let err = import_transitions(&conn, run_id, out.path(), &mut summary, 2).unwrap_err();
+        assert!(err.contains("sanity bound"), "{err}");
+        let count: i64 = conn
+            .query_row("SELECT COUNT(*) FROM run_transitions", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(count, 0, "rejected import must not leave rows");
+    }
+
+    #[test]
+    fn transition_index_can_be_rebuilt_from_artifact() {
+        if !repo_artifacts_available() {
+            return;
+        }
+        let (_dir, conn) = open_temp_db();
+        let root = temp_repo_root();
+        let artifact = r#"{
+          "schema_version": 1,
+          "event_id": "INC0302574",
+          "transitions": [
+            {"seq": 0, "kind": "Withdrawal", "occurred_utc": "2026-07-29T09:30:00Z",
+             "phase": "Event", "collector": "route-views2", "peer_ip": "128.223.51.110",
+             "prefix": "192.0.2.0/24", "path_id": null, "material_path_changed": false,
+             "communities_changed": false, "announced": false, "withdrawn": true,
+             "observation_id": 11, "archive_sha256": "abc"},
+            {"seq": 1, "kind": "PathReplacement", "occurred_utc": "2026-07-29T09:45:00Z",
+             "phase": "Event", "collector": "route-views2", "peer_ip": "128.223.51.110",
+             "prefix": "192.0.2.0/24", "path_id": 7, "material_path_changed": true,
+             "communities_changed": false, "announced": false, "withdrawn": false,
+             "observation_id": 12, "archive_sha256": "abc"}
+          ]
+        }"#;
+        std::fs::write(
+            root.path().join("out/INC0302574/transitions.json"),
+            artifact,
+        )
+        .unwrap();
+        import_repository(&conn, root.path(), "0.1.0", Some("test")).unwrap();
+        let run_id: i64 = conn
+            .query_row(
+                "SELECT run_id FROM analysis_artifacts WHERE relative_path = 'INC0302574/transitions.json'",
+                [],
+                |r| r.get(0),
+            )
+            .unwrap();
+        let before: Vec<(i64, String, String, Option<i64>)> = conn
+            .prepare("SELECT seq, kind, occurred_utc, observation_id FROM run_transitions WHERE run_id = ?1 ORDER BY seq")
+            .unwrap()
+            .query_map([run_id], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?)))
+            .unwrap()
+            .collect::<Result<_, _>>()
+            .unwrap();
+        assert_eq!(before.len(), 2);
+        // Drop the index and rebuild it from the canonical artifact.
+        conn.execute("DELETE FROM run_transitions", []).unwrap();
+        let mut summary = ImportSummary::default();
+        import_transitions(
+            &conn,
+            run_id,
+            &root.path().join("out/INC0302574"),
+            &mut summary,
+            TRANSITION_IMPORT_LIMIT,
+        )
+        .unwrap();
+        let after: Vec<(i64, String, String, Option<i64>)> = conn
+            .prepare("SELECT seq, kind, occurred_utc, observation_id FROM run_transitions WHERE run_id = ?1 ORDER BY seq")
+            .unwrap()
+            .query_map([run_id], |r| Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?)))
+            .unwrap()
+            .collect::<Result<_, _>>()
+            .unwrap();
+        assert_eq!(before, after, "index rebuild must reproduce the rows");
     }
 
     #[test]
