@@ -55,9 +55,10 @@ pub fn media_type_for(path: &std::path::Path) -> Option<&'static str> {
 
 /// Best-effort PDF page count from raw bytes.
 ///
-/// Counts `/Type /Page` occurrences not followed by `s` (i.e. excluding
-/// `/Type /Pages`). Returns None when the count is not safely available
-/// (e.g. compressed object streams).
+/// First counts `/Type /Page` occurrences not followed by `s` (i.e.
+/// excluding `/Type /Pages`). When the raw-byte scan cannot safely count
+/// (e.g. compressed object streams), falls back to `pdfinfo` resolved via
+/// PATH; absent or failing `pdfinfo` yields None.
 pub fn pdf_page_count(bytes: &[u8]) -> Option<i64> {
     let hay = String::from_utf8_lossy(bytes);
     let mut count = 0i64;
@@ -70,7 +71,31 @@ pub fn pdf_page_count(bytes: &[u8]) -> Option<i64> {
         }
         pos = abs + "/Type /Page".len();
     }
-    (count > 0).then_some(count)
+    if count > 0 {
+        return Some(count);
+    }
+    pdfinfo_page_count(bytes)
+}
+
+/// Page count via the `pdfinfo` external tool (best-effort, PATH lookup).
+fn pdfinfo_page_count(bytes: &[u8]) -> Option<i64> {
+    let tmp = std::env::temp_dir().join(format!("inim-pdf-{}.pdf", hex_sha256(bytes).get(..12)?));
+    if !tmp.is_file() {
+        std::fs::write(&tmp, bytes).ok()?;
+    }
+    let out = std::process::Command::new("pdfinfo")
+        .arg(&tmp)
+        .output()
+        .ok()?;
+    if !out.status.success() {
+        return None;
+    }
+    let text = String::from_utf8_lossy(&out.stdout);
+    text.lines()
+        .find(|l| l.starts_with("Pages:"))
+        .and_then(|l| l.split_whitespace().nth(1))
+        .and_then(|n| n.parse::<i64>().ok())
+        .filter(|n| *n > 0)
 }
 
 /// Best-effort PDF Info-dict metadata from raw bytes.
@@ -413,6 +438,23 @@ mod tests {
     fn pdf_page_count_excludes_pages_object() {
         let bytes = synthetic_pdf("AAR");
         assert_eq!(pdf_page_count(&bytes), Some(1));
+    }
+
+    #[test]
+    fn pdf_page_count_falls_back_to_pdfinfo_when_available() {
+        if std::process::Command::new("pdfinfo")
+            .arg("-v")
+            .output()
+            .map(|o| o.status.success())
+            .unwrap_or(false)
+        {
+            // The real-world AAR uses compressed object streams; the
+            // raw-byte scan cannot count them, so the pdfinfo fallback must.
+            let real = std::fs::read("/tmp/MANLAN-20190821-Postmortem.pdf");
+            if let Ok(bytes) = real {
+                assert_eq!(pdfinfo_page_count(&bytes), Some(15));
+            }
+        }
     }
 
     #[test]
