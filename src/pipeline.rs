@@ -118,12 +118,14 @@ mod tests {
         (0..n).collect()
     }
 
+    type ProbeOut = (usize, usize, Vec<(Option<usize>, (usize, usize))>);
+
     fn concurrency_probe(
         n: usize,
         download_jobs: usize,
         parse_jobs: usize,
         parse_delay: Duration,
-    ) -> (usize, usize, Vec<(Option<usize>, (usize, usize))>) {
+    ) -> ProbeOut {
         let active = Arc::new(AtomicUsize::new(0));
         let max_active = Arc::new(AtomicUsize::new(0));
         let d_active = Arc::new(AtomicUsize::new(0));

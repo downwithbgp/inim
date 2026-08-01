@@ -1006,27 +1006,28 @@ fn process_updates_pipeline(
         for _ in 0..parse_jobs {
             let rx = &rx;
             let slots = &slots;
-            let pending = pending;
-            scope.spawn(move || {
-                while let Ok((idx, cu)) = rx.lock().unwrap().recv() {
-                    let (ao, _item) = &pending[idx];
-                    let task = UpdateTask {
-                        collector: cu.collector_id.clone(),
-                        archive_order: *ao,
-                        url: cu.url.clone(),
-                        local_path: cu.local_path.clone(),
-                        sha256: cu.sha256.clone(),
-                    };
-                    let result = process_one_update_file(
-                        &task,
-                        cache_dir,
-                        tshash,
-                        cache_control,
-                        target_set,
-                        frozen_prefixes,
-                    );
-                    slots.lock().unwrap()[idx] = Some(Ok(result));
-                }
+            scope.spawn(move || loop {
+                // The receiver mutex guard is a statement temporary: it
+                // drops here, before parsing, so workers parse concurrently.
+                let received = rx.lock().unwrap().recv();
+                let Ok((idx, cu)) = received else { break };
+                let (ao, _item) = &pending[idx];
+                let task = UpdateTask {
+                    collector: cu.collector_id.clone(),
+                    archive_order: *ao,
+                    url: cu.url.clone(),
+                    local_path: cu.local_path.clone(),
+                    sha256: cu.sha256.clone(),
+                };
+                let result = process_one_update_file(
+                    &task,
+                    cache_dir,
+                    tshash,
+                    cache_control,
+                    target_set,
+                    frozen_prefixes,
+                );
+                slots.lock().unwrap()[idx] = Some(Ok(result));
             });
         }
     });
