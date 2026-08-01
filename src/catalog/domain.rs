@@ -113,6 +113,12 @@ pub struct StreamLifecycleSummary {
     pub add_path_ambiguous: bool,
     /// Evidence artifact references (JSON array of relative paths).
     pub evidence_refs: String,
+    /// First observed route-state change for this stream (UTC, from the
+    /// immutable lifecycle evidence).
+    pub first_change_utc: Option<String>,
+    /// Stream restoration time (UTC, from the immutable lifecycle
+    /// evidence), when the stream restored.
+    pub restoration_time_utc: Option<String>,
 }
 
 /// A semantic wave summary.

@@ -99,6 +99,33 @@ pub async fn case_study_detail(
     }
 }
 
+/// Event incident workbench — the dense NOC view for one event.
+pub async fn event_workbench(
+    State(state): State<SharedState>,
+    AxumPath(event_id): AxumPath<String>,
+) -> Response {
+    let db = state.db.lock().unwrap();
+    match super::view::load_event_workbench(&db, &event_id) {
+        Ok(Some(view)) => render(view),
+        Ok(None) => not_found("event"),
+        Err(e) => server_error(&e),
+    }
+}
+
+/// Case-study incident workbench — the multi-observer view over the
+/// case study's linked runs (same reusable view model).
+pub async fn case_study_workbench(
+    State(state): State<SharedState>,
+    AxumPath(slug): AxumPath<String>,
+) -> Response {
+    let db = state.db.lock().unwrap();
+    match super::view::load_case_study_workbench(&db, &slug) {
+        Ok(Some(view)) => render(view),
+        Ok(None) => not_found("case study"),
+        Err(e) => server_error(&e),
+    }
+}
+
 /// Serve a validated document file.
 ///
 /// The record must exist, the stored path must stay under the catalog root

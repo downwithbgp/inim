@@ -38,6 +38,14 @@ pub fn build_router(state: SharedState) -> Router {
             axum::routing::get(handlers::event_detail),
         )
         .route(
+            "/events/{event_id}/workbench",
+            axum::routing::get(handlers::event_workbench),
+        )
+        .route(
+            "/case-studies/{slug}/workbench",
+            axum::routing::get(handlers::case_study_workbench),
+        )
+        .route(
             "/analyses/{run_id}",
             axum::routing::get(handlers::analysis_detail),
         )
@@ -108,6 +116,18 @@ pub fn build_router(state: SharedState) -> Router {
         .route(
             "/api/v1/case-studies/{slug}/comparison",
             axum::routing::get(api::api_case_study_comparison),
+        )
+        .route(
+            "/api/v1/events/{event_id}/workbench",
+            axum::routing::get(api::api_event_workbench),
+        )
+        .route(
+            "/api/v1/analyses/{run_id}/observer-episodes",
+            axum::routing::get(api::api_run_observer_episodes),
+        )
+        .route(
+            "/api/v1/analyses/{run_id}/regional-breadth",
+            axum::routing::get(api::api_run_regional_breadth),
         )
         .route(
             "/api/v1/catalog/status",

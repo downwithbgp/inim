@@ -5,10 +5,10 @@
 //! reopened database at the current version is a no-op.
 
 /// Current catalog schema version.
-pub const CATALOG_SCHEMA_VERSION: u32 = 7;
+pub const CATALOG_SCHEMA_VERSION: u32 = 8;
 
 /// Ordered migrations. Index i migrates user_version i -> i+1.
-pub const MIGRATIONS: &[&str] = &[V1, V2, V3, V4, V5, V6, V7];
+pub const MIGRATIONS: &[&str] = &[V1, V2, V3, V4, V5, V6, V7, V8];
 
 const V1: &str = r#"
 CREATE TABLE catalog_events (
@@ -435,4 +435,16 @@ CREATE TABLE ticket_reviews (
 );
 
 CREATE INDEX idx_reviews_external ON ticket_reviews(external_id);
+"#;
+
+/// V8 (Session 36, Part 3): lifecycle timestamps on stream summaries.
+///
+/// Per-stream first-change and restoration timestamps come from the
+/// immutable lifecycle.json evidence (the analysis artifacts), so the
+/// workbench can render change/restoration intervals even for runs whose
+/// transition index is absent or bounded. Timestamps are evidence, never
+/// interpolated.
+const V8: &str = r#"
+ALTER TABLE stream_lifecycle_summaries ADD COLUMN first_change_utc TEXT;
+ALTER TABLE stream_lifecycle_summaries ADD COLUMN restoration_time_utc TEXT;
 "#;

@@ -208,8 +208,9 @@ pub fn insert_streams(
             "INSERT INTO stream_lifecycle_summaries
                (run_id, collector, peer_ip, prefix, category, baseline_instances,
                 max_active_instances, transition_count, withdrawn, restored,
-                transit_state, add_path_ambiguous, evidence_refs)
-             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13)",
+                transit_state, add_path_ambiguous, evidence_refs,
+                first_change_utc, restoration_time_utc)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)",
         )
         .map_err(|e| format!("catalog write failed: {e}"))?;
     for s in streams {
@@ -226,7 +227,9 @@ pub fn insert_streams(
             s.restored as i64,
             s.transit_state,
             s.add_path_ambiguous as i64,
-            s.evidence_refs
+            s.evidence_refs,
+            s.first_change_utc,
+            s.restoration_time_utc
         ])
         .map_err(|e| format!("catalog write failed: {e}"))?;
     }

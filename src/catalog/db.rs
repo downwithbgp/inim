@@ -439,7 +439,7 @@ pub fn list_streams(
     let mut sql = String::from(
         "SELECT id, run_id, collector, peer_ip, prefix, category, baseline_instances,
                 max_active_instances, transition_count, withdrawn, restored, transit_state,
-                add_path_ambiguous, evidence_refs
+                add_path_ambiguous, evidence_refs, first_change_utc, restoration_time_utc
          FROM stream_lifecycle_summaries WHERE run_id = ?1",
     );
     let mut params: Vec<Box<dyn rusqlite::ToSql>> = vec![Box::new(run_id)];
@@ -474,6 +474,8 @@ pub fn list_streams(
                     transit_state: row.get(11)?,
                     add_path_ambiguous: row.get(12)?,
                     evidence_refs: row.get(13)?,
+                    first_change_utc: row.get(14)?,
+                    restoration_time_utc: row.get(15)?,
                 })
             },
         )

@@ -38,6 +38,34 @@ code { font-size: 0.85em; }
 form.filter { margin-bottom: 0.75rem; }
 form.filter input, form.filter select { margin-right: 0.5rem; }
 ul.flat { margin: 0.25rem 0; padding-left: 1.2rem; }
+
+/* ── NOC incident workbench (Session 36, Part 8) ────────────────────
+   Old-school operations-console HCI: rectangular panels, square or
+   nearly square corners, thin borders, strong section headers, compact
+   line height, monospaced timestamps and AS paths, dense sortable
+   tables, explicit text status, restrained operational colors,
+   underlined conventional links, visible focus states. No oversized
+   rounded cards, gradients, glass effects, or decorative whitespace. */
+.wb-panel { border: 1px solid var(--line); border-radius: 0; background: #fff; padding: 0.6rem 0.8rem; }
+.wb-panel h3 { margin: 0 0 0.4rem; font-size: 0.95rem; text-transform: uppercase; letter-spacing: 0.05em; }
+.wb-table { border-collapse: collapse; width: 100%; background: #fff; font-size: 0.82rem; line-height: 1.25; }
+.wb-table th { text-align: left; padding: 0.3rem 0.5rem; border-bottom: 2px solid #444; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; color: #333; position: sticky; top: 0; background: #f0f0f0; z-index: 1; }
+.wb-table td { padding: 0.28rem 0.5rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+.wb-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.78rem; white-space: nowrap; }
+.wb-sentence { font-size: 0.85rem; margin: 0.3rem 0; }
+.wb-detail td { background: #f7f7f5; border-left: 3px solid #888; }
+.wb-episode-row { cursor: pointer; }
+.wb-episode-row:hover td { background: #eef3f8; }
+.wb-note { font-size: 0.78rem; }
+.wb-cue { font-size: 0.82rem; }
+.wb-status { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.03em; }
+.wb-unresolved { color: #8a5a00; }
+.wb-drilldown summary { cursor: pointer; font-size: 0.8rem; color: #1a4f8b; }
+a { color: #1a4f8b; text-decoration: underline; }
+a:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px solid #1a4f8b; outline-offset: 1px; }
+.wb-sortable th { cursor: pointer; user-select: none; }
+.wb-sortable th.sorted-asc::after { content: " ▲"; }
+.wb-sortable th.sorted-desc::after { content: " ▼"; }
 "#;
 
 // ── Templates ───────────────────────────────────────────────────────
@@ -2714,4 +2742,405 @@ pub fn load_archive_batches(conn: &rusqlite::Connection) -> Result<ArchiveBatche
         batches,
         note: "Batch plans are deterministic groupings of per-event raw archive requirements; archive reuse never merges event evidence. Nothing is downloaded to produce these plans.".to_string(),
     })
+}
+
+// ── Incident workbench views (Session 36, Parts 7/8/10/12) ──────────
+
+/// Event workbench: the event's own runs through the shared view model.
+pub fn load_event_workbench(
+    conn: &rusqlite::Connection,
+    event_id: &str,
+) -> Result<Option<WorkbenchView>, String> {
+    let event = db::get_event_by_external(conn, "local-repository", event_id)?.or(
+        db::get_event_by_external(conn, "grnoc-public-task-viewer", event_id)?,
+    );
+    let Some(event) = event else { return Ok(None) };
+    // Collector sites are stable reviewed facts; the pilot-scoped session
+    // audit and I2PX decision are NOT applied to unrelated events.
+    let context = crate::catalog::workbench::WorkbenchContext::load_registry_only(
+        std::path::Path::new("case-studies/manlan-2019/pilot"),
+    );
+    let Some(vm) =
+        crate::catalog::workbench::IncidentWorkbenchViewModel::for_event(conn, event_id, &context)?
+    else {
+        return Ok(None);
+    };
+    // Fill event header fields from the catalog event row.
+    let mut vm = vm;
+    vm.subject_kind = event.source_kind.clone();
+    vm.lifecycle = event_lifecycle(conn, event.id)?;
+    vm.expectation_assessment = latest_expectation(conn, event.id)?.unwrap_or_default();
+    let title = latest_title(conn, event.id)?;
+    if !title.is_empty() {
+        vm.title = title;
+    }
+    Ok(Some(WorkbenchView::from_vm(vm)))
+}
+
+/// Case-study workbench: linked runs through the same shared model.
+pub fn load_case_study_workbench(
+    conn: &rusqlite::Connection,
+    slug: &str,
+) -> Result<Option<WorkbenchView>, String> {
+    let Some(cs) = crate::catalog::archive_plan::find_case_study(conn, slug) else {
+        return Ok(None);
+    };
+    let pilot_dir = std::path::Path::new("case-studies")
+        .join(slug)
+        .join("pilot");
+    let context = crate::catalog::workbench::WorkbenchContext::load_from_pilot_dir(&pilot_dir);
+    let Some(mut vm) = crate::catalog::workbench::IncidentWorkbenchViewModel::for_case_study(
+        conn, slug, &context,
+    )?
+    else {
+        return Ok(None);
+    };
+    vm.title = cs.title.clone();
+    vm.lifecycle = if cs.end_utc.is_some() {
+        "Closed"
+    } else {
+        "Open"
+    }
+    .to_string();
+    vm.expectation_assessment = cs.summary.clone();
+    Ok(Some(WorkbenchView::from_vm(vm)))
+}
+
+fn event_lifecycle(conn: &rusqlite::Connection, event_id: i64) -> Result<String, String> {
+    let snapshots = db::list_snapshots(conn, event_id)?;
+    let latest = snapshots.first();
+    let normalized: serde_json::Value = latest
+        .and_then(|s| serde_json::from_str(&s.normalized_json).ok())
+        .unwrap_or_else(|| serde_json::json!({}));
+    let end = normalized.get("end").and_then(|v| v.as_str()).unwrap_or("");
+    Ok(if end.is_empty() { "Open" } else { "Closed" }.to_string())
+}
+
+fn latest_title(conn: &rusqlite::Connection, event_id: i64) -> Result<String, String> {
+    let snapshots = db::list_snapshots(conn, event_id)?;
+    let latest = snapshots.first();
+    let normalized: serde_json::Value = latest
+        .and_then(|s| serde_json::from_str(&s.normalized_json).ok())
+        .unwrap_or_else(|| serde_json::json!({}));
+    Ok(normalized
+        .get("title")
+        .and_then(|v| v.as_str())
+        .unwrap_or("")
+        .to_string())
+}
+
+/// Askama wrapper for the shared workbench view model.
+#[derive(Template)]
+#[template(path = "workbench.html")]
+pub struct WorkbenchView {
+    pub vm: crate::catalog::workbench::IncidentWorkbenchViewModel,
+    pub episodes: Vec<WorkbenchEpisodeRow>,
+    pub breadth: Vec<WorkbenchBreadthRow>,
+    pub timeline: Vec<WorkbenchTimelineRow>,
+    pub anchors: Vec<WorkbenchAnchorRow>,
+    pub coverage: Vec<WorkbenchCoverageRow>,
+    pub cues: Vec<crate::catalog::workbench::InvestigationCue>,
+    pub runs: Vec<crate::catalog::workbench::WorkbenchRunView>,
+}
+
+impl WorkbenchView {
+    fn from_vm(vm: crate::catalog::workbench::IncidentWorkbenchViewModel) -> Self {
+        WorkbenchView {
+            episodes: episode_rows(&vm),
+            breadth: breadth_rows(&vm),
+            timeline: timeline_rows(&vm),
+            anchors: anchor_rows(&vm),
+            coverage: coverage_rows(&vm),
+            cues: vm.cues.clone(),
+            runs: vm.runs.clone(),
+            vm,
+        }
+    }
+}
+
+/// One run's observer episodes (API slice; same presentation model).
+pub fn load_run_workbench_slice(
+    conn: &rusqlite::Connection,
+    run_id: i64,
+) -> Result<Option<serde_json::Value>, String> {
+    let run = db::get_run(conn, run_id)?;
+    let Some(_run) = run else { return Ok(None) };
+    let evidence = crate::catalog::workbench::RunEvidence::load(conn, &[run_id])?;
+    let registry = crate::catalog::netprofile::CollectorLocationRegistry::default();
+    let streams: Vec<crate::catalog::domain::StreamLifecycleSummary> = evidence.streams;
+    let transitions: Vec<crate::catalog::domain::RunTransitionRecord> = evidence.transitions;
+    let waves: Vec<crate::catalog::domain::SemanticWaveSummary> = evidence.waves;
+    let peers = std::collections::BTreeMap::new();
+    let mut eps = crate::catalog::workbench::build_episodes(
+        run_id,
+        "",
+        &streams,
+        &transitions,
+        &waves,
+        &registry,
+        &peers,
+        "no reviewed plane",
+    );
+    for ep in eps.iter_mut() {
+        ep.representative_evidence = crate::catalog::workbench::render_episode_sentence(ep);
+    }
+    Ok(Some(serde_json::to_value(eps).unwrap_or_default()))
+}
+
+/// One run's regional breadth (API slice; same presentation model).
+pub fn load_run_breadth_slice(
+    conn: &rusqlite::Connection,
+    run_id: i64,
+) -> Result<Option<serde_json::Value>, String> {
+    let run = db::get_run(conn, run_id)?;
+    let Some(_run) = run else { return Ok(None) };
+    let evidence = crate::catalog::workbench::RunEvidence::load(conn, &[run_id])?;
+    let registry = crate::catalog::netprofile::CollectorLocationRegistry::default();
+    let peers = std::collections::BTreeMap::new();
+    let eps = crate::catalog::workbench::build_episodes(
+        run_id,
+        "",
+        &evidence.streams,
+        &evidence.transitions,
+        &evidence.waves,
+        &registry,
+        &peers,
+        "no reviewed plane",
+    );
+    let breadth = crate::catalog::workbench::regional_breadth(&eps, &[], &[]);
+    Ok(Some(serde_json::to_value(breadth).unwrap_or_default()))
+}
+
+/// Pre-rendered episode row for the workbench template (no Option fields;
+/// askama renders plain strings only — all presentation logic lives in
+/// the shared view model, never in the template).
+#[derive(Serialize)]
+pub struct WorkbenchEpisodeRow {
+    pub first_change: String,
+    pub region: String,
+    pub site: String,
+    pub peer_asn: String,
+    pub peer_role: String,
+    pub relationship: String,
+    pub plane: String,
+    pub changed_streams: String,
+    pub prefixes: String,
+    pub signature: String,
+    pub restoration: String,
+    pub status: String,
+    pub sentence: String,
+    pub session: String,
+    pub baseline_streams: String,
+    pub route_instances: String,
+    pub unresolved: String,
+    pub stream_count: String,
+    pub streams: Vec<WorkbenchStreamRow>,
+}
+
+#[derive(Serialize)]
+pub struct WorkbenchStreamRow {
+    pub prefix: String,
+    pub category: String,
+    pub withdrawn: String,
+    pub restored: String,
+    pub baseline_instances: String,
+    pub transitions: String,
+    pub ambiguous: String,
+}
+
+/// Convert shared-model episodes into pre-rendered template rows.
+fn episode_rows(
+    vm: &crate::catalog::workbench::IncidentWorkbenchViewModel,
+) -> Vec<WorkbenchEpisodeRow> {
+    vm.episodes
+        .iter()
+        .map(|e| {
+            let restoration =
+                if e.effect_kind == crate::catalog::workbench::EffectKind::NoRouteStateChange {
+                    "—".to_string()
+                } else {
+                    match (&e.restoration_start, &e.restoration_end) {
+                        (Some(a), Some(b)) if a != b => format!("{a} → {b}"),
+                        (Some(a), _) => a.clone(),
+                        _ => "unresolved".to_string(),
+                    }
+                };
+            WorkbenchEpisodeRow {
+                first_change: e.first_change.clone().unwrap_or_default(),
+                region: e.observer_region.clone(),
+                site: e.observer_site.clone(),
+                peer_asn: e
+                    .peer_asn
+                    .map(|a| format!("AS{a}"))
+                    .unwrap_or_else(|| "unreviewed".to_string()),
+                peer_role: e.peer_role.clone(),
+                relationship: e.relationship.label().to_string(),
+                plane: e.named_path_plane.clone(),
+                changed_streams: e.changed_stream_count.to_string(),
+                prefixes: e.distinct_prefix_count.to_string(),
+                signature: e.effect_kind.label().to_string(),
+                restoration,
+                status: e.coverage_status.label().to_string(),
+                sentence: e.representative_evidence.clone(),
+                session: e.observer_session.clone(),
+                baseline_streams: e.baseline_stream_count.to_string(),
+                route_instances: e.route_instance_count.to_string(),
+                unresolved: e.unresolved_count.to_string(),
+                stream_count: e.streams.len().to_string(),
+                streams: e
+                    .streams
+                    .iter()
+                    .map(|s| WorkbenchStreamRow {
+                        prefix: s.prefix.clone(),
+                        category: s.category.clone(),
+                        withdrawn: s.withdrawn.to_string(),
+                        restored: s.restored.to_string(),
+                        baseline_instances: s.baseline_instances.to_string(),
+                        transitions: s.transition_count.to_string(),
+                        ambiguous: s.add_path_ambiguous.to_string(),
+                    })
+                    .collect(),
+            }
+        })
+        .collect()
+}
+
+/// Pre-rendered breadth row for the template.
+#[derive(Serialize)]
+pub struct WorkbenchBreadthRow {
+    pub region: String,
+    pub eligible: String,
+    pub changed: String,
+    pub unchanged: String,
+    pub no_baseline: String,
+    pub incomplete: String,
+    pub changed_streams: String,
+    pub baseline_streams: String,
+    pub changed_prefixes: String,
+    pub first_change: String,
+    pub last_restoration: String,
+}
+
+fn breadth_rows(
+    vm: &crate::catalog::workbench::IncidentWorkbenchViewModel,
+) -> Vec<WorkbenchBreadthRow> {
+    vm.breadth
+        .iter()
+        .map(|b| WorkbenchBreadthRow {
+            region: b.region.clone(),
+            eligible: b.eligible_observer_sessions.to_string(),
+            changed: b.changed_observer_sessions.to_string(),
+            unchanged: b.unchanged_observer_sessions.to_string(),
+            no_baseline: b.sessions_without_baseline_visibility.to_string(),
+            incomplete: b.sessions_with_incomplete_coverage.to_string(),
+            changed_streams: b.changed_streams.to_string(),
+            baseline_streams: b.baseline_streams.to_string(),
+            changed_prefixes: b.changed_prefixes.to_string(),
+            first_change: b.first_change.clone().unwrap_or_default(),
+            last_restoration: b.last_restoration.clone().unwrap_or_default(),
+        })
+        .collect()
+}
+
+/// Pre-rendered timeline row for the template.
+#[derive(Serialize)]
+pub struct WorkbenchTimelineRow {
+    pub session: String,
+    pub region: String,
+    pub window: String,
+    pub first_change: String,
+    pub absence: String,
+    pub path_change: String,
+    pub restoration: String,
+    pub end_state: String,
+}
+
+fn timeline_rows(
+    vm: &crate::catalog::workbench::IncidentWorkbenchViewModel,
+) -> Vec<WorkbenchTimelineRow> {
+    vm.timeline
+        .iter()
+        .map(|l| WorkbenchTimelineRow {
+            session: l.observer_session.clone(),
+            region: l.region.clone(),
+            window: format!("{} → {}", l.window_start, l.window_end),
+            first_change: l
+                .first_route_change
+                .as_ref()
+                .map(|m| m.timestamp_utc.clone())
+                .unwrap_or_default(),
+            absence: l
+                .absence_interval
+                .as_ref()
+                .map(|(a, b)| format!("{a} → {b}"))
+                .unwrap_or_else(|| "—".to_string()),
+            path_change: l
+                .path_change_interval
+                .as_ref()
+                .map(|(a, b)| format!("{a} → {b}"))
+                .unwrap_or_else(|| "—".to_string()),
+            restoration: l
+                .restoration_interval
+                .as_ref()
+                .map(|(a, b)| format!("{a} → {b}"))
+                .unwrap_or_else(|| "—".to_string()),
+            end_state: if l.unresolved_end_state {
+                "unresolved".to_string()
+            } else {
+                "observed".to_string()
+            },
+        })
+        .collect()
+}
+
+/// Pre-rendered operator anchor row.
+#[derive(Serialize)]
+pub struct WorkbenchAnchorRow {
+    pub timestamp: String,
+    pub label: String,
+    pub kind: String,
+}
+
+fn anchor_rows(
+    vm: &crate::catalog::workbench::IncidentWorkbenchViewModel,
+) -> Vec<WorkbenchAnchorRow> {
+    vm.operator_anchors
+        .iter()
+        .map(|m| WorkbenchAnchorRow {
+            timestamp: m.timestamp_utc.clone(),
+            label: m.label.clone(),
+            kind: m.kind.clone(),
+        })
+        .collect()
+}
+
+/// Pre-rendered coverage-only session row.
+#[derive(Serialize)]
+pub struct WorkbenchCoverageRow {
+    pub session: String,
+    pub region: String,
+    pub status: String,
+    pub note: String,
+}
+
+fn coverage_rows(
+    vm: &crate::catalog::workbench::IncidentWorkbenchViewModel,
+) -> Vec<WorkbenchCoverageRow> {
+    let mut out: Vec<WorkbenchCoverageRow> = vm
+        .no_baseline_sessions
+        .iter()
+        .map(|s| WorkbenchCoverageRow {
+            session: s.observer_session.clone(),
+            region: s.region.clone(),
+            status: "NoBaselineVisibility".to_string(),
+            note: s.note.clone(),
+        })
+        .collect();
+    out.extend(vm.incomplete_sessions.iter().map(|s| WorkbenchCoverageRow {
+        session: s.observer_session.clone(),
+        region: s.region.clone(),
+        status: "IncompleteCoverage".to_string(),
+        note: s.note.clone(),
+    }));
+    out
 }

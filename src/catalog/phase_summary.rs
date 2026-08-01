@@ -419,6 +419,8 @@ mod tests {
                 transit_state: "Retained".to_string(),
                 add_path_ambiguous: false,
                 evidence_refs: "[]".to_string(),
+                first_change_utc: None,
+                restoration_time_utc: None,
             }],
         )
         .unwrap();

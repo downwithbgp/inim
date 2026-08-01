@@ -281,6 +281,53 @@ pub async fn api_case_study_comparison(
     }
 }
 
+/// GET /api/v1/events/:event_id/workbench — full workbench view model.
+pub async fn api_event_workbench(
+    State(state): State<SharedState>,
+    AxumPath(event_id): AxumPath<String>,
+) -> Response {
+    let db = state.db.lock().unwrap();
+    match super::view::load_event_workbench(&db, &event_id) {
+        Ok(Some(v)) => envelope(serde_json::to_value(v.vm).unwrap_or_default()),
+        Ok(None) => super::handlers::json_error(StatusCode::NOT_FOUND, "event not found"),
+        Err(e) => super::handlers::json_error(StatusCode::INTERNAL_SERVER_ERROR, &e),
+    }
+}
+
+/// GET /api/v1/analyses/:run_id/observer-episodes — episodes of one run.
+///
+/// No absolute paths are exposed; every field is presentation data.
+pub async fn api_run_observer_episodes(
+    State(state): State<SharedState>,
+    AxumPath(run_id): AxumPath<i64>,
+) -> Response {
+    let db = state.db.lock().unwrap();
+    match super::view::load_run_workbench_slice(&db, run_id) {
+        Ok(Some(v)) => envelope(serde_json::json!({
+            "run_id": run_id,
+            "episodes": v,
+        })),
+        Ok(None) => super::handlers::json_error(StatusCode::NOT_FOUND, "analysis run not found"),
+        Err(e) => super::handlers::json_error(StatusCode::INTERNAL_SERVER_ERROR, &e),
+    }
+}
+
+/// GET /api/v1/analyses/:run_id/regional-breadth — breadth of one run.
+pub async fn api_run_regional_breadth(
+    State(state): State<SharedState>,
+    AxumPath(run_id): AxumPath<i64>,
+) -> Response {
+    let db = state.db.lock().unwrap();
+    match super::view::load_run_breadth_slice(&db, run_id) {
+        Ok(Some(v)) => envelope(serde_json::json!({
+            "run_id": run_id,
+            "regional_breadth": v,
+        })),
+        Ok(None) => super::handlers::json_error(StatusCode::NOT_FOUND, "analysis run not found"),
+        Err(e) => super::handlers::json_error(StatusCode::INTERNAL_SERVER_ERROR, &e),
+    }
+}
+
 // ── Session 33: corpus API (read-only) ─────────────────────────────
 
 pub async fn api_corpus_status(State(state): State<SharedState>) -> Response {

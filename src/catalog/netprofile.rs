@@ -614,7 +614,7 @@ fn default_unknown_region() -> String {
 }
 
 /// A registry of collector locations, loaded from a reviewed data file.
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct CollectorLocationRegistry {
     pub as_of: String,
     pub collectors: Vec<CollectorLocation>,

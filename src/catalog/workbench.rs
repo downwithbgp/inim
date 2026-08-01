@@ -236,8 +236,10 @@ pub fn stream_effect_kind(stream: &StreamLifecycleSummary) -> EffectKind {
 /// `named_path_plane` is the run's reviewed plane label (runtime data).
 /// Deterministic: episodes sorted by (first change, region, collector,
 /// peer ASN); no-change episodes sort after changed episodes.
+#[allow(clippy::too_many_arguments)] // explicit data passthrough; each arg is one evidence source
 pub fn build_episodes(
     run_id: i64,
+    family: &str,
     streams: &[StreamLifecycleSummary],
     transitions: &[RunTransitionRecord],
     waves: &[SemanticWaveSummary],
@@ -258,7 +260,6 @@ pub fn build_episodes(
 
     let mut episodes = Vec::new();
     for ((collector, peer_ip, kind), members) in groups {
-        let family = "catalog"; // family label is a display concern
         let session_key = (collector.clone(), peer_ip.clone());
         let peer_facts = session_peers.get(&session_key);
         let (peer_asn, peer_label, peer_role, relationship) = match peer_facts {
@@ -274,6 +275,35 @@ pub fn build_episodes(
         // Per-session transition timestamps for this peer.
         let mut first_change: Option<String> = None;
         let mut last_change: Option<String> = None;
+        // Lifecycle evidence timestamps are the fallback when the
+        // transition index is absent or bounded (immutable artifacts).
+        for s in &members {
+            if let Some(fc) = &s.first_change_utc {
+                if first_change
+                    .as_deref()
+                    .map(|f| fc.as_str() < f)
+                    .unwrap_or(true)
+                {
+                    first_change = Some(fc.clone());
+                }
+                if last_change
+                    .as_deref()
+                    .map(|l| fc.as_str() > l)
+                    .unwrap_or(true)
+                {
+                    last_change = Some(fc.clone());
+                }
+            }
+            if let Some(rt) = &s.restoration_time_utc {
+                if last_change
+                    .as_deref()
+                    .map(|l| rt.as_str() > l)
+                    .unwrap_or(true)
+                {
+                    last_change = Some(rt.clone());
+                }
+            }
+        }
         for t in transitions {
             if t.collector == collector && t.peer_ip == peer_ip {
                 let ts = t.occurred_utc.clone();
@@ -312,23 +342,21 @@ pub fn build_episodes(
             if (s.withdrawn && !s.restored) || s.add_path_ambiguous {
                 unresolved += 1;
             }
-            // Restoration interval: min/max of restored stream's
-            // withdrawal_audit restoration times come from lifecycle
-            // artifacts; here we use the stream-level restored flag and
-            // the last change as the conservative bound (the sentence
-            // generator only claims what the evidence supports).
+            // Restoration interval from the immutable lifecycle evidence
+            // (per-stream restoration timestamps), NOT extrapolated.
             if s.restored {
-                let est = last_change.clone();
-                restoration_start = match (restoration_start.clone(), est.clone()) {
-                    (None, e) => e,
-                    (Some(cur), Some(e)) if e < cur => Some(e),
-                    (cur, _) => cur,
-                };
-                restoration_end = match (restoration_end.clone(), est.clone()) {
-                    (None, e) => e,
-                    (Some(cur), Some(e)) if e > cur => Some(e),
-                    (cur, _) => cur,
-                };
+                if let Some(rt) = &s.restoration_time_utc {
+                    restoration_start = match (restoration_start.clone(), rt.clone()) {
+                        (None, r) => Some(r),
+                        (Some(cur), r) if r < cur => Some(r),
+                        (cur, _) => cur,
+                    };
+                    restoration_end = match (restoration_end.clone(), rt.clone()) {
+                        (None, r) => Some(r),
+                        (Some(cur), r) if r > cur => Some(r),
+                        (cur, _) => cur,
+                    };
+                }
             }
         }
 
@@ -357,10 +385,10 @@ pub fn build_episodes(
             analysis_run: run_id,
             observer_session: format!("{family}/{collector} peer {peer_ip}"),
             observer_site: registry
-                .location("", &collector)
+                .location(family, &collector)
                 .map(|c| c.location.clone())
                 .unwrap_or_else(|| collector.clone()),
-            observer_region: registry.region("", &collector),
+            observer_region: registry.region(family, &collector),
             peer_asn,
             peer_label,
             peer_role,
@@ -801,6 +829,8 @@ mod tests {
             transit_state: transit_state.to_string(),
             add_path_ambiguous: false,
             evidence_refs: "[]".to_string(),
+            first_change_utc: None,
+            restoration_time_utc: None,
         }
     }
 
@@ -887,7 +917,16 @@ mod tests {
                 0,
             ),
         ];
-        let eps = build_episodes(1, &streams, &[], &[], &registry(), &peers(), "plane-a");
+        let eps = build_episodes(
+            1,
+            "ris",
+            &streams,
+            &[],
+            &[],
+            &registry(),
+            &peers(),
+            "plane-a",
+        );
         // Two absent streams share one signature → one episode; the
         // unchanged stream forms a separate no-change episode.
         assert_eq!(eps.len(), 2);
@@ -898,7 +937,7 @@ mod tests {
         assert_eq!(absent.baseline_stream_count, 2);
         assert_eq!(absent.changed_stream_count, 2);
         assert_eq!(absent.distinct_prefix_count, 2);
-        assert_eq!(absent.observer_session, "catalog/rrc06 peer 192.0.2.1");
+        assert_eq!(absent.observer_session, "ris/rrc06 peer 192.0.2.1");
     }
 
     #[test]
@@ -925,7 +964,16 @@ mod tests {
                 2,
             ),
         ];
-        let eps = build_episodes(1, &streams, &[], &[], &registry(), &peers(), "plane-a");
+        let eps = build_episodes(
+            1,
+            "ris",
+            &streams,
+            &[],
+            &[],
+            &registry(),
+            &peers(),
+            "plane-a",
+        );
         assert_eq!(eps.len(), 2, "each peer session stays separate");
         assert!(eps
             .iter()
@@ -957,7 +1005,16 @@ mod tests {
                 2,
             ),
         ];
-        let eps = build_episodes(1, &streams, &[], &[], &registry(), &peers(), "plane-a");
+        let eps = build_episodes(
+            1,
+            "ris",
+            &streams,
+            &[],
+            &[],
+            &registry(),
+            &peers(),
+            "plane-a",
+        );
         let direct = eps.iter().find(|e| e.peer_asn == Some(64500)).unwrap();
         let indirect = eps.iter().find(|e| e.peer_asn == Some(64599)).unwrap();
         assert_eq!(direct.relationship, RelationshipKind::Direct);
@@ -1000,7 +1057,16 @@ mod tests {
                 1,
             ),
         ];
-        let eps = build_episodes(1, &streams, &[], &[], &registry(), &peers(), "plane-a");
+        let eps = build_episodes(
+            1,
+            "ris",
+            &streams,
+            &[],
+            &[],
+            &registry(),
+            &peers(),
+            "plane-a",
+        );
         let total_streams: usize = eps.iter().map(|e| e.baseline_stream_count).sum();
         let total_prefixes: usize = eps.iter().map(|e| e.distinct_prefix_count).sum();
         assert_eq!(total_streams, 3, "streams counted per stream");
@@ -1059,6 +1125,7 @@ mod tests {
         ];
         let eps = build_episodes(
             1,
+            "ris",
             &streams,
             &transitions,
             &[],
@@ -1107,8 +1174,26 @@ mod tests {
                 0,
             ),
         ];
-        let a = build_episodes(1, &streams, &[], &[], &registry(), &peers(), "plane-a");
-        let b = build_episodes(1, &streams, &[], &[], &registry(), &peers(), "plane-a");
+        let a = build_episodes(
+            1,
+            "ris",
+            &streams,
+            &[],
+            &[],
+            &registry(),
+            &peers(),
+            "plane-a",
+        );
+        let b = build_episodes(
+            1,
+            "ris",
+            &streams,
+            &[],
+            &[],
+            &registry(),
+            &peers(),
+            "plane-a",
+        );
         assert_eq!(a, b);
         // No-change episodes sort after changed episodes.
         let idx_unchanged = a
@@ -1144,7 +1229,16 @@ mod tests {
                 0,
             ),
         ];
-        let eps = build_episodes(1, &streams, &[], &[], &registry(), &peers(), "plane-a");
+        let eps = build_episodes(
+            1,
+            "ris",
+            &streams,
+            &[],
+            &[],
+            &registry(),
+            &peers(),
+            "plane-a",
+        );
         assert!(eps
             .iter()
             .any(|e| e.effect_kind == EffectKind::RouteWithdrawal));
@@ -2080,5 +2174,552 @@ mod cue_tests {
             "198.51.100.0/24",
         )];
         assert!(build_investigation_cues(&eps).is_empty());
+    }
+}
+
+// ── Incident workbench view model (Parts 7, 12) ─────────────────────
+
+/// The reusable incident-workbench view model.
+///
+/// One model feeds the web workbench, the text report, and the JSON API
+/// (Part 12); no counts are recalculated in templates. It is NOT tied to
+/// any ticket identity — it can be reached from an event, a case study,
+/// or eventually a network.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct IncidentWorkbenchViewModel {
+    /// Event or case-study identifier used to reach this view.
+    pub subject_id: String,
+    pub subject_kind: String,
+    pub title: String,
+    /// Source task type (event) or "case study" (case-study view).
+    pub source_task_type: String,
+    /// Reviewed incident role when the subject links to a case study.
+    pub reviewed_incident_role: String,
+    pub lifecycle: String,
+    pub window_start: String,
+    pub window_end: String,
+    pub current_result: String,
+    pub expectation_assessment: String,
+    pub archive_coverage: String,
+    pub runs: Vec<WorkbenchRunView>,
+    pub episodes: Vec<ObserverEpisode>,
+    pub breadth: Vec<RegionObservationSummary>,
+    pub timeline: Vec<TimelineLane>,
+    pub operator_anchors: Vec<TimelineMarker>,
+    pub cues: Vec<InvestigationCue>,
+    /// Sessions with no qualifying baseline (NoBaselineVisibility).
+    pub no_baseline_sessions: Vec<CoverageSessionView>,
+    /// Sessions whose observation could not be completed.
+    pub incomplete_sessions: Vec<CoverageSessionView>,
+}
+
+/// One run participating in the workbench.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct WorkbenchRunView {
+    pub id: i64,
+    pub event_id: String,
+    pub status: String,
+    pub verdict: String,
+    pub started_at: String,
+    pub window_start: String,
+    pub window_end: String,
+    pub named_path_plane: String,
+    pub archive_coverage: String,
+}
+
+/// A session row without episode evidence (coverage-only).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct CoverageSessionView {
+    pub observer_session: String,
+    pub region: String,
+    pub collector: String,
+    pub coverage_status: CoverageStatus,
+    pub note: String,
+}
+
+/// Reviewed session context for workbench building.
+#[derive(Debug, Clone, Default)]
+pub struct WorkbenchContext {
+    /// (collector, peer_ip) → (peer_asn, label, role, relationship).
+    pub session_peers: BTreeMap<(String, String), (u32, String, String, RelationshipKind)>,
+    pub registry: Option<CollectorLocationRegistry>,
+    /// Operator-reported anchors (case-study phases/claims).
+    pub operator_anchors: Vec<TimelineMarker>,
+    /// Sessions with no qualifying baseline (collector, session label).
+    pub no_baseline_sessions: Vec<(String, String)>,
+    /// Sessions with incomplete coverage (collector, session label).
+    pub incomplete_sessions: Vec<(String, String)>,
+}
+
+impl IncidentWorkbenchViewModel {
+    /// Build the view model for one event (its own runs).
+    pub fn for_event(
+        conn: &Connection,
+        event_id: &str,
+        context: &WorkbenchContext,
+    ) -> Result<Option<Self>, String> {
+        let event = crate::catalog::db::get_event_by_external(conn, "local-repository", event_id)?
+            .or(crate::catalog::db::get_event_by_external(
+                conn,
+                "grnoc-public-task-viewer",
+                event_id,
+            )?);
+        let Some(event) = event else { return Ok(None) };
+        let runs = crate::catalog::db::list_runs_for_event(conn, event.id)?;
+        let run_ids: Vec<i64> = runs.iter().map(|r| r.id).collect();
+        let evidence = RunEvidence::load(conn, &run_ids)?;
+        Self::assemble(
+            conn, event_id, "event", "", event_id, &runs, &evidence, context,
+        )
+        .map(Some)
+    }
+
+    /// Build the view model for one case study (its linked runs).
+    pub fn for_case_study(
+        conn: &Connection,
+        slug: &str,
+        context: &WorkbenchContext,
+    ) -> Result<Option<Self>, String> {
+        let Some(cs) = crate::catalog::archive_plan::find_case_study(conn, slug) else {
+            return Ok(None);
+        };
+        let runs = linked_runs(conn, cs.id)?;
+        let run_ids: Vec<i64> = runs.iter().map(|r| r.id).collect();
+        let evidence = RunEvidence::load(conn, &run_ids)?;
+        Self::assemble(
+            conn,
+            slug,
+            "case-study",
+            "case study",
+            &cs.title,
+            &runs,
+            &evidence,
+            context,
+        )
+        .map(Some)
+    }
+
+    #[allow(clippy::too_many_arguments)] // view-model assembly; each arg maps to a header field
+    fn assemble(
+        conn: &Connection,
+        subject_id: &str,
+        subject_kind: &str,
+        source_task_type: &str,
+        title: &str,
+        runs: &[crate::catalog::domain::AnalysisRun],
+        evidence: &RunEvidence,
+        context: &WorkbenchContext,
+    ) -> Result<Self, String> {
+        let registry = context.registry.clone().unwrap_or_default();
+        let mut episodes = Vec::new();
+        let mut run_views = Vec::new();
+        let mut window_start = String::new();
+        let mut window_end = String::new();
+        let mut current_result = String::new();
+        let mut archive_coverage = String::new();
+        let mut named_planes: Vec<String> = Vec::new();
+
+        for run in runs {
+            let (ws, we, plane, coverage, run_family) = run_meta(conn, run.id)?;
+            if window_start.is_empty() {
+                window_start = ws.clone();
+                window_end = we.clone();
+            }
+            if run.status == "Complete" && current_result.is_empty() {
+                current_result = run.verdict.clone().unwrap_or_default();
+            }
+            if archive_coverage.is_empty() {
+                archive_coverage = coverage.clone();
+            }
+            if !plane.is_empty() && !named_planes.contains(&plane) {
+                named_planes.push(plane.clone());
+            }
+            run_views.push(WorkbenchRunView {
+                id: run.id,
+                event_id: subject_id.to_string(),
+                status: run.status.clone(),
+                verdict: run.verdict.clone().unwrap_or_default(),
+                started_at: run.started_at.clone(),
+                window_start: ws,
+                window_end: we,
+                named_path_plane: plane,
+                archive_coverage: coverage,
+            });
+
+            let run_streams: Vec<StreamLifecycleSummary> = evidence
+                .streams
+                .iter()
+                .filter(|s| s.run_id == run.id)
+                .cloned()
+                .collect();
+            let run_transitions: Vec<RunTransitionRecord> = evidence
+                .transitions
+                .iter()
+                .filter(|t| t.run_id == run.id)
+                .cloned()
+                .collect();
+            let run_waves: Vec<SemanticWaveSummary> = evidence
+                .waves
+                .iter()
+                .filter(|w| w.run_id == run.id)
+                .cloned()
+                .collect();
+
+            let plane_label = if named_planes.is_empty() {
+                "no reviewed plane".to_string()
+            } else {
+                named_planes[0].clone()
+            };
+            let mut eps = build_episodes(
+                run.id,
+                &run_family,
+                &run_streams,
+                &run_transitions,
+                &run_waves,
+                &registry,
+                &context.session_peers,
+                &plane_label,
+            );
+            for ep in eps.iter_mut() {
+                ep.representative_evidence = render_episode_sentence(ep);
+            }
+            episodes.append(&mut eps);
+        }
+
+        // Deterministic global ordering (same rule as build_episodes).
+        episodes.sort_by(|a, b| {
+            let a_changed = a.effect_kind != EffectKind::NoRouteStateChange;
+            let b_changed = b.effect_kind != EffectKind::NoRouteStateChange;
+            match (a_changed, b_changed) {
+                (true, false) => std::cmp::Ordering::Less,
+                (false, true) => std::cmp::Ordering::Greater,
+                _ => (
+                    a.first_change.clone(),
+                    a.observer_region.clone(),
+                    a.observer_site.clone(),
+                    a.peer_asn.unwrap_or(u32::MAX),
+                    a.analysis_run,
+                )
+                    .cmp(&(
+                        b.first_change.clone(),
+                        b.observer_region.clone(),
+                        b.observer_site.clone(),
+                        b.peer_asn.unwrap_or(u32::MAX),
+                        b.analysis_run,
+                    )),
+            }
+        });
+
+        let breadth = regional_breadth(
+            &episodes,
+            &context.no_baseline_sessions,
+            &context.incomplete_sessions,
+        );
+
+        let no_baseline_views: Vec<CoverageSessionView> = context
+            .no_baseline_sessions
+            .iter()
+            .map(|(collector, label)| CoverageSessionView {
+                observer_session: label.clone(),
+                region: registry.region("", collector),
+                collector: collector.clone(),
+                coverage_status: CoverageStatus::NoBaselineVisibility,
+                note: "no qualifying baseline at this observer".to_string(),
+            })
+            .collect();
+        let incomplete_views: Vec<CoverageSessionView> = context
+            .incomplete_sessions
+            .iter()
+            .map(|(collector, label)| CoverageSessionView {
+                observer_session: label.clone(),
+                region: registry.region("", collector),
+                collector: collector.clone(),
+                coverage_status: CoverageStatus::IncompleteCoverage,
+                note: "observation could not be completed".to_string(),
+            })
+            .collect();
+
+        let timeline = build_timeline(&episodes, &window_start, &window_end, &BTreeMap::new());
+
+        let cues = build_investigation_cues(&episodes);
+
+        Ok(IncidentWorkbenchViewModel {
+            subject_id: subject_id.to_string(),
+            subject_kind: subject_kind.to_string(),
+            title: title.to_string(),
+            source_task_type: source_task_type.to_string(),
+            reviewed_incident_role: String::new(),
+            lifecycle: String::new(),
+            window_start,
+            window_end,
+            current_result,
+            expectation_assessment: String::new(),
+            archive_coverage,
+            runs: run_views,
+            episodes,
+            breadth,
+            timeline,
+            operator_anchors: context.operator_anchors.clone(),
+            cues,
+            no_baseline_sessions: no_baseline_views,
+            incomplete_sessions: incomplete_views,
+        })
+    }
+}
+
+/// Linked runs of a case study (role PilotObservation and others).
+fn linked_runs(
+    conn: &Connection,
+    case_study_id: i64,
+) -> Result<Vec<crate::catalog::domain::AnalysisRun>, String> {
+    let mut stmt = conn
+        .prepare(
+            "SELECT r.id, r.plan_id, r.software_version, r.git_revision,
+                    r.parser_identity, r.cache_schema_version, r.report_schema_version,
+                    r.status, r.started_at, r.completed_at, r.runtime_secs,
+                    r.verdict, r.assessment
+             FROM analysis_runs r
+             JOIN case_study_analysis_links l ON l.run_id = r.id
+             WHERE l.case_study_id = ?1 ORDER BY r.id",
+        )
+        .map_err(|e| format!("catalog read failed: {e}"))?;
+    let rows = stmt
+        .query_map([case_study_id], |row| {
+            Ok(crate::catalog::domain::AnalysisRun {
+                id: row.get(0)?,
+                plan_id: row.get(1)?,
+                software_version: row.get(2)?,
+                git_revision: row.get(3)?,
+                parser_identity: row.get(4)?,
+                cache_schema_version: row.get(5)?,
+                report_schema_version: row.get(6)?,
+                status: row.get(7)?,
+                started_at: row.get(8)?,
+                completed_at: row.get(9)?,
+                runtime_secs: row.get(10)?,
+                verdict: row.get(11)?,
+                assessment: row.get(12)?,
+            })
+        })
+        .map_err(|e| format!("catalog read failed: {e}"))?;
+    let mut out = Vec::new();
+    for r in rows {
+        out.push(r.map_err(|e| format!("catalog read failed: {e}"))?);
+    }
+    Ok(out)
+}
+
+/// Per-run metadata: analysis window, named plane label, archive coverage.
+///
+/// The plane label is runtime DATA (manifest path_classifiers /
+/// transit predicate), never a literal in code. Archive coverage comes
+/// from the run's report artifact when present.
+fn run_meta(
+    conn: &Connection,
+    run_id: i64,
+) -> Result<(String, String, String, String, String), String> {
+    let mut window_start = String::new();
+    let mut window_end = String::new();
+    let mut plane = String::new();
+    let mut family = String::new();
+    {
+        let mut stmt = conn
+            .prepare(
+                "SELECT m.payload FROM manifest_revisions m
+                 JOIN analysis_plans p ON p.manifest_revision_id = m.id
+                 JOIN analysis_runs r ON r.plan_id = p.id
+                 WHERE r.id = ?1",
+            )
+            .map_err(|e| format!("catalog read failed: {e}"))?;
+        let rows = stmt
+            .query_map([run_id], |row| row.get::<_, String>(0))
+            .map_err(|e| format!("catalog read failed: {e}"))?;
+        for row in rows {
+            let payload = row.map_err(|e| format!("catalog read failed: {e}"))?;
+            let v: serde_json::Value = serde_json::from_str(&payload).unwrap_or_default();
+            if let Some(w) = v.get("event_window_utc") {
+                window_start = w
+                    .get("start")
+                    .and_then(|s| s.as_str())
+                    .unwrap_or("")
+                    .to_string();
+                window_end = w
+                    .get("end")
+                    .and_then(|s| s.as_str())
+                    .unwrap_or("")
+                    .to_string();
+            }
+            if let Some(f) = v.get("source_family").and_then(|s| s.as_str()) {
+                family = f.to_string();
+            }
+            // Named plane label from reviewed path classifiers (data).
+            if let Some(classifiers) = v
+                .get("target")
+                .and_then(|t| t.get("path_classifiers"))
+                .and_then(|c| c.as_array())
+            {
+                if let Some(first) = classifiers.first() {
+                    plane = first
+                        .get("display_label")
+                        .and_then(|d| d.as_str())
+                        .unwrap_or("")
+                        .to_string();
+                }
+            }
+            if plane.is_empty() {
+                // Fall back to the reviewed transit predicate (data).
+                if let Some(pred) = v
+                    .get("target")
+                    .and_then(|t| t.get("transit_predicate"))
+                    .and_then(|t| t.get("predicate"))
+                {
+                    plane = format!("reviewed transit {pred}");
+                }
+            }
+        }
+    }
+    // Archive coverage from the run's report artifact when present.
+    let mut coverage = String::new();
+    {
+        let mut stmt = conn
+            .prepare(
+                "SELECT relative_path FROM analysis_artifacts
+                 WHERE run_id = ?1 AND kind = 'report'",
+            )
+            .map_err(|e| format!("catalog read failed: {e}"))?;
+        let rows = stmt
+            .query_map([run_id], |row| row.get::<_, String>(0))
+            .map_err(|e| format!("catalog read failed: {e}"))?;
+        for row in rows {
+            let rel = row.map_err(|e| format!("catalog read failed: {e}"))?;
+            if let Ok(raw) = std::fs::read_to_string(rel) {
+                if let Ok(v) = serde_json::from_str::<serde_json::Value>(&raw) {
+                    if let Some(cov) = v
+                        .get("observed_event_signature")
+                        .and_then(|s| s.get("observer_scope"))
+                        .and_then(|o| o.get("archive_coverage"))
+                        .and_then(|c| c.as_str())
+                    {
+                        coverage = cov.to_string();
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    if coverage.is_empty() {
+        coverage = "coverage not available in catalog artifacts".to_string();
+    }
+    Ok((window_start, window_end, plane, coverage, family))
+}
+
+#[cfg(test)]
+mod workbench_view_tests {
+    use super::*;
+
+    #[test]
+    fn workbench_model_is_serializable_and_deterministic() {
+        let vm = IncidentWorkbenchViewModel {
+            subject_id: "EV-1".to_string(),
+            subject_kind: "event".to_string(),
+            title: "Test".to_string(),
+            source_task_type: "incident".to_string(),
+            reviewed_incident_role: String::new(),
+            lifecycle: "Closed".to_string(),
+            window_start: "2019-08-21T16:00:00Z".to_string(),
+            window_end: "2019-08-21T17:30:00Z".to_string(),
+            current_result: "Partial".to_string(),
+            expectation_assessment: String::new(),
+            archive_coverage: "Complete".to_string(),
+            runs: vec![],
+            episodes: vec![],
+            breadth: vec![],
+            timeline: vec![],
+            operator_anchors: vec![],
+            cues: vec![],
+            no_baseline_sessions: vec![],
+            incomplete_sessions: vec![],
+        };
+        let json = serde_json::to_string(&vm).unwrap();
+        let back: IncidentWorkbenchViewModel = serde_json::from_str(&json).unwrap();
+        assert_eq!(vm, back);
+    }
+}
+
+impl WorkbenchContext {
+    /// Load reviewed context from a case study's pilot data directory
+    /// (network profile, collector locations, session audit, reviewed
+    /// I2PX pilot decision). Returns an empty context when the directory
+    /// or its data files are absent (generic events).
+    pub fn load_from_pilot_dir(pilot_dir: &std::path::Path) -> Self {
+        let mut ctx = WorkbenchContext::default();
+        let profile_path = pilot_dir.join("network-profile.json");
+        let locations_path = pilot_dir.join("collector-locations.json");
+        let audit_path = pilot_dir.join("session-audit-2019.json");
+        let i2px_decision_path = pilot_dir.join("rrc11-i2px-pilot-decision.json");
+
+        if let Ok(profile) = ServicePlaneProfile::load(&profile_path) {
+            if let Ok(registry) = CollectorLocationRegistry::load(&locations_path) {
+                if let Ok(raw) = std::fs::read_to_string(&audit_path) {
+                    if let Ok(audit) = serde_json::from_str::<
+                        Vec<crate::catalog::netprofile::SessionAuditRow>,
+                    >(&raw)
+                    {
+                        ctx.session_peers = session_peer_context(&profile, &audit);
+                    }
+                }
+                ctx.registry = Some(registry);
+            }
+        }
+
+        // Reviewed direct-I2PX decision: a blocked pilot with no direct
+        // session means the observer has no qualifying I2PX baseline.
+        if let Ok(raw) = std::fs::read_to_string(&i2px_decision_path) {
+            if let Ok(v) = serde_json::from_str::<serde_json::Value>(&raw) {
+                if v.get("decision").and_then(|d| d.as_str()) == Some("blocked-no-direct-session") {
+                    let collector = v
+                        .get("baseline_bview")
+                        .and_then(|b| b.get("collector"))
+                        .and_then(|c| c.as_str())
+                        .unwrap_or("rrc11")
+                        .to_string();
+                    ctx.no_baseline_sessions.push((
+                        collector.clone(),
+                        format!("{collector} (reviewed I2PX pilot decision)"),
+                    ));
+                }
+            }
+        }
+        ctx
+    }
+
+    /// Load ONLY the reviewed collector-site registry for a generic event
+    /// workbench. Collector sites are stable reviewed facts (where the
+    /// route reflector is hosted, time-scoped by `as_of`); the 2019
+    /// session audit and the I2PX pilot decision are NOT loaded here
+    /// because they are pilot-scoped evidence and must not be attributed
+    /// to unrelated events.
+    pub fn load_registry_only(pilot_dir: &std::path::Path) -> Self {
+        let mut ctx = WorkbenchContext::default();
+        let locations_path = pilot_dir.join("collector-locations.json");
+        if let Ok(registry) = CollectorLocationRegistry::load(&locations_path) {
+            ctx.registry = Some(registry);
+        }
+        ctx
+    }
+}
+
+#[cfg(test)]
+mod context_tests {
+    use super::*;
+
+    #[test]
+    fn missing_pilot_dir_yields_empty_context() {
+        let ctx = WorkbenchContext::load_from_pilot_dir(std::path::Path::new(
+            "/nonexistent/session-36-test-dir",
+        ));
+        assert!(ctx.session_peers.is_empty());
+        assert!(ctx.registry.is_none());
+        assert!(ctx.no_baseline_sessions.is_empty());
     }
 }

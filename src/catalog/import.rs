@@ -432,6 +432,14 @@ fn import_stream_summaries(
                 .and_then(|v| v.as_bool())
                 .unwrap_or(false),
             evidence_refs: "[]".to_string(),
+            first_change_utc: lc
+                .get("first_change")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string()),
+            restoration_time_utc: lc
+                .get("restoration_time")
+                .and_then(|v| v.as_str())
+                .map(|s| s.to_string()),
         });
     }
     store::insert_streams(conn, run_id, &rows)?;
