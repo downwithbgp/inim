@@ -177,6 +177,11 @@ enum Commands {
         #[arg(long, default_value_t = false)]
         show_execution_plan: bool,
 
+        /// Rebuild only UPDATE derived caches (keeps the RIB derived cache;
+        /// useful for parser-scaling benchmarks).
+        #[arg(long, default_value_t = false)]
+        rebuild_update_caches: bool,
+
         /// Force rebuild of all derived caches (ignore and overwrite).
         #[arg(long, default_value_t = false)]
         rebuild_derived_cache: bool,
@@ -384,6 +389,7 @@ fn run(cli: &Cli) -> i32 {
             parse_jobs,
             download_jobs,
             show_execution_plan,
+            rebuild_update_caches,
         } => {
             if let Err(e) = validate_jobs(*jobs) {
                 let _ = writeln!(std::io::stderr(), "error: {e}");
@@ -409,6 +415,7 @@ fn run(cli: &Cli) -> i32 {
             let cache_control = inim::orchestrate::CacheControl {
                 no_derived_cache: *no_derived_cache,
                 rebuild_derived_cache: *rebuild_derived_cache,
+                rebuild_update_caches: *rebuild_update_caches,
                 jobs: *jobs,
                 parse_jobs: *parse_jobs,
                 download_jobs: *download_jobs,

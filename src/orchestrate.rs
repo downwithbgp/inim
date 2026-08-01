@@ -29,6 +29,8 @@ pub struct CacheControl {
     pub no_derived_cache: bool,
     /// Force rebuild of all derived caches (ignore and overwrite).
     pub rebuild_derived_cache: bool,
+    /// Rebuild only UPDATE derived caches (keep the RIB derived cache).
+    pub rebuild_update_caches: bool,
     /// Number of parallel parsing jobs (1 = serial). 0 is rejected by the
     /// CLI; use --parse-jobs for an explicit parse concurrency.
     pub jobs: usize,
@@ -43,6 +45,7 @@ impl Default for CacheControl {
         CacheControl {
             no_derived_cache: false,
             rebuild_derived_cache: false,
+            rebuild_update_caches: false,
             jobs: 1,
             parse_jobs: 0,
             download_jobs: 2,
@@ -767,7 +770,9 @@ fn process_one_update_file(
 
     // Check UPDATE derived cache
     let upd_key = crate::derived_cache::update_cache_key(&task.sha256, &task.collector, tshash);
-    let cache_hit = if cache_control.no_derived_cache || cache_control.rebuild_derived_cache {
+    let rebuild_updates =
+        cache_control.rebuild_derived_cache || cache_control.rebuild_update_caches;
+    let cache_hit = if cache_control.no_derived_cache || rebuild_updates {
         None
     } else {
         crate::derived_cache::load_update_cache(cache_dir, &upd_key, &task.sha256)
