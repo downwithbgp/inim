@@ -34,6 +34,8 @@ pub struct ComparisonRow {
     pub bgp_observation: String,
     /// Explicit relationship label from the vocabulary.
     pub interpretation: String,
+    /// Event-order detail for Before/After relations (never hidden).
+    pub temporal_detail: String,
     /// Visibility limitation.
     pub limitation: String,
     /// Runs that contributed BGP evidence to this row.
@@ -243,6 +245,7 @@ pub fn build_comparison(
                 bgp_observation: "not observable in public BGP (reviewed classification)"
                     .to_string(),
                 interpretation: RELATION_NOT_DIRECTLY_OBSERVABLE.to_string(),
+                temporal_detail: String::new(),
                 limitation: c.observability_rationale.clone(),
                 contributing_run_ids: Vec::new(),
             });
@@ -258,6 +261,7 @@ pub fn build_comparison(
                 operator_time: c.time_or_phase.clone(),
                 bgp_observation: "no linked analysis run; historical analysis not yet executed".to_string(),
                 interpretation: RELATION_INDETERMINATE.to_string(),
+                temporal_detail: String::new(),
                 limitation: "no public-BGP conclusion until historical target mappings and the archive plan are reviewed".to_string(),
                 contributing_run_ids: Vec::new(),
             });
@@ -287,6 +291,53 @@ pub fn build_comparison(
                             .to_string(),
                         Vec::new(),
                     )
+                } else if ws == we {
+                    // POINT claim anchor: event order is decisive. The
+                    // relation is Before/After based on the earliest
+                    // observed phase activity relative to the point —
+                    // activity later in the same phase never re-labels an
+                    // earlier first observation.
+                    let mut first_evidence: Vec<String> = Vec::new();
+                    let mut runs_with_evidence: Vec<i64> = Vec::new();
+                    for rs in &covering {
+                        for p in &rs.phases {
+                            if let Some(f) = &p.first_evidence_utc {
+                                first_evidence.push(f.clone());
+                                if !runs_with_evidence.contains(&rs.run_id) {
+                                    runs_with_evidence.push(rs.run_id);
+                                }
+                            }
+                        }
+                    }
+                    if first_evidence.is_empty() {
+                        (
+                            RELATION_NO_OBSERVED_COUNTERPART.to_string(),
+                            "no route-state transitions observed in any linked run".to_string(),
+                            runs_with_evidence,
+                        )
+                    } else {
+                        first_evidence.sort();
+                        let first = first_evidence[0].clone();
+                        if first < *ws {
+                            (
+                                RELATION_BEFORE.to_string(),
+                                format!("first route-state transition at {first}, before the reported point"),
+                                runs_with_evidence,
+                            )
+                        } else if first == *ws {
+                            (
+                                RELATION_OVERLAPPING.to_string(),
+                                format!("route-state transition at the reported point ({first})"),
+                                runs_with_evidence,
+                            )
+                        } else {
+                            (
+                                RELATION_AFTER.to_string(),
+                                format!("first route-state transition at {first}, after the reported point"),
+                                runs_with_evidence,
+                            )
+                        }
+                    }
                 } else {
                     let mut in_window: Vec<String> = Vec::new();
                     let mut before_window: Vec<String> = Vec::new();
@@ -394,6 +445,7 @@ pub fn build_comparison(
                 c.observability_rationale
             )
         };
+        let temporal_detail = temporal_detail_for(&rel, &bgp_text, window.as_ref());
         rows.push(ComparisonRow {
             claim_id: c.id,
             claim_type: c.claim_type.clone(),
@@ -401,12 +453,43 @@ pub fn build_comparison(
             operator_time: c.time_or_phase.clone(),
             bgp_observation: bgp_text,
             interpretation: rel,
+            temporal_detail,
             limitation,
             contributing_run_ids: contributing,
         });
     }
 
     Ok(rows)
+}
+
+/// Expose event order for Before/After relations: the relation label plus
+/// the exact delta between the observed BGP activity and the claim anchor.
+/// Never hides which event came first.
+fn temporal_detail_for(rel: &str, bgp_text: &str, window: Option<&(String, String)>) -> String {
+    if rel != RELATION_BEFORE && rel != RELATION_AFTER {
+        return String::new();
+    }
+    let Some((ws, we)) = window else {
+        return String::new();
+    };
+    // The claim anchor (point or window start); the observation time is
+    // the first evidence in bgp_text when present.
+    let anchor = ws.as_str();
+    let delta = match rel {
+        RELATION_BEFORE => "the BGP activity precedes the reported action",
+        _ => "the BGP activity follows the reported action",
+    };
+    // Extract the first ISO timestamp from the observation text.
+    let obs_time = bgp_text
+        .split_whitespace()
+        .find(|w| {
+            w.len() >= 19
+                && w.as_bytes()[4] == b'-'
+                && w.as_bytes()[7] == b'-'
+                && w.as_bytes()[10] == b'T'
+        })
+        .unwrap_or("unknown");
+    format!("{delta} ({obs_time} vs reported {anchor}); order is explicit, no causal attribution")
 }
 
 #[cfg(test)]
@@ -642,9 +725,7 @@ mod tests {
             .operator_report
             .contains("operator reports the condition"));
         assert!(row.operator_report.contains("reported, not measured"));
-        assert!(row
-            .bgp_observation
-            .contains("route-state transitions observed"));
+        assert!(row.bgp_observation.contains("route-state transition"));
         assert!(row.bgp_observation.contains("2019-08-21T05:00:00Z"));
         assert_eq!(row.interpretation, RELATION_OVERLAPPING);
         assert_eq!(row.contributing_run_ids, vec![run_id]);
@@ -811,6 +892,241 @@ mod tests {
         assert!(row
             .bgp_observation
             .contains("first at 2019-08-21T05:00:00Z"));
+    }
+
+    #[test]
+    fn temporal_relation_preserves_before_vs_after() {
+        let (_dir, conn) = open_temp_db();
+        let (cs_id, doc_id) = base_cs(&conn);
+        let run_id = seed_run(&conn, "2019-08-21T02:00:00Z");
+        seed_stream(&conn, run_id, "192.0.2.0/24");
+        insert_t(
+            &conn,
+            run_id,
+            0,
+            "Withdrawal",
+            "2019-08-21T05:00:00Z",
+            "192.0.2.0/24",
+            1,
+        );
+        store::insert_case_study_analysis_link(
+            &conn,
+            &CaseStudyAnalysisLink {
+                id: 0,
+                case_study_id: cs_id,
+                run_id,
+                role: "PilotObservation".to_string(),
+                reviewed_note: None,
+            },
+        )
+        .unwrap();
+        // BGP at 05:00 precedes the claim anchor 06:00 -> Before.
+        seed_claim_sort(
+            &conn,
+            cs_id,
+            doc_id,
+            CLAIM_TYPE_REPORTED_TIMELINE,
+            OBSERVABILITY_POTENTIALLY_VISIBLE,
+            Some("2019-08-21T06:00:00Z"),
+            0,
+        );
+        // BGP at 05:00 follows the claim anchor 04:00 -> After.
+        seed_claim_sort(
+            &conn,
+            cs_id,
+            doc_id,
+            CLAIM_TYPE_REPORTED_TIMELINE,
+            OBSERVABILITY_POTENTIALLY_VISIBLE,
+            Some("2019-08-21T04:00:00Z"),
+            1,
+        );
+        let rows = build_comparison(&conn, cs_id).unwrap();
+        let before = rows
+            .iter()
+            .find(|r| r.operator_time.as_deref() == Some("2019-08-21T06:00:00Z"))
+            .unwrap();
+        assert_eq!(before.interpretation, RELATION_BEFORE);
+        let after = rows
+            .iter()
+            .find(|r| r.operator_time.as_deref() == Some("2019-08-21T04:00:00Z"))
+            .unwrap();
+        assert_eq!(after.interpretation, RELATION_AFTER);
+        assert_ne!(
+            before.interpretation, after.interpretation,
+            "order must not be conflated"
+        );
+    }
+
+    #[test]
+    fn event_preceding_operator_action_is_not_rendered_as_action_consequence() {
+        let (_dir, conn) = open_temp_db();
+        let (cs_id, doc_id) = base_cs(&conn);
+        let run_id = seed_run(&conn, "2019-08-21T02:00:00Z");
+        seed_stream(&conn, run_id, "192.0.2.0/24");
+        insert_t(
+            &conn,
+            run_id,
+            0,
+            "Withdrawal",
+            "2019-08-21T05:00:00Z",
+            "192.0.2.0/24",
+            1,
+        );
+        store::insert_case_study_analysis_link(
+            &conn,
+            &CaseStudyAnalysisLink {
+                id: 0,
+                case_study_id: cs_id,
+                run_id,
+                role: "PilotObservation".to_string(),
+                reviewed_note: None,
+            },
+        )
+        .unwrap();
+        seed_claim(
+            &conn,
+            cs_id,
+            doc_id,
+            CLAIM_TYPE_REPORTED_TIMELINE,
+            OBSERVABILITY_POTENTIALLY_VISIBLE,
+            Some("2019-08-21T06:00:00Z"),
+        );
+        let rows = build_comparison(&conn, cs_id).unwrap();
+        let row = &rows[0];
+        assert_eq!(row.interpretation, RELATION_BEFORE);
+        assert!(
+            row.temporal_detail.contains("precedes"),
+            "{}",
+            row.temporal_detail
+        );
+        assert!(row.temporal_detail.contains("no causal attribution"));
+        assert!(!row.limitation.to_lowercase().contains("consequence of"));
+        assert!(!row
+            .interpretation
+            .to_lowercase()
+            .contains("consistent with"));
+    }
+
+    #[test]
+    fn restoration_before_reported_reenable_is_exposed() {
+        // Reviewed pilot-result data must expose that restoration preceded
+        // the reported re-enable, and must not attribute the observation to
+        // either interface action.
+        let data: crate::catalog::archive_plan::PilotResultFile = serde_json::from_str(
+            &std::fs::read_to_string("case-studies/manlan-2019/pilot/pilot-result.json").unwrap(),
+        )
+        .unwrap();
+        assert!(
+            data.bgp_observation.contains("17:02:19Z"),
+            "restoration time exposed"
+        );
+        assert!(
+            data.temporal_relationship.contains("4 minutes 35 seconds")
+                || data.temporal_relationship.contains("4m 35s")
+                || data.temporal_relationship.contains("Before"),
+            "explicit Before relation"
+        );
+        assert!(
+            data.bgp_observation.contains("16:45:25Z"),
+            "absence time exposed"
+        );
+        let lower = data.interpretation.to_lowercase();
+        assert!(
+            !lower.contains("consequence of the"),
+            "no action attribution"
+        );
+        assert!(!lower.contains("caused by"), "no causal wording");
+    }
+
+    #[test]
+    fn broad_instability_interval_can_overlap_bgp_activity() {
+        let (_dir, conn) = open_temp_db();
+        let (cs_id, doc_id) = base_cs(&conn);
+        let run_id = seed_run(&conn, "2019-08-21T02:00:00Z");
+        seed_stream(&conn, run_id, "192.0.2.0/24");
+        insert_t(
+            &conn,
+            run_id,
+            0,
+            "Withdrawal",
+            "2019-08-21T05:00:00Z",
+            "192.0.2.0/24",
+            1,
+        );
+        store::insert_case_study_analysis_link(
+            &conn,
+            &CaseStudyAnalysisLink {
+                id: 0,
+                case_study_id: cs_id,
+                run_id,
+                role: "PilotObservation".to_string(),
+                reviewed_note: None,
+            },
+        )
+        .unwrap();
+        // The broad reported instability interval (phase 0, 04:00-10:00)
+        // contains the BGP activity -> Overlapping.
+        seed_claim(
+            &conn,
+            cs_id,
+            doc_id,
+            CLAIM_TYPE_REPORTED_IMPACT,
+            OBSERVABILITY_POTENTIALLY_VISIBLE,
+            Some("phase:0"),
+        );
+        let rows = build_comparison(&conn, cs_id).unwrap();
+        assert_eq!(rows[0].interpretation, RELATION_OVERLAPPING);
+    }
+
+    #[test]
+    fn comparison_does_not_hide_event_order() {
+        let (_dir, conn) = open_temp_db();
+        let (cs_id, doc_id) = base_cs(&conn);
+        let run_id = seed_run(&conn, "2019-08-21T02:00:00Z");
+        seed_stream(&conn, run_id, "192.0.2.0/24");
+        insert_t(
+            &conn,
+            run_id,
+            0,
+            "Withdrawal",
+            "2019-08-21T05:00:00Z",
+            "192.0.2.0/24",
+            1,
+        );
+        store::insert_case_study_analysis_link(
+            &conn,
+            &CaseStudyAnalysisLink {
+                id: 0,
+                case_study_id: cs_id,
+                run_id,
+                role: "PilotObservation".to_string(),
+                reviewed_note: None,
+            },
+        )
+        .unwrap();
+        seed_claim(
+            &conn,
+            cs_id,
+            doc_id,
+            CLAIM_TYPE_REPORTED_TIMELINE,
+            OBSERVABILITY_POTENTIALLY_VISIBLE,
+            Some("2019-08-21T06:00:00Z"),
+        );
+        let rows = build_comparison(&conn, cs_id).unwrap();
+        let row = &rows[0];
+        assert_eq!(row.interpretation, RELATION_BEFORE);
+        // The order is explicit in the row: BGP time AND the anchor are both
+        // present, with the direction stated.
+        assert!(
+            row.temporal_detail.contains("2019-08-21T05:00:00Z"),
+            "{}",
+            row.temporal_detail
+        );
+        assert!(
+            row.temporal_detail.contains("06:00"),
+            "{}",
+            row.temporal_detail
+        );
     }
 
     #[test]
