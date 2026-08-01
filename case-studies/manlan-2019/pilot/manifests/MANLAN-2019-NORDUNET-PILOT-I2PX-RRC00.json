@@ -1,0 +1,67 @@
+{
+  "event_id": "MANLAN-2019-NORDUNET-PILOT-I2PX-RRC00",
+  "revision": 1,
+  "schema_version": 2,
+  "event_window_utc": {
+    "start": "2019-08-21T16:00:00Z",
+    "end": "2019-08-21T17:30:00Z"
+  },
+  "ticket_window_local": {
+    "start": "2019-08-21 16:00:00",
+    "end": "2019-08-21 17:30:00",
+    "timezone": "UTC",
+    "timezone_note": "Pilot analysis window in UTC; warmup reconstructs state from the 02:00 RIB (baseline before the 04:00 maintenance start)."
+  },
+  "open": false,
+  "analysis_end_utc": null,
+  "warmup_minutes": 840,
+  "cooldown_minutes": 60,
+  "target": {
+    "label": "NORDUnet (AS2603) - I2PX plane (RIS rrc00) (Session 35, I2PX-RRC00)",
+    "origin_asns": [
+      2603
+    ],
+    "transit_predicate": {
+      "status": "Reviewed",
+      "predicate": {
+        "ContainsAny": [
+          11164
+        ]
+      },
+      "provenance": {
+        "statement": "Reviewed R&E-plane cohort selector: AS11537 in baseline path (Internet2 R&E plane, reviewed profile network-profile.json). Session 35: cohort selection is separate from path classification; the R&E run never claims I2PX observation.",
+        "reviewed_by": "analyst",
+        "date": "2026-08-02"
+      }
+    },
+    "path_classifiers": [
+      {
+        "id": "internet2-re",
+        "display_label": "Internet2 R&E",
+        "predicate": {
+          "ContainsAny": [
+            11537
+          ]
+        }
+      },
+      {
+        "id": "internet2-i2px",
+        "display_label": "Internet2 Peer Exchange",
+        "predicate": {
+          "ContainsAny": [
+            11164
+          ]
+        }
+      }
+    ],
+    "prefix_selection": "origin AS2603 AND baseline AS path contains the reviewed plane ASN (cohort selector); path_classifiers classify every origin-matching baseline route into named path classes (one/both/neither)",
+    "prefix_selection_provenance": "Session 35 reviewed plane model: cohort selection and path classification are separate concerns (CohortSelector vs PathClassifierSet). The I2PX plane (AS11164) is a distinct routing plane from the R&E plane (AS11537); collector sessions relate to either, both, or neither."
+  },
+  "collectors": [
+    "rrc00"
+  ],
+  "analyst_notes": [
+    "Session 35 I2PX-plane run (RIPE RIS rrc00): cohort selector ContainsAny[11164]. No AS11164-in-path baseline expected from the session audit."
+  ],
+  "source_family": "RipeRis"
+}

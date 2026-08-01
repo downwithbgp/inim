@@ -1,0 +1,3256 @@
+{
+  "schema_version": 1,
+  "event_id": "MANLAN-2019-NORDUNET-PILOT-RE-RRC15",
+  "lifecycles": [
+    {
+      "collector": "rrc15",
+      "peer_ip": "187.16.216.4",
+      "prefix": "109.105.112.0/21",
+      "baseline_path": [
+        1916,
+        11537,
+        2603
+      ],
+      "baseline_instance_count": 1,
+      "max_concurrent_instances": 1,
+      "total_route_instances": 1,
+      "category": "DepartedTransitPath",
+      "flags": {
+        "restored": false,
+        "not_restored": true,
+        "multiple_cycles": false,
+        "add_path_ambiguous": false
+      },
+      "first_change": "2019-08-21T16:35:38Z",
+      "transitions": [
+        {
+          "timestamp": "2019-08-21T16:35:38Z",
+          "phase": "Event",
+          "kind": "PathReplacement",
+          "path_id": null,
+          "before_path": [
+            1916,
+            11537,
+            20965,
+            2603
+          ],
+          "after_path": [
+            1916,
+            20080,
+            11537,
+            20965,
+            2603
+          ],
+          "path_shape": "PathChangedStillViaRequiredTransit",
+          "observation_id": 113,
+          "archive_sha256": "9da551192f8de89502a7938e8bfc68ed345f282874d694601eff2742ffff9835",
+          "has_gshut_after": false
+        },
+        {
+          "timestamp": "2019-08-21T16:42:50Z",
+          "phase": "Event",
+          "kind": "ReturnToBaseline",
+          "path_id": null,
+          "before_path": [
+            1916,
+            20080,
+            11537,
+            20965,
+            2603
+          ],
+          "after_path": [
+            1916,
+            11537,
+            20965,
+            2603
+          ],
+          "path_shape": null,
+          "observation_id": 124,
+          "archive_sha256": "e8ae913166bb22b0f278a86ef26695b613015a9fc7745864b3fd274ab83fe2c2",
+          "has_gshut_after": false
+        },
+        {
+          "timestamp": "2019-08-21T16:58:30Z",
+          "phase": "Event",
+          "kind": "PathReplacement",
+          "path_id": null,
+          "before_path": [
+            1916,
+            11537,
+            20965,
+            2603
+          ],
+          "after_path": [
+            1916,
+            11537,
+            22388,
+            24489,
+            24489,
+            24489,
+            24489,
+            24490,
+            20965,
+            2603
+          ],
+          "path_shape": "PathChangedStillViaRequiredTransit",
+          "observation_id": 138,
+          "archive_sha256": "a347ee9599e97d3bb9798ccf612818a24e566585197564edb04325ac3b4ea0a6",
+          "has_gshut_after": false
+        },
+        {
+          "timestamp": "2019-08-21T17:03:32Z",
+          "phase": "Event",
+          "kind": "ReturnToBaseline",
+          "path_id": null,
+          "before_path": [
+            1916,
+            11537,
+            22388,
+            24489,
+            24489,
+            24489,
+            24489,
+            24490,
+            20965,
+            2603
+          ],
+          "after_path": [
+            1916,
+            11537,
+            20965,
+            2603
+          ],
+          "path_shape": null,
+          "observation_id": 151,
+          "archive_sha256": "cf77221a4c8b73a8dc96ac78c2f9fa084de5bb41fd83c4baa71c1ba6bd8a059f",
+          "has_gshut_after": false
+        }
+      ],
+      "min_absence_secs": null,
+      "max_absence_secs": null,
+      "was_withdrawn": false,
+      "stream_withdrawal_time": null,
+      "active_before_absence": 0,
+      "transit_at_withdrawal": null,
+      "withdrawn_instances": [],
+      "stream_withdrawal_count": 0,
+      "restorations": [],
+      "add_path_ambiguity": null,
+      "replacement_appeared": true,
+      "replacement_retained_transit": true,
+      "prepending_changed": false,
+      "cooldown_transitions": [
+        {
+          "timestamp": "2019-08-21T17:52:16Z",
+          "phase": "Cooldown",
+          "kind": "PathReplacement",
+          "path_id": null,
+          "before_path": [
+            1916,
+            11537,
+            20965,
+            2603
+          ],
+          "after_path": [
+            1916,
+            27750,
+            20965,
+            2603
+          ],
+          "path_shape": "PathDepartedRequiredTransit",
+          "observation_id": 183,
+          "archive_sha256": "8f840ef3cabe735bab792ea0e6db4f278fc2a992921bfdf63014cb46680a14f3",
+          "has_gshut_after": false
+        }
+      ],
+      "final_state": {
+        "prefix": "109.105.112.0/21",
+        "attributes": {
+          "as_path": [
+            1916,
+            27750,
+            20965,
+            2603
+          ],
+          "origin_asns": [
+            2603
+          ],
+          "next_hop": "187.16.216.4",
+          "origin": "IGP",
+          "med": 0,
+          "local_pref": 0,
+          "atomic_aggregate": false,
+          "communities": [
+            "1916:11",
+            "1916:400",
+            "1916:10411"
+          ]
+        },
+        "timestamp": "2019-08-21T17:52:16Z",
+        "observer": "rrc15:187.16.216.4",
+        "path_id": null
+      },
+      "baseline_restored": true,
+      "restoration_time": null,
+      "affected_duration_secs": 6862.0,
+      "graceful_shutdown_seen": false,
+      "gshut_present_at_baseline": false,
+      "gshut_newly_added": false,
+      "gshut_removed": false,
+      "first_gshut_timestamp": null,
+      "last_gshut_timestamp": null,
+      "gshut_before_withdrawal": false,
+      "gshut_before_path_change": false,
+      "gshut_to_consequence_secs": null,
+      "gshut_removed_during_restoration": false,
+      "communities_before": [
+        "1916:1",
+        "1916:400",
+        "1916:10401"
+      ],
+      "communities_after": [
+        "1916:11",
+        "1916:400",
+        "1916:10411"
+      ]
+    },
+    {
+      "collector": "rrc15",
+      "peer_ip": "187.16.216.4",
+      "prefix": "109.105.120.0/22",
+      "baseline_path": [
+        1916,
+        11537,
+        2603
+      ],
+      "baseline_instance_count": 1,
+      "max_concurrent_instances": 1,
+      "total_route_instances": 1,
+      "category": "DepartedTransitPath",
+      "flags": {
+        "restored": false,
+        "not_restored": true,
+        "multiple_cycles": false,
+        "add_path_ambiguous": false
+      },
+      "first_change": "2019-08-21T16:35:38Z",
+      "transitions": [
+        {
+          "timestamp": "2019-08-21T16:35:38Z",
+          "phase": "Event",
+          "kind": "PathReplacement",
+          "path_id": null,
+          "before_path": [
+            1916,
+            11537,
+            20965,
+            2603
+          ],
+          "after_path": [
+            1916,
+            20080,
+            11537,
+            20965,
+            2603
+          ],
+          "path_shape": "PathChangedStillViaRequiredTransit",
+          "observation_id": 114,
+          "archive_sha256": "9da551192f8de89502a7938e8bfc68ed345f282874d694601eff2742ffff9835",
+          "has_gshut_after": false
+        },
+        {
+          "timestamp": "2019-08-21T16:42:50Z",
+          "phase": "Event",
+          "kind": "ReturnToBaseline",
+          "path_id": null,
+          "before_path": [
+            1916,
+            20080,
+            11537,
+            20965,
+            2603
+          ],
+          "after_path": [
+            1916,
+            11537,
+            20965,
+            2603
+          ],
+          "path_shape": null,
+          "observation_id": 123,
+          "archive_sha256": "e8ae913166bb22b0f278a86ef26695b613015a9fc7745864b3fd274ab83fe2c2",
+          "has_gshut_after": false
+        },
+        {
+          "timestamp": "2019-08-21T16:58:30Z",
+          "phase": "Event",
+          "kind": "PathReplacement",
+          "path_id": null,
+          "before_path": [
+            1916,
+            11537,
+            20965,
+            2603
+          ],
+          "after_path": [
+            1916,
+            11537,
+            22388,
+            24489,
+            24489,
+            24489,
+            24489,
+            24490,
+            20965,
+            2603
+          ],
+          "path_shape": "PathChangedStillViaRequiredTransit",
+          "observation_id": 140,
+          "archive_sha256": "a347ee9599e97d3bb9798ccf612818a24e566585197564edb04325ac3b4ea0a6",
+          "has_gshut_after": false
+        },
+        {
+          "timestamp": "2019-08-21T17:03:32Z",
+          "phase": "Event",
+          "kind": "ReturnToBaseline",
+          "path_id": null,
+          "before_path": [
+            1916,
+            11537,
+            22388,
+            24489,
+            24489,
+            24489,
+            24489,
+            24490,
+            20965,
+            2603
+          ],
+          "after_path": [
+            1916,
+            11537,
+            20965,
+            2603
+          ],
+          "path_shape": null,
+          "observation_id": 153,
+          "archive_sha256": "cf77221a4c8b73a8dc96ac78c2f9fa084de5bb41fd83c4baa71c1ba6bd8a059f",
+          "has_gshut_after": false
+        }
+      ],
+      "min_absence_secs": null,
+      "max_absence_secs": null,
+      "was_withdrawn": false,
+      "stream_withdrawal_time": null,
+      "active_before_absence": 0,
+      "transit_at_withdrawal": null,
+      "withdrawn_instances": [],
+      "stream_withdrawal_count": 0,
+      "restorations": [],
+      "add_path_ambiguity": null,
+      "replacement_appeared": true,
+      "replacement_retained_transit": true,
+      "prepending_changed": false,
+      "cooldown_transitions": [
+        {
+          "timestamp": "2019-08-21T17:52:16Z",
+          "phase": "Cooldown",
+          "kind": "PathReplacement",
+          "path_id": null,
+          "before_path": [
+            1916,
+            11537,
+            20965,
+            2603
+          ],
+          "after_path": [
+            1916,
+            27750,
+            20965,
+            2603
+          ],
+          "path_shape": "PathDepartedRequiredTransit",
+          "observation_id": 182,
+          "archive_sha256": "8f840ef3cabe735bab792ea0e6db4f278fc2a992921bfdf63014cb46680a14f3",
+          "has_gshut_after": false
+        }
+      ],
+      "final_state": {
+        "prefix": "109.105.120.0/22",
+        "attributes": {
+          "as_path": [
+            1916,
+            27750,
+            20965,
+            2603
+          ],
+          "origin_asns": [
+            2603
+          ],
+          "next_hop": "187.16.216.4",
+          "origin": "IGP",
+          "med": 0,
+          "local_pref": 0,
+          "atomic_aggregate": false,
+          "communities": [
+            "1916:11",
+            "1916:400",
+            "1916:10411"
+          ]
+        },
+        "timestamp": "2019-08-21T17:52:16Z",
+        "observer": "rrc15:187.16.216.4",
+        "path_id": null
+      },
+      "baseline_restored": true,
+      "restoration_time": null,
+      "affected_duration_secs": 6862.0,
+      "graceful_shutdown_seen": false,
+      "gshut_present_at_baseline": false,
+      "gshut_newly_added": false,
+      "gshut_removed": false,
+      "first_gshut_timestamp": null,
+      "last_gshut_timestamp": null,
+      "gshut_before_withdrawal": false,
+      "gshut_before_path_change": false,
+      "gshut_to_consequence_secs": null,
+      "gshut_removed_during_restoration": false,
+      "communities_before": [
+        "1916:1",
+        "1916:400",
+        "1916:10401"
+      ],
+      "communities_after": [
+        "1916:11",
+        "1916:400",
+        "1916:10411"
+      ]
+    },
+    {
+      "collector": "rrc15",
+      "peer_ip": "187.16.216.4",
+      "prefix": "109.105.96.0/20",
+      "baseline_path": [
+        1916,
+        11537,
+        2603
+      ],
+      "baseline_instance_count": 1,
+      "max_concurrent_instances": 1,
+      "total_route_instances": 1,
+      "category": "DepartedTransitPath",
+      "flags": {
+        "restored": false,
+        "not_restored": true,
+        "multiple_cycles": false,
+        "add_path_ambiguous": false
+      },
+      "first_change": "2019-08-21T16:35:38Z",
+      "transitions": [
+        {
+          "timestamp": "2019-08-21T16:35:38Z",
+          "phase": "Event",
+          "kind": "PathReplacement",
+          "path_id": null,
+          "before_path": [
+            1916,
+            11537,
+            20965,
+            2603
+          ],
+          "after_path": [
+            1916,
+            20080,
+            11537,
+            20965,
+            2603
+          ],
+          "path_shape": "PathChangedStillViaRequiredTransit",
+          "observation_id": 112,
+          "archive_sha256": "9da551192f8de89502a7938e8bfc68ed345f282874d694601eff2742ffff9835",
+          "has_gshut_after": false
+        },
+        {
+          "timestamp": "2019-08-21T16:42:50Z",
+          "phase": "Event",
+          "kind": "ReturnToBaseline",
+          "path_id": null,
+          "before_path": [
+            1916,
+            20080,
+            11537,
+            20965,
+            2603
+          ],
+          "after_path": [
+            1916,
+            11537,
+            20965,
+            2603
+          ],
+          "path_shape": null,
+          "observation_id": 125,
+          "archive_sha256": "e8ae913166bb22b0f278a86ef26695b613015a9fc7745864b3fd274ab83fe2c2",
+          "has_gshut_after": false
+        },
+        {
+          "timestamp": "2019-08-21T16:58:30Z",
+          "phase": "Event",
+          "kind": "PathReplacement",
+          "path_id": null,
+          "before_path": [
+            1916,
+            11537,
+            20965,
+            2603
+          ],
+          "after_path": [
+            1916,
+            11537,
+            22388,
+            24489,
+            24489,
+            24489,
+            24489,
+            24490,
+            20965,
+            2603
+          ],
+          "path_shape": "PathChangedStillViaRequiredTransit",
+          "observation_id": 139,
+          "archive_sha256": "a347ee9599e97d3bb9798ccf612818a24e566585197564edb04325ac3b4ea0a6",
+          "has_gshut_after": false
+        },
+        {
+          "timestamp": "2019-08-21T17:03:32Z",
+          "phase": "Event",
+          "kind": "ReturnToBaseline",
+          "path_id": null,
+          "before_path": [
+            1916,
+            11537,
+            22388,
+            24489,
+            24489,
+            24489,
+            24489,
+            24490,
+            20965,
+            2603
+          ],
+          "after_path": [
+            1916,
+            11537,
+            20965,
+            2603
+          ],
+          "path_shape": null,
+          "observation_id": 152,
+          "archive_sha256": "cf77221a4c8b73a8dc96ac78c2f9fa084de5bb41fd83c4baa71c1ba6bd8a059f",
+          "has_gshut_after": false
+        }
+      ],
+      "min_absence_secs": null,
+      "max_absence_secs": null,
+      "was_withdrawn": false,
+      "stream_withdrawal_time": null,
+      "active_before_absence": 0,
+      "transit_at_withdrawal": null,
+      "withdrawn_instances": [],
+      "stream_withdrawal_count": 0,
+      "restorations": [],
+      "add_path_ambiguity": null,
+      "replacement_appeared": true,
+      "replacement_retained_transit": true,
+      "prepending_changed": false,
+      "cooldown_transitions": [
+        {
+          "timestamp": "2019-08-21T17:52:16Z",
+          "phase": "Cooldown",
+          "kind": "PathReplacement",
+          "path_id": null,
+          "before_path": [
+            1916,
+            11537,
+            20965,
+            2603
+          ],
+          "after_path": [
+            1916,
+            27750,
+            20965,
+            2603
+          ],
+          "path_shape": "PathDepartedRequiredTransit",
+          "observation_id": 184,
+          "archive_sha256": "8f840ef3cabe735bab792ea0e6db4f278fc2a992921bfdf63014cb46680a14f3",
+          "has_gshut_after": false
+        }
+      ],
+      "final_state": {
+        "prefix": "109.105.96.0/20",
+        "attributes": {
+          "as_path": [
+            1916,
+            27750,
+            20965,
+            2603
+          ],
+          "origin_asns": [
+            2603
+          ],
+          "next_hop": "187.16.216.4",
+          "origin": "IGP",
+          "med": 0,
+          "local_pref": 0,
+          "atomic_aggregate": false,
+          "communities": [
+            "1916:11",
+            "1916:400",
+            "1916:10411"
+          ]
+        },
+        "timestamp": "2019-08-21T17:52:16Z",
+        "observer": "rrc15:187.16.216.4",
+        "path_id": null
+      },
+      "baseline_restored": true,
+      "restoration_time": null,
+      "affected_duration_secs": 6862.0,
+      "graceful_shutdown_seen": false,
+      "gshut_present_at_baseline": false,
+      "gshut_newly_added": false,
+      "gshut_removed": false,
+      "first_gshut_timestamp": null,
+      "last_gshut_timestamp": null,
+      "gshut_before_withdrawal": false,
+      "gshut_before_path_change": false,
+      "gshut_to_consequence_secs": null,
+      "gshut_removed_during_restoration": false,
+      "communities_before": [
+        "1916:1",
+        "1916:400",
+        "1916:10401"
+      ],
+      "communities_after": [
+        "1916:11",
+        "1916:400",
+        "1916:10411"
+      ]
+    },
+    {
+      "collector": "rrc15",
+      "peer_ip": "187.16.216.4",
+      "prefix": "185.174.116.0/22",
+      "baseline_path": [
+        1916,
+        11537,
+        2603
+      ],
+      "baseline_instance_count": 1,
+      "max_concurrent_instances": 1,
+      "total_route_instances": 1,
+      "category": "DepartedTransitPath",
+      "flags": {
+        "restored": false,
+        "not_restored": true,
+        "multiple_cycles": false,
+        "add_path_ambiguous": false
+      },
+      "first_change": "2019-08-21T16:35:38Z",
+      "transitions": [
+        {
+          "timestamp": "2019-08-21T16:35:38Z",
+          "phase": "Event",
+          "kind": "PathReplacement",
+          "path_id": null,
+          "before_path": [
+            1916,
+            11537,
+            20965,
+            2603
+          ],
+          "after_path": [
+            1916,
+            20080,
+            11537,
+            20965,
+            2603
+          ],
+          "path_shape": "PathChangedStillViaRequiredTransit",
+          "observation_id": 115,
+          "archive_sha256": "9da551192f8de89502a7938e8bfc68ed345f282874d694601eff2742ffff9835",
+          "has_gshut_after": false
+        },
+        {
+          "timestamp": "2019-08-21T16:43:04Z",
+          "phase": "Event",
+          "kind": "ReturnToBaseline",
+          "path_id": null,
+          "before_path": [
+            1916,
+            20080,
+            11537,
+            20965,
+            2603
+          ],
+          "after_path": [
+            1916,
+            11537,
+            20965,
+            2603
+          ],
+          "path_shape": null,
+          "observation_id": 129,
+          "archive_sha256": "e8ae913166bb22b0f278a86ef26695b613015a9fc7745864b3fd274ab83fe2c2",
+          "has_gshut_after": false
+        },
+        {
+          "timestamp": "2019-08-21T16:58:35Z",
+          "phase": "Event",
+          "kind": "PathReplacement",
+          "path_id": null,
+          "before_path": [
+            1916,
+            11537,
+            20965,
+            2603
+          ],
+          "after_path": [
+            1916,
+            11537,
+            22388,
+            24489,
+            24489,
+            24489,
+            24489,
+            24490,
+            20965,
+            2603
+          ],
+          "path_shape": "PathChangedStillViaRequiredTransit",
+          "observation_id": 147,
+          "archive_sha256": "a347ee9599e97d3bb9798ccf612818a24e566585197564edb04325ac3b4ea0a6",
+          "has_gshut_after": false
+        },
+        {
+          "timestamp": "2019-08-21T17:03:35Z",
+          "phase": "Event",
+          "kind": "ReturnToBaseline",
+          "path_id": null,
+          "before_path": [
+            1916,
+            11537,
+            22388,
+            24489,
+            24489,
+            24489,
+            24489,
+            24490,
+            20965,
+            2603
+          ],
+          "after_path": [
+            1916,
+            11537,
+            20965,
+            2603
+          ],
+          "path_shape": null,
+          "observation_id": 161,
+          "archive_sha256": "cf77221a4c8b73a8dc96ac78c2f9fa084de5bb41fd83c4baa71c1ba6bd8a059f",
+          "has_gshut_after": false
+        }
+      ],
+      "min_absence_secs": null,
+      "max_absence_secs": null,
+      "was_withdrawn": false,
+      "stream_withdrawal_time": null,
+      "active_before_absence": 0,
+      "transit_at_withdrawal": null,
+      "withdrawn_instances": [],
+      "stream_withdrawal_count": 0,
+      "restorations": [],
+      "add_path_ambiguity": null,
+      "replacement_appeared": true,
+      "replacement_retained_transit": true,
+      "prepending_changed": false,
+      "cooldown_transitions": [
+        {
+          "timestamp": "2019-08-21T17:52:16Z",
+          "phase": "Cooldown",
+          "kind": "PathReplacement",
+          "path_id": null,
+          "before_path": [
+            1916,
+            11537,
+            20965,
+            2603
+          ],
+          "after_path": [
+            1916,
+            27750,
+            20965,
+            2603
+          ],
+          "path_shape": "PathDepartedRequiredTransit",
+          "observation_id": 181,
+          "archive_sha256": "8f840ef3cabe735bab792ea0e6db4f278fc2a992921bfdf63014cb46680a14f3",
+          "has_gshut_after": false
+        }
+      ],
+      "final_state": {
+        "prefix": "185.174.116.0/22",
+        "attributes": {
+          "as_path": [
+            1916,
+            27750,
+            20965,
+            2603
+          ],
+          "origin_asns": [
+            2603
+          ],
+          "next_hop": "187.16.216.4",
+          "origin": "IGP",
+          "med": 0,
+          "local_pref": 0,
+          "atomic_aggregate": false,
+          "communities": [
+            "1916:11",
+            "1916:400",
+            "1916:10411"
+          ]
+        },
+        "timestamp": "2019-08-21T17:52:16Z",
+        "observer": "rrc15:187.16.216.4",
+        "path_id": null
+      },
+      "baseline_restored": true,
+      "restoration_time": null,
+      "affected_duration_secs": 6862.0,
+      "graceful_shutdown_seen": false,
+      "gshut_present_at_baseline": false,
+      "gshut_newly_added": false,
+      "gshut_removed": false,
+      "first_gshut_timestamp": null,
+      "last_gshut_timestamp": null,
+      "gshut_before_withdrawal": false,
+      "gshut_before_path_change": false,
+      "gshut_to_consequence_secs": null,
+      "gshut_removed_during_restoration": false,
+      "communities_before": [
+        "1916:1",
+        "1916:400",
+        "1916:10401"
+      ],
+      "communities_after": [
+        "1916:11",
+        "1916:400",
+        "1916:10411"
+      ]
+    },
+    {
+      "collector": "rrc15",
+      "peer_ip": "187.16.216.4",
+      "prefix": "192.36.171.0/24",
+      "baseline_path": [
+        1916,
+        11537,
+        2603
+      ],
+      "baseline_instance_count": 1,
+      "max_concurrent_instances": 1,
+      "total_route_instances": 1,
+      "category": "DepartedTransitPath",
+      "flags": {
+        "restored": false,
+        "not_restored": true,
+        "multiple_cycles": false,
+        "add_path_ambiguous": false
+      },
+      "first_change": "2019-08-21T16:35:38Z",
+      "transitions": [
+        {
+          "timestamp": "2019-08-21T16:35:38Z",
+          "phase": "Event",
+          "kind": "PathReplacement",
+          "path_id": null,
+          "before_path": [
+            1916,
+            11537,
+            20965,
+            2603
+          ],
+          "after_path": [
+            1916,
+            20080,
+            11537,
+            20965,
+            2603
+          ],
+          "path_shape": "PathChangedStillViaRequiredTransit",
+          "observation_id": 116,
+          "archive_sha256": "9da551192f8de89502a7938e8bfc68ed345f282874d694601eff2742ffff9835",
+          "has_gshut_after": false
+        },
+        {
+          "timestamp": "2019-08-21T16:43:04Z",
+          "phase": "Event",
+          "kind": "ReturnToBaseline",
+          "path_id": null,
+          "before_path": [
+            1916,
+            20080,
+            11537,
+            20965,
+            2603
+          ],
+          "after_path": [
+            1916,
+            11537,
+            20965,
+            2603
+          ],
+          "path_shape": null,
+          "observation_id": 128,
+          "archive_sha256": "e8ae913166bb22b0f278a86ef26695b613015a9fc7745864b3fd274ab83fe2c2",
+          "has_gshut_after": false
+        },
+        {
+          "timestamp": "2019-08-21T16:58:35Z",
+          "phase": "Event",
+          "kind": "PathReplacement",
+          "path_id": null,
+          "before_path": [
+            1916,
+            11537,
+            20965,
+            2603
+          ],
+          "after_path": [
+            1916,
+            11537,
+            22388,
+            24489,
+            24489,
+            24489,
+            24489,
+            24490,
+            20965,
+            2603
+          ],
+          "path_shape": "PathChangedStillViaRequiredTransit",
+          "observation_id": 146,
+          "archive_sha256": "a347ee9599e97d3bb9798ccf612818a24e566585197564edb04325ac3b4ea0a6",
+          "has_gshut_after": false
+        },
+        {
+          "timestamp": "2019-08-21T17:03:33Z",
+          "phase": "Event",
+          "kind": "ReturnToBaseline",
+          "path_id": null,
+          "before_path": [
+            1916,
+            11537,
+            22388,
+            24489,
+            24489,
+            24489,
+            24489,
+            24490,
+            20965,
+            2603
+          ],
+          "after_path": [
+            1916,
+            11537,
+            20965,
+            2603
+          ],
+          "path_shape": null,
+          "observation_id": 154,
+          "archive_sha256": "cf77221a4c8b73a8dc96ac78c2f9fa084de5bb41fd83c4baa71c1ba6bd8a059f",
+          "has_gshut_after": false
+        }
+      ],
+      "min_absence_secs": null,
+      "max_absence_secs": null,
+      "was_withdrawn": false,
+      "stream_withdrawal_time": null,
+      "active_before_absence": 0,
+      "transit_at_withdrawal": null,
+      "withdrawn_instances": [],
+      "stream_withdrawal_count": 0,
+      "restorations": [],
+      "add_path_ambiguity": null,
+      "replacement_appeared": true,
+      "replacement_retained_transit": true,
+      "prepending_changed": false,
+      "cooldown_transitions": [
+        {
+          "timestamp": "2019-08-21T17:52:16Z",
+          "phase": "Cooldown",
+          "kind": "PathReplacement",
+          "path_id": null,
+          "before_path": [
+            1916,
+            11537,
+            20965,
+            2603
+          ],
+          "after_path": [
+            1916,
+            27750,
+            20965,
+            2603
+          ],
+          "path_shape": "PathDepartedRequiredTransit",
+          "observation_id": 180,
+          "archive_sha256": "8f840ef3cabe735bab792ea0e6db4f278fc2a992921bfdf63014cb46680a14f3",
+          "has_gshut_after": false
+        }
+      ],
+      "final_state": {
+        "prefix": "192.36.171.0/24",
+        "attributes": {
+          "as_path": [
+            1916,
+            27750,
+            20965,
+            2603
+          ],
+          "origin_asns": [
+            2603
+          ],
+          "next_hop": "187.16.216.4",
+          "origin": "IGP",
+          "med": 0,
+          "local_pref": 0,
+          "atomic_aggregate": false,
+          "communities": [
+            "1916:11",
+            "1916:400",
+            "1916:10411"
+          ]
+        },
+        "timestamp": "2019-08-21T17:52:16Z",
+        "observer": "rrc15:187.16.216.4",
+        "path_id": null
+      },
+      "baseline_restored": true,
+      "restoration_time": null,
+      "affected_duration_secs": 6862.0,
+      "graceful_shutdown_seen": false,
+      "gshut_present_at_baseline": false,
+      "gshut_newly_added": false,
+      "gshut_removed": false,
+      "first_gshut_timestamp": null,
+      "last_gshut_timestamp": null,
+      "gshut_before_withdrawal": false,
+      "gshut_before_path_change": false,
+      "gshut_to_consequence_secs": null,
+      "gshut_removed_during_restoration": false,
+      "communities_before": [
+        "1916:1",
+        "1916:400",
+        "1916:10401"
+      ],
+      "communities_after": [
+        "1916:11",
+        "1916:400",
+        "1916:10411"
+      ]
+    },
+    {
+      "collector": "rrc15",
+      "peer_ip": "187.16.216.4",
+      "prefix": "193.10.252.0/24",
+      "baseline_path": [
+        1916,
+        11537,
+        2603
+      ],
+      "baseline_instance_count": 1,
+      "max_concurrent_instances": 1,
+      "total_route_instances": 1,
+      "category": "DepartedTransitPath",
+      "flags": {
+        "restored": false,
+        "not_restored": true,
+        "multiple_cycles": false,
+        "add_path_ambiguous": false
+      },
+      "first_change": "2019-08-21T16:35:38Z",
+      "transitions": [
+        {
+          "timestamp": "2019-08-21T16:35:38Z",
+          "phase": "Event",
+          "kind": "PathReplacement",
+          "path_id": null,
+          "before_path": [
+            1916,
+            11537,
+            20965,
+            2603
+          ],
+          "after_path": [
+            1916,
+            20080,
+            11537,
+            20965,
+            2603
+          ],
+          "path_shape": "PathChangedStillViaRequiredTransit",
+          "observation_id": 119,
+          "archive_sha256": "9da551192f8de89502a7938e8bfc68ed345f282874d694601eff2742ffff9835",
+          "has_gshut_after": false
+        },
+        {
+          "timestamp": "2019-08-21T16:43:04Z",
+          "phase": "Event",
+          "kind": "ReturnToBaseline",
+          "path_id": null,
+          "before_path": [
+            1916,
+            20080,
+            11537,
+            20965,
+            2603
+          ],
+          "after_path": [
+            1916,
+            11537,
+            20965,
+            2603
+          ],
+          "path_shape": null,
+          "observation_id": 126,
+          "archive_sha256": "e8ae913166bb22b0f278a86ef26695b613015a9fc7745864b3fd274ab83fe2c2",
+          "has_gshut_after": false
+        },
+        {
+          "timestamp": "2019-08-21T16:58:35Z",
+          "phase": "Event",
+          "kind": "PathReplacement",
+          "path_id": null,
+          "before_path": [
+            1916,
+            11537,
+            20965,
+            2603
+          ],
+          "after_path": [
+            1916,
+            11537,
+            22388,
+            24489,
+            24489,
+            24489,
+            24489,
+            24490,
+            20965,
+            2603
+          ],
+          "path_shape": "PathChangedStillViaRequiredTransit",
+          "observation_id": 143,
+          "archive_sha256": "a347ee9599e97d3bb9798ccf612818a24e566585197564edb04325ac3b4ea0a6",
+          "has_gshut_after": false
+        },
+        {
+          "timestamp": "2019-08-21T17:03:33Z",
+          "phase": "Event",
+          "kind": "ReturnToBaseline",
+          "path_id": null,
+          "before_path": [
+            1916,
+            11537,
+            22388,
+            24489,
+            24489,
+            24489,
+            24489,
+            24490,
+            20965,
+            2603
+          ],
+          "after_path": [
+            1916,
+            11537,
+            20965,
+            2603
+          ],
+          "path_shape": null,
+          "observation_id": 157,
+          "archive_sha256": "cf77221a4c8b73a8dc96ac78c2f9fa084de5bb41fd83c4baa71c1ba6bd8a059f",
+          "has_gshut_after": false
+        }
+      ],
+      "min_absence_secs": null,
+      "max_absence_secs": null,
+      "was_withdrawn": false,
+      "stream_withdrawal_time": null,
+      "active_before_absence": 0,
+      "transit_at_withdrawal": null,
+      "withdrawn_instances": [],
+      "stream_withdrawal_count": 0,
+      "restorations": [],
+      "add_path_ambiguity": null,
+      "replacement_appeared": true,
+      "replacement_retained_transit": true,
+      "prepending_changed": false,
+      "cooldown_transitions": [
+        {
+          "timestamp": "2019-08-21T17:52:16Z",
+          "phase": "Cooldown",
+          "kind": "PathReplacement",
+          "path_id": null,
+          "before_path": [
+            1916,
+            11537,
+            20965,
+            2603
+          ],
+          "after_path": [
+            1916,
+            27750,
+            20965,
+            2603
+          ],
+          "path_shape": "PathDepartedRequiredTransit",
+          "observation_id": 177,
+          "archive_sha256": "8f840ef3cabe735bab792ea0e6db4f278fc2a992921bfdf63014cb46680a14f3",
+          "has_gshut_after": false
+        }
+      ],
+      "final_state": {
+        "prefix": "193.10.252.0/24",
+        "attributes": {
+          "as_path": [
+            1916,
+            27750,
+            20965,
+            2603
+          ],
+          "origin_asns": [
+            2603
+          ],
+          "next_hop": "187.16.216.4",
+          "origin": "IGP",
+          "med": 0,
+          "local_pref": 0,
+          "atomic_aggregate": false,
+          "communities": [
+            "1916:11",
+            "1916:400",
+            "1916:10411"
+          ]
+        },
+        "timestamp": "2019-08-21T17:52:16Z",
+        "observer": "rrc15:187.16.216.4",
+        "path_id": null
+      },
+      "baseline_restored": true,
+      "restoration_time": null,
+      "affected_duration_secs": 6862.0,
+      "graceful_shutdown_seen": false,
+      "gshut_present_at_baseline": false,
+      "gshut_newly_added": false,
+      "gshut_removed": false,
+      "first_gshut_timestamp": null,
+      "last_gshut_timestamp": null,
+      "gshut_before_withdrawal": false,
+      "gshut_before_path_change": false,
+      "gshut_to_consequence_secs": null,
+      "gshut_removed_during_restoration": false,
+      "communities_before": [
+        "1916:1",
+        "1916:400",
+        "1916:10401"
+      ],
+      "communities_after": [
+        "1916:11",
+        "1916:400",
+        "1916:10411"
+      ]
+    },
+    {
+      "collector": "rrc15",
+      "peer_ip": "187.16.216.4",
+      "prefix": "193.10.254.0/24",
+      "baseline_path": [
+        1916,
+        11537,
+        2603
+      ],
+      "baseline_instance_count": 1,
+      "max_concurrent_instances": 1,
+      "total_route_instances": 1,
+      "category": "DepartedTransitPath",
+      "flags": {
+        "restored": false,
+        "not_restored": true,
+        "multiple_cycles": false,
+        "add_path_ambiguous": false
+      },
+      "first_change": "2019-08-21T16:35:38Z",
+      "transitions": [
+        {
+          "timestamp": "2019-08-21T16:35:38Z",
+          "phase": "Event",
+          "kind": "PathReplacement",
+          "path_id": null,
+          "before_path": [
+            1916,
+            11537,
+            20965,
+            2603
+          ],
+          "after_path": [
+            1916,
+            20080,
+            11537,
+            20965,
+            2603
+          ],
+          "path_shape": "PathChangedStillViaRequiredTransit",
+          "observation_id": 120,
+          "archive_sha256": "9da551192f8de89502a7938e8bfc68ed345f282874d694601eff2742ffff9835",
+          "has_gshut_after": false
+        },
+        {
+          "timestamp": "2019-08-21T16:43:04Z",
+          "phase": "Event",
+          "kind": "ReturnToBaseline",
+          "path_id": null,
+          "before_path": [
+            1916,
+            20080,
+            11537,
+            20965,
+            2603
+          ],
+          "after_path": [
+            1916,
+            11537,
+            20965,
+            2603
+          ],
+          "path_shape": null,
+          "observation_id": 127,
+          "archive_sha256": "e8ae913166bb22b0f278a86ef26695b613015a9fc7745864b3fd274ab83fe2c2",
+          "has_gshut_after": false
+        },
+        {
+          "timestamp": "2019-08-21T16:58:35Z",
+          "phase": "Event",
+          "kind": "PathReplacement",
+          "path_id": null,
+          "before_path": [
+            1916,
+            11537,
+            20965,
+            2603
+          ],
+          "after_path": [
+            1916,
+            11537,
+            22388,
+            24489,
+            24489,
+            24489,
+            24489,
+            24490,
+            20965,
+            2603
+          ],
+          "path_shape": "PathChangedStillViaRequiredTransit",
+          "observation_id": 145,
+          "archive_sha256": "a347ee9599e97d3bb9798ccf612818a24e566585197564edb04325ac3b4ea0a6",
+          "has_gshut_after": false
+        },
+        {
+          "timestamp": "2019-08-21T17:03:33Z",
+          "phase": "Event",
+          "kind": "ReturnToBaseline",
+          "path_id": null,
+          "before_path": [
+            1916,
+            11537,
+            22388,
+            24489,
+            24489,
+            24489,
+            24489,
+            24490,
+            20965,
+            2603
+          ],
+          "after_path": [
+            1916,
+            11537,
+            20965,
+            2603
+          ],
+          "path_shape": null,
+          "observation_id": 159,
+          "archive_sha256": "cf77221a4c8b73a8dc96ac78c2f9fa084de5bb41fd83c4baa71c1ba6bd8a059f",
+          "has_gshut_after": false
+        }
+      ],
+      "min_absence_secs": null,
+      "max_absence_secs": null,
+      "was_withdrawn": false,
+      "stream_withdrawal_time": null,
+      "active_before_absence": 0,
+      "transit_at_withdrawal": null,
+      "withdrawn_instances": [],
+      "stream_withdrawal_count": 0,
+      "restorations": [],
+      "add_path_ambiguity": null,
+      "replacement_appeared": true,
+      "replacement_retained_transit": true,
+      "prepending_changed": false,
+      "cooldown_transitions": [
+        {
+          "timestamp": "2019-08-21T17:52:16Z",
+          "phase": "Cooldown",
+          "kind": "PathReplacement",
+          "path_id": null,
+          "before_path": [
+            1916,
+            11537,
+            20965,
+            2603
+          ],
+          "after_path": [
+            1916,
+            27750,
+            20965,
+            2603
+          ],
+          "path_shape": "PathDepartedRequiredTransit",
+          "observation_id": 176,
+          "archive_sha256": "8f840ef3cabe735bab792ea0e6db4f278fc2a992921bfdf63014cb46680a14f3",
+          "has_gshut_after": false
+        }
+      ],
+      "final_state": {
+        "prefix": "193.10.254.0/24",
+        "attributes": {
+          "as_path": [
+            1916,
+            27750,
+            20965,
+            2603
+          ],
+          "origin_asns": [
+            2603
+          ],
+          "next_hop": "187.16.216.4",
+          "origin": "IGP",
+          "med": 0,
+          "local_pref": 0,
+          "atomic_aggregate": false,
+          "communities": [
+            "1916:11",
+            "1916:400",
+            "1916:10411"
+          ]
+        },
+        "timestamp": "2019-08-21T17:52:16Z",
+        "observer": "rrc15:187.16.216.4",
+        "path_id": null
+      },
+      "baseline_restored": true,
+      "restoration_time": null,
+      "affected_duration_secs": 6862.0,
+      "graceful_shutdown_seen": false,
+      "gshut_present_at_baseline": false,
+      "gshut_newly_added": false,
+      "gshut_removed": false,
+      "first_gshut_timestamp": null,
+      "last_gshut_timestamp": null,
+      "gshut_before_withdrawal": false,
+      "gshut_before_path_change": false,
+      "gshut_to_consequence_secs": null,
+      "gshut_removed_during_restoration": false,
+      "communities_before": [
+        "1916:1",
+        "1916:400",
+        "1916:10401"
+      ],
+      "communities_after": [
+        "1916:11",
+        "1916:400",
+        "1916:10411"
+      ]
+    },
+    {
+      "collector": "rrc15",
+      "peer_ip": "187.16.216.4",
+      "prefix": "193.10.68.0/24",
+      "baseline_path": [
+        1916,
+        11537,
+        2603
+      ],
+      "baseline_instance_count": 1,
+      "max_concurrent_instances": 1,
+      "total_route_instances": 1,
+      "category": "DepartedTransitPath",
+      "flags": {
+        "restored": false,
+        "not_restored": true,
+        "multiple_cycles": false,
+        "add_path_ambiguous": false
+      },
+      "first_change": "2019-08-21T16:35:38Z",
+      "transitions": [
+        {
+          "timestamp": "2019-08-21T16:35:38Z",
+          "phase": "Event",
+          "kind": "PathReplacement",
+          "path_id": null,
+          "before_path": [
+            1916,
+            11537,
+            20965,
+            2603
+          ],
+          "after_path": [
+            1916,
+            20080,
+            11537,
+            20965,
+            2603
+          ],
+          "path_shape": "PathChangedStillViaRequiredTransit",
+          "observation_id": 117,
+          "archive_sha256": "9da551192f8de89502a7938e8bfc68ed345f282874d694601eff2742ffff9835",
+          "has_gshut_after": false
+        },
+        {
+          "timestamp": "2019-08-21T16:43:04Z",
+          "phase": "Event",
+          "kind": "ReturnToBaseline",
+          "path_id": null,
+          "before_path": [
+            1916,
+            20080,
+            11537,
+            20965,
+            2603
+          ],
+          "after_path": [
+            1916,
+            11537,
+            20965,
+            2603
+          ],
+          "path_shape": null,
+          "observation_id": 133,
+          "archive_sha256": "e8ae913166bb22b0f278a86ef26695b613015a9fc7745864b3fd274ab83fe2c2",
+          "has_gshut_after": false
+        },
+        {
+          "timestamp": "2019-08-21T16:58:35Z",
+          "phase": "Event",
+          "kind": "PathReplacement",
+          "path_id": null,
+          "before_path": [
+            1916,
+            11537,
+            20965,
+            2603
+          ],
+          "after_path": [
+            1916,
+            11537,
+            22388,
+            24489,
+            24489,
+            24489,
+            24489,
+            24490,
+            20965,
+            2603
+          ],
+          "path_shape": "PathChangedStillViaRequiredTransit",
+          "observation_id": 144,
+          "archive_sha256": "a347ee9599e97d3bb9798ccf612818a24e566585197564edb04325ac3b4ea0a6",
+          "has_gshut_after": false
+        },
+        {
+          "timestamp": "2019-08-21T17:03:33Z",
+          "phase": "Event",
+          "kind": "ReturnToBaseline",
+          "path_id": null,
+          "before_path": [
+            1916,
+            11537,
+            22388,
+            24489,
+            24489,
+            24489,
+            24489,
+            24490,
+            20965,
+            2603
+          ],
+          "after_path": [
+            1916,
+            11537,
+            20965,
+            2603
+          ],
+          "path_shape": null,
+          "observation_id": 158,
+          "archive_sha256": "cf77221a4c8b73a8dc96ac78c2f9fa084de5bb41fd83c4baa71c1ba6bd8a059f",
+          "has_gshut_after": false
+        }
+      ],
+      "min_absence_secs": null,
+      "max_absence_secs": null,
+      "was_withdrawn": false,
+      "stream_withdrawal_time": null,
+      "active_before_absence": 0,
+      "transit_at_withdrawal": null,
+      "withdrawn_instances": [],
+      "stream_withdrawal_count": 0,
+      "restorations": [],
+      "add_path_ambiguity": null,
+      "replacement_appeared": true,
+      "replacement_retained_transit": true,
+      "prepending_changed": false,
+      "cooldown_transitions": [
+        {
+          "timestamp": "2019-08-21T17:52:16Z",
+          "phase": "Cooldown",
+          "kind": "PathReplacement",
+          "path_id": null,
+          "before_path": [
+            1916,
+            11537,
+            20965,
+            2603
+          ],
+          "after_path": [
+            1916,
+            27750,
+            20965,
+            2603
+          ],
+          "path_shape": "PathDepartedRequiredTransit",
+          "observation_id": 179,
+          "archive_sha256": "8f840ef3cabe735bab792ea0e6db4f278fc2a992921bfdf63014cb46680a14f3",
+          "has_gshut_after": false
+        }
+      ],
+      "final_state": {
+        "prefix": "193.10.68.0/24",
+        "attributes": {
+          "as_path": [
+            1916,
+            27750,
+            20965,
+            2603
+          ],
+          "origin_asns": [
+            2603
+          ],
+          "next_hop": "187.16.216.4",
+          "origin": "IGP",
+          "med": 0,
+          "local_pref": 0,
+          "atomic_aggregate": false,
+          "communities": [
+            "1916:11",
+            "1916:400",
+            "1916:10411"
+          ]
+        },
+        "timestamp": "2019-08-21T17:52:16Z",
+        "observer": "rrc15:187.16.216.4",
+        "path_id": null
+      },
+      "baseline_restored": true,
+      "restoration_time": null,
+      "affected_duration_secs": 6862.0,
+      "graceful_shutdown_seen": false,
+      "gshut_present_at_baseline": false,
+      "gshut_newly_added": false,
+      "gshut_removed": false,
+      "first_gshut_timestamp": null,
+      "last_gshut_timestamp": null,
+      "gshut_before_withdrawal": false,
+      "gshut_before_path_change": false,
+      "gshut_to_consequence_secs": null,
+      "gshut_removed_during_restoration": false,
+      "communities_before": [
+        "1916:1",
+        "1916:400",
+        "1916:10401"
+      ],
+      "communities_after": [
+        "1916:11",
+        "1916:400",
+        "1916:10411"
+      ]
+    },
+    {
+      "collector": "rrc15",
+      "peer_ip": "187.16.216.4",
+      "prefix": "193.10.95.0/24",
+      "baseline_path": [
+        1916,
+        11537,
+        2603
+      ],
+      "baseline_instance_count": 1,
+      "max_concurrent_instances": 1,
+      "total_route_instances": 1,
+      "category": "DepartedTransitPath",
+      "flags": {
+        "restored": false,
+        "not_restored": true,
+        "multiple_cycles": false,
+        "add_path_ambiguous": false
+      },
+      "first_change": "2019-08-21T16:35:38Z",
+      "transitions": [
+        {
+          "timestamp": "2019-08-21T16:35:38Z",
+          "phase": "Event",
+          "kind": "PathReplacement",
+          "path_id": null,
+          "before_path": [
+            1916,
+            11537,
+            20965,
+            2603
+          ],
+          "after_path": [
+            1916,
+            20080,
+            11537,
+            20965,
+            2603
+          ],
+          "path_shape": "PathChangedStillViaRequiredTransit",
+          "observation_id": 118,
+          "archive_sha256": "9da551192f8de89502a7938e8bfc68ed345f282874d694601eff2742ffff9835",
+          "has_gshut_after": false
+        },
+        {
+          "timestamp": "2019-08-21T16:43:04Z",
+          "phase": "Event",
+          "kind": "ReturnToBaseline",
+          "path_id": null,
+          "before_path": [
+            1916,
+            20080,
+            11537,
+            20965,
+            2603
+          ],
+          "after_path": [
+            1916,
+            11537,
+            20965,
+            2603
+          ],
+          "path_shape": null,
+          "observation_id": 132,
+          "archive_sha256": "e8ae913166bb22b0f278a86ef26695b613015a9fc7745864b3fd274ab83fe2c2",
+          "has_gshut_after": false
+        },
+        {
+          "timestamp": "2019-08-21T16:58:35Z",
+          "phase": "Event",
+          "kind": "PathReplacement",
+          "path_id": null,
+          "before_path": [
+            1916,
+            11537,
+            20965,
+            2603
+          ],
+          "after_path": [
+            1916,
+            11537,
+            22388,
+            24489,
+            24489,
+            24489,
+            24489,
+            24490,
+            20965,
+            2603
+          ],
+          "path_shape": "PathChangedStillViaRequiredTransit",
+          "observation_id": 141,
+          "archive_sha256": "a347ee9599e97d3bb9798ccf612818a24e566585197564edb04325ac3b4ea0a6",
+          "has_gshut_after": false
+        },
+        {
+          "timestamp": "2019-08-21T17:03:33Z",
+          "phase": "Event",
+          "kind": "ReturnToBaseline",
+          "path_id": null,
+          "before_path": [
+            1916,
+            11537,
+            22388,
+            24489,
+            24489,
+            24489,
+            24489,
+            24490,
+            20965,
+            2603
+          ],
+          "after_path": [
+            1916,
+            11537,
+            20965,
+            2603
+          ],
+          "path_shape": null,
+          "observation_id": 155,
+          "archive_sha256": "cf77221a4c8b73a8dc96ac78c2f9fa084de5bb41fd83c4baa71c1ba6bd8a059f",
+          "has_gshut_after": false
+        }
+      ],
+      "min_absence_secs": null,
+      "max_absence_secs": null,
+      "was_withdrawn": false,
+      "stream_withdrawal_time": null,
+      "active_before_absence": 0,
+      "transit_at_withdrawal": null,
+      "withdrawn_instances": [],
+      "stream_withdrawal_count": 0,
+      "restorations": [],
+      "add_path_ambiguity": null,
+      "replacement_appeared": true,
+      "replacement_retained_transit": true,
+      "prepending_changed": false,
+      "cooldown_transitions": [
+        {
+          "timestamp": "2019-08-21T17:52:16Z",
+          "phase": "Cooldown",
+          "kind": "PathReplacement",
+          "path_id": null,
+          "before_path": [
+            1916,
+            11537,
+            20965,
+            2603
+          ],
+          "after_path": [
+            1916,
+            27750,
+            20965,
+            2603
+          ],
+          "path_shape": "PathDepartedRequiredTransit",
+          "observation_id": 178,
+          "archive_sha256": "8f840ef3cabe735bab792ea0e6db4f278fc2a992921bfdf63014cb46680a14f3",
+          "has_gshut_after": false
+        }
+      ],
+      "final_state": {
+        "prefix": "193.10.95.0/24",
+        "attributes": {
+          "as_path": [
+            1916,
+            27750,
+            20965,
+            2603
+          ],
+          "origin_asns": [
+            2603
+          ],
+          "next_hop": "187.16.216.4",
+          "origin": "IGP",
+          "med": 0,
+          "local_pref": 0,
+          "atomic_aggregate": false,
+          "communities": [
+            "1916:11",
+            "1916:400",
+            "1916:10411"
+          ]
+        },
+        "timestamp": "2019-08-21T17:52:16Z",
+        "observer": "rrc15:187.16.216.4",
+        "path_id": null
+      },
+      "baseline_restored": true,
+      "restoration_time": null,
+      "affected_duration_secs": 6862.0,
+      "graceful_shutdown_seen": false,
+      "gshut_present_at_baseline": false,
+      "gshut_newly_added": false,
+      "gshut_removed": false,
+      "first_gshut_timestamp": null,
+      "last_gshut_timestamp": null,
+      "gshut_before_withdrawal": false,
+      "gshut_before_path_change": false,
+      "gshut_to_consequence_secs": null,
+      "gshut_removed_during_restoration": false,
+      "communities_before": [
+        "1916:1",
+        "1916:400",
+        "1916:10401"
+      ],
+      "communities_after": [
+        "1916:11",
+        "1916:400",
+        "1916:10411"
+      ]
+    },
+    {
+      "collector": "rrc15",
+      "peer_ip": "187.16.216.4",
+      "prefix": "193.11.3.0/24",
+      "baseline_path": [
+        1916,
+        11537,
+        2603
+      ],
+      "baseline_instance_count": 1,
+      "max_concurrent_instances": 1,
+      "total_route_instances": 1,
+      "category": "DepartedTransitPath",
+      "flags": {
+        "restored": false,
+        "not_restored": true,
+        "multiple_cycles": false,
+        "add_path_ambiguous": false
+      },
+      "first_change": "2019-08-21T16:35:38Z",
+      "transitions": [
+        {
+          "timestamp": "2019-08-21T16:35:38Z",
+          "phase": "Event",
+          "kind": "PathReplacement",
+          "path_id": null,
+          "before_path": [
+            1916,
+            11537,
+            20965,
+            2603
+          ],
+          "after_path": [
+            1916,
+            20080,
+            11537,
+            20965,
+            2603
+          ],
+          "path_shape": "PathChangedStillViaRequiredTransit",
+          "observation_id": 121,
+          "archive_sha256": "9da551192f8de89502a7938e8bfc68ed345f282874d694601eff2742ffff9835",
+          "has_gshut_after": false
+        },
+        {
+          "timestamp": "2019-08-21T16:43:04Z",
+          "phase": "Event",
+          "kind": "ReturnToBaseline",
+          "path_id": null,
+          "before_path": [
+            1916,
+            20080,
+            11537,
+            20965,
+            2603
+          ],
+          "after_path": [
+            1916,
+            11537,
+            20965,
+            2603
+          ],
+          "path_shape": null,
+          "observation_id": 131,
+          "archive_sha256": "e8ae913166bb22b0f278a86ef26695b613015a9fc7745864b3fd274ab83fe2c2",
+          "has_gshut_after": false
+        },
+        {
+          "timestamp": "2019-08-21T16:58:35Z",
+          "phase": "Event",
+          "kind": "PathReplacement",
+          "path_id": null,
+          "before_path": [
+            1916,
+            11537,
+            20965,
+            2603
+          ],
+          "after_path": [
+            1916,
+            11537,
+            22388,
+            24489,
+            24489,
+            24489,
+            24489,
+            24490,
+            20965,
+            2603
+          ],
+          "path_shape": "PathChangedStillViaRequiredTransit",
+          "observation_id": 142,
+          "archive_sha256": "a347ee9599e97d3bb9798ccf612818a24e566585197564edb04325ac3b4ea0a6",
+          "has_gshut_after": false
+        },
+        {
+          "timestamp": "2019-08-21T17:03:33Z",
+          "phase": "Event",
+          "kind": "ReturnToBaseline",
+          "path_id": null,
+          "before_path": [
+            1916,
+            11537,
+            22388,
+            24489,
+            24489,
+            24489,
+            24489,
+            24490,
+            20965,
+            2603
+          ],
+          "after_path": [
+            1916,
+            11537,
+            20965,
+            2603
+          ],
+          "path_shape": null,
+          "observation_id": 156,
+          "archive_sha256": "cf77221a4c8b73a8dc96ac78c2f9fa084de5bb41fd83c4baa71c1ba6bd8a059f",
+          "has_gshut_after": false
+        }
+      ],
+      "min_absence_secs": null,
+      "max_absence_secs": null,
+      "was_withdrawn": false,
+      "stream_withdrawal_time": null,
+      "active_before_absence": 0,
+      "transit_at_withdrawal": null,
+      "withdrawn_instances": [],
+      "stream_withdrawal_count": 0,
+      "restorations": [],
+      "add_path_ambiguity": null,
+      "replacement_appeared": true,
+      "replacement_retained_transit": true,
+      "prepending_changed": false,
+      "cooldown_transitions": [
+        {
+          "timestamp": "2019-08-21T17:52:16Z",
+          "phase": "Cooldown",
+          "kind": "PathReplacement",
+          "path_id": null,
+          "before_path": [
+            1916,
+            11537,
+            20965,
+            2603
+          ],
+          "after_path": [
+            1916,
+            27750,
+            20965,
+            2603
+          ],
+          "path_shape": "PathDepartedRequiredTransit",
+          "observation_id": 175,
+          "archive_sha256": "8f840ef3cabe735bab792ea0e6db4f278fc2a992921bfdf63014cb46680a14f3",
+          "has_gshut_after": false
+        }
+      ],
+      "final_state": {
+        "prefix": "193.11.3.0/24",
+        "attributes": {
+          "as_path": [
+            1916,
+            27750,
+            20965,
+            2603
+          ],
+          "origin_asns": [
+            2603
+          ],
+          "next_hop": "187.16.216.4",
+          "origin": "IGP",
+          "med": 0,
+          "local_pref": 0,
+          "atomic_aggregate": false,
+          "communities": [
+            "1916:11",
+            "1916:400",
+            "1916:10411"
+          ]
+        },
+        "timestamp": "2019-08-21T17:52:16Z",
+        "observer": "rrc15:187.16.216.4",
+        "path_id": null
+      },
+      "baseline_restored": true,
+      "restoration_time": null,
+      "affected_duration_secs": 6862.0,
+      "graceful_shutdown_seen": false,
+      "gshut_present_at_baseline": false,
+      "gshut_newly_added": false,
+      "gshut_removed": false,
+      "first_gshut_timestamp": null,
+      "last_gshut_timestamp": null,
+      "gshut_before_withdrawal": false,
+      "gshut_before_path_change": false,
+      "gshut_to_consequence_secs": null,
+      "gshut_removed_during_restoration": false,
+      "communities_before": [
+        "1916:1",
+        "1916:400",
+        "1916:10401"
+      ],
+      "communities_after": [
+        "1916:11",
+        "1916:400",
+        "1916:10411"
+      ]
+    },
+    {
+      "collector": "rrc15",
+      "peer_ip": "187.16.216.4",
+      "prefix": "194.68.13.0/24",
+      "baseline_path": [
+        1916,
+        11537,
+        2603
+      ],
+      "baseline_instance_count": 1,
+      "max_concurrent_instances": 1,
+      "total_route_instances": 1,
+      "category": "DepartedTransitPath",
+      "flags": {
+        "restored": false,
+        "not_restored": true,
+        "multiple_cycles": false,
+        "add_path_ambiguous": false
+      },
+      "first_change": "2019-08-21T16:35:38Z",
+      "transitions": [
+        {
+          "timestamp": "2019-08-21T16:35:38Z",
+          "phase": "Event",
+          "kind": "PathReplacement",
+          "path_id": null,
+          "before_path": [
+            1916,
+            11537,
+            20965,
+            2603
+          ],
+          "after_path": [
+            1916,
+            20080,
+            11537,
+            20965,
+            2603
+          ],
+          "path_shape": "PathChangedStillViaRequiredTransit",
+          "observation_id": 122,
+          "archive_sha256": "9da551192f8de89502a7938e8bfc68ed345f282874d694601eff2742ffff9835",
+          "has_gshut_after": false
+        },
+        {
+          "timestamp": "2019-08-21T16:43:04Z",
+          "phase": "Event",
+          "kind": "ReturnToBaseline",
+          "path_id": null,
+          "before_path": [
+            1916,
+            20080,
+            11537,
+            20965,
+            2603
+          ],
+          "after_path": [
+            1916,
+            11537,
+            20965,
+            2603
+          ],
+          "path_shape": null,
+          "observation_id": 130,
+          "archive_sha256": "e8ae913166bb22b0f278a86ef26695b613015a9fc7745864b3fd274ab83fe2c2",
+          "has_gshut_after": false
+        },
+        {
+          "timestamp": "2019-08-21T16:58:35Z",
+          "phase": "Event",
+          "kind": "PathReplacement",
+          "path_id": null,
+          "before_path": [
+            1916,
+            11537,
+            20965,
+            2603
+          ],
+          "after_path": [
+            1916,
+            11537,
+            22388,
+            24489,
+            24489,
+            24489,
+            24489,
+            24490,
+            20965,
+            2603
+          ],
+          "path_shape": "PathChangedStillViaRequiredTransit",
+          "observation_id": 148,
+          "archive_sha256": "a347ee9599e97d3bb9798ccf612818a24e566585197564edb04325ac3b4ea0a6",
+          "has_gshut_after": false
+        },
+        {
+          "timestamp": "2019-08-21T17:03:34Z",
+          "phase": "Event",
+          "kind": "ReturnToBaseline",
+          "path_id": null,
+          "before_path": [
+            1916,
+            11537,
+            22388,
+            24489,
+            24489,
+            24489,
+            24489,
+            24490,
+            20965,
+            2603
+          ],
+          "after_path": [
+            1916,
+            11537,
+            20965,
+            2603
+          ],
+          "path_shape": null,
+          "observation_id": 160,
+          "archive_sha256": "cf77221a4c8b73a8dc96ac78c2f9fa084de5bb41fd83c4baa71c1ba6bd8a059f",
+          "has_gshut_after": false
+        }
+      ],
+      "min_absence_secs": null,
+      "max_absence_secs": null,
+      "was_withdrawn": false,
+      "stream_withdrawal_time": null,
+      "active_before_absence": 0,
+      "transit_at_withdrawal": null,
+      "withdrawn_instances": [],
+      "stream_withdrawal_count": 0,
+      "restorations": [],
+      "add_path_ambiguity": null,
+      "replacement_appeared": true,
+      "replacement_retained_transit": true,
+      "prepending_changed": false,
+      "cooldown_transitions": [
+        {
+          "timestamp": "2019-08-21T17:52:16Z",
+          "phase": "Cooldown",
+          "kind": "PathReplacement",
+          "path_id": null,
+          "before_path": [
+            1916,
+            11537,
+            20965,
+            2603
+          ],
+          "after_path": [
+            1916,
+            27750,
+            20965,
+            2603
+          ],
+          "path_shape": "PathDepartedRequiredTransit",
+          "observation_id": 174,
+          "archive_sha256": "8f840ef3cabe735bab792ea0e6db4f278fc2a992921bfdf63014cb46680a14f3",
+          "has_gshut_after": false
+        }
+      ],
+      "final_state": {
+        "prefix": "194.68.13.0/24",
+        "attributes": {
+          "as_path": [
+            1916,
+            27750,
+            20965,
+            2603
+          ],
+          "origin_asns": [
+            2603
+          ],
+          "next_hop": "187.16.216.4",
+          "origin": "IGP",
+          "med": 0,
+          "local_pref": 0,
+          "atomic_aggregate": false,
+          "communities": [
+            "1916:11",
+            "1916:400",
+            "1916:10411"
+          ]
+        },
+        "timestamp": "2019-08-21T17:52:16Z",
+        "observer": "rrc15:187.16.216.4",
+        "path_id": null
+      },
+      "baseline_restored": true,
+      "restoration_time": null,
+      "affected_duration_secs": 6862.0,
+      "graceful_shutdown_seen": false,
+      "gshut_present_at_baseline": false,
+      "gshut_newly_added": false,
+      "gshut_removed": false,
+      "first_gshut_timestamp": null,
+      "last_gshut_timestamp": null,
+      "gshut_before_withdrawal": false,
+      "gshut_before_path_change": false,
+      "gshut_to_consequence_secs": null,
+      "gshut_removed_during_restoration": false,
+      "communities_before": [
+        "1916:1",
+        "1916:400",
+        "1916:10401"
+      ],
+      "communities_after": [
+        "1916:11",
+        "1916:400",
+        "1916:10411"
+      ]
+    },
+    {
+      "collector": "rrc15",
+      "peer_ip": "187.16.218.21",
+      "prefix": "109.105.112.0/21",
+      "baseline_path": [
+        52888,
+        1251,
+        20080,
+        11537,
+        2603
+      ],
+      "baseline_instance_count": 1,
+      "max_concurrent_instances": 1,
+      "total_route_instances": 1,
+      "category": "Unchanged",
+      "flags": {
+        "restored": false,
+        "not_restored": false,
+        "multiple_cycles": false,
+        "add_path_ambiguous": false
+      },
+      "first_change": null,
+      "transitions": [],
+      "min_absence_secs": null,
+      "max_absence_secs": null,
+      "was_withdrawn": false,
+      "stream_withdrawal_time": null,
+      "active_before_absence": 0,
+      "transit_at_withdrawal": null,
+      "withdrawn_instances": [],
+      "stream_withdrawal_count": 0,
+      "restorations": [],
+      "add_path_ambiguity": null,
+      "replacement_appeared": false,
+      "replacement_retained_transit": null,
+      "prepending_changed": false,
+      "cooldown_transitions": [],
+      "final_state": null,
+      "baseline_restored": false,
+      "restoration_time": null,
+      "affected_duration_secs": null,
+      "graceful_shutdown_seen": false,
+      "gshut_present_at_baseline": false,
+      "gshut_newly_added": false,
+      "gshut_removed": false,
+      "first_gshut_timestamp": null,
+      "last_gshut_timestamp": null,
+      "gshut_before_withdrawal": false,
+      "gshut_before_path_change": false,
+      "gshut_to_consequence_secs": null,
+      "gshut_removed_during_restoration": false,
+      "communities_before": [],
+      "communities_after": []
+    },
+    {
+      "collector": "rrc15",
+      "peer_ip": "187.16.218.21",
+      "prefix": "109.105.120.0/22",
+      "baseline_path": [
+        52888,
+        1251,
+        20080,
+        11537,
+        2603
+      ],
+      "baseline_instance_count": 1,
+      "max_concurrent_instances": 1,
+      "total_route_instances": 1,
+      "category": "Unchanged",
+      "flags": {
+        "restored": false,
+        "not_restored": false,
+        "multiple_cycles": false,
+        "add_path_ambiguous": false
+      },
+      "first_change": null,
+      "transitions": [],
+      "min_absence_secs": null,
+      "max_absence_secs": null,
+      "was_withdrawn": false,
+      "stream_withdrawal_time": null,
+      "active_before_absence": 0,
+      "transit_at_withdrawal": null,
+      "withdrawn_instances": [],
+      "stream_withdrawal_count": 0,
+      "restorations": [],
+      "add_path_ambiguity": null,
+      "replacement_appeared": false,
+      "replacement_retained_transit": null,
+      "prepending_changed": false,
+      "cooldown_transitions": [],
+      "final_state": null,
+      "baseline_restored": false,
+      "restoration_time": null,
+      "affected_duration_secs": null,
+      "graceful_shutdown_seen": false,
+      "gshut_present_at_baseline": false,
+      "gshut_newly_added": false,
+      "gshut_removed": false,
+      "first_gshut_timestamp": null,
+      "last_gshut_timestamp": null,
+      "gshut_before_withdrawal": false,
+      "gshut_before_path_change": false,
+      "gshut_to_consequence_secs": null,
+      "gshut_removed_during_restoration": false,
+      "communities_before": [],
+      "communities_after": []
+    },
+    {
+      "collector": "rrc15",
+      "peer_ip": "187.16.218.21",
+      "prefix": "109.105.96.0/20",
+      "baseline_path": [
+        52888,
+        1251,
+        20080,
+        11537,
+        2603
+      ],
+      "baseline_instance_count": 1,
+      "max_concurrent_instances": 1,
+      "total_route_instances": 1,
+      "category": "Unchanged",
+      "flags": {
+        "restored": false,
+        "not_restored": false,
+        "multiple_cycles": false,
+        "add_path_ambiguous": false
+      },
+      "first_change": null,
+      "transitions": [],
+      "min_absence_secs": null,
+      "max_absence_secs": null,
+      "was_withdrawn": false,
+      "stream_withdrawal_time": null,
+      "active_before_absence": 0,
+      "transit_at_withdrawal": null,
+      "withdrawn_instances": [],
+      "stream_withdrawal_count": 0,
+      "restorations": [],
+      "add_path_ambiguity": null,
+      "replacement_appeared": false,
+      "replacement_retained_transit": null,
+      "prepending_changed": false,
+      "cooldown_transitions": [],
+      "final_state": null,
+      "baseline_restored": false,
+      "restoration_time": null,
+      "affected_duration_secs": null,
+      "graceful_shutdown_seen": false,
+      "gshut_present_at_baseline": false,
+      "gshut_newly_added": false,
+      "gshut_removed": false,
+      "first_gshut_timestamp": null,
+      "last_gshut_timestamp": null,
+      "gshut_before_withdrawal": false,
+      "gshut_before_path_change": false,
+      "gshut_to_consequence_secs": null,
+      "gshut_removed_during_restoration": false,
+      "communities_before": [],
+      "communities_after": []
+    },
+    {
+      "collector": "rrc15",
+      "peer_ip": "187.16.218.21",
+      "prefix": "185.174.116.0/22",
+      "baseline_path": [
+        52888,
+        1251,
+        20080,
+        11537,
+        2603
+      ],
+      "baseline_instance_count": 1,
+      "max_concurrent_instances": 1,
+      "total_route_instances": 1,
+      "category": "Unchanged",
+      "flags": {
+        "restored": false,
+        "not_restored": false,
+        "multiple_cycles": false,
+        "add_path_ambiguous": false
+      },
+      "first_change": null,
+      "transitions": [],
+      "min_absence_secs": null,
+      "max_absence_secs": null,
+      "was_withdrawn": false,
+      "stream_withdrawal_time": null,
+      "active_before_absence": 0,
+      "transit_at_withdrawal": null,
+      "withdrawn_instances": [],
+      "stream_withdrawal_count": 0,
+      "restorations": [],
+      "add_path_ambiguity": null,
+      "replacement_appeared": false,
+      "replacement_retained_transit": null,
+      "prepending_changed": false,
+      "cooldown_transitions": [],
+      "final_state": null,
+      "baseline_restored": false,
+      "restoration_time": null,
+      "affected_duration_secs": null,
+      "graceful_shutdown_seen": false,
+      "gshut_present_at_baseline": false,
+      "gshut_newly_added": false,
+      "gshut_removed": false,
+      "first_gshut_timestamp": null,
+      "last_gshut_timestamp": null,
+      "gshut_before_withdrawal": false,
+      "gshut_before_path_change": false,
+      "gshut_to_consequence_secs": null,
+      "gshut_removed_during_restoration": false,
+      "communities_before": [],
+      "communities_after": []
+    },
+    {
+      "collector": "rrc15",
+      "peer_ip": "187.16.218.21",
+      "prefix": "192.36.171.0/24",
+      "baseline_path": [
+        52888,
+        1251,
+        20080,
+        11537,
+        2603
+      ],
+      "baseline_instance_count": 1,
+      "max_concurrent_instances": 1,
+      "total_route_instances": 1,
+      "category": "Unchanged",
+      "flags": {
+        "restored": false,
+        "not_restored": false,
+        "multiple_cycles": false,
+        "add_path_ambiguous": false
+      },
+      "first_change": null,
+      "transitions": [],
+      "min_absence_secs": null,
+      "max_absence_secs": null,
+      "was_withdrawn": false,
+      "stream_withdrawal_time": null,
+      "active_before_absence": 0,
+      "transit_at_withdrawal": null,
+      "withdrawn_instances": [],
+      "stream_withdrawal_count": 0,
+      "restorations": [],
+      "add_path_ambiguity": null,
+      "replacement_appeared": false,
+      "replacement_retained_transit": null,
+      "prepending_changed": false,
+      "cooldown_transitions": [],
+      "final_state": null,
+      "baseline_restored": false,
+      "restoration_time": null,
+      "affected_duration_secs": null,
+      "graceful_shutdown_seen": false,
+      "gshut_present_at_baseline": false,
+      "gshut_newly_added": false,
+      "gshut_removed": false,
+      "first_gshut_timestamp": null,
+      "last_gshut_timestamp": null,
+      "gshut_before_withdrawal": false,
+      "gshut_before_path_change": false,
+      "gshut_to_consequence_secs": null,
+      "gshut_removed_during_restoration": false,
+      "communities_before": [],
+      "communities_after": []
+    },
+    {
+      "collector": "rrc15",
+      "peer_ip": "187.16.218.21",
+      "prefix": "193.10.252.0/24",
+      "baseline_path": [
+        52888,
+        1251,
+        20080,
+        11537,
+        2603
+      ],
+      "baseline_instance_count": 1,
+      "max_concurrent_instances": 1,
+      "total_route_instances": 1,
+      "category": "Unchanged",
+      "flags": {
+        "restored": false,
+        "not_restored": false,
+        "multiple_cycles": false,
+        "add_path_ambiguous": false
+      },
+      "first_change": null,
+      "transitions": [],
+      "min_absence_secs": null,
+      "max_absence_secs": null,
+      "was_withdrawn": false,
+      "stream_withdrawal_time": null,
+      "active_before_absence": 0,
+      "transit_at_withdrawal": null,
+      "withdrawn_instances": [],
+      "stream_withdrawal_count": 0,
+      "restorations": [],
+      "add_path_ambiguity": null,
+      "replacement_appeared": false,
+      "replacement_retained_transit": null,
+      "prepending_changed": false,
+      "cooldown_transitions": [],
+      "final_state": null,
+      "baseline_restored": false,
+      "restoration_time": null,
+      "affected_duration_secs": null,
+      "graceful_shutdown_seen": false,
+      "gshut_present_at_baseline": false,
+      "gshut_newly_added": false,
+      "gshut_removed": false,
+      "first_gshut_timestamp": null,
+      "last_gshut_timestamp": null,
+      "gshut_before_withdrawal": false,
+      "gshut_before_path_change": false,
+      "gshut_to_consequence_secs": null,
+      "gshut_removed_during_restoration": false,
+      "communities_before": [],
+      "communities_after": []
+    },
+    {
+      "collector": "rrc15",
+      "peer_ip": "187.16.218.21",
+      "prefix": "193.10.254.0/24",
+      "baseline_path": [
+        52888,
+        1251,
+        20080,
+        11537,
+        2603
+      ],
+      "baseline_instance_count": 1,
+      "max_concurrent_instances": 1,
+      "total_route_instances": 1,
+      "category": "Unchanged",
+      "flags": {
+        "restored": false,
+        "not_restored": false,
+        "multiple_cycles": false,
+        "add_path_ambiguous": false
+      },
+      "first_change": null,
+      "transitions": [],
+      "min_absence_secs": null,
+      "max_absence_secs": null,
+      "was_withdrawn": false,
+      "stream_withdrawal_time": null,
+      "active_before_absence": 0,
+      "transit_at_withdrawal": null,
+      "withdrawn_instances": [],
+      "stream_withdrawal_count": 0,
+      "restorations": [],
+      "add_path_ambiguity": null,
+      "replacement_appeared": false,
+      "replacement_retained_transit": null,
+      "prepending_changed": false,
+      "cooldown_transitions": [],
+      "final_state": null,
+      "baseline_restored": false,
+      "restoration_time": null,
+      "affected_duration_secs": null,
+      "graceful_shutdown_seen": false,
+      "gshut_present_at_baseline": false,
+      "gshut_newly_added": false,
+      "gshut_removed": false,
+      "first_gshut_timestamp": null,
+      "last_gshut_timestamp": null,
+      "gshut_before_withdrawal": false,
+      "gshut_before_path_change": false,
+      "gshut_to_consequence_secs": null,
+      "gshut_removed_during_restoration": false,
+      "communities_before": [],
+      "communities_after": []
+    },
+    {
+      "collector": "rrc15",
+      "peer_ip": "187.16.218.21",
+      "prefix": "193.10.68.0/24",
+      "baseline_path": [
+        52888,
+        1251,
+        20080,
+        11537,
+        2603
+      ],
+      "baseline_instance_count": 1,
+      "max_concurrent_instances": 1,
+      "total_route_instances": 1,
+      "category": "Unchanged",
+      "flags": {
+        "restored": false,
+        "not_restored": false,
+        "multiple_cycles": false,
+        "add_path_ambiguous": false
+      },
+      "first_change": null,
+      "transitions": [],
+      "min_absence_secs": null,
+      "max_absence_secs": null,
+      "was_withdrawn": false,
+      "stream_withdrawal_time": null,
+      "active_before_absence": 0,
+      "transit_at_withdrawal": null,
+      "withdrawn_instances": [],
+      "stream_withdrawal_count": 0,
+      "restorations": [],
+      "add_path_ambiguity": null,
+      "replacement_appeared": false,
+      "replacement_retained_transit": null,
+      "prepending_changed": false,
+      "cooldown_transitions": [],
+      "final_state": null,
+      "baseline_restored": false,
+      "restoration_time": null,
+      "affected_duration_secs": null,
+      "graceful_shutdown_seen": false,
+      "gshut_present_at_baseline": false,
+      "gshut_newly_added": false,
+      "gshut_removed": false,
+      "first_gshut_timestamp": null,
+      "last_gshut_timestamp": null,
+      "gshut_before_withdrawal": false,
+      "gshut_before_path_change": false,
+      "gshut_to_consequence_secs": null,
+      "gshut_removed_during_restoration": false,
+      "communities_before": [],
+      "communities_after": []
+    },
+    {
+      "collector": "rrc15",
+      "peer_ip": "187.16.218.21",
+      "prefix": "193.10.95.0/24",
+      "baseline_path": [
+        52888,
+        1251,
+        20080,
+        11537,
+        2603
+      ],
+      "baseline_instance_count": 1,
+      "max_concurrent_instances": 1,
+      "total_route_instances": 1,
+      "category": "Unchanged",
+      "flags": {
+        "restored": false,
+        "not_restored": false,
+        "multiple_cycles": false,
+        "add_path_ambiguous": false
+      },
+      "first_change": null,
+      "transitions": [],
+      "min_absence_secs": null,
+      "max_absence_secs": null,
+      "was_withdrawn": false,
+      "stream_withdrawal_time": null,
+      "active_before_absence": 0,
+      "transit_at_withdrawal": null,
+      "withdrawn_instances": [],
+      "stream_withdrawal_count": 0,
+      "restorations": [],
+      "add_path_ambiguity": null,
+      "replacement_appeared": false,
+      "replacement_retained_transit": null,
+      "prepending_changed": false,
+      "cooldown_transitions": [],
+      "final_state": null,
+      "baseline_restored": false,
+      "restoration_time": null,
+      "affected_duration_secs": null,
+      "graceful_shutdown_seen": false,
+      "gshut_present_at_baseline": false,
+      "gshut_newly_added": false,
+      "gshut_removed": false,
+      "first_gshut_timestamp": null,
+      "last_gshut_timestamp": null,
+      "gshut_before_withdrawal": false,
+      "gshut_before_path_change": false,
+      "gshut_to_consequence_secs": null,
+      "gshut_removed_during_restoration": false,
+      "communities_before": [],
+      "communities_after": []
+    },
+    {
+      "collector": "rrc15",
+      "peer_ip": "187.16.218.21",
+      "prefix": "193.11.3.0/24",
+      "baseline_path": [
+        52888,
+        1251,
+        20080,
+        11537,
+        2603
+      ],
+      "baseline_instance_count": 1,
+      "max_concurrent_instances": 1,
+      "total_route_instances": 1,
+      "category": "Unchanged",
+      "flags": {
+        "restored": false,
+        "not_restored": false,
+        "multiple_cycles": false,
+        "add_path_ambiguous": false
+      },
+      "first_change": null,
+      "transitions": [],
+      "min_absence_secs": null,
+      "max_absence_secs": null,
+      "was_withdrawn": false,
+      "stream_withdrawal_time": null,
+      "active_before_absence": 0,
+      "transit_at_withdrawal": null,
+      "withdrawn_instances": [],
+      "stream_withdrawal_count": 0,
+      "restorations": [],
+      "add_path_ambiguity": null,
+      "replacement_appeared": false,
+      "replacement_retained_transit": null,
+      "prepending_changed": false,
+      "cooldown_transitions": [],
+      "final_state": null,
+      "baseline_restored": false,
+      "restoration_time": null,
+      "affected_duration_secs": null,
+      "graceful_shutdown_seen": false,
+      "gshut_present_at_baseline": false,
+      "gshut_newly_added": false,
+      "gshut_removed": false,
+      "first_gshut_timestamp": null,
+      "last_gshut_timestamp": null,
+      "gshut_before_withdrawal": false,
+      "gshut_before_path_change": false,
+      "gshut_to_consequence_secs": null,
+      "gshut_removed_during_restoration": false,
+      "communities_before": [],
+      "communities_after": []
+    },
+    {
+      "collector": "rrc15",
+      "peer_ip": "187.16.218.21",
+      "prefix": "194.68.13.0/24",
+      "baseline_path": [
+        52888,
+        1251,
+        20080,
+        11537,
+        2603
+      ],
+      "baseline_instance_count": 1,
+      "max_concurrent_instances": 1,
+      "total_route_instances": 1,
+      "category": "Unchanged",
+      "flags": {
+        "restored": false,
+        "not_restored": false,
+        "multiple_cycles": false,
+        "add_path_ambiguous": false
+      },
+      "first_change": null,
+      "transitions": [],
+      "min_absence_secs": null,
+      "max_absence_secs": null,
+      "was_withdrawn": false,
+      "stream_withdrawal_time": null,
+      "active_before_absence": 0,
+      "transit_at_withdrawal": null,
+      "withdrawn_instances": [],
+      "stream_withdrawal_count": 0,
+      "restorations": [],
+      "add_path_ambiguity": null,
+      "replacement_appeared": false,
+      "replacement_retained_transit": null,
+      "prepending_changed": false,
+      "cooldown_transitions": [],
+      "final_state": null,
+      "baseline_restored": false,
+      "restoration_time": null,
+      "affected_duration_secs": null,
+      "graceful_shutdown_seen": false,
+      "gshut_present_at_baseline": false,
+      "gshut_newly_added": false,
+      "gshut_removed": false,
+      "first_gshut_timestamp": null,
+      "last_gshut_timestamp": null,
+      "gshut_before_withdrawal": false,
+      "gshut_before_path_change": false,
+      "gshut_to_consequence_secs": null,
+      "gshut_removed_during_restoration": false,
+      "communities_before": [],
+      "communities_after": []
+    },
+    {
+      "collector": "rrc15",
+      "peer_ip": "2001:12f8::20",
+      "prefix": "2001:948::/32",
+      "baseline_path": [
+        28571,
+        1251,
+        20080,
+        11537,
+        2603
+      ],
+      "baseline_instance_count": 1,
+      "max_concurrent_instances": 1,
+      "total_route_instances": 1,
+      "category": "DepartedTransitPath",
+      "flags": {
+        "restored": false,
+        "not_restored": false,
+        "multiple_cycles": false,
+        "add_path_ambiguous": false
+      },
+      "first_change": "2019-08-21T16:45:16Z",
+      "transitions": [
+        {
+          "timestamp": "2019-08-21T16:45:16Z",
+          "phase": "Event",
+          "kind": "PathReplacement",
+          "path_id": null,
+          "before_path": [
+            28571,
+            1251,
+            20080,
+            11537,
+            20965,
+            2603
+          ],
+          "after_path": [
+            28571,
+            1916,
+            6939,
+            1299,
+            2603,
+            2603,
+            2603
+          ],
+          "path_shape": "PathDepartedRequiredTransit",
+          "observation_id": 134,
+          "archive_sha256": "8dd39aaea74b286a595271f49b43cffb5a49d1110da8f04eb45f735ca70856b1",
+          "has_gshut_after": false
+        },
+        {
+          "timestamp": "2019-08-21T16:50:16Z",
+          "phase": "Event",
+          "kind": "PathReplacement",
+          "path_id": null,
+          "before_path": [
+            28571,
+            1916,
+            6939,
+            1299,
+            2603,
+            2603,
+            2603
+          ],
+          "after_path": [
+            28571,
+            1916,
+            20080,
+            6939,
+            1299,
+            2603,
+            2603,
+            2603
+          ],
+          "path_shape": "GenericPathChange",
+          "observation_id": 136,
+          "archive_sha256": "43a063b506cf7cde1229c795888f1b87519ad3cfbb7a2effa6c0accc3b0ec829",
+          "has_gshut_after": false
+        },
+        {
+          "timestamp": "2019-08-21T16:52:15Z",
+          "phase": "Event",
+          "kind": "PathReplacement",
+          "path_id": null,
+          "before_path": [
+            28571,
+            1916,
+            20080,
+            6939,
+            1299,
+            2603,
+            2603,
+            2603
+          ],
+          "after_path": [
+            28571,
+            1916,
+            6939,
+            1299,
+            2603,
+            2603,
+            2603
+          ],
+          "path_shape": "GenericPathChange",
+          "observation_id": 137,
+          "archive_sha256": "43a063b506cf7cde1229c795888f1b87519ad3cfbb7a2effa6c0accc3b0ec829",
+          "has_gshut_after": false
+        },
+        {
+          "timestamp": "2019-08-21T16:59:40Z",
+          "phase": "Event",
+          "kind": "ReturnToBaseline",
+          "path_id": null,
+          "before_path": [
+            28571,
+            1916,
+            6939,
+            1299,
+            2603,
+            2603,
+            2603
+          ],
+          "after_path": [
+            28571,
+            1251,
+            20080,
+            11537,
+            20965,
+            2603
+          ],
+          "path_shape": null,
+          "observation_id": 150,
+          "archive_sha256": "a347ee9599e97d3bb9798ccf612818a24e566585197564edb04325ac3b4ea0a6",
+          "has_gshut_after": false
+        }
+      ],
+      "min_absence_secs": null,
+      "max_absence_secs": null,
+      "was_withdrawn": false,
+      "stream_withdrawal_time": null,
+      "active_before_absence": 0,
+      "transit_at_withdrawal": null,
+      "withdrawn_instances": [],
+      "stream_withdrawal_count": 0,
+      "restorations": [],
+      "add_path_ambiguity": null,
+      "replacement_appeared": true,
+      "replacement_retained_transit": false,
+      "prepending_changed": false,
+      "cooldown_transitions": [],
+      "final_state": {
+        "prefix": "2001:948::/32",
+        "attributes": {
+          "as_path": [
+            28571,
+            1251,
+            20080,
+            11537,
+            20965,
+            2603
+          ],
+          "origin_asns": [
+            2603
+          ],
+          "next_hop": "2001:12f8::20",
+          "origin": "IGP",
+          "med": 0,
+          "local_pref": 0,
+          "atomic_aggregate": false,
+          "communities": []
+        },
+        "timestamp": "2019-08-21T16:59:40Z",
+        "observer": "rrc15:2001:12f8::20",
+        "path_id": null
+      },
+      "baseline_restored": true,
+      "restoration_time": null,
+      "affected_duration_secs": 6284.0,
+      "graceful_shutdown_seen": false,
+      "gshut_present_at_baseline": false,
+      "gshut_newly_added": false,
+      "gshut_removed": false,
+      "first_gshut_timestamp": null,
+      "last_gshut_timestamp": null,
+      "gshut_before_withdrawal": false,
+      "gshut_before_path_change": false,
+      "gshut_to_consequence_secs": null,
+      "gshut_removed_during_restoration": false,
+      "communities_before": [],
+      "communities_after": []
+    },
+    {
+      "collector": "rrc15",
+      "peer_ip": "2001:12f8::218:21",
+      "prefix": "2001:948::/32",
+      "baseline_path": [
+        52888,
+        1251,
+        20080,
+        11537,
+        2603
+      ],
+      "baseline_instance_count": 1,
+      "max_concurrent_instances": 1,
+      "total_route_instances": 1,
+      "category": "DepartedTransitPath",
+      "flags": {
+        "restored": false,
+        "not_restored": false,
+        "multiple_cycles": false,
+        "add_path_ambiguous": false
+      },
+      "first_change": "2019-08-21T16:45:20Z",
+      "transitions": [
+        {
+          "timestamp": "2019-08-21T16:45:20Z",
+          "phase": "Event",
+          "kind": "PathReplacement",
+          "path_id": null,
+          "before_path": [
+            52888,
+            1251,
+            20080,
+            11537,
+            20965,
+            2603
+          ],
+          "after_path": [
+            52888,
+            1916,
+            6939,
+            1299,
+            2603,
+            2603,
+            2603
+          ],
+          "path_shape": "PathDepartedRequiredTransit",
+          "observation_id": 135,
+          "archive_sha256": "8dd39aaea74b286a595271f49b43cffb5a49d1110da8f04eb45f735ca70856b1",
+          "has_gshut_after": false
+        },
+        {
+          "timestamp": "2019-08-21T16:59:40Z",
+          "phase": "Event",
+          "kind": "ReturnToBaseline",
+          "path_id": null,
+          "before_path": [
+            52888,
+            1916,
+            6939,
+            1299,
+            2603,
+            2603,
+            2603
+          ],
+          "after_path": [
+            52888,
+            1251,
+            20080,
+            11537,
+            20965,
+            2603
+          ],
+          "path_shape": null,
+          "observation_id": 149,
+          "archive_sha256": "a347ee9599e97d3bb9798ccf612818a24e566585197564edb04325ac3b4ea0a6",
+          "has_gshut_after": false
+        }
+      ],
+      "min_absence_secs": null,
+      "max_absence_secs": null,
+      "was_withdrawn": false,
+      "stream_withdrawal_time": null,
+      "active_before_absence": 0,
+      "transit_at_withdrawal": null,
+      "withdrawn_instances": [],
+      "stream_withdrawal_count": 0,
+      "restorations": [],
+      "add_path_ambiguity": null,
+      "replacement_appeared": true,
+      "replacement_retained_transit": false,
+      "prepending_changed": false,
+      "cooldown_transitions": [],
+      "final_state": {
+        "prefix": "2001:948::/32",
+        "attributes": {
+          "as_path": [
+            52888,
+            1251,
+            20080,
+            11537,
+            20965,
+            2603
+          ],
+          "origin_asns": [
+            2603
+          ],
+          "next_hop": "2001:12f8::218:21",
+          "origin": "IGP",
+          "med": 0,
+          "local_pref": 0,
+          "atomic_aggregate": false,
+          "communities": []
+        },
+        "timestamp": "2019-08-21T16:59:40Z",
+        "observer": "rrc15:2001:12f8::218:21",
+        "path_id": null
+      },
+      "baseline_restored": true,
+      "restoration_time": null,
+      "affected_duration_secs": 6280.0,
+      "graceful_shutdown_seen": false,
+      "gshut_present_at_baseline": false,
+      "gshut_newly_added": false,
+      "gshut_removed": false,
+      "first_gshut_timestamp": null,
+      "last_gshut_timestamp": null,
+      "gshut_before_withdrawal": false,
+      "gshut_before_path_change": false,
+      "gshut_to_consequence_secs": null,
+      "gshut_removed_during_restoration": false,
+      "communities_before": [],
+      "communities_after": []
+    }
+  ]
+}

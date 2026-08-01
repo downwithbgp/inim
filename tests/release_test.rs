@@ -476,3 +476,109 @@ fn rejected_collector_reason_names_the_exact_predicate() {
         "blanket origin-visibility claims are forbidden"
     );
 }
+
+// ────────────────────────────────────────────────────────────────────────────
+// Session 35, Part 6: cross-plane comparison invariants. The NORDUnet
+// comparison keeps every observer's evidence independent; direct and
+// indirect relationships are distinct; a missing I2PX baseline is never
+// reported as "no I2PX event change".
+// ────────────────────────────────────────────────────────────────────────────
+
+#[test]
+fn existing_indirect_ris_run_is_not_relabeled_direct_i2px() {
+    let matrix: serde_json::Value = serde_json::from_str(&read(
+        "case-studies/manlan-2019/pilot/cross-observer-matrix.json",
+    ))
+    .expect("matrix JSON");
+    for row in matrix["re_plane_runs"].as_array().unwrap() {
+        if row["collector"] == "rrc06" || row["collector"] == "rrc15" {
+            let text = serde_json::to_string(&row["peer_sessions"]).unwrap();
+            assert!(
+                text.contains("indirect R&E"),
+                "rrc06/rrc15 sessions must be labeled indirect R&E: {text}"
+            );
+            assert!(
+                !text.contains("direct I2PX"),
+                "an indirect R&E observation must never be relabeled direct I2PX"
+            );
+        }
+    }
+}
+
+#[test]
+fn i2px_run_requires_reviewed_as11164_relationship() {
+    for coll in ["RV2", "RRC00", "RRC06", "RRC15"] {
+        let m: serde_json::Value = serde_json::from_str(&read(&format!(
+            "case-studies/manlan-2019/pilot/manifests/MANLAN-2019-NORDUNET-PILOT-I2PX-{coll}.json"
+        )))
+        .expect("I2PX manifest");
+        let pred = &m["target"]["transit_predicate"]["predicate"]["ContainsAny"];
+        assert_eq!(
+            pred[0], 11164,
+            "I2PX cohort selector must be the reviewed AS11164"
+        );
+        let status = m["target"]["transit_predicate"]["status"].as_str().unwrap();
+        assert_eq!(status, "Reviewed");
+    }
+}
+
+#[test]
+fn re_plane_run_requires_reviewed_as11537_relationship() {
+    let m: serde_json::Value = serde_json::from_str(&read(
+        "case-studies/manlan-2019/pilot/manifests/MANLAN-2019-NORDUNET-PILOT-RE-RV2.json",
+    ))
+    .expect("RE manifest");
+    let pred = &m["target"]["transit_predicate"]["predicate"]["ContainsAny"];
+    assert_eq!(
+        pred[0], 11537,
+        "R&E cohort selector must be the reviewed AS11537"
+    );
+    assert_eq!(
+        m["target"]["transit_predicate"]["status"].as_str().unwrap(),
+        "Reviewed"
+    );
+}
+
+#[test]
+fn cross_plane_comparison_preserves_independent_evidence() {
+    let matrix: serde_json::Value = serde_json::from_str(&read(
+        "case-studies/manlan-2019/pilot/cross-observer-matrix.json",
+    ))
+    .expect("matrix JSON");
+    let text = serde_json::to_string(&matrix).unwrap();
+    assert!(
+        !text.contains("merged_verdict"),
+        "no merged verdict may exist"
+    );
+    for row in matrix["re_plane_runs"].as_array().unwrap() {
+        assert!(
+            row["evidence_interval_utc"]
+                .as_str()
+                .unwrap_or("")
+                .contains(".."),
+            "each run keeps its own evidence interval"
+        );
+        assert!(!row["verdict"].as_str().unwrap_or("").is_empty());
+    }
+    // The matrix header states the independence rule.
+    assert!(matrix["note"].as_str().unwrap().contains("never merged"));
+}
+
+#[test]
+fn missing_i2px_baseline_is_not_called_no_i2px_event_change() {
+    let matrix: serde_json::Value = serde_json::from_str(&read(
+        "case-studies/manlan-2019/pilot/cross-observer-matrix.json",
+    ))
+    .expect("matrix JSON");
+    for row in matrix["pex_plane_preflights"].as_array().unwrap() {
+        let outcome = row["outcome"].as_str().unwrap();
+        assert!(
+            outcome.contains("no I2PX-plane baseline"),
+            "outcome must name the missing baseline: {outcome}"
+        );
+        assert!(
+            outcome.contains("NOT evidence"),
+            "absence of a baseline must be explicitly denied as an event finding: {outcome}"
+        );
+    }
+}

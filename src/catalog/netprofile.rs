@@ -603,11 +603,13 @@ impl CollectorLocationRegistry {
             .map_err(|e| format!("invalid collector metadata {}: {e}", path.display()))
     }
 
-    /// Look up a collector's reviewed location.
+    /// Look up a collector's reviewed location. Family comparison is
+    /// case-insensitive (manifests use canonical family names while the
+    /// registry may record lowercase family keys).
     pub fn location(&self, family: &str, collector: &str) -> Option<&CollectorLocation> {
         self.collectors
             .iter()
-            .find(|c| c.family == family && c.collector == collector)
+            .find(|c| c.family.eq_ignore_ascii_case(family) && c.collector == collector)
     }
 }
 

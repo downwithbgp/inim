@@ -1,0 +1,191 @@
+{
+ "schema_version": 1,
+ "generated_utc": "2026-08-02T00:00:00Z",
+ "reviewed_target": "NORDUnet (AS2603)",
+ "re_plane_label": "Internet2 R&E",
+ "pex_plane_label": "Internet2 Peer Exchange",
+ "window_utc": "2019-08-21 16:00:00Z .. 17:30:00Z",
+ "note": "Each row is an independent AnalysisRun; observations are never merged into one verdict. Direct (peer ASN equals the plane ASN) and indirect (path contains the plane ASN) are distinct evidence classes. Collector location describes where the collector is hosted, not the path taken by observed routes.",
+ "re_plane_runs": [
+  {
+   "collector": "route-views2",
+   "collector_location": "Eugene, Oregon, US",
+   "source_family": "RouteViews",
+   "cohort_predicate": "ContainsAny[11537] (R&E plane)",
+   "baseline_streams": 33,
+   "baseline_prefixes": 11,
+   "peer_sessions": [
+    {
+     "peer_ip": "137.164.16.84",
+     "peer_asn": 2152,
+     "relationship": [
+      "indirect R&E (path contains AS11537)"
+     ]
+    },
+    {
+     "peer_ip": "203.181.248.168",
+     "peer_asn": 7660,
+     "relationship": [
+      "indirect R&E (path contains AS11537)"
+     ]
+    },
+    {
+     "peer_ip": "64.57.28.241",
+     "peer_asn": 11537,
+     "relationship": [
+      "direct R&E (peer ASN 11537)"
+     ]
+    }
+   ],
+   "temporary_stream_absences": 11,
+   "path_replacements": 30,
+   "re_plane_departures": 22,
+   "re_plane_returns": 33,
+   "pex_plane_departures": 0,
+   "pex_plane_returns": 0,
+   "other_path_transitions": 22,
+   "restoration": "11 of 11 absent streams restored",
+   "evidence_interval_utc": "2019-08-21T16:45:25+00:00 .. 2019-08-21T17:02:19+00:00",
+   "verdict": "ExpectedLossOfReachability",
+   "finding": "The event produced partial and heterogeneous external routing impact. 11 of 33 selected observer-prefix streams became absent and later returned. Among the remaining 22 streams, 11 had other material path changes while retaining the reviewed transit and 11 remained visible after departing that transit."
+  },
+  {
+   "collector": "rrc00",
+   "collector_location": "Amsterdam, Netherlands",
+   "source_family": "RipeRis",
+   "cohort_predicate": "ContainsAny[11537] (R&E plane)",
+   "baseline_streams": 11,
+   "baseline_prefixes": 11,
+   "peer_sessions": [
+    {
+     "peer_ip": "203.119.104.1",
+     "peer_asn": 4608,
+     "relationship": [
+      "indirect R&E (path contains AS11537)"
+     ]
+    }
+   ],
+   "temporary_stream_absences": 0,
+   "path_replacements": 0,
+   "re_plane_departures": 0,
+   "re_plane_returns": 0,
+   "pex_plane_departures": 0,
+   "pex_plane_returns": 0,
+   "other_path_transitions": 0,
+   "restoration": "0 of 0 absent streams restored",
+   "evidence_interval_utc": "None .. None",
+   "verdict": "LessImpactThanExpected",
+   "finding": "Across 11 selected observer-prefix streams at rrc00, inim observed no announcements, withdrawals, path changes, or community changes during the event analysis window."
+  },
+  {
+   "collector": "rrc06",
+   "collector_location": "Otemachi, Tokyo, Japan",
+   "source_family": "RipeRis",
+   "cohort_predicate": "ContainsAny[11537] (R&E plane)",
+   "baseline_streams": 12,
+   "baseline_prefixes": 12,
+   "peer_sessions": [
+    {
+     "peer_ip": "2001:200:0:fe00::12a9:0",
+     "peer_asn": 4777,
+     "relationship": [
+      "indirect R&E (path contains AS11537)"
+     ]
+    },
+    {
+     "peer_ip": "202.249.2.20",
+     "peer_asn": 4777,
+     "relationship": [
+      "indirect R&E (path contains AS11537)"
+     ]
+    }
+   ],
+   "temporary_stream_absences": 0,
+   "path_replacements": 14,
+   "re_plane_departures": 12,
+   "re_plane_returns": 12,
+   "pex_plane_departures": 0,
+   "pex_plane_returns": 0,
+   "other_path_transitions": 0,
+   "restoration": "0 of 0 absent streams restored",
+   "evidence_interval_utc": "2019-08-21T16:45:44+00:00 .. 2019-08-21T17:02:38+00:00",
+   "verdict": "LessImpactThanExpected",
+   "finding": "The event produced partial and heterogeneous external routing impact. Among the remaining 12 streams, 12 remained visible after departing that transit."
+  },
+  {
+   "collector": "rrc15",
+   "collector_location": "Sao Paulo, Brazil",
+   "source_family": "RipeRis",
+   "cohort_predicate": "ContainsAny[11537] (R&E plane)",
+   "baseline_streams": 24,
+   "baseline_prefixes": 12,
+   "peer_sessions": [
+    {
+     "peer_ip": "187.16.216.4",
+     "peer_asn": 1916,
+     "relationship": [
+      "indirect R&E (path contains AS11537)"
+     ]
+    },
+    {
+     "peer_ip": "187.16.218.21",
+     "peer_asn": 52888,
+     "relationship": [
+      "indirect R&E (path contains AS11537)"
+     ]
+    },
+    {
+     "peer_ip": "2001:12f8::20",
+     "peer_asn": 28571,
+     "relationship": [
+      "indirect R&E (path contains AS11537)"
+     ]
+    },
+    {
+     "peer_ip": "2001:12f8::218:21",
+     "peer_asn": 52888,
+     "relationship": [
+      "indirect R&E (path contains AS11537)"
+     ]
+    }
+   ],
+   "temporary_stream_absences": 0,
+   "path_replacements": 37,
+   "re_plane_departures": 13,
+   "re_plane_returns": 13,
+   "pex_plane_departures": 0,
+   "pex_plane_returns": 0,
+   "other_path_transitions": 0,
+   "restoration": "0 of 0 absent streams restored",
+   "evidence_interval_utc": "2019-08-21T16:35:38+00:00 .. 2019-08-21T17:52:16+00:00",
+   "verdict": "LessImpactThanExpected",
+   "finding": "The event produced partial and heterogeneous external routing impact. Among the remaining 24 streams, 13 remained visible after departing that transit and 11 remained unchanged."
+  }
+ ],
+ "pex_plane_preflights": [
+  {
+   "collector": "route-views2",
+   "cohort_predicate": "ContainsAny[11164] (I2PX plane)",
+   "qualifying_frozen_streams": 0,
+   "outcome": "no I2PX-plane baseline at this observer (no AS11164 session or AS11164-in-path route in the 2019-08-21 baseline); absence of a baseline is NOT evidence of no I2PX-plane event change"
+  },
+  {
+   "collector": "rrc00",
+   "cohort_predicate": "ContainsAny[11164] (I2PX plane)",
+   "qualifying_frozen_streams": 0,
+   "outcome": "no I2PX-plane baseline at this observer (no AS11164 session or AS11164-in-path route in the 2019-08-21 baseline); absence of a baseline is NOT evidence of no I2PX-plane event change"
+  },
+  {
+   "collector": "rrc06",
+   "cohort_predicate": "ContainsAny[11164] (I2PX plane)",
+   "qualifying_frozen_streams": 0,
+   "outcome": "no I2PX-plane baseline at this observer (no AS11164 session or AS11164-in-path route in the 2019-08-21 baseline); absence of a baseline is NOT evidence of no I2PX-plane event change"
+  },
+  {
+   "collector": "rrc15",
+   "cohort_predicate": "ContainsAny[11164] (I2PX plane)",
+   "qualifying_frozen_streams": 0,
+   "outcome": "no I2PX-plane baseline at this observer (no AS11164 session or AS11164-in-path route in the 2019-08-21 baseline); absence of a baseline is NOT evidence of no I2PX-plane event change"
+  }
+ ]
+}

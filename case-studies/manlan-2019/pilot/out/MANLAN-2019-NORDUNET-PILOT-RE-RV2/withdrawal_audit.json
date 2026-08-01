@@ -1,0 +1,314 @@
+{
+  "schema_version": 1,
+  "event_id": "MANLAN-2019-NORDUNET-PILOT-RE-RV2",
+  "summary": {
+    "unique_withdrawn_streams": 11,
+    "route_instance_withdrawals": 11,
+    "affected_prefixes": 11,
+    "affected_peers": 1,
+    "median_absence_secs": 2.0,
+    "max_absence_secs": 2.0,
+    "restored_count": 11,
+    "unresolved_count": 0,
+    "exact_restorations": 0,
+    "equivalent_restorations": 0,
+    "observer_prefix_restorations": 11,
+    "baseline_set_restorations": 0
+  },
+  "records": [
+    {
+      "collector": "route-views2",
+      "peer_ip": "64.57.28.241",
+      "prefix": "109.105.112.0/21",
+      "baseline_path": [
+        11537,
+        2603
+      ],
+      "baseline_instances": 1,
+      "active_before_absence": 1,
+      "final_withdrawal_time": "2019-08-21T16:45:25Z",
+      "restoration_time": "2019-08-21T16:45:27Z",
+      "absence_duration_secs": 2.0,
+      "transit_at_withdrawal": true,
+      "exact_restoration": false,
+      "equivalent_restoration": false,
+      "observer_prefix_restoration": true,
+      "baseline_set_restoration": false,
+      "observation_ids": [
+        661,
+        703
+      ],
+      "archive_checksums": [
+        "4546b78f8fb9ced87b93867cbb5f76e4abc11f37e564001f73f593313b9fd182"
+      ]
+    },
+    {
+      "collector": "route-views2",
+      "peer_ip": "64.57.28.241",
+      "prefix": "109.105.120.0/22",
+      "baseline_path": [
+        11537,
+        2603
+      ],
+      "baseline_instances": 1,
+      "active_before_absence": 1,
+      "final_withdrawal_time": "2019-08-21T16:45:25Z",
+      "restoration_time": "2019-08-21T16:45:27Z",
+      "absence_duration_secs": 2.0,
+      "transit_at_withdrawal": true,
+      "exact_restoration": false,
+      "equivalent_restoration": false,
+      "observer_prefix_restoration": true,
+      "baseline_set_restoration": false,
+      "observation_ids": [
+        664,
+        704
+      ],
+      "archive_checksums": [
+        "4546b78f8fb9ced87b93867cbb5f76e4abc11f37e564001f73f593313b9fd182"
+      ]
+    },
+    {
+      "collector": "route-views2",
+      "peer_ip": "64.57.28.241",
+      "prefix": "109.105.96.0/20",
+      "baseline_path": [
+        11537,
+        2603
+      ],
+      "baseline_instances": 1,
+      "active_before_absence": 1,
+      "final_withdrawal_time": "2019-08-21T16:45:25Z",
+      "restoration_time": "2019-08-21T16:45:27Z",
+      "absence_duration_secs": 2.0,
+      "transit_at_withdrawal": true,
+      "exact_restoration": false,
+      "equivalent_restoration": false,
+      "observer_prefix_restoration": true,
+      "baseline_set_restoration": false,
+      "observation_ids": [
+        663,
+        702
+      ],
+      "archive_checksums": [
+        "4546b78f8fb9ced87b93867cbb5f76e4abc11f37e564001f73f593313b9fd182"
+      ]
+    },
+    {
+      "collector": "route-views2",
+      "peer_ip": "64.57.28.241",
+      "prefix": "185.174.116.0/22",
+      "baseline_path": [
+        11537,
+        2603
+      ],
+      "baseline_instances": 1,
+      "active_before_absence": 1,
+      "final_withdrawal_time": "2019-08-21T16:45:25Z",
+      "restoration_time": "2019-08-21T16:45:27Z",
+      "absence_duration_secs": 2.0,
+      "transit_at_withdrawal": true,
+      "exact_restoration": false,
+      "equivalent_restoration": false,
+      "observer_prefix_restoration": true,
+      "baseline_set_restoration": false,
+      "observation_ids": [
+        667,
+        739
+      ],
+      "archive_checksums": [
+        "4546b78f8fb9ced87b93867cbb5f76e4abc11f37e564001f73f593313b9fd182",
+        "a56a86cbce313bd04106babd94f9018a2c211d870fb07234efd320e89734786f"
+      ]
+    },
+    {
+      "collector": "route-views2",
+      "peer_ip": "64.57.28.241",
+      "prefix": "192.36.171.0/24",
+      "baseline_path": [
+        11537,
+        2603
+      ],
+      "baseline_instances": 1,
+      "active_before_absence": 1,
+      "final_withdrawal_time": "2019-08-21T16:45:25Z",
+      "restoration_time": "2019-08-21T16:45:27Z",
+      "absence_duration_secs": 2.0,
+      "transit_at_withdrawal": true,
+      "exact_restoration": false,
+      "equivalent_restoration": false,
+      "observer_prefix_restoration": true,
+      "baseline_set_restoration": false,
+      "observation_ids": [
+        666,
+        711
+      ],
+      "archive_checksums": [
+        "4546b78f8fb9ced87b93867cbb5f76e4abc11f37e564001f73f593313b9fd182",
+        "a56a86cbce313bd04106babd94f9018a2c211d870fb07234efd320e89734786f"
+      ]
+    },
+    {
+      "collector": "route-views2",
+      "peer_ip": "64.57.28.241",
+      "prefix": "193.10.252.0/24",
+      "baseline_path": [
+        11537,
+        2603
+      ],
+      "baseline_instances": 1,
+      "active_before_absence": 1,
+      "final_withdrawal_time": "2019-08-21T16:45:25Z",
+      "restoration_time": "2019-08-21T16:45:27Z",
+      "absence_duration_secs": 2.0,
+      "transit_at_withdrawal": true,
+      "exact_restoration": false,
+      "equivalent_restoration": false,
+      "observer_prefix_restoration": true,
+      "baseline_set_restoration": false,
+      "observation_ids": [
+        660,
+        716
+      ],
+      "archive_checksums": [
+        "4546b78f8fb9ced87b93867cbb5f76e4abc11f37e564001f73f593313b9fd182",
+        "a56a86cbce313bd04106babd94f9018a2c211d870fb07234efd320e89734786f"
+      ]
+    },
+    {
+      "collector": "route-views2",
+      "peer_ip": "64.57.28.241",
+      "prefix": "193.10.254.0/24",
+      "baseline_path": [
+        11537,
+        2603
+      ],
+      "baseline_instances": 1,
+      "active_before_absence": 1,
+      "final_withdrawal_time": "2019-08-21T16:45:25Z",
+      "restoration_time": "2019-08-21T16:45:27Z",
+      "absence_duration_secs": 2.0,
+      "transit_at_withdrawal": true,
+      "exact_restoration": false,
+      "equivalent_restoration": false,
+      "observer_prefix_restoration": true,
+      "baseline_set_restoration": false,
+      "observation_ids": [
+        665,
+        719
+      ],
+      "archive_checksums": [
+        "4546b78f8fb9ced87b93867cbb5f76e4abc11f37e564001f73f593313b9fd182",
+        "a56a86cbce313bd04106babd94f9018a2c211d870fb07234efd320e89734786f"
+      ]
+    },
+    {
+      "collector": "route-views2",
+      "peer_ip": "64.57.28.241",
+      "prefix": "193.10.68.0/24",
+      "baseline_path": [
+        11537,
+        2603
+      ],
+      "baseline_instances": 1,
+      "active_before_absence": 1,
+      "final_withdrawal_time": "2019-08-21T16:45:25Z",
+      "restoration_time": "2019-08-21T16:45:27Z",
+      "absence_duration_secs": 2.0,
+      "transit_at_withdrawal": true,
+      "exact_restoration": false,
+      "equivalent_restoration": false,
+      "observer_prefix_restoration": true,
+      "baseline_set_restoration": false,
+      "observation_ids": [
+        662,
+        718
+      ],
+      "archive_checksums": [
+        "4546b78f8fb9ced87b93867cbb5f76e4abc11f37e564001f73f593313b9fd182",
+        "a56a86cbce313bd04106babd94f9018a2c211d870fb07234efd320e89734786f"
+      ]
+    },
+    {
+      "collector": "route-views2",
+      "peer_ip": "64.57.28.241",
+      "prefix": "193.10.95.0/24",
+      "baseline_path": [
+        11537,
+        2603
+      ],
+      "baseline_instances": 1,
+      "active_before_absence": 1,
+      "final_withdrawal_time": "2019-08-21T16:45:25Z",
+      "restoration_time": "2019-08-21T16:45:27Z",
+      "absence_duration_secs": 2.0,
+      "transit_at_withdrawal": true,
+      "exact_restoration": false,
+      "equivalent_restoration": false,
+      "observer_prefix_restoration": true,
+      "baseline_set_restoration": false,
+      "observation_ids": [
+        658,
+        717
+      ],
+      "archive_checksums": [
+        "4546b78f8fb9ced87b93867cbb5f76e4abc11f37e564001f73f593313b9fd182",
+        "a56a86cbce313bd04106babd94f9018a2c211d870fb07234efd320e89734786f"
+      ]
+    },
+    {
+      "collector": "route-views2",
+      "peer_ip": "64.57.28.241",
+      "prefix": "193.11.3.0/24",
+      "baseline_path": [
+        11537,
+        2603
+      ],
+      "baseline_instances": 1,
+      "active_before_absence": 1,
+      "final_withdrawal_time": "2019-08-21T16:45:25Z",
+      "restoration_time": "2019-08-21T16:45:27Z",
+      "absence_duration_secs": 2.0,
+      "transit_at_withdrawal": true,
+      "exact_restoration": false,
+      "equivalent_restoration": false,
+      "observer_prefix_restoration": true,
+      "baseline_set_restoration": false,
+      "observation_ids": [
+        659,
+        715
+      ],
+      "archive_checksums": [
+        "4546b78f8fb9ced87b93867cbb5f76e4abc11f37e564001f73f593313b9fd182",
+        "a56a86cbce313bd04106babd94f9018a2c211d870fb07234efd320e89734786f"
+      ]
+    },
+    {
+      "collector": "route-views2",
+      "peer_ip": "64.57.28.241",
+      "prefix": "194.68.13.0/24",
+      "baseline_path": [
+        11537,
+        2603
+      ],
+      "baseline_instances": 1,
+      "active_before_absence": 1,
+      "final_withdrawal_time": "2019-08-21T16:45:25Z",
+      "restoration_time": "2019-08-21T16:45:27Z",
+      "absence_duration_secs": 2.0,
+      "transit_at_withdrawal": true,
+      "exact_restoration": false,
+      "equivalent_restoration": false,
+      "observer_prefix_restoration": true,
+      "baseline_set_restoration": false,
+      "observation_ids": [
+        668,
+        730
+      ],
+      "archive_checksums": [
+        "4546b78f8fb9ced87b93867cbb5f76e4abc11f37e564001f73f593313b9fd182",
+        "a56a86cbce313bd04106babd94f9018a2c211d870fb07234efd320e89734786f"
+      ]
+    }
+  ]
+}

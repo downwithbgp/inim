@@ -880,6 +880,8 @@ pub struct ObserverComparisonView {
     pub statements: Vec<ObserverStatementView>,
     /// Narrow conclusion wording per the reviewed session brief.
     pub conclusion: String,
+    /// Explainer lines for the first screen (distinct routing planes).
+    pub planes_explainer: Vec<String>,
 }
 
 #[derive(Serialize)]
@@ -888,6 +890,16 @@ pub struct ObserverComparisonRowView {
     pub collector: String,
     pub family: String,
     pub peer: String,
+    /// Historically correct collector location (reviewed metadata).
+    pub location: String,
+    /// Peer ASN from the historical RIB MRT header (session audit).
+    pub peer_asn: String,
+    /// Direct vs indirect relationship to the named planes (audit data).
+    pub relationship: String,
+    /// Named service plane of the run's cohort.
+    pub plane: String,
+    /// The reviewed cohort predicate that selected this run's streams.
+    pub cohort_predicate: String,
     pub first_change_utc: String,
     pub temporary_absence: String,
     pub path_replacement: String,
@@ -1719,32 +1731,62 @@ pub fn load_case_study(
         .filter(|t| !t.is_empty())
         .unwrap_or_default();
     let conclusion = observer_conclusion(&comparison_data, &target_label);
+    // Reviewed session context (data files; absent for other case
+    // studies — the comparison then shows the plain columns only).
+    let session_context =
+        crate::catalog::web::session_context::SessionContext::load_for_slug(&cs.slug);
     let observer_rows = comparison_data
         .rows
         .iter()
-        .map(|r| ObserverComparisonRowView {
-            prefix: r.prefix.clone(),
-            collector: r.collector.clone(),
-            family: r.family.clone(),
-            peer: r.peer.clone(),
-            first_change_utc: r.first_change_utc.clone().unwrap_or_default(),
-            temporary_absence: r.temporary_absence.clone().unwrap_or_default(),
-            path_replacement: if r.path_replacement {
-                "yes".into()
-            } else {
-                "no".into()
-            },
-            transit_departure: if r.transit_departure {
-                "yes".into()
-            } else {
-                "no".into()
-            },
-            restoration_utc: r.restoration_utc.clone().unwrap_or_default(),
-            baseline_visibility: if r.baseline_visibility {
-                "yes".into()
-            } else {
-                "no".into()
-            },
+        .map(|r| {
+            let ctx = session_context
+                .as_ref()
+                .and_then(|c| c.lookup(&r.family, &r.collector, &r.peer));
+            let (location, peer_asn, relationship, plane, cohort_predicate) = match ctx {
+                Some((loc, asn, rel, plane_label, pred)) => (
+                    loc.to_string(),
+                    asn.to_string(),
+                    rel.to_string(),
+                    plane_label.to_string(),
+                    pred.to_string(),
+                ),
+                None => (
+                    String::new(),
+                    String::new(),
+                    String::new(),
+                    String::new(),
+                    String::new(),
+                ),
+            };
+            ObserverComparisonRowView {
+                prefix: r.prefix.clone(),
+                collector: r.collector.clone(),
+                family: r.family.clone(),
+                peer: r.peer.clone(),
+                location,
+                peer_asn,
+                relationship,
+                plane,
+                cohort_predicate,
+                first_change_utc: r.first_change_utc.clone().unwrap_or_default(),
+                temporary_absence: r.temporary_absence.clone().unwrap_or_default(),
+                path_replacement: if r.path_replacement {
+                    "yes".into()
+                } else {
+                    "no".into()
+                },
+                transit_departure: if r.transit_departure {
+                    "yes".into()
+                } else {
+                    "no".into()
+                },
+                restoration_utc: r.restoration_utc.clone().unwrap_or_default(),
+                baseline_visibility: if r.baseline_visibility {
+                    "yes".into()
+                } else {
+                    "no".into()
+                },
+            }
         })
         .collect();
     let observer_statements = comparison_data
@@ -1761,7 +1803,14 @@ pub fn load_case_study(
     let observer_comparison = ObserverComparisonView {
         rows: observer_rows,
         statements: observer_statements,
-        conclusion,
+        conclusion: session_context
+            .as_ref()
+            .map(|c| c.conclusion(conclusion.clone()))
+            .unwrap_or(conclusion),
+        planes_explainer: session_context
+            .as_ref()
+            .map(|c| c.planes_explainer())
+            .unwrap_or_default(),
     };
 
     Ok(Some(CaseStudyView {

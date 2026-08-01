@@ -446,7 +446,7 @@ fn run_inner(
     retained_collectors.sort();
     if retained_collectors.is_empty() {
         let visibility_msg = format!(
-            "No selected {} observer had a pre-event route matching the reviewed Internet2 path predicate.",
+            "No selected {} observer had a pre-event route matching the reviewed path predicate.",
             family.label()
         );
         // A preflight probe must still emit its JSON: zero retained

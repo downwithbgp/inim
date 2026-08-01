@@ -1,0 +1,1614 @@
+{
+  "schema_version": 2,
+  "event_id": "MANLAN-2019-NORDUNET-PILOT-RE-RRC15",
+  "result": {
+    "finding": "The event produced partial and heterogeneous external routing impact. Among the remaining 24 streams, 13 remained visible after departing that transit and 11 remained unchanged.",
+    "verdict": "LessImpactThanExpected",
+    "verdict_label": "Less impact than expected"
+  },
+  "assessment": {
+    "provisional": false,
+    "statement": "Inconsistent with the loss-of-reachability expectation.",
+    "verdict": "LessImpactThanExpected"
+  },
+  "observed_event_signature": {
+    "analysis_window_utc": "2019-08-21 16:00:00 UTC – 2019-08-21 17:30:00 UTC",
+    "final_impact_assessment": {
+      "assessment": {
+        "event_id": "MANLAN-2019-NORDUNET-PILOT-RE-RRC15",
+        "evidence": [
+          {
+            "description": "Total route transitions observed: 61",
+            "source_records": []
+          },
+          {
+            "description": "Withdrawal transitions: 0",
+            "source_records": []
+          },
+          {
+            "description": "Path-replacement transitions: 37",
+            "source_records": [
+              "rrc15:187.16.216.4 109.105.96.0/20 at 2019-08-21 16:35:38 UTC (1916 11537 20965 2603 → 1916 20080 11537 20965 2603)",
+              "rrc15:187.16.216.4 109.105.112.0/21 at 2019-08-21 16:35:38 UTC (1916 11537 20965 2603 → 1916 20080 11537 20965 2603)",
+              "rrc15:187.16.216.4 109.105.120.0/22 at 2019-08-21 16:35:38 UTC (1916 11537 20965 2603 → 1916 20080 11537 20965 2603)",
+              "rrc15:187.16.216.4 185.174.116.0/22 at 2019-08-21 16:35:38 UTC (1916 11537 20965 2603 → 1916 20080 11537 20965 2603)",
+              "rrc15:187.16.216.4 192.36.171.0/24 at 2019-08-21 16:35:38 UTC (1916 11537 20965 2603 → 1916 20080 11537 20965 2603)",
+              "rrc15:187.16.216.4 193.10.68.0/24 at 2019-08-21 16:35:38 UTC (1916 11537 20965 2603 → 1916 20080 11537 20965 2603)",
+              "rrc15:187.16.216.4 193.10.95.0/24 at 2019-08-21 16:35:38 UTC (1916 11537 20965 2603 → 1916 20080 11537 20965 2603)",
+              "rrc15:187.16.216.4 193.10.252.0/24 at 2019-08-21 16:35:38 UTC (1916 11537 20965 2603 → 1916 20080 11537 20965 2603)",
+              "rrc15:187.16.216.4 193.10.254.0/24 at 2019-08-21 16:35:38 UTC (1916 11537 20965 2603 → 1916 20080 11537 20965 2603)",
+              "rrc15:187.16.216.4 193.11.3.0/24 at 2019-08-21 16:35:38 UTC (1916 11537 20965 2603 → 1916 20080 11537 20965 2603)",
+              "rrc15:187.16.216.4 194.68.13.0/24 at 2019-08-21 16:35:38 UTC (1916 11537 20965 2603 → 1916 20080 11537 20965 2603)",
+              "rrc15:2001:12f8::20 2001:948::/32 at 2019-08-21 16:45:16 UTC (28571 1251 20080 11537 20965 2603 → 28571 1916 6939 1299 2603 2603 2603)",
+              "rrc15:2001:12f8::218:21 2001:948::/32 at 2019-08-21 16:45:20 UTC (52888 1251 20080 11537 20965 2603 → 52888 1916 6939 1299 2603 2603 2603)",
+              "rrc15:2001:12f8::20 2001:948::/32 at 2019-08-21 16:50:16 UTC (28571 1916 6939 1299 2603 2603 2603 → 28571 1916 20080 6939 1299 2603 2603 2603)",
+              "rrc15:2001:12f8::20 2001:948::/32 at 2019-08-21 16:52:15 UTC (28571 1916 20080 6939 1299 2603 2603 2603 → 28571 1916 6939 1299 2603 2603 2603)",
+              "rrc15:187.16.216.4 109.105.112.0/21 at 2019-08-21 16:58:30 UTC (1916 11537 20965 2603 → 1916 11537 22388 24489 24489 24489 24489 24490 20965 2603)",
+              "rrc15:187.16.216.4 109.105.96.0/20 at 2019-08-21 16:58:30 UTC (1916 11537 20965 2603 → 1916 11537 22388 24489 24489 24489 24489 24490 20965 2603)",
+              "rrc15:187.16.216.4 109.105.120.0/22 at 2019-08-21 16:58:30 UTC (1916 11537 20965 2603 → 1916 11537 22388 24489 24489 24489 24489 24490 20965 2603)",
+              "rrc15:187.16.216.4 193.10.95.0/24 at 2019-08-21 16:58:35 UTC (1916 11537 20965 2603 → 1916 11537 22388 24489 24489 24489 24489 24490 20965 2603)",
+              "rrc15:187.16.216.4 193.11.3.0/24 at 2019-08-21 16:58:35 UTC (1916 11537 20965 2603 → 1916 11537 22388 24489 24489 24489 24489 24490 20965 2603)",
+              "rrc15:187.16.216.4 193.10.252.0/24 at 2019-08-21 16:58:35 UTC (1916 11537 20965 2603 → 1916 11537 22388 24489 24489 24489 24489 24490 20965 2603)",
+              "rrc15:187.16.216.4 193.10.68.0/24 at 2019-08-21 16:58:35 UTC (1916 11537 20965 2603 → 1916 11537 22388 24489 24489 24489 24489 24490 20965 2603)",
+              "rrc15:187.16.216.4 193.10.254.0/24 at 2019-08-21 16:58:35 UTC (1916 11537 20965 2603 → 1916 11537 22388 24489 24489 24489 24489 24490 20965 2603)",
+              "rrc15:187.16.216.4 192.36.171.0/24 at 2019-08-21 16:58:35 UTC (1916 11537 20965 2603 → 1916 11537 22388 24489 24489 24489 24489 24490 20965 2603)",
+              "rrc15:187.16.216.4 185.174.116.0/22 at 2019-08-21 16:58:35 UTC (1916 11537 20965 2603 → 1916 11537 22388 24489 24489 24489 24489 24490 20965 2603)",
+              "rrc15:187.16.216.4 194.68.13.0/24 at 2019-08-21 16:58:35 UTC (1916 11537 20965 2603 → 1916 11537 22388 24489 24489 24489 24489 24490 20965 2603)",
+              "rrc15:187.16.216.4 194.68.13.0/24 at 2019-08-21 17:52:16 UTC (1916 11537 20965 2603 → 1916 27750 20965 2603)",
+              "rrc15:187.16.216.4 193.11.3.0/24 at 2019-08-21 17:52:16 UTC (1916 11537 20965 2603 → 1916 27750 20965 2603)",
+              "rrc15:187.16.216.4 193.10.254.0/24 at 2019-08-21 17:52:16 UTC (1916 11537 20965 2603 → 1916 27750 20965 2603)",
+              "rrc15:187.16.216.4 193.10.252.0/24 at 2019-08-21 17:52:16 UTC (1916 11537 20965 2603 → 1916 27750 20965 2603)",
+              "rrc15:187.16.216.4 193.10.95.0/24 at 2019-08-21 17:52:16 UTC (1916 11537 20965 2603 → 1916 27750 20965 2603)",
+              "rrc15:187.16.216.4 193.10.68.0/24 at 2019-08-21 17:52:16 UTC (1916 11537 20965 2603 → 1916 27750 20965 2603)",
+              "rrc15:187.16.216.4 192.36.171.0/24 at 2019-08-21 17:52:16 UTC (1916 11537 20965 2603 → 1916 27750 20965 2603)",
+              "rrc15:187.16.216.4 185.174.116.0/22 at 2019-08-21 17:52:16 UTC (1916 11537 20965 2603 → 1916 27750 20965 2603)",
+              "rrc15:187.16.216.4 109.105.120.0/22 at 2019-08-21 17:52:16 UTC (1916 11537 20965 2603 → 1916 27750 20965 2603)",
+              "rrc15:187.16.216.4 109.105.112.0/21 at 2019-08-21 17:52:16 UTC (1916 11537 20965 2603 → 1916 27750 20965 2603)",
+              "rrc15:187.16.216.4 109.105.96.0/20 at 2019-08-21 17:52:16 UTC (1916 11537 20965 2603 → 1916 27750 20965 2603)"
+            ]
+          },
+          {
+            "description": "Restorations to baseline (transitions): 24",
+            "source_records": [
+              "rrc15:187.16.216.4 109.105.120.0/22 at 2019-08-21 16:42:50 UTC",
+              "rrc15:187.16.216.4 109.105.112.0/21 at 2019-08-21 16:42:50 UTC",
+              "rrc15:187.16.216.4 109.105.96.0/20 at 2019-08-21 16:42:50 UTC",
+              "rrc15:187.16.216.4 193.10.252.0/24 at 2019-08-21 16:43:04 UTC",
+              "rrc15:187.16.216.4 193.10.254.0/24 at 2019-08-21 16:43:04 UTC",
+              "rrc15:187.16.216.4 192.36.171.0/24 at 2019-08-21 16:43:04 UTC",
+              "rrc15:187.16.216.4 185.174.116.0/22 at 2019-08-21 16:43:04 UTC",
+              "rrc15:187.16.216.4 194.68.13.0/24 at 2019-08-21 16:43:04 UTC",
+              "rrc15:187.16.216.4 193.11.3.0/24 at 2019-08-21 16:43:04 UTC",
+              "rrc15:187.16.216.4 193.10.95.0/24 at 2019-08-21 16:43:04 UTC",
+              "rrc15:187.16.216.4 193.10.68.0/24 at 2019-08-21 16:43:04 UTC",
+              "rrc15:2001:12f8::218:21 2001:948::/32 at 2019-08-21 16:59:40 UTC",
+              "rrc15:2001:12f8::20 2001:948::/32 at 2019-08-21 16:59:40 UTC",
+              "rrc15:187.16.216.4 109.105.112.0/21 at 2019-08-21 17:03:32 UTC",
+              "rrc15:187.16.216.4 109.105.96.0/20 at 2019-08-21 17:03:32 UTC",
+              "rrc15:187.16.216.4 109.105.120.0/22 at 2019-08-21 17:03:32 UTC",
+              "rrc15:187.16.216.4 192.36.171.0/24 at 2019-08-21 17:03:33 UTC",
+              "rrc15:187.16.216.4 193.10.95.0/24 at 2019-08-21 17:03:33 UTC",
+              "rrc15:187.16.216.4 193.11.3.0/24 at 2019-08-21 17:03:33 UTC",
+              "rrc15:187.16.216.4 193.10.252.0/24 at 2019-08-21 17:03:33 UTC",
+              "rrc15:187.16.216.4 193.10.68.0/24 at 2019-08-21 17:03:33 UTC",
+              "rrc15:187.16.216.4 193.10.254.0/24 at 2019-08-21 17:03:33 UTC",
+              "rrc15:187.16.216.4 194.68.13.0/24 at 2019-08-21 17:03:34 UTC",
+              "rrc15:187.16.216.4 185.174.116.0/22 at 2019-08-21 17:03:35 UTC"
+            ]
+          },
+          {
+            "description": "Stream lifecycle: total=24 unchanged=11 prepend-only=0 withdrawn=0 departed-transit=13 restored=0 not-restored=11 add-path-ambiguous=0",
+            "source_records": []
+          }
+        ],
+        "expectation": {
+          "description": "No parenthesized site code — loss of reachability may be expected",
+          "kind": "NonRedundant",
+          "provenance": "Internet2 title convention: parenthesized site code indicates expected redundancy"
+        },
+        "generated_at": "2026-08-01T20:32:12.647079960Z",
+        "verdict": "LessImpactThanExpected",
+        "waves": [
+          {
+            "affected_peers": [
+              "rrc15:187.16.216.4"
+            ],
+            "affected_prefixes": [
+              "109.105.112.0/21",
+              "109.105.120.0/22",
+              "109.105.96.0/20",
+              "185.174.116.0/22",
+              "192.36.171.0/24",
+              "193.10.252.0/24",
+              "193.10.254.0/24",
+              "193.10.68.0/24",
+              "193.10.95.0/24",
+              "193.11.3.0/24",
+              "194.68.13.0/24"
+            ],
+            "end": "2019-08-21T16:35:38Z",
+            "id": 1,
+            "label": "Wave 1 — path replacement (0.0s, 11 prefixes, 1 peers)",
+            "motif": {
+              "covered_terminals": 11,
+              "evidence_ranges": [
+                {
+                  "observer": "rrc15:187.16.216.4",
+                  "prefix": "109.105.112.0/21",
+                  "time_end": "2019-08-21T16:35:38Z",
+                  "time_start": "2019-08-21T16:35:38Z",
+                  "transition_end": 0,
+                  "transition_start": 0
+                },
+                {
+                  "observer": "rrc15:187.16.216.4",
+                  "prefix": "109.105.120.0/22",
+                  "time_end": "2019-08-21T16:35:38Z",
+                  "time_start": "2019-08-21T16:35:38Z",
+                  "transition_end": 0,
+                  "transition_start": 0
+                },
+                {
+                  "observer": "rrc15:187.16.216.4",
+                  "prefix": "109.105.96.0/20",
+                  "time_end": "2019-08-21T16:35:38Z",
+                  "time_start": "2019-08-21T16:35:38Z",
+                  "transition_end": 0,
+                  "transition_start": 0
+                }
+              ],
+              "expanded": "PATH_REPLACEMENT",
+              "id": "12f3f9d9387b082d",
+              "occurrences": 11,
+              "scopes": [
+                "rrc15:187.16.216.4 109.105.112.0/21",
+                "rrc15:187.16.216.4 109.105.120.0/22",
+                "rrc15:187.16.216.4 109.105.96.0/20",
+                "rrc15:187.16.216.4 185.174.116.0/22",
+                "rrc15:187.16.216.4 192.36.171.0/24",
+                "rrc15:187.16.216.4 193.10.252.0/24",
+                "rrc15:187.16.216.4 193.10.254.0/24",
+                "rrc15:187.16.216.4 193.10.68.0/24",
+                "rrc15:187.16.216.4 193.10.95.0/24",
+                "rrc15:187.16.216.4 193.11.3.0/24",
+                "rrc15:187.16.216.4 194.68.13.0/24"
+              ],
+              "structure": [
+                "ROOT → PATH_REPLACEMENT"
+              ],
+              "total_terminals": 11
+            },
+            "peak": "2019-08-21T16:35:38Z",
+            "start": "2019-08-21T16:35:38Z"
+          },
+          {
+            "affected_peers": [
+              "rrc15:187.16.216.4"
+            ],
+            "affected_prefixes": [
+              "109.105.112.0/21",
+              "109.105.120.0/22",
+              "109.105.96.0/20",
+              "185.174.116.0/22",
+              "192.36.171.0/24",
+              "193.10.252.0/24",
+              "193.10.254.0/24",
+              "193.10.68.0/24",
+              "193.10.95.0/24",
+              "193.11.3.0/24",
+              "194.68.13.0/24"
+            ],
+            "end": "2019-08-21T16:43:04Z",
+            "id": 2,
+            "label": "Wave 2 — restoration (14.0s, 11 prefixes, 1 peers)",
+            "motif": {
+              "covered_terminals": 11,
+              "evidence_ranges": [
+                {
+                  "observer": "rrc15:187.16.216.4",
+                  "prefix": "109.105.112.0/21",
+                  "time_end": "2019-08-21T16:42:50Z",
+                  "time_start": "2019-08-21T16:42:50Z",
+                  "transition_end": 0,
+                  "transition_start": 0
+                },
+                {
+                  "observer": "rrc15:187.16.216.4",
+                  "prefix": "109.105.120.0/22",
+                  "time_end": "2019-08-21T16:42:50Z",
+                  "time_start": "2019-08-21T16:42:50Z",
+                  "transition_end": 0,
+                  "transition_start": 0
+                },
+                {
+                  "observer": "rrc15:187.16.216.4",
+                  "prefix": "109.105.96.0/20",
+                  "time_end": "2019-08-21T16:42:50Z",
+                  "time_start": "2019-08-21T16:42:50Z",
+                  "transition_end": 0,
+                  "transition_start": 0
+                }
+              ],
+              "expanded": "RETURN_TO_BASELINE",
+              "id": "40d21da87f78da7d",
+              "occurrences": 11,
+              "scopes": [
+                "rrc15:187.16.216.4 109.105.112.0/21",
+                "rrc15:187.16.216.4 109.105.120.0/22",
+                "rrc15:187.16.216.4 109.105.96.0/20",
+                "rrc15:187.16.216.4 185.174.116.0/22",
+                "rrc15:187.16.216.4 192.36.171.0/24",
+                "rrc15:187.16.216.4 193.10.252.0/24",
+                "rrc15:187.16.216.4 193.10.254.0/24",
+                "rrc15:187.16.216.4 193.10.68.0/24",
+                "rrc15:187.16.216.4 193.10.95.0/24",
+                "rrc15:187.16.216.4 193.11.3.0/24",
+                "rrc15:187.16.216.4 194.68.13.0/24"
+              ],
+              "structure": [
+                "ROOT → RETURN_TO_BASELINE"
+              ],
+              "total_terminals": 11
+            },
+            "peak": "2019-08-21T16:43:04Z",
+            "start": "2019-08-21T16:42:50Z"
+          },
+          {
+            "affected_peers": [
+              "rrc15:2001:12f8::20",
+              "rrc15:2001:12f8::218:21"
+            ],
+            "affected_prefixes": [
+              "2001:948::/32"
+            ],
+            "end": "2019-08-21T16:45:20Z",
+            "id": 3,
+            "label": "Wave 3 — path replacement (4.0s, 1 prefixes, 2 peers)",
+            "motif": {
+              "covered_terminals": 2,
+              "evidence_ranges": [
+                {
+                  "observer": "rrc15:2001:12f8::20",
+                  "prefix": "2001:948::/32",
+                  "time_end": "2019-08-21T16:45:16Z",
+                  "time_start": "2019-08-21T16:45:16Z",
+                  "transition_end": 0,
+                  "transition_start": 0
+                },
+                {
+                  "observer": "rrc15:2001:12f8::218:21",
+                  "prefix": "2001:948::/32",
+                  "time_end": "2019-08-21T16:45:20Z",
+                  "time_start": "2019-08-21T16:45:20Z",
+                  "transition_end": 0,
+                  "transition_start": 0
+                }
+              ],
+              "expanded": "PATH_REPLACEMENT",
+              "id": "12f3f9d9387b082d",
+              "occurrences": 2,
+              "scopes": [
+                "rrc15:2001:12f8::20 2001:948::/32",
+                "rrc15:2001:12f8::218:21 2001:948::/32"
+              ],
+              "structure": [
+                "ROOT → PATH_REPLACEMENT"
+              ],
+              "total_terminals": 2
+            },
+            "peak": "2019-08-21T16:45:20Z",
+            "start": "2019-08-21T16:45:16Z"
+          },
+          {
+            "affected_peers": [
+              "rrc15:2001:12f8::20"
+            ],
+            "affected_prefixes": [
+              "2001:948::/32"
+            ],
+            "end": "2019-08-21T16:52:15Z",
+            "id": 4,
+            "label": "Wave 4 — path replacement (119.0s, 1 prefixes, 1 peers)",
+            "motif": {
+              "covered_terminals": 2,
+              "evidence_ranges": [
+                {
+                  "observer": "rrc15:2001:12f8::20",
+                  "prefix": "2001:948::/32",
+                  "time_end": "2019-08-21T16:52:15Z",
+                  "time_start": "2019-08-21T16:50:16Z",
+                  "transition_end": 1,
+                  "transition_start": 0
+                }
+              ],
+              "expanded": "PATH_REPLACEMENT PATH_REPLACEMENT",
+              "id": "cf51be271ed43daf",
+              "occurrences": 1,
+              "scopes": [
+                "rrc15:2001:12f8::20 2001:948::/32"
+              ],
+              "structure": [
+                "ROOT → PATH_REPLACEMENT PATH_REPLACEMENT"
+              ],
+              "total_terminals": 2
+            },
+            "peak": "2019-08-21T16:52:15Z",
+            "start": "2019-08-21T16:50:16Z"
+          },
+          {
+            "affected_peers": [
+              "rrc15:187.16.216.4",
+              "rrc15:2001:12f8::20",
+              "rrc15:2001:12f8::218:21"
+            ],
+            "affected_prefixes": [
+              "109.105.112.0/21",
+              "109.105.120.0/22",
+              "109.105.96.0/20",
+              "185.174.116.0/22",
+              "192.36.171.0/24",
+              "193.10.252.0/24",
+              "193.10.254.0/24",
+              "193.10.68.0/24",
+              "193.10.95.0/24",
+              "193.11.3.0/24",
+              "194.68.13.0/24",
+              "2001:948::/32"
+            ],
+            "end": "2019-08-21T16:59:40Z",
+            "id": 5,
+            "label": "Wave 5 — path replacement (70.0s, 12 prefixes, 3 peers)",
+            "motif": {
+              "covered_terminals": 11,
+              "evidence_ranges": [
+                {
+                  "observer": "rrc15:187.16.216.4",
+                  "prefix": "109.105.112.0/21",
+                  "time_end": "2019-08-21T16:58:30Z",
+                  "time_start": "2019-08-21T16:58:30Z",
+                  "transition_end": 0,
+                  "transition_start": 0
+                },
+                {
+                  "observer": "rrc15:187.16.216.4",
+                  "prefix": "109.105.120.0/22",
+                  "time_end": "2019-08-21T16:58:30Z",
+                  "time_start": "2019-08-21T16:58:30Z",
+                  "transition_end": 0,
+                  "transition_start": 0
+                },
+                {
+                  "observer": "rrc15:187.16.216.4",
+                  "prefix": "109.105.96.0/20",
+                  "time_end": "2019-08-21T16:58:30Z",
+                  "time_start": "2019-08-21T16:58:30Z",
+                  "transition_end": 0,
+                  "transition_start": 0
+                }
+              ],
+              "expanded": "PATH_REPLACEMENT",
+              "id": "12f3f9d9387b082d",
+              "occurrences": 11,
+              "scopes": [
+                "rrc15:187.16.216.4 109.105.112.0/21",
+                "rrc15:187.16.216.4 109.105.120.0/22",
+                "rrc15:187.16.216.4 109.105.96.0/20",
+                "rrc15:187.16.216.4 185.174.116.0/22",
+                "rrc15:187.16.216.4 192.36.171.0/24",
+                "rrc15:187.16.216.4 193.10.252.0/24",
+                "rrc15:187.16.216.4 193.10.254.0/24",
+                "rrc15:187.16.216.4 193.10.68.0/24",
+                "rrc15:187.16.216.4 193.10.95.0/24",
+                "rrc15:187.16.216.4 193.11.3.0/24",
+                "rrc15:187.16.216.4 194.68.13.0/24"
+              ],
+              "structure": [
+                "ROOT → PATH_REPLACEMENT"
+              ],
+              "total_terminals": 13
+            },
+            "peak": "2019-08-21T16:58:35Z",
+            "start": "2019-08-21T16:58:30Z"
+          },
+          {
+            "affected_peers": [
+              "rrc15:187.16.216.4"
+            ],
+            "affected_prefixes": [
+              "109.105.112.0/21",
+              "109.105.120.0/22",
+              "109.105.96.0/20",
+              "185.174.116.0/22",
+              "192.36.171.0/24",
+              "193.10.252.0/24",
+              "193.10.254.0/24",
+              "193.10.68.0/24",
+              "193.10.95.0/24",
+              "193.11.3.0/24",
+              "194.68.13.0/24"
+            ],
+            "end": "2019-08-21T17:03:35Z",
+            "id": 6,
+            "label": "Wave 6 — restoration (3.0s, 11 prefixes, 1 peers)",
+            "motif": {
+              "covered_terminals": 11,
+              "evidence_ranges": [
+                {
+                  "observer": "rrc15:187.16.216.4",
+                  "prefix": "109.105.112.0/21",
+                  "time_end": "2019-08-21T17:03:32Z",
+                  "time_start": "2019-08-21T17:03:32Z",
+                  "transition_end": 0,
+                  "transition_start": 0
+                },
+                {
+                  "observer": "rrc15:187.16.216.4",
+                  "prefix": "109.105.120.0/22",
+                  "time_end": "2019-08-21T17:03:32Z",
+                  "time_start": "2019-08-21T17:03:32Z",
+                  "transition_end": 0,
+                  "transition_start": 0
+                },
+                {
+                  "observer": "rrc15:187.16.216.4",
+                  "prefix": "109.105.96.0/20",
+                  "time_end": "2019-08-21T17:03:32Z",
+                  "time_start": "2019-08-21T17:03:32Z",
+                  "transition_end": 0,
+                  "transition_start": 0
+                }
+              ],
+              "expanded": "RETURN_TO_BASELINE",
+              "id": "40d21da87f78da7d",
+              "occurrences": 11,
+              "scopes": [
+                "rrc15:187.16.216.4 109.105.112.0/21",
+                "rrc15:187.16.216.4 109.105.120.0/22",
+                "rrc15:187.16.216.4 109.105.96.0/20",
+                "rrc15:187.16.216.4 185.174.116.0/22",
+                "rrc15:187.16.216.4 192.36.171.0/24",
+                "rrc15:187.16.216.4 193.10.252.0/24",
+                "rrc15:187.16.216.4 193.10.254.0/24",
+                "rrc15:187.16.216.4 193.10.68.0/24",
+                "rrc15:187.16.216.4 193.10.95.0/24",
+                "rrc15:187.16.216.4 193.11.3.0/24",
+                "rrc15:187.16.216.4 194.68.13.0/24"
+              ],
+              "structure": [
+                "ROOT → RETURN_TO_BASELINE"
+              ],
+              "total_terminals": 11
+            },
+            "peak": "2019-08-21T17:03:33Z",
+            "start": "2019-08-21T17:03:32Z"
+          },
+          {
+            "affected_peers": [
+              "rrc15:187.16.216.4"
+            ],
+            "affected_prefixes": [
+              "109.105.112.0/21",
+              "109.105.120.0/22",
+              "109.105.96.0/20",
+              "185.174.116.0/22",
+              "192.36.171.0/24",
+              "193.10.252.0/24",
+              "193.10.254.0/24",
+              "193.10.68.0/24",
+              "193.10.95.0/24",
+              "193.11.3.0/24",
+              "194.68.13.0/24"
+            ],
+            "end": "2019-08-21T17:52:16Z",
+            "id": 7,
+            "label": "Wave 7 — path replacement (0.0s, 11 prefixes, 1 peers)",
+            "motif": {
+              "covered_terminals": 11,
+              "evidence_ranges": [
+                {
+                  "observer": "rrc15:187.16.216.4",
+                  "prefix": "109.105.112.0/21",
+                  "time_end": "2019-08-21T17:52:16Z",
+                  "time_start": "2019-08-21T17:52:16Z",
+                  "transition_end": 0,
+                  "transition_start": 0
+                },
+                {
+                  "observer": "rrc15:187.16.216.4",
+                  "prefix": "109.105.120.0/22",
+                  "time_end": "2019-08-21T17:52:16Z",
+                  "time_start": "2019-08-21T17:52:16Z",
+                  "transition_end": 0,
+                  "transition_start": 0
+                },
+                {
+                  "observer": "rrc15:187.16.216.4",
+                  "prefix": "109.105.96.0/20",
+                  "time_end": "2019-08-21T17:52:16Z",
+                  "time_start": "2019-08-21T17:52:16Z",
+                  "transition_end": 0,
+                  "transition_start": 0
+                }
+              ],
+              "expanded": "PATH_REPLACEMENT",
+              "id": "12f3f9d9387b082d",
+              "occurrences": 11,
+              "scopes": [
+                "rrc15:187.16.216.4 109.105.112.0/21",
+                "rrc15:187.16.216.4 109.105.120.0/22",
+                "rrc15:187.16.216.4 109.105.96.0/20",
+                "rrc15:187.16.216.4 185.174.116.0/22",
+                "rrc15:187.16.216.4 192.36.171.0/24",
+                "rrc15:187.16.216.4 193.10.252.0/24",
+                "rrc15:187.16.216.4 193.10.254.0/24",
+                "rrc15:187.16.216.4 193.10.68.0/24",
+                "rrc15:187.16.216.4 193.10.95.0/24",
+                "rrc15:187.16.216.4 193.11.3.0/24",
+                "rrc15:187.16.216.4 194.68.13.0/24"
+              ],
+              "structure": [
+                "ROOT → PATH_REPLACEMENT"
+              ],
+              "total_terminals": 11
+            },
+            "peak": "2019-08-21T17:52:16Z",
+            "start": "2019-08-21T17:52:16Z"
+          }
+        ]
+      },
+      "status": "completed"
+    },
+    "observer_scope": {
+      "archive_coverage": "Complete for the selected analysis plan (selected collectors, planned interval, verified archives).",
+      "baseline_observer_prefix_streams": 24,
+      "baseline_qualification": "at least one route path traversed AS11537",
+      "baseline_route_instances": 24,
+      "collectors": [
+        "rrc15"
+      ],
+      "exact_transit_predicate": "ContainsAny { 11537 }",
+      "multiple_instance_streams": 0
+    },
+    "semantic_waves": [
+      {
+        "end": "2019-08-21T16:35:38Z",
+        "event_relative": {
+          "transit_departed": 0,
+          "transit_retained": 11,
+          "transit_returned": 0
+        },
+        "evidence_refs": [
+          112,
+          113,
+          114,
+          115,
+          116,
+          117,
+          118,
+          119,
+          120,
+          121,
+          122
+        ],
+        "facets": {
+          "communities_changed": 11,
+          "graceful_shutdown_added": 0,
+          "graceful_shutdown_removed": 0,
+          "local_pref_changed": 0,
+          "material_path_changed": 11,
+          "med_changed": 0,
+          "next_hop_changed": 0,
+          "origin_changed": 0,
+          "prepend_increased": 0,
+          "prepend_reduced": 0
+        },
+        "id": "wave-1",
+        "label": "MixedRouteChange",
+        "peak_end": "2019-08-21T16:35:38Z",
+        "peak_start": "2019-08-21T16:35:38Z",
+        "peers": [
+          "187.16.216.4"
+        ],
+        "prefixes": [
+          "109.105.112.0/21",
+          "109.105.120.0/22",
+          "109.105.96.0/20",
+          "185.174.116.0/22",
+          "192.36.171.0/24",
+          "193.10.252.0/24",
+          "193.10.254.0/24",
+          "193.10.68.0/24",
+          "193.10.95.0/24",
+          "193.11.3.0/24",
+          "194.68.13.0/24"
+        ],
+        "representative_after": [
+          1916,
+          20080,
+          11537,
+          20965,
+          2603
+        ],
+        "representative_before": [
+          1916,
+          11537,
+          20965,
+          2603
+        ],
+        "route_instance_count": 11,
+        "start": "2019-08-21T16:35:38Z",
+        "stream_count": 11
+      },
+      {
+        "end": "2019-08-21T16:43:04Z",
+        "event_relative": {
+          "transit_departed": 0,
+          "transit_retained": 11,
+          "transit_returned": 0
+        },
+        "evidence_refs": [
+          123,
+          124,
+          125,
+          126,
+          127,
+          128,
+          129,
+          130,
+          131,
+          132,
+          133
+        ],
+        "facets": {
+          "communities_changed": 11,
+          "graceful_shutdown_added": 0,
+          "graceful_shutdown_removed": 0,
+          "local_pref_changed": 0,
+          "material_path_changed": 11,
+          "med_changed": 0,
+          "next_hop_changed": 0,
+          "origin_changed": 0,
+          "prepend_increased": 0,
+          "prepend_reduced": 0
+        },
+        "id": "wave-2",
+        "label": "BaselinePolicyRestoration",
+        "peak_end": "2019-08-21T16:43:04Z",
+        "peak_start": "2019-08-21T16:42:50Z",
+        "peers": [
+          "187.16.216.4"
+        ],
+        "prefixes": [
+          "109.105.112.0/21",
+          "109.105.120.0/22",
+          "109.105.96.0/20",
+          "185.174.116.0/22",
+          "192.36.171.0/24",
+          "193.10.252.0/24",
+          "193.10.254.0/24",
+          "193.10.68.0/24",
+          "193.10.95.0/24",
+          "193.11.3.0/24",
+          "194.68.13.0/24"
+        ],
+        "representative_after": [
+          1916,
+          11537,
+          20965,
+          2603
+        ],
+        "representative_before": [
+          1916,
+          20080,
+          11537,
+          20965,
+          2603
+        ],
+        "route_instance_count": 11,
+        "start": "2019-08-21T16:42:50Z",
+        "stream_count": 11
+      },
+      {
+        "end": "2019-08-21T16:45:20Z",
+        "event_relative": {
+          "transit_departed": 2,
+          "transit_retained": 0,
+          "transit_returned": 0
+        },
+        "evidence_refs": [
+          134,
+          135
+        ],
+        "facets": {
+          "communities_changed": 1,
+          "graceful_shutdown_added": 0,
+          "graceful_shutdown_removed": 0,
+          "local_pref_changed": 0,
+          "material_path_changed": 2,
+          "med_changed": 0,
+          "next_hop_changed": 0,
+          "origin_changed": 0,
+          "prepend_increased": 0,
+          "prepend_reduced": 0
+        },
+        "id": "wave-3",
+        "label": "TransitDeparture",
+        "peak_end": "2019-08-21T16:45:20Z",
+        "peak_start": "2019-08-21T16:45:16Z",
+        "peers": [
+          "2001:12f8::20",
+          "2001:12f8::218:21"
+        ],
+        "prefixes": [
+          "2001:948::/32"
+        ],
+        "representative_after": [
+          28571,
+          1916,
+          6939,
+          1299,
+          2603,
+          2603,
+          2603
+        ],
+        "representative_before": [
+          28571,
+          1251,
+          20080,
+          11537,
+          20965,
+          2603
+        ],
+        "route_instance_count": 2,
+        "start": "2019-08-21T16:45:16Z",
+        "stream_count": 2
+      },
+      {
+        "end": "2019-08-21T16:52:15Z",
+        "event_relative": {
+          "transit_departed": 0,
+          "transit_retained": 0,
+          "transit_returned": 0
+        },
+        "evidence_refs": [
+          136,
+          137
+        ],
+        "facets": {
+          "communities_changed": 0,
+          "graceful_shutdown_added": 0,
+          "graceful_shutdown_removed": 0,
+          "local_pref_changed": 0,
+          "material_path_changed": 2,
+          "med_changed": 0,
+          "next_hop_changed": 0,
+          "origin_changed": 0,
+          "prepend_increased": 0,
+          "prepend_reduced": 0
+        },
+        "id": "wave-4",
+        "label": "MixedRouteChange",
+        "peak_end": "2019-08-21T16:50:16Z",
+        "peak_start": "2019-08-21T16:50:16Z",
+        "peers": [
+          "2001:12f8::20"
+        ],
+        "prefixes": [
+          "2001:948::/32"
+        ],
+        "representative_after": [
+          28571,
+          1916,
+          20080,
+          6939,
+          1299,
+          2603,
+          2603,
+          2603
+        ],
+        "representative_before": [
+          28571,
+          1916,
+          6939,
+          1299,
+          2603,
+          2603,
+          2603
+        ],
+        "route_instance_count": 1,
+        "start": "2019-08-21T16:50:16Z",
+        "stream_count": 1
+      },
+      {
+        "end": "2019-08-21T16:59:40Z",
+        "event_relative": {
+          "transit_departed": 0,
+          "transit_retained": 11,
+          "transit_returned": 2
+        },
+        "evidence_refs": [
+          138,
+          139,
+          140,
+          141,
+          142,
+          143,
+          144,
+          145,
+          146,
+          147,
+          148,
+          149,
+          150
+        ],
+        "facets": {
+          "communities_changed": 1,
+          "graceful_shutdown_added": 0,
+          "graceful_shutdown_removed": 0,
+          "local_pref_changed": 0,
+          "material_path_changed": 13,
+          "med_changed": 0,
+          "next_hop_changed": 0,
+          "origin_changed": 0,
+          "prepend_increased": 0,
+          "prepend_reduced": 0
+        },
+        "id": "wave-5",
+        "label": "MixedRouteChange",
+        "peak_end": "2019-08-21T16:58:35Z",
+        "peak_start": "2019-08-21T16:58:30Z",
+        "peers": [
+          "187.16.216.4",
+          "2001:12f8::20",
+          "2001:12f8::218:21"
+        ],
+        "prefixes": [
+          "109.105.112.0/21",
+          "109.105.120.0/22",
+          "109.105.96.0/20",
+          "185.174.116.0/22",
+          "192.36.171.0/24",
+          "193.10.252.0/24",
+          "193.10.254.0/24",
+          "193.10.68.0/24",
+          "193.10.95.0/24",
+          "193.11.3.0/24",
+          "194.68.13.0/24",
+          "2001:948::/32"
+        ],
+        "representative_after": [
+          1916,
+          11537,
+          22388,
+          24489,
+          24489,
+          24489,
+          24489,
+          24490,
+          20965,
+          2603
+        ],
+        "representative_before": [
+          1916,
+          11537,
+          20965,
+          2603
+        ],
+        "route_instance_count": 13,
+        "start": "2019-08-21T16:58:30Z",
+        "stream_count": 13
+      },
+      {
+        "end": "2019-08-21T17:03:35Z",
+        "event_relative": {
+          "transit_departed": 0,
+          "transit_retained": 11,
+          "transit_returned": 0
+        },
+        "evidence_refs": [
+          151,
+          152,
+          153,
+          154,
+          155,
+          156,
+          157,
+          158,
+          159,
+          160,
+          161
+        ],
+        "facets": {
+          "communities_changed": 0,
+          "graceful_shutdown_added": 0,
+          "graceful_shutdown_removed": 0,
+          "local_pref_changed": 0,
+          "material_path_changed": 11,
+          "med_changed": 0,
+          "next_hop_changed": 0,
+          "origin_changed": 0,
+          "prepend_increased": 0,
+          "prepend_reduced": 0
+        },
+        "id": "wave-6",
+        "label": "BaselinePolicyRestoration",
+        "peak_end": "2019-08-21T17:03:35Z",
+        "peak_start": "2019-08-21T17:03:32Z",
+        "peers": [
+          "187.16.216.4"
+        ],
+        "prefixes": [
+          "109.105.112.0/21",
+          "109.105.120.0/22",
+          "109.105.96.0/20",
+          "185.174.116.0/22",
+          "192.36.171.0/24",
+          "193.10.252.0/24",
+          "193.10.254.0/24",
+          "193.10.68.0/24",
+          "193.10.95.0/24",
+          "193.11.3.0/24",
+          "194.68.13.0/24"
+        ],
+        "representative_after": [
+          1916,
+          11537,
+          20965,
+          2603
+        ],
+        "representative_before": [
+          1916,
+          11537,
+          22388,
+          24489,
+          24489,
+          24489,
+          24489,
+          24490,
+          20965,
+          2603
+        ],
+        "route_instance_count": 11,
+        "start": "2019-08-21T17:03:32Z",
+        "stream_count": 11
+      }
+    ],
+    "stream_lifecycle": {
+      "add_path_ambiguous_streams": 0,
+      "material_path_changes": 61,
+      "prepend_only": 0,
+      "restored_streams": 0,
+      "streams_departing_transit": 13,
+      "streams_retaining_transit": 11,
+      "unchanged": 11,
+      "unresolved_streams": 11,
+      "withdrawn_streams": 0
+    },
+    "ticket_expectation": "NonRedundant: No parenthesized site code — loss of reachability may be expected",
+    "ticket_lifecycle": "Closed",
+    "transit_predicate": "ContainsAny[11537]"
+  },
+  "observable_mechanism_hints": {
+    "community_only_changes": 0,
+    "graceful_restart": "negotiated session capability/state not directly observable from this dataset",
+    "mechanism_hints_do_not_change_impact_assessment": true,
+    "rfc8326": {
+      "gshut_streams": 0,
+      "gshut_timing": [],
+      "statement": "No RFC 8326 GRACEFUL_SHUTDOWN community reached the selected observers. Its absence does not establish that graceful shutdown was not used."
+    },
+    "rfc8327": "operational intent not directly observable",
+    "rfc9003": "administrative-shutdown message not observable from these remote collector sessions"
+  },
+  "limitations": [
+    "1 of 1 requested collectors retained after RIB preflight (rrc15)"
+  ],
+  "outcome": {
+    "assessment": {
+      "event_id": "MANLAN-2019-NORDUNET-PILOT-RE-RRC15",
+      "evidence": [
+        {
+          "description": "Total route transitions observed: 61",
+          "source_records": []
+        },
+        {
+          "description": "Withdrawal transitions: 0",
+          "source_records": []
+        },
+        {
+          "description": "Path-replacement transitions: 37",
+          "source_records": [
+            "rrc15:187.16.216.4 109.105.96.0/20 at 2019-08-21 16:35:38 UTC (1916 11537 20965 2603 → 1916 20080 11537 20965 2603)",
+            "rrc15:187.16.216.4 109.105.112.0/21 at 2019-08-21 16:35:38 UTC (1916 11537 20965 2603 → 1916 20080 11537 20965 2603)",
+            "rrc15:187.16.216.4 109.105.120.0/22 at 2019-08-21 16:35:38 UTC (1916 11537 20965 2603 → 1916 20080 11537 20965 2603)",
+            "rrc15:187.16.216.4 185.174.116.0/22 at 2019-08-21 16:35:38 UTC (1916 11537 20965 2603 → 1916 20080 11537 20965 2603)",
+            "rrc15:187.16.216.4 192.36.171.0/24 at 2019-08-21 16:35:38 UTC (1916 11537 20965 2603 → 1916 20080 11537 20965 2603)",
+            "rrc15:187.16.216.4 193.10.68.0/24 at 2019-08-21 16:35:38 UTC (1916 11537 20965 2603 → 1916 20080 11537 20965 2603)",
+            "rrc15:187.16.216.4 193.10.95.0/24 at 2019-08-21 16:35:38 UTC (1916 11537 20965 2603 → 1916 20080 11537 20965 2603)",
+            "rrc15:187.16.216.4 193.10.252.0/24 at 2019-08-21 16:35:38 UTC (1916 11537 20965 2603 → 1916 20080 11537 20965 2603)",
+            "rrc15:187.16.216.4 193.10.254.0/24 at 2019-08-21 16:35:38 UTC (1916 11537 20965 2603 → 1916 20080 11537 20965 2603)",
+            "rrc15:187.16.216.4 193.11.3.0/24 at 2019-08-21 16:35:38 UTC (1916 11537 20965 2603 → 1916 20080 11537 20965 2603)",
+            "rrc15:187.16.216.4 194.68.13.0/24 at 2019-08-21 16:35:38 UTC (1916 11537 20965 2603 → 1916 20080 11537 20965 2603)",
+            "rrc15:2001:12f8::20 2001:948::/32 at 2019-08-21 16:45:16 UTC (28571 1251 20080 11537 20965 2603 → 28571 1916 6939 1299 2603 2603 2603)",
+            "rrc15:2001:12f8::218:21 2001:948::/32 at 2019-08-21 16:45:20 UTC (52888 1251 20080 11537 20965 2603 → 52888 1916 6939 1299 2603 2603 2603)",
+            "rrc15:2001:12f8::20 2001:948::/32 at 2019-08-21 16:50:16 UTC (28571 1916 6939 1299 2603 2603 2603 → 28571 1916 20080 6939 1299 2603 2603 2603)",
+            "rrc15:2001:12f8::20 2001:948::/32 at 2019-08-21 16:52:15 UTC (28571 1916 20080 6939 1299 2603 2603 2603 → 28571 1916 6939 1299 2603 2603 2603)",
+            "rrc15:187.16.216.4 109.105.112.0/21 at 2019-08-21 16:58:30 UTC (1916 11537 20965 2603 → 1916 11537 22388 24489 24489 24489 24489 24490 20965 2603)",
+            "rrc15:187.16.216.4 109.105.96.0/20 at 2019-08-21 16:58:30 UTC (1916 11537 20965 2603 → 1916 11537 22388 24489 24489 24489 24489 24490 20965 2603)",
+            "rrc15:187.16.216.4 109.105.120.0/22 at 2019-08-21 16:58:30 UTC (1916 11537 20965 2603 → 1916 11537 22388 24489 24489 24489 24489 24490 20965 2603)",
+            "rrc15:187.16.216.4 193.10.95.0/24 at 2019-08-21 16:58:35 UTC (1916 11537 20965 2603 → 1916 11537 22388 24489 24489 24489 24489 24490 20965 2603)",
+            "rrc15:187.16.216.4 193.11.3.0/24 at 2019-08-21 16:58:35 UTC (1916 11537 20965 2603 → 1916 11537 22388 24489 24489 24489 24489 24490 20965 2603)",
+            "rrc15:187.16.216.4 193.10.252.0/24 at 2019-08-21 16:58:35 UTC (1916 11537 20965 2603 → 1916 11537 22388 24489 24489 24489 24489 24490 20965 2603)",
+            "rrc15:187.16.216.4 193.10.68.0/24 at 2019-08-21 16:58:35 UTC (1916 11537 20965 2603 → 1916 11537 22388 24489 24489 24489 24489 24490 20965 2603)",
+            "rrc15:187.16.216.4 193.10.254.0/24 at 2019-08-21 16:58:35 UTC (1916 11537 20965 2603 → 1916 11537 22388 24489 24489 24489 24489 24490 20965 2603)",
+            "rrc15:187.16.216.4 192.36.171.0/24 at 2019-08-21 16:58:35 UTC (1916 11537 20965 2603 → 1916 11537 22388 24489 24489 24489 24489 24490 20965 2603)",
+            "rrc15:187.16.216.4 185.174.116.0/22 at 2019-08-21 16:58:35 UTC (1916 11537 20965 2603 → 1916 11537 22388 24489 24489 24489 24489 24490 20965 2603)",
+            "rrc15:187.16.216.4 194.68.13.0/24 at 2019-08-21 16:58:35 UTC (1916 11537 20965 2603 → 1916 11537 22388 24489 24489 24489 24489 24490 20965 2603)",
+            "rrc15:187.16.216.4 194.68.13.0/24 at 2019-08-21 17:52:16 UTC (1916 11537 20965 2603 → 1916 27750 20965 2603)",
+            "rrc15:187.16.216.4 193.11.3.0/24 at 2019-08-21 17:52:16 UTC (1916 11537 20965 2603 → 1916 27750 20965 2603)",
+            "rrc15:187.16.216.4 193.10.254.0/24 at 2019-08-21 17:52:16 UTC (1916 11537 20965 2603 → 1916 27750 20965 2603)",
+            "rrc15:187.16.216.4 193.10.252.0/24 at 2019-08-21 17:52:16 UTC (1916 11537 20965 2603 → 1916 27750 20965 2603)",
+            "rrc15:187.16.216.4 193.10.95.0/24 at 2019-08-21 17:52:16 UTC (1916 11537 20965 2603 → 1916 27750 20965 2603)",
+            "rrc15:187.16.216.4 193.10.68.0/24 at 2019-08-21 17:52:16 UTC (1916 11537 20965 2603 → 1916 27750 20965 2603)",
+            "rrc15:187.16.216.4 192.36.171.0/24 at 2019-08-21 17:52:16 UTC (1916 11537 20965 2603 → 1916 27750 20965 2603)",
+            "rrc15:187.16.216.4 185.174.116.0/22 at 2019-08-21 17:52:16 UTC (1916 11537 20965 2603 → 1916 27750 20965 2603)",
+            "rrc15:187.16.216.4 109.105.120.0/22 at 2019-08-21 17:52:16 UTC (1916 11537 20965 2603 → 1916 27750 20965 2603)",
+            "rrc15:187.16.216.4 109.105.112.0/21 at 2019-08-21 17:52:16 UTC (1916 11537 20965 2603 → 1916 27750 20965 2603)",
+            "rrc15:187.16.216.4 109.105.96.0/20 at 2019-08-21 17:52:16 UTC (1916 11537 20965 2603 → 1916 27750 20965 2603)"
+          ]
+        },
+        {
+          "description": "Restorations to baseline (transitions): 24",
+          "source_records": [
+            "rrc15:187.16.216.4 109.105.120.0/22 at 2019-08-21 16:42:50 UTC",
+            "rrc15:187.16.216.4 109.105.112.0/21 at 2019-08-21 16:42:50 UTC",
+            "rrc15:187.16.216.4 109.105.96.0/20 at 2019-08-21 16:42:50 UTC",
+            "rrc15:187.16.216.4 193.10.252.0/24 at 2019-08-21 16:43:04 UTC",
+            "rrc15:187.16.216.4 193.10.254.0/24 at 2019-08-21 16:43:04 UTC",
+            "rrc15:187.16.216.4 192.36.171.0/24 at 2019-08-21 16:43:04 UTC",
+            "rrc15:187.16.216.4 185.174.116.0/22 at 2019-08-21 16:43:04 UTC",
+            "rrc15:187.16.216.4 194.68.13.0/24 at 2019-08-21 16:43:04 UTC",
+            "rrc15:187.16.216.4 193.11.3.0/24 at 2019-08-21 16:43:04 UTC",
+            "rrc15:187.16.216.4 193.10.95.0/24 at 2019-08-21 16:43:04 UTC",
+            "rrc15:187.16.216.4 193.10.68.0/24 at 2019-08-21 16:43:04 UTC",
+            "rrc15:2001:12f8::218:21 2001:948::/32 at 2019-08-21 16:59:40 UTC",
+            "rrc15:2001:12f8::20 2001:948::/32 at 2019-08-21 16:59:40 UTC",
+            "rrc15:187.16.216.4 109.105.112.0/21 at 2019-08-21 17:03:32 UTC",
+            "rrc15:187.16.216.4 109.105.96.0/20 at 2019-08-21 17:03:32 UTC",
+            "rrc15:187.16.216.4 109.105.120.0/22 at 2019-08-21 17:03:32 UTC",
+            "rrc15:187.16.216.4 192.36.171.0/24 at 2019-08-21 17:03:33 UTC",
+            "rrc15:187.16.216.4 193.10.95.0/24 at 2019-08-21 17:03:33 UTC",
+            "rrc15:187.16.216.4 193.11.3.0/24 at 2019-08-21 17:03:33 UTC",
+            "rrc15:187.16.216.4 193.10.252.0/24 at 2019-08-21 17:03:33 UTC",
+            "rrc15:187.16.216.4 193.10.68.0/24 at 2019-08-21 17:03:33 UTC",
+            "rrc15:187.16.216.4 193.10.254.0/24 at 2019-08-21 17:03:33 UTC",
+            "rrc15:187.16.216.4 194.68.13.0/24 at 2019-08-21 17:03:34 UTC",
+            "rrc15:187.16.216.4 185.174.116.0/22 at 2019-08-21 17:03:35 UTC"
+          ]
+        },
+        {
+          "description": "Stream lifecycle: total=24 unchanged=11 prepend-only=0 withdrawn=0 departed-transit=13 restored=0 not-restored=11 add-path-ambiguous=0",
+          "source_records": []
+        }
+      ],
+      "expectation": {
+        "description": "No parenthesized site code — loss of reachability may be expected",
+        "kind": "NonRedundant",
+        "provenance": "Internet2 title convention: parenthesized site code indicates expected redundancy"
+      },
+      "generated_at": "2026-08-01T20:32:12.647079960Z",
+      "verdict": "LessImpactThanExpected",
+      "waves": [
+        {
+          "affected_peers": [
+            "rrc15:187.16.216.4"
+          ],
+          "affected_prefixes": [
+            "109.105.112.0/21",
+            "109.105.120.0/22",
+            "109.105.96.0/20",
+            "185.174.116.0/22",
+            "192.36.171.0/24",
+            "193.10.252.0/24",
+            "193.10.254.0/24",
+            "193.10.68.0/24",
+            "193.10.95.0/24",
+            "193.11.3.0/24",
+            "194.68.13.0/24"
+          ],
+          "end": "2019-08-21T16:35:38Z",
+          "id": 1,
+          "label": "Wave 1 — path replacement (0.0s, 11 prefixes, 1 peers)",
+          "motif": {
+            "covered_terminals": 11,
+            "evidence_ranges": [
+              {
+                "observer": "rrc15:187.16.216.4",
+                "prefix": "109.105.112.0/21",
+                "time_end": "2019-08-21T16:35:38Z",
+                "time_start": "2019-08-21T16:35:38Z",
+                "transition_end": 0,
+                "transition_start": 0
+              },
+              {
+                "observer": "rrc15:187.16.216.4",
+                "prefix": "109.105.120.0/22",
+                "time_end": "2019-08-21T16:35:38Z",
+                "time_start": "2019-08-21T16:35:38Z",
+                "transition_end": 0,
+                "transition_start": 0
+              },
+              {
+                "observer": "rrc15:187.16.216.4",
+                "prefix": "109.105.96.0/20",
+                "time_end": "2019-08-21T16:35:38Z",
+                "time_start": "2019-08-21T16:35:38Z",
+                "transition_end": 0,
+                "transition_start": 0
+              }
+            ],
+            "expanded": "PATH_REPLACEMENT",
+            "id": "12f3f9d9387b082d",
+            "occurrences": 11,
+            "scopes": [
+              "rrc15:187.16.216.4 109.105.112.0/21",
+              "rrc15:187.16.216.4 109.105.120.0/22",
+              "rrc15:187.16.216.4 109.105.96.0/20",
+              "rrc15:187.16.216.4 185.174.116.0/22",
+              "rrc15:187.16.216.4 192.36.171.0/24",
+              "rrc15:187.16.216.4 193.10.252.0/24",
+              "rrc15:187.16.216.4 193.10.254.0/24",
+              "rrc15:187.16.216.4 193.10.68.0/24",
+              "rrc15:187.16.216.4 193.10.95.0/24",
+              "rrc15:187.16.216.4 193.11.3.0/24",
+              "rrc15:187.16.216.4 194.68.13.0/24"
+            ],
+            "structure": [
+              "ROOT → PATH_REPLACEMENT"
+            ],
+            "total_terminals": 11
+          },
+          "peak": "2019-08-21T16:35:38Z",
+          "start": "2019-08-21T16:35:38Z"
+        },
+        {
+          "affected_peers": [
+            "rrc15:187.16.216.4"
+          ],
+          "affected_prefixes": [
+            "109.105.112.0/21",
+            "109.105.120.0/22",
+            "109.105.96.0/20",
+            "185.174.116.0/22",
+            "192.36.171.0/24",
+            "193.10.252.0/24",
+            "193.10.254.0/24",
+            "193.10.68.0/24",
+            "193.10.95.0/24",
+            "193.11.3.0/24",
+            "194.68.13.0/24"
+          ],
+          "end": "2019-08-21T16:43:04Z",
+          "id": 2,
+          "label": "Wave 2 — restoration (14.0s, 11 prefixes, 1 peers)",
+          "motif": {
+            "covered_terminals": 11,
+            "evidence_ranges": [
+              {
+                "observer": "rrc15:187.16.216.4",
+                "prefix": "109.105.112.0/21",
+                "time_end": "2019-08-21T16:42:50Z",
+                "time_start": "2019-08-21T16:42:50Z",
+                "transition_end": 0,
+                "transition_start": 0
+              },
+              {
+                "observer": "rrc15:187.16.216.4",
+                "prefix": "109.105.120.0/22",
+                "time_end": "2019-08-21T16:42:50Z",
+                "time_start": "2019-08-21T16:42:50Z",
+                "transition_end": 0,
+                "transition_start": 0
+              },
+              {
+                "observer": "rrc15:187.16.216.4",
+                "prefix": "109.105.96.0/20",
+                "time_end": "2019-08-21T16:42:50Z",
+                "time_start": "2019-08-21T16:42:50Z",
+                "transition_end": 0,
+                "transition_start": 0
+              }
+            ],
+            "expanded": "RETURN_TO_BASELINE",
+            "id": "40d21da87f78da7d",
+            "occurrences": 11,
+            "scopes": [
+              "rrc15:187.16.216.4 109.105.112.0/21",
+              "rrc15:187.16.216.4 109.105.120.0/22",
+              "rrc15:187.16.216.4 109.105.96.0/20",
+              "rrc15:187.16.216.4 185.174.116.0/22",
+              "rrc15:187.16.216.4 192.36.171.0/24",
+              "rrc15:187.16.216.4 193.10.252.0/24",
+              "rrc15:187.16.216.4 193.10.254.0/24",
+              "rrc15:187.16.216.4 193.10.68.0/24",
+              "rrc15:187.16.216.4 193.10.95.0/24",
+              "rrc15:187.16.216.4 193.11.3.0/24",
+              "rrc15:187.16.216.4 194.68.13.0/24"
+            ],
+            "structure": [
+              "ROOT → RETURN_TO_BASELINE"
+            ],
+            "total_terminals": 11
+          },
+          "peak": "2019-08-21T16:43:04Z",
+          "start": "2019-08-21T16:42:50Z"
+        },
+        {
+          "affected_peers": [
+            "rrc15:2001:12f8::20",
+            "rrc15:2001:12f8::218:21"
+          ],
+          "affected_prefixes": [
+            "2001:948::/32"
+          ],
+          "end": "2019-08-21T16:45:20Z",
+          "id": 3,
+          "label": "Wave 3 — path replacement (4.0s, 1 prefixes, 2 peers)",
+          "motif": {
+            "covered_terminals": 2,
+            "evidence_ranges": [
+              {
+                "observer": "rrc15:2001:12f8::20",
+                "prefix": "2001:948::/32",
+                "time_end": "2019-08-21T16:45:16Z",
+                "time_start": "2019-08-21T16:45:16Z",
+                "transition_end": 0,
+                "transition_start": 0
+              },
+              {
+                "observer": "rrc15:2001:12f8::218:21",
+                "prefix": "2001:948::/32",
+                "time_end": "2019-08-21T16:45:20Z",
+                "time_start": "2019-08-21T16:45:20Z",
+                "transition_end": 0,
+                "transition_start": 0
+              }
+            ],
+            "expanded": "PATH_REPLACEMENT",
+            "id": "12f3f9d9387b082d",
+            "occurrences": 2,
+            "scopes": [
+              "rrc15:2001:12f8::20 2001:948::/32",
+              "rrc15:2001:12f8::218:21 2001:948::/32"
+            ],
+            "structure": [
+              "ROOT → PATH_REPLACEMENT"
+            ],
+            "total_terminals": 2
+          },
+          "peak": "2019-08-21T16:45:20Z",
+          "start": "2019-08-21T16:45:16Z"
+        },
+        {
+          "affected_peers": [
+            "rrc15:2001:12f8::20"
+          ],
+          "affected_prefixes": [
+            "2001:948::/32"
+          ],
+          "end": "2019-08-21T16:52:15Z",
+          "id": 4,
+          "label": "Wave 4 — path replacement (119.0s, 1 prefixes, 1 peers)",
+          "motif": {
+            "covered_terminals": 2,
+            "evidence_ranges": [
+              {
+                "observer": "rrc15:2001:12f8::20",
+                "prefix": "2001:948::/32",
+                "time_end": "2019-08-21T16:52:15Z",
+                "time_start": "2019-08-21T16:50:16Z",
+                "transition_end": 1,
+                "transition_start": 0
+              }
+            ],
+            "expanded": "PATH_REPLACEMENT PATH_REPLACEMENT",
+            "id": "cf51be271ed43daf",
+            "occurrences": 1,
+            "scopes": [
+              "rrc15:2001:12f8::20 2001:948::/32"
+            ],
+            "structure": [
+              "ROOT → PATH_REPLACEMENT PATH_REPLACEMENT"
+            ],
+            "total_terminals": 2
+          },
+          "peak": "2019-08-21T16:52:15Z",
+          "start": "2019-08-21T16:50:16Z"
+        },
+        {
+          "affected_peers": [
+            "rrc15:187.16.216.4",
+            "rrc15:2001:12f8::20",
+            "rrc15:2001:12f8::218:21"
+          ],
+          "affected_prefixes": [
+            "109.105.112.0/21",
+            "109.105.120.0/22",
+            "109.105.96.0/20",
+            "185.174.116.0/22",
+            "192.36.171.0/24",
+            "193.10.252.0/24",
+            "193.10.254.0/24",
+            "193.10.68.0/24",
+            "193.10.95.0/24",
+            "193.11.3.0/24",
+            "194.68.13.0/24",
+            "2001:948::/32"
+          ],
+          "end": "2019-08-21T16:59:40Z",
+          "id": 5,
+          "label": "Wave 5 — path replacement (70.0s, 12 prefixes, 3 peers)",
+          "motif": {
+            "covered_terminals": 11,
+            "evidence_ranges": [
+              {
+                "observer": "rrc15:187.16.216.4",
+                "prefix": "109.105.112.0/21",
+                "time_end": "2019-08-21T16:58:30Z",
+                "time_start": "2019-08-21T16:58:30Z",
+                "transition_end": 0,
+                "transition_start": 0
+              },
+              {
+                "observer": "rrc15:187.16.216.4",
+                "prefix": "109.105.120.0/22",
+                "time_end": "2019-08-21T16:58:30Z",
+                "time_start": "2019-08-21T16:58:30Z",
+                "transition_end": 0,
+                "transition_start": 0
+              },
+              {
+                "observer": "rrc15:187.16.216.4",
+                "prefix": "109.105.96.0/20",
+                "time_end": "2019-08-21T16:58:30Z",
+                "time_start": "2019-08-21T16:58:30Z",
+                "transition_end": 0,
+                "transition_start": 0
+              }
+            ],
+            "expanded": "PATH_REPLACEMENT",
+            "id": "12f3f9d9387b082d",
+            "occurrences": 11,
+            "scopes": [
+              "rrc15:187.16.216.4 109.105.112.0/21",
+              "rrc15:187.16.216.4 109.105.120.0/22",
+              "rrc15:187.16.216.4 109.105.96.0/20",
+              "rrc15:187.16.216.4 185.174.116.0/22",
+              "rrc15:187.16.216.4 192.36.171.0/24",
+              "rrc15:187.16.216.4 193.10.252.0/24",
+              "rrc15:187.16.216.4 193.10.254.0/24",
+              "rrc15:187.16.216.4 193.10.68.0/24",
+              "rrc15:187.16.216.4 193.10.95.0/24",
+              "rrc15:187.16.216.4 193.11.3.0/24",
+              "rrc15:187.16.216.4 194.68.13.0/24"
+            ],
+            "structure": [
+              "ROOT → PATH_REPLACEMENT"
+            ],
+            "total_terminals": 13
+          },
+          "peak": "2019-08-21T16:58:35Z",
+          "start": "2019-08-21T16:58:30Z"
+        },
+        {
+          "affected_peers": [
+            "rrc15:187.16.216.4"
+          ],
+          "affected_prefixes": [
+            "109.105.112.0/21",
+            "109.105.120.0/22",
+            "109.105.96.0/20",
+            "185.174.116.0/22",
+            "192.36.171.0/24",
+            "193.10.252.0/24",
+            "193.10.254.0/24",
+            "193.10.68.0/24",
+            "193.10.95.0/24",
+            "193.11.3.0/24",
+            "194.68.13.0/24"
+          ],
+          "end": "2019-08-21T17:03:35Z",
+          "id": 6,
+          "label": "Wave 6 — restoration (3.0s, 11 prefixes, 1 peers)",
+          "motif": {
+            "covered_terminals": 11,
+            "evidence_ranges": [
+              {
+                "observer": "rrc15:187.16.216.4",
+                "prefix": "109.105.112.0/21",
+                "time_end": "2019-08-21T17:03:32Z",
+                "time_start": "2019-08-21T17:03:32Z",
+                "transition_end": 0,
+                "transition_start": 0
+              },
+              {
+                "observer": "rrc15:187.16.216.4",
+                "prefix": "109.105.120.0/22",
+                "time_end": "2019-08-21T17:03:32Z",
+                "time_start": "2019-08-21T17:03:32Z",
+                "transition_end": 0,
+                "transition_start": 0
+              },
+              {
+                "observer": "rrc15:187.16.216.4",
+                "prefix": "109.105.96.0/20",
+                "time_end": "2019-08-21T17:03:32Z",
+                "time_start": "2019-08-21T17:03:32Z",
+                "transition_end": 0,
+                "transition_start": 0
+              }
+            ],
+            "expanded": "RETURN_TO_BASELINE",
+            "id": "40d21da87f78da7d",
+            "occurrences": 11,
+            "scopes": [
+              "rrc15:187.16.216.4 109.105.112.0/21",
+              "rrc15:187.16.216.4 109.105.120.0/22",
+              "rrc15:187.16.216.4 109.105.96.0/20",
+              "rrc15:187.16.216.4 185.174.116.0/22",
+              "rrc15:187.16.216.4 192.36.171.0/24",
+              "rrc15:187.16.216.4 193.10.252.0/24",
+              "rrc15:187.16.216.4 193.10.254.0/24",
+              "rrc15:187.16.216.4 193.10.68.0/24",
+              "rrc15:187.16.216.4 193.10.95.0/24",
+              "rrc15:187.16.216.4 193.11.3.0/24",
+              "rrc15:187.16.216.4 194.68.13.0/24"
+            ],
+            "structure": [
+              "ROOT → RETURN_TO_BASELINE"
+            ],
+            "total_terminals": 11
+          },
+          "peak": "2019-08-21T17:03:33Z",
+          "start": "2019-08-21T17:03:32Z"
+        },
+        {
+          "affected_peers": [
+            "rrc15:187.16.216.4"
+          ],
+          "affected_prefixes": [
+            "109.105.112.0/21",
+            "109.105.120.0/22",
+            "109.105.96.0/20",
+            "185.174.116.0/22",
+            "192.36.171.0/24",
+            "193.10.252.0/24",
+            "193.10.254.0/24",
+            "193.10.68.0/24",
+            "193.10.95.0/24",
+            "193.11.3.0/24",
+            "194.68.13.0/24"
+          ],
+          "end": "2019-08-21T17:52:16Z",
+          "id": 7,
+          "label": "Wave 7 — path replacement (0.0s, 11 prefixes, 1 peers)",
+          "motif": {
+            "covered_terminals": 11,
+            "evidence_ranges": [
+              {
+                "observer": "rrc15:187.16.216.4",
+                "prefix": "109.105.112.0/21",
+                "time_end": "2019-08-21T17:52:16Z",
+                "time_start": "2019-08-21T17:52:16Z",
+                "transition_end": 0,
+                "transition_start": 0
+              },
+              {
+                "observer": "rrc15:187.16.216.4",
+                "prefix": "109.105.120.0/22",
+                "time_end": "2019-08-21T17:52:16Z",
+                "time_start": "2019-08-21T17:52:16Z",
+                "transition_end": 0,
+                "transition_start": 0
+              },
+              {
+                "observer": "rrc15:187.16.216.4",
+                "prefix": "109.105.96.0/20",
+                "time_end": "2019-08-21T17:52:16Z",
+                "time_start": "2019-08-21T17:52:16Z",
+                "transition_end": 0,
+                "transition_start": 0
+              }
+            ],
+            "expanded": "PATH_REPLACEMENT",
+            "id": "12f3f9d9387b082d",
+            "occurrences": 11,
+            "scopes": [
+              "rrc15:187.16.216.4 109.105.112.0/21",
+              "rrc15:187.16.216.4 109.105.120.0/22",
+              "rrc15:187.16.216.4 109.105.96.0/20",
+              "rrc15:187.16.216.4 185.174.116.0/22",
+              "rrc15:187.16.216.4 192.36.171.0/24",
+              "rrc15:187.16.216.4 193.10.252.0/24",
+              "rrc15:187.16.216.4 193.10.254.0/24",
+              "rrc15:187.16.216.4 193.10.68.0/24",
+              "rrc15:187.16.216.4 193.10.95.0/24",
+              "rrc15:187.16.216.4 193.11.3.0/24",
+              "rrc15:187.16.216.4 194.68.13.0/24"
+            ],
+            "structure": [
+              "ROOT → PATH_REPLACEMENT"
+            ],
+            "total_terminals": 11
+          },
+          "peak": "2019-08-21T17:52:16Z",
+          "start": "2019-08-21T17:52:16Z"
+        }
+      ]
+    },
+    "status": "completed"
+  },
+  "transitions": {
+    "total": 61,
+    "event_window": 50,
+    "cooldown": 11
+  },
+  "waves": [
+    {
+      "id": 1,
+      "label": "Wave 1 — path replacement (0.0s, 11 prefixes, 1 peers)",
+      "start": "2019-08-21 16:35:38 UTC",
+      "end": "2019-08-21 16:35:38 UTC",
+      "affected_prefix_count": 11,
+      "motif_id": "12f3f9d9387b082d"
+    },
+    {
+      "id": 2,
+      "label": "Wave 2 — restoration (14.0s, 11 prefixes, 1 peers)",
+      "start": "2019-08-21 16:42:50 UTC",
+      "end": "2019-08-21 16:43:04 UTC",
+      "affected_prefix_count": 11,
+      "motif_id": "40d21da87f78da7d"
+    },
+    {
+      "id": 3,
+      "label": "Wave 3 — path replacement (4.0s, 1 prefixes, 2 peers)",
+      "start": "2019-08-21 16:45:16 UTC",
+      "end": "2019-08-21 16:45:20 UTC",
+      "affected_prefix_count": 1,
+      "motif_id": "12f3f9d9387b082d"
+    },
+    {
+      "id": 4,
+      "label": "Wave 4 — path replacement (119.0s, 1 prefixes, 1 peers)",
+      "start": "2019-08-21 16:50:16 UTC",
+      "end": "2019-08-21 16:52:15 UTC",
+      "affected_prefix_count": 1,
+      "motif_id": "cf51be271ed43daf"
+    },
+    {
+      "id": 5,
+      "label": "Wave 5 — path replacement (70.0s, 12 prefixes, 3 peers)",
+      "start": "2019-08-21 16:58:30 UTC",
+      "end": "2019-08-21 16:59:40 UTC",
+      "affected_prefix_count": 12,
+      "motif_id": "12f3f9d9387b082d"
+    },
+    {
+      "id": 6,
+      "label": "Wave 6 — restoration (3.0s, 11 prefixes, 1 peers)",
+      "start": "2019-08-21 17:03:32 UTC",
+      "end": "2019-08-21 17:03:35 UTC",
+      "affected_prefix_count": 11,
+      "motif_id": "40d21da87f78da7d"
+    },
+    {
+      "id": 7,
+      "label": "Wave 7 — path replacement (0.0s, 11 prefixes, 1 peers)",
+      "start": "2019-08-21 17:52:16 UTC",
+      "end": "2019-08-21 17:52:16 UTC",
+      "affected_prefix_count": 11,
+      "motif_id": "12f3f9d9387b082d"
+    }
+  ]
+}

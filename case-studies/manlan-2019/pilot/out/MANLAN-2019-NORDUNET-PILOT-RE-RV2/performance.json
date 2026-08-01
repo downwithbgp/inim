@@ -1,0 +1,770 @@
+{
+  "schema_version": 1,
+  "host": {
+    "logical_cpus": 12,
+    "available_parallelism": 12,
+    "jobs": 8,
+    "parse_jobs": 0,
+    "download_jobs": 2,
+    "cgroup_cpu_max": null,
+    "cpu_affinity": "Cpus_allowed_list:\t0-11"
+  },
+  "stages": [
+    {
+      "stage": "broker+cache",
+      "wall_secs": 0.529042542,
+      "input_bytes": 0,
+      "output_count": 0,
+      "workers": 0,
+      "cache_hits": 0,
+      "cache_misses": 0
+    },
+    {
+      "stage": "UPDATE cache+parse",
+      "wall_secs": 103.92766886,
+      "input_bytes": 0,
+      "output_count": 0,
+      "workers": 0,
+      "cache_hits": 0,
+      "cache_misses": 0
+    },
+    {
+      "stage": "reconstruction",
+      "wall_secs": 0.012574037,
+      "input_bytes": 0,
+      "output_count": 0,
+      "workers": 0,
+      "cache_hits": 0,
+      "cache_misses": 0
+    },
+    {
+      "stage": "tokenize",
+      "wall_secs": 0.000190574,
+      "input_bytes": 0,
+      "output_count": 0,
+      "workers": 0,
+      "cache_hits": 0,
+      "cache_misses": 0
+    },
+    {
+      "stage": "waves+motifs",
+      "wall_secs": 0.140066807,
+      "input_bytes": 0,
+      "output_count": 0,
+      "workers": 0,
+      "cache_hits": 0,
+      "cache_misses": 0
+    },
+    {
+      "stage": "assess",
+      "wall_secs": 0.006651319,
+      "input_bytes": 0,
+      "output_count": 0,
+      "workers": 0,
+      "cache_hits": 0,
+      "cache_misses": 0
+    },
+    {
+      "stage": "outputs",
+      "wall_secs": 0.080767213,
+      "input_bytes": 0,
+      "output_count": 0,
+      "workers": 0,
+      "cache_hits": 0,
+      "cache_misses": 0
+    }
+  ],
+  "archives": [
+    {
+      "archive_url": "http://archive.routeviews.org/bgpdata/2019.08/UPDATES/updates.20190821.0130.bz2",
+      "archive_sha256": "cef0a2b5c1e8707646da1e6d00b1d6876827019ab71b3048dc14f1179970c9c9",
+      "compressed_bytes": 1225913,
+      "parse_wall_secs": 0.0,
+      "parsed_elements": 411684,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.0,
+      "cache_hit": true
+    },
+    {
+      "archive_url": "http://archive.routeviews.org/bgpdata/2019.08/UPDATES/updates.20190821.0145.bz2",
+      "archive_sha256": "818f4747bd5174e60016511808e156320722abd359dce44721fb7df608f9b9cb",
+      "compressed_bytes": 1329022,
+      "parse_wall_secs": 0.0,
+      "parsed_elements": 430640,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.0,
+      "cache_hit": true
+    },
+    {
+      "archive_url": "http://archive.routeviews.org/bgpdata/2019.08/UPDATES/updates.20190821.0200.bz2",
+      "archive_sha256": "a6b13f6c46bdd5485d283031457ca7f3811692499eb1bb580faeaec6a072c224",
+      "compressed_bytes": 1429976,
+      "parse_wall_secs": 0.0,
+      "parsed_elements": 472035,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.0,
+      "cache_hit": true
+    },
+    {
+      "archive_url": "http://archive.routeviews.org/bgpdata/2019.08/UPDATES/updates.20190821.0215.bz2",
+      "archive_sha256": "9c1bc26b7f538cde6c46c7ddeabff4be3505238500527c64da8d773a74b249b0",
+      "compressed_bytes": 2180191,
+      "parse_wall_secs": 0.0,
+      "parsed_elements": 669356,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.0,
+      "cache_hit": true
+    },
+    {
+      "archive_url": "http://archive.routeviews.org/bgpdata/2019.08/UPDATES/updates.20190821.0230.bz2",
+      "archive_sha256": "4fb1e45add4478636261b567111af69d8e0ca31ab5777d90cda495d8a6d53621",
+      "compressed_bytes": 1391819,
+      "parse_wall_secs": 0.0,
+      "parsed_elements": 470278,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.0,
+      "cache_hit": true
+    },
+    {
+      "archive_url": "http://archive.routeviews.org/bgpdata/2019.08/UPDATES/updates.20190821.0245.bz2",
+      "archive_sha256": "846a7b8d8f7b95c109ecccb0f244b7d1b600ee92e34e761d3266f6651a65e8c3",
+      "compressed_bytes": 1346681,
+      "parse_wall_secs": 0.0,
+      "parsed_elements": 442114,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.0,
+      "cache_hit": true
+    },
+    {
+      "archive_url": "http://archive.routeviews.org/bgpdata/2019.08/UPDATES/updates.20190821.0300.bz2",
+      "archive_sha256": "b0623ddd0d552ce6f960d368013c3f4cfd7416a669d70032d30ef6ad1e3825ca",
+      "compressed_bytes": 1260510,
+      "parse_wall_secs": 0.0,
+      "parsed_elements": 403082,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.0,
+      "cache_hit": true
+    },
+    {
+      "archive_url": "http://archive.routeviews.org/bgpdata/2019.08/UPDATES/updates.20190821.0315.bz2",
+      "archive_sha256": "698955640a3c05c407e98527d8d23cd0a19a9c78a22f70a515328c63f0db993b",
+      "compressed_bytes": 1402220,
+      "parse_wall_secs": 0.0,
+      "parsed_elements": 461404,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.0,
+      "cache_hit": true
+    },
+    {
+      "archive_url": "http://archive.routeviews.org/bgpdata/2019.08/UPDATES/updates.20190821.0330.bz2",
+      "archive_sha256": "0f1aaf0794f99b5ad76c407035ff90fa57a41fb4dc252c6110f514f006faee08",
+      "compressed_bytes": 1416964,
+      "parse_wall_secs": 0.0,
+      "parsed_elements": 458235,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.0,
+      "cache_hit": true
+    },
+    {
+      "archive_url": "http://archive.routeviews.org/bgpdata/2019.08/UPDATES/updates.20190821.0345.bz2",
+      "archive_sha256": "6a0cb8e6a4ebbff891a41dc2970330ed9bcdb3e84ffb384febfe434c702be8ad",
+      "compressed_bytes": 1301153,
+      "parse_wall_secs": 0.0,
+      "parsed_elements": 448463,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.0,
+      "cache_hit": true
+    },
+    {
+      "archive_url": "http://archive.routeviews.org/bgpdata/2019.08/UPDATES/updates.20190821.0400.bz2",
+      "archive_sha256": "7f980d8257673a1294eece9e80abe1a17a3eb3f5ccc0470d7c3f543995df0af7",
+      "compressed_bytes": 1638089,
+      "parse_wall_secs": 0.0,
+      "parsed_elements": 546041,
+      "admitted_observations": 44,
+      "derived_cache_write_secs": 0.0,
+      "cache_hit": true
+    },
+    {
+      "archive_url": "http://archive.routeviews.org/bgpdata/2019.08/UPDATES/updates.20190821.0415.bz2",
+      "archive_sha256": "0978e22b128866b6b4c4147008298895a6b7f67bc0db5bc33f048a30651567bf",
+      "compressed_bytes": 1457423,
+      "parse_wall_secs": 0.0,
+      "parsed_elements": 442651,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.0,
+      "cache_hit": true
+    },
+    {
+      "archive_url": "http://archive.routeviews.org/bgpdata/2019.08/UPDATES/updates.20190821.0430.bz2",
+      "archive_sha256": "5f634d5c9aa99b801470532e12b59db09856272bd9fb28a5c0c5646946d3a20f",
+      "compressed_bytes": 3873653,
+      "parse_wall_secs": 0.0,
+      "parsed_elements": 873799,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.0,
+      "cache_hit": true
+    },
+    {
+      "archive_url": "http://archive.routeviews.org/bgpdata/2019.08/UPDATES/updates.20190821.0445.bz2",
+      "archive_sha256": "c5ca30127f50dba0c57e4751ca9c649a2b2a60cd136f3712a3b696149ecb7dae",
+      "compressed_bytes": 6515319,
+      "parse_wall_secs": 0.0,
+      "parsed_elements": 1565521,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.0,
+      "cache_hit": true
+    },
+    {
+      "archive_url": "http://archive.routeviews.org/bgpdata/2019.08/UPDATES/updates.20190821.0500.bz2",
+      "archive_sha256": "bbe5cbf73ea793c7880ed93ad59c8c07782ee0ec07251b1c6e5f92689aef07fd",
+      "compressed_bytes": 4102368,
+      "parse_wall_secs": 0.0,
+      "parsed_elements": 1066780,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.0,
+      "cache_hit": true
+    },
+    {
+      "archive_url": "http://archive.routeviews.org/bgpdata/2019.08/UPDATES/updates.20190821.0515.bz2",
+      "archive_sha256": "76d8907990295147850b415068657ac430c3a6af3d3c69eab9663981b224388b",
+      "compressed_bytes": 1590596,
+      "parse_wall_secs": 0.0,
+      "parsed_elements": 521659,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.0,
+      "cache_hit": true
+    },
+    {
+      "archive_url": "http://archive.routeviews.org/bgpdata/2019.08/UPDATES/updates.20190821.0530.bz2",
+      "archive_sha256": "1ed904612aec02bfc7698ff99a0984c5e63b1ef911abe8582c8e9642e824cc86",
+      "compressed_bytes": 1619072,
+      "parse_wall_secs": 0.0,
+      "parsed_elements": 529093,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.0,
+      "cache_hit": true
+    },
+    {
+      "archive_url": "http://archive.routeviews.org/bgpdata/2019.08/UPDATES/updates.20190821.0545.bz2",
+      "archive_sha256": "109963e466b83338453b03cb2fe0c5c23ee931d152c082adedbc4a6f72fca0ae",
+      "compressed_bytes": 1334103,
+      "parse_wall_secs": 0.0,
+      "parsed_elements": 438050,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.0,
+      "cache_hit": true
+    },
+    {
+      "archive_url": "http://archive.routeviews.org/bgpdata/2019.08/UPDATES/updates.20190821.0600.bz2",
+      "archive_sha256": "5cc69dbc0c06eb889624ba3da70085aa03e3caf611151cad6e6a12fa9fb7d8f5",
+      "compressed_bytes": 1486301,
+      "parse_wall_secs": 0.0,
+      "parsed_elements": 485519,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.0,
+      "cache_hit": true
+    },
+    {
+      "archive_url": "http://archive.routeviews.org/bgpdata/2019.08/UPDATES/updates.20190821.0615.bz2",
+      "archive_sha256": "abc584b394e097dd27b61e5b15302a7f8557680cf677d139f2a978aba62171ff",
+      "compressed_bytes": 1998172,
+      "parse_wall_secs": 0.0,
+      "parsed_elements": 625524,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.0,
+      "cache_hit": true
+    },
+    {
+      "archive_url": "http://archive.routeviews.org/bgpdata/2019.08/UPDATES/updates.20190821.0630.bz2",
+      "archive_sha256": "3a6e191571d0dee8675f39f818ea4513ec341db866100bb0067e9dd3934277b8",
+      "compressed_bytes": 2901066,
+      "parse_wall_secs": 0.0,
+      "parsed_elements": 913632,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.0,
+      "cache_hit": true
+    },
+    {
+      "archive_url": "http://archive.routeviews.org/bgpdata/2019.08/UPDATES/updates.20190821.0645.bz2",
+      "archive_sha256": "69b902ef226b15556d48d23f5660ded3dd40a38b05980bc9e83a98d3c17608dd",
+      "compressed_bytes": 2354605,
+      "parse_wall_secs": 0.0,
+      "parsed_elements": 705831,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.0,
+      "cache_hit": true
+    },
+    {
+      "archive_url": "http://archive.routeviews.org/bgpdata/2019.08/UPDATES/updates.20190821.0700.bz2",
+      "archive_sha256": "102b9d2e268cffedb7df5d0f88a4de01a40afebd5ca324c796178f009b1679aa",
+      "compressed_bytes": 1922828,
+      "parse_wall_secs": 0.0,
+      "parsed_elements": 576498,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.0,
+      "cache_hit": true
+    },
+    {
+      "archive_url": "http://archive.routeviews.org/bgpdata/2019.08/UPDATES/updates.20190821.0715.bz2",
+      "archive_sha256": "aff5bc093e6fae4e3108b863d5caf09e4509822335512ddcc29fd411f417db0b",
+      "compressed_bytes": 2129410,
+      "parse_wall_secs": 0.0,
+      "parsed_elements": 653670,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.0,
+      "cache_hit": true
+    },
+    {
+      "archive_url": "http://archive.routeviews.org/bgpdata/2019.08/UPDATES/updates.20190821.0730.bz2",
+      "archive_sha256": "56300f879b47862fa591592df87c51105a0a29556ec96eceba9705ebd5eab903",
+      "compressed_bytes": 1684792,
+      "parse_wall_secs": 0.0,
+      "parsed_elements": 534816,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.0,
+      "cache_hit": true
+    },
+    {
+      "archive_url": "http://archive.routeviews.org/bgpdata/2019.08/UPDATES/updates.20190821.0745.bz2",
+      "archive_sha256": "a21f66a47e371e079afd2a99288e30c2db5b421cd7ad1e5da5aa7e87910cffe0",
+      "compressed_bytes": 1403894,
+      "parse_wall_secs": 0.0,
+      "parsed_elements": 462262,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.0,
+      "cache_hit": true
+    },
+    {
+      "archive_url": "http://archive.routeviews.org/bgpdata/2019.08/UPDATES/updates.20190821.0800.bz2",
+      "archive_sha256": "b0e81c4d48d220920626f17c030122ff2379a55d96503196ecf7712258833119",
+      "compressed_bytes": 2059266,
+      "parse_wall_secs": 0.0,
+      "parsed_elements": 601881,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.0,
+      "cache_hit": true
+    },
+    {
+      "archive_url": "http://archive.routeviews.org/bgpdata/2019.08/UPDATES/updates.20190821.0815.bz2",
+      "archive_sha256": "d23bd079dc289fe091d210d69598fb9e0d8f8c8352fe47304da9a045e474313c",
+      "compressed_bytes": 2244741,
+      "parse_wall_secs": 0.0,
+      "parsed_elements": 632452,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.0,
+      "cache_hit": true
+    },
+    {
+      "archive_url": "http://archive.routeviews.org/bgpdata/2019.08/UPDATES/updates.20190821.0830.bz2",
+      "archive_sha256": "bc0f2831839769d3768e68efd7b5f36009c557b61ffc666531b311dec7bd24a8",
+      "compressed_bytes": 1773239,
+      "parse_wall_secs": 0.0,
+      "parsed_elements": 575081,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.0,
+      "cache_hit": true
+    },
+    {
+      "archive_url": "http://archive.routeviews.org/bgpdata/2019.08/UPDATES/updates.20190821.0845.bz2",
+      "archive_sha256": "26ef459e4b8fdf80c732c01b7d1906485ced2be998176042cc5f807481d28a4f",
+      "compressed_bytes": 1483084,
+      "parse_wall_secs": 0.0,
+      "parsed_elements": 457002,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.0,
+      "cache_hit": true
+    },
+    {
+      "archive_url": "http://archive.routeviews.org/bgpdata/2019.08/UPDATES/updates.20190821.0900.bz2",
+      "archive_sha256": "1000b35d9e5bb3119335436c79b4a24353db7dd8510aec6d1db62216031ef151",
+      "compressed_bytes": 1570951,
+      "parse_wall_secs": 0.0,
+      "parsed_elements": 509704,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.0,
+      "cache_hit": true
+    },
+    {
+      "archive_url": "http://archive.routeviews.org/bgpdata/2019.08/UPDATES/updates.20190821.0915.bz2",
+      "archive_sha256": "3014a7ca8f81ad195cf0dc3e899c1f6a6fd62c53a4e702a2cc6af4e2b19a35ea",
+      "compressed_bytes": 1754061,
+      "parse_wall_secs": 0.0,
+      "parsed_elements": 578944,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.0,
+      "cache_hit": true
+    },
+    {
+      "archive_url": "http://archive.routeviews.org/bgpdata/2019.08/UPDATES/updates.20190821.0930.bz2",
+      "archive_sha256": "e04f3b5eeab72ca0136b61fc8525e5d550f62514dc5e0bf1537123dacae8eb32",
+      "compressed_bytes": 1752465,
+      "parse_wall_secs": 0.0,
+      "parsed_elements": 571639,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.0,
+      "cache_hit": true
+    },
+    {
+      "archive_url": "http://archive.routeviews.org/bgpdata/2019.08/UPDATES/updates.20190821.0945.bz2",
+      "archive_sha256": "9fe5c2cf2ebb57430813bd7c0620999c6270219caf2b5a09396287d0877f8902",
+      "compressed_bytes": 1620208,
+      "parse_wall_secs": 0.0,
+      "parsed_elements": 510345,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.0,
+      "cache_hit": true
+    },
+    {
+      "archive_url": "http://archive.routeviews.org/bgpdata/2019.08/UPDATES/updates.20190821.1000.bz2",
+      "archive_sha256": "8d5aa90d000b3963a435430ecb0e84304e70d743eb87eb04187389eec3aed605",
+      "compressed_bytes": 1493699,
+      "parse_wall_secs": 0.0,
+      "parsed_elements": 481109,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.0,
+      "cache_hit": true
+    },
+    {
+      "archive_url": "http://archive.routeviews.org/bgpdata/2019.08/UPDATES/updates.20190821.1015.bz2",
+      "archive_sha256": "b91f50e9cf94e7eb89f6f467f0a913f7182cee4a2b59dfcc32fb270525c6b9be",
+      "compressed_bytes": 2043363,
+      "parse_wall_secs": 0.0,
+      "parsed_elements": 644274,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.0,
+      "cache_hit": true
+    },
+    {
+      "archive_url": "http://archive.routeviews.org/bgpdata/2019.08/UPDATES/updates.20190821.1030.bz2",
+      "archive_sha256": "652d37685ebb2d0748c43281b91241307316f8d65bd5aa514aa8c35c72e20990",
+      "compressed_bytes": 1554725,
+      "parse_wall_secs": 0.0,
+      "parsed_elements": 513580,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.0,
+      "cache_hit": true
+    },
+    {
+      "archive_url": "http://archive.routeviews.org/bgpdata/2019.08/UPDATES/updates.20190821.1045.bz2",
+      "archive_sha256": "aaf77f11a141d65a1bf0bff92c27fb7a97ef4382773c49be0d97144f88b5f7bd",
+      "compressed_bytes": 1661270,
+      "parse_wall_secs": 0.0,
+      "parsed_elements": 537024,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.0,
+      "cache_hit": true
+    },
+    {
+      "archive_url": "http://archive.routeviews.org/bgpdata/2019.08/UPDATES/updates.20190821.1100.bz2",
+      "archive_sha256": "0a1723d381fbc912d85ee4e147479babf2092c79990ca971cef721d35b8318a0",
+      "compressed_bytes": 1500561,
+      "parse_wall_secs": 0.0,
+      "parsed_elements": 461868,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.0,
+      "cache_hit": true
+    },
+    {
+      "archive_url": "http://archive.routeviews.org/bgpdata/2019.08/UPDATES/updates.20190821.1115.bz2",
+      "archive_sha256": "4dd365f1a1606f280185d8b14c5cda4e37e5ebf0c2b958d8160532191ee22afe",
+      "compressed_bytes": 1652186,
+      "parse_wall_secs": 0.0,
+      "parsed_elements": 511766,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.0,
+      "cache_hit": true
+    },
+    {
+      "archive_url": "http://archive.routeviews.org/bgpdata/2019.08/UPDATES/updates.20190821.1130.bz2",
+      "archive_sha256": "3be5a7cfb6e7965109a7d84373dfd480f1f30e99007fbb2b447cee7fb07c26f7",
+      "compressed_bytes": 1569447,
+      "parse_wall_secs": 0.0,
+      "parsed_elements": 516780,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.0,
+      "cache_hit": true
+    },
+    {
+      "archive_url": "http://archive.routeviews.org/bgpdata/2019.08/UPDATES/updates.20190821.1145.bz2",
+      "archive_sha256": "1cdc6c43214dbfc6fd0fa33fb7dd5d777a2b49c920fc01a6da73cd15ec4fdd84",
+      "compressed_bytes": 1546841,
+      "parse_wall_secs": 0.0,
+      "parsed_elements": 466571,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.0,
+      "cache_hit": true
+    },
+    {
+      "archive_url": "http://archive.routeviews.org/bgpdata/2019.08/UPDATES/updates.20190821.1200.bz2",
+      "archive_sha256": "620403f3399d99bdce488354f36f8e8ebbbff38814d513355886e6e5509e9900",
+      "compressed_bytes": 5528641,
+      "parse_wall_secs": 50.786842756,
+      "parsed_elements": 1365710,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000529307,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "http://archive.routeviews.org/bgpdata/2019.08/UPDATES/updates.20190821.1215.bz2",
+      "archive_sha256": "130716d5ebefbcbbbb02777421a50631dfa2817257fdb9f53e46ec8b3ae73d91",
+      "compressed_bytes": 2050960,
+      "parse_wall_secs": 0.0,
+      "parsed_elements": 588342,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.0,
+      "cache_hit": true
+    },
+    {
+      "archive_url": "http://archive.routeviews.org/bgpdata/2019.08/UPDATES/updates.20190821.1230.bz2",
+      "archive_sha256": "ac33204e861040dddb51e27c477e9e082a287134ce343fd7c7878dce29f1e526",
+      "compressed_bytes": 1603307,
+      "parse_wall_secs": 0.0,
+      "parsed_elements": 517231,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.0,
+      "cache_hit": true
+    },
+    {
+      "archive_url": "http://archive.routeviews.org/bgpdata/2019.08/UPDATES/updates.20190821.1245.bz2",
+      "archive_sha256": "43280349838effecd584bbc4f2b66b873033de1cb0cb97ec8849998af1828831",
+      "compressed_bytes": 1702658,
+      "parse_wall_secs": 0.0,
+      "parsed_elements": 519537,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.0,
+      "cache_hit": true
+    },
+    {
+      "archive_url": "http://archive.routeviews.org/bgpdata/2019.08/UPDATES/updates.20190821.1300.bz2",
+      "archive_sha256": "b2a9a8e62eb79f265ab9bf1826a69b6425b6edf9c40efb41d9f7110862dac5e6",
+      "compressed_bytes": 1589482,
+      "parse_wall_secs": 0.0,
+      "parsed_elements": 479305,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.0,
+      "cache_hit": true
+    },
+    {
+      "archive_url": "http://archive.routeviews.org/bgpdata/2019.08/UPDATES/updates.20190821.1315.bz2",
+      "archive_sha256": "c0bbef8f3b41d107a6f2d4438ff5832a2385e078869e3d29826fa7cff19a52bc",
+      "compressed_bytes": 1848744,
+      "parse_wall_secs": 28.162520129,
+      "parsed_elements": 581450,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.001182133,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "http://archive.routeviews.org/bgpdata/2019.08/UPDATES/updates.20190821.1330.bz2",
+      "archive_sha256": "20219fedea68413ad00e9d565738c44e25b2ede6a96d14b2681999e85cfe5adb",
+      "compressed_bytes": 1567476,
+      "parse_wall_secs": 24.033670438,
+      "parsed_elements": 482692,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000570569,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "http://archive.routeviews.org/bgpdata/2019.08/UPDATES/updates.20190821.1345.bz2",
+      "archive_sha256": "c26babf5c057a00d3c9af7753d102f7bd97bd5a63747d08b039b379859ce9776",
+      "compressed_bytes": 1390804,
+      "parse_wall_secs": 21.98766579,
+      "parsed_elements": 433363,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000669922,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "http://archive.routeviews.org/bgpdata/2019.08/UPDATES/updates.20190821.1400.bz2",
+      "archive_sha256": "12c737ff620ca1fdbc928840d5eb2740570112af0a4dca8c10017c5cb5f101d7",
+      "compressed_bytes": 1931051,
+      "parse_wall_secs": 29.475491058,
+      "parsed_elements": 565690,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000807271,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "http://archive.routeviews.org/bgpdata/2019.08/UPDATES/updates.20190821.1415.bz2",
+      "archive_sha256": "d741a29fae7a4db1ef938421102e5a4dfc60948f79d30cb0f6dba3a2a3d1ba8a",
+      "compressed_bytes": 2030044,
+      "parse_wall_secs": 27.86247658,
+      "parsed_elements": 580958,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000546101,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "http://archive.routeviews.org/bgpdata/2019.08/UPDATES/updates.20190821.1430.bz2",
+      "archive_sha256": "b1f71bfe36cf2aa158b0b64ba4ae748faeac03b1af19e3b26caec18422fcc703",
+      "compressed_bytes": 1836762,
+      "parse_wall_secs": 27.105180948,
+      "parsed_elements": 565153,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000607801,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "http://archive.routeviews.org/bgpdata/2019.08/UPDATES/updates.20190821.1445.bz2",
+      "archive_sha256": "5fea0401d32ae7493bd64820cd2ea723faae6b91cc8928def62af82bd0ad15ec",
+      "compressed_bytes": 1653116,
+      "parse_wall_secs": 25.371647379,
+      "parsed_elements": 508804,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000621757,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "http://archive.routeviews.org/bgpdata/2019.08/UPDATES/updates.20190821.1500.bz2",
+      "archive_sha256": "071820556cb05cb2de95aa68b2b5840e99ed788e479392f6e7f120864266ba41",
+      "compressed_bytes": 2083289,
+      "parse_wall_secs": 34.176118502,
+      "parsed_elements": 613210,
+      "admitted_observations": 55,
+      "derived_cache_write_secs": 0.018424427,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "http://archive.routeviews.org/bgpdata/2019.08/UPDATES/updates.20190821.1515.bz2",
+      "archive_sha256": "678476373b44a2b4e43119cbcc352b4150631d6063618e4e3334c023c1ff908f",
+      "compressed_bytes": 2681184,
+      "parse_wall_secs": 40.711687359,
+      "parsed_elements": 786856,
+      "admitted_observations": 33,
+      "derived_cache_write_secs": 0.020269983,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "http://archive.routeviews.org/bgpdata/2019.08/UPDATES/updates.20190821.1530.bz2",
+      "archive_sha256": "b19d0a0e30770effcfa02460227accfcdc961c4c9d49c09ff45611d04848bd88",
+      "compressed_bytes": 3345832,
+      "parse_wall_secs": 47.347703826,
+      "parsed_elements": 928546,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000516403,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "http://archive.routeviews.org/bgpdata/2019.08/UPDATES/updates.20190821.1545.bz2",
+      "archive_sha256": "1c8e0f1dd256589bf370653931a42427352e48457efe46522801da598afdb1b5",
+      "compressed_bytes": 2004900,
+      "parse_wall_secs": 30.589539637,
+      "parsed_elements": 600850,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.001123022,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "http://archive.routeviews.org/bgpdata/2019.08/UPDATES/updates.20190821.1600.bz2",
+      "archive_sha256": "5b6e9f41acde1e66568b63e5ebf11688d403a6b53aaf39600e0d1f49bc56eea3",
+      "compressed_bytes": 2050549,
+      "parse_wall_secs": 31.633296933,
+      "parsed_elements": 633106,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.00061733,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "http://archive.routeviews.org/bgpdata/2019.08/UPDATES/updates.20190821.1615.bz2",
+      "archive_sha256": "4cc0d996e3c31bae8c5df4a4bf4c91021e89bdc58de086f2faa6137ebcfb0a3e",
+      "compressed_bytes": 1983573,
+      "parse_wall_secs": 28.716740029,
+      "parsed_elements": 595225,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000502565,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "http://archive.routeviews.org/bgpdata/2019.08/UPDATES/updates.20190821.1630.bz2",
+      "archive_sha256": "789f3cd5273f35a41490b7276dc8e4ebc8a2434d3a89c54bfab32d2544d2f23f",
+      "compressed_bytes": 1633029,
+      "parse_wall_secs": 26.853399782,
+      "parsed_elements": 508092,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000996078,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "http://archive.routeviews.org/bgpdata/2019.08/UPDATES/updates.20190821.1645.bz2",
+      "archive_sha256": "4546b78f8fb9ced87b93867cbb5f76e4abc11f37e564001f73f593313b9fd182",
+      "compressed_bytes": 2025863,
+      "parse_wall_secs": 26.743802348,
+      "parsed_elements": 586315,
+      "admitted_observations": 53,
+      "derived_cache_write_secs": 0.015829188,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "http://archive.routeviews.org/bgpdata/2019.08/UPDATES/updates.20190821.1700.bz2",
+      "archive_sha256": "a56a86cbce313bd04106babd94f9018a2c211d870fb07234efd320e89734786f",
+      "compressed_bytes": 2516514,
+      "parse_wall_secs": 33.902059608,
+      "parsed_elements": 703406,
+      "admitted_observations": 62,
+      "derived_cache_write_secs": 0.020608755,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "http://archive.routeviews.org/bgpdata/2019.08/UPDATES/updates.20190821.1715.bz2",
+      "archive_sha256": "e981f5053f3497f8c1262d37812c42d0d443dee7e2b268ddc1a0f70ead9a1412",
+      "compressed_bytes": 1785283,
+      "parse_wall_secs": 28.844543561000002,
+      "parsed_elements": 558028,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000624235,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "http://archive.routeviews.org/bgpdata/2019.08/UPDATES/updates.20190821.1730.bz2",
+      "archive_sha256": "c454e2da98fc14c48803f28c93d1b9d99e780ceec04173b7992860c963f78170",
+      "compressed_bytes": 1706880,
+      "parse_wall_secs": 25.674525089,
+      "parsed_elements": 557125,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.00057579,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "http://archive.routeviews.org/bgpdata/2019.08/UPDATES/updates.20190821.1745.bz2",
+      "archive_sha256": "59a1635aaff7e48ffc3a2407f1a1f62c3dbad309be42593a39a60942eeca7b6e",
+      "compressed_bytes": 1618784,
+      "parse_wall_secs": 24.427849471,
+      "parsed_elements": 491074,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000513462,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "http://archive.routeviews.org/bgpdata/2019.08/UPDATES/updates.20190821.1800.bz2",
+      "archive_sha256": "23ee18a06818745ac49853b1d1a6c2a21f2a81e69d23aabdf9149f13408811b5",
+      "compressed_bytes": 1580631,
+      "parse_wall_secs": 27.254125614,
+      "parsed_elements": 505535,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000712785,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "http://archive.routeviews.org/bgpdata/2019.08/UPDATES/updates.20190821.1815.bz2",
+      "archive_sha256": "75f7fdb087122012f0be4a2a129449cfa5c6145e97ca7183ac2c1fce2660a41e",
+      "compressed_bytes": 1419018,
+      "parse_wall_secs": 23.141389747,
+      "parsed_elements": 446935,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.00061935,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "http://archive.routeviews.org/bgpdata/2019.08/UPDATES/updates.20190821.1830.bz2",
+      "archive_sha256": "ff8e879c80c49586c023eba05fdb278a885c1a30b219e409749a3c36578a1250",
+      "compressed_bytes": 1464077,
+      "parse_wall_secs": 25.177982216,
+      "parsed_elements": 488454,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000610697,
+      "cache_hit": false
+    }
+  ],
+  "total_wall_secs": 0.080767213
+}

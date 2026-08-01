@@ -1,0 +1,20 @@
+{
+  "collectors": [
+    "rrc00"
+  ],
+  "event_id": "MANLAN-2019-NORDUNET-PILOT-I2PX-RRC00",
+  "insufficient_visibility": "No selected RIPE RIS observer had a pre-event route matching the reviewed path predicate.",
+  "per_collector": [
+    {
+      "collector": "rrc00",
+      "frozen_streams": 0,
+      "origin_matching_routes": 619,
+      "rib_records_parsed": 0,
+      "transit_matching_routes": 0
+    }
+  ],
+  "qualifying_frozen_streams": 0,
+  "qualifying_prefixes": 0,
+  "status": "preflight-only",
+  "stopped": "no updates acquired; no analysis executed"
+}

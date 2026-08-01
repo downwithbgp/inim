@@ -6,6 +6,7 @@
 pub mod api;
 pub mod handlers;
 pub mod server;
+pub mod session_context;
 #[cfg(test)]
 pub mod tests;
 pub mod view;

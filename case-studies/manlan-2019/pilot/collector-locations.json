@@ -4,26 +4,152 @@
   "ris_source": "RIPE RIS peer list, ris.ripe.net/peerlist/all.shtml, Internet Archive snapshot 20190905014936 (https://web.archive.org/web/20190905014936/http://www.ris.ripe.net/peerlist/all.shtml). Current locations cross-checked against ris.ripe.net peers list (2026-08-01).",
   "routeviews_source": "RouteViews project documentation (routeviews.org; University of Oregon, Eugene OR). route-views2/route-views6 have been hosted at the University of Oregon since the 1990s; stable for 2019.",
   "collectors": [
-    { "family": "ris", "collector": "rrc00", "location": "Amsterdam, Netherlands", "facility": "RIPE-NCC Multihop", "note": "2019-era; unchanged" },
-    { "family": "ris", "collector": "rrc01", "location": "London, United Kingdom", "facility": "LINX / LONAP", "note": "2019-era; unchanged" },
-    { "family": "ris", "collector": "rrc03", "location": "Amsterdam, Netherlands", "facility": "AMS-IX / NL-IX", "note": "2019-era; unchanged" },
-    { "family": "ris", "collector": "rrc04", "location": "Geneva, Switzerland", "facility": "CIXP", "note": "2019-era; unchanged" },
-    { "family": "ris", "collector": "rrc05", "location": "Vienna, Austria", "facility": "VIX", "note": "2019-era; unchanged" },
-    { "family": "ris", "collector": "rrc06", "location": "Otemachi, Tokyo, Japan", "facility": "DIX-IE / JPIX", "note": "CORRECTED: previously mislabeled 'United States'. DIX-IE/JPIX peering facility at Otemachi, Tokyo. 2019-era; unchanged. NOT a US collector." },
-    { "family": "ris", "collector": "rrc07", "location": "Stockholm, Sweden", "facility": "Netnod", "note": "2019-era; unchanged" },
-    { "family": "ris", "collector": "rrc10", "location": "Milan, Italy", "facility": "MIX", "note": "2019-era; unchanged" },
-    { "family": "ris", "collector": "rrc11", "location": "New York City, New York, US", "facility": "NYIIX", "note": "2019-era; unchanged" },
-    { "family": "ris", "collector": "rrc12", "location": "Frankfurt, Germany", "facility": "DE-CIX", "note": "2019-era; unchanged (moved from Amsterdam in 2018)" },
-    { "family": "ris", "collector": "rrc13", "location": "Moscow, Russian Federation", "facility": "MSK-IX", "note": "2019-era; unchanged" },
-    { "family": "ris", "collector": "rrc14", "location": "Palo Alto, California, US", "facility": "PAIX", "note": "2019-era; unchanged" },
-    { "family": "ris", "collector": "rrc15", "location": "Sao Paulo, Brazil", "facility": "PTTMetro", "note": "2019-era; unchanged" },
-    { "family": "ris", "collector": "rrc16", "location": "Miami, Florida, US", "facility": "NOTA", "note": "2019-era; unchanged" },
-    { "family": "ris", "collector": "rrc20", "location": "Zurich, Switzerland", "facility": "SwissIX", "note": "2019-era; unchanged" },
-    { "family": "ris", "collector": "rrc21", "location": "Paris, France", "facility": "France-IX", "note": "2019-era; unchanged (moved from Berlin in 2017)" },
-    { "family": "ris", "collector": "rrc22", "location": "Bucharest, Romania", "facility": "InterLAN", "note": "2019-era (2019-08 bview is a 3.9KB stub — collector not usable for the pilot window)" },
-    { "family": "ris", "collector": "rrc23", "location": "Singapore, Singapore", "facility": "Equinix SG", "note": "2019-era; unchanged" },
-    { "family": "ris", "collector": "rrc24", "location": "Montevideo, Uruguay", "facility": "LACNIC", "note": "2019-era; unchanged" },
-    { "family": "routeviews", "collector": "route-views2", "location": "Eugene, Oregon, US", "facility": "University of Oregon", "note": "Multi-hop collector; stable since 1990s" },
-    { "family": "routeviews", "collector": "route-views6", "location": "Eugene, Oregon, US", "facility": "University of Oregon", "note": "Stable since 1990s" }
+    {
+      "family": "RipeRis",
+      "collector": "rrc00",
+      "location": "Amsterdam, Netherlands",
+      "facility": "RIPE-NCC Multihop",
+      "note": "2019-era; unchanged"
+    },
+    {
+      "family": "RipeRis",
+      "collector": "rrc01",
+      "location": "London, United Kingdom",
+      "facility": "LINX / LONAP",
+      "note": "2019-era; unchanged"
+    },
+    {
+      "family": "RipeRis",
+      "collector": "rrc03",
+      "location": "Amsterdam, Netherlands",
+      "facility": "AMS-IX / NL-IX",
+      "note": "2019-era; unchanged"
+    },
+    {
+      "family": "RipeRis",
+      "collector": "rrc04",
+      "location": "Geneva, Switzerland",
+      "facility": "CIXP",
+      "note": "2019-era; unchanged"
+    },
+    {
+      "family": "RipeRis",
+      "collector": "rrc05",
+      "location": "Vienna, Austria",
+      "facility": "VIX",
+      "note": "2019-era; unchanged"
+    },
+    {
+      "family": "RipeRis",
+      "collector": "rrc06",
+      "location": "Otemachi, Tokyo, Japan",
+      "facility": "DIX-IE / JPIX",
+      "note": "CORRECTED: previously mislabeled 'United States'. DIX-IE/JPIX peering facility at Otemachi, Tokyo. 2019-era; unchanged. NOT a US collector."
+    },
+    {
+      "family": "RipeRis",
+      "collector": "rrc07",
+      "location": "Stockholm, Sweden",
+      "facility": "Netnod",
+      "note": "2019-era; unchanged"
+    },
+    {
+      "family": "RipeRis",
+      "collector": "rrc10",
+      "location": "Milan, Italy",
+      "facility": "MIX",
+      "note": "2019-era; unchanged"
+    },
+    {
+      "family": "RipeRis",
+      "collector": "rrc11",
+      "location": "New York City, New York, US",
+      "facility": "NYIIX",
+      "note": "2019-era; unchanged"
+    },
+    {
+      "family": "RipeRis",
+      "collector": "rrc12",
+      "location": "Frankfurt, Germany",
+      "facility": "DE-CIX",
+      "note": "2019-era; unchanged (moved from Amsterdam in 2018)"
+    },
+    {
+      "family": "RipeRis",
+      "collector": "rrc13",
+      "location": "Moscow, Russian Federation",
+      "facility": "MSK-IX",
+      "note": "2019-era; unchanged"
+    },
+    {
+      "family": "RipeRis",
+      "collector": "rrc14",
+      "location": "Palo Alto, California, US",
+      "facility": "PAIX",
+      "note": "2019-era; unchanged"
+    },
+    {
+      "family": "RipeRis",
+      "collector": "rrc15",
+      "location": "Sao Paulo, Brazil",
+      "facility": "PTTMetro",
+      "note": "2019-era; unchanged"
+    },
+    {
+      "family": "RipeRis",
+      "collector": "rrc16",
+      "location": "Miami, Florida, US",
+      "facility": "NOTA",
+      "note": "2019-era; unchanged"
+    },
+    {
+      "family": "RipeRis",
+      "collector": "rrc20",
+      "location": "Zurich, Switzerland",
+      "facility": "SwissIX",
+      "note": "2019-era; unchanged"
+    },
+    {
+      "family": "RipeRis",
+      "collector": "rrc21",
+      "location": "Paris, France",
+      "facility": "France-IX",
+      "note": "2019-era; unchanged (moved from Berlin in 2017)"
+    },
+    {
+      "family": "RipeRis",
+      "collector": "rrc22",
+      "location": "Bucharest, Romania",
+      "facility": "InterLAN",
+      "note": "2019-era (2019-08 bview is a 3.9KB stub \u2014 collector not usable for the pilot window)"
+    },
+    {
+      "family": "RipeRis",
+      "collector": "rrc23",
+      "location": "Singapore, Singapore",
+      "facility": "Equinix SG",
+      "note": "2019-era; unchanged"
+    },
+    {
+      "family": "RipeRis",
+      "collector": "rrc24",
+      "location": "Montevideo, Uruguay",
+      "facility": "LACNIC",
+      "note": "2019-era; unchanged"
+    },
+    {
+      "family": "RouteViews",
+      "collector": "route-views2",
+      "location": "Eugene, Oregon, US",
+      "facility": "University of Oregon",
+      "note": "Multi-hop collector; stable since 1990s"
+    },
+    {
+      "family": "RouteViews",
+      "collector": "route-views6",
+      "location": "Eugene, Oregon, US",
+      "facility": "University of Oregon",
+      "note": "Stable since 1990s"
+    }
   ]
 }

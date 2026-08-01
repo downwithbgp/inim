@@ -1,0 +1,1847 @@
+{
+  "event_id": "MANLAN-2019-NORDUNET-PILOT-RE-RRC00",
+  "ribs": [
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/bview.20190821.0000.gz",
+      "local_path": "cache/ris-preflight/rrc00/rib/bview.20190821.0000.gz",
+      "collector_id": "rrc00",
+      "data_type": "rib",
+      "size_bytes": 439353344,
+      "sha256": "a58913e5a01d95d2535fa15d2e8e740aaeddbaf94d9ec0fe7be069fcf8cf532b"
+    }
+  ],
+  "updates": [
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190820.2330.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190820.2330.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1572864,
+      "sha256": "23a0158c3a8736bf4e992a39907a668efeca04486a9c0605abc5f5102b4d2138"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190820.2335.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190820.2335.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1677721,
+      "sha256": "b31ca15f7f4ec1eba9bda46dc4bbd9a34a5bf8bddfb78ffa383d289af1923da9"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190820.2340.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190820.2340.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1992294,
+      "sha256": "878192809ed51dd9209327947a3e444c91b70dd2e1733d4518e97132c6ea3aae"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190820.2345.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190820.2345.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1572864,
+      "sha256": "bee42310a9d64ba62a7d02613defcdc18a25847a626be07e75dcc707c2e7ed84"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190820.2350.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190820.2350.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1572864,
+      "sha256": "2dab09a51432441bf4640a9bdcb28bbd9b960a6649f7c5160508f0b7ac05d8ca"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190820.2355.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190820.2355.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1572864,
+      "sha256": "2ce97f3323603879f8be58b0ab30a13354cb63081f89b4fb8650c01883b03ffe"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0000.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0000.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1677721,
+      "sha256": "f9d6f79d8521f7368d18b1539a9d58307b16d65837c73a2b8f430170377ae289"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0005.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0005.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1677721,
+      "sha256": "feeaa7cf0605ee55c3c70db5bac18184493d42f165baf6f9d42dad215d7ff5c6"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0010.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0010.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1782579,
+      "sha256": "a52541bf39014bb77a63c41c4b2ed5bab284492265e1c4033dcfbee6bd68cede"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0015.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0015.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1782579,
+      "sha256": "3b677120c35568cdd16917e64918742431134d324373cbc1abe3d8e5e43d7672"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0020.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0020.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1782579,
+      "sha256": "ff089bbf6564f144c2b2cbf686075a01f5cbb3fe4cb892761cd25534a344bfd2"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0025.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0025.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1887436,
+      "sha256": "801fd023ecd6894887086208ef6fccf4f7de7b9de2f105cb2d1519a0297cf274"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0030.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0030.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1468006,
+      "sha256": "e4759500e0824355a147a7b0d05ac2b7ab6d65b67ed87ea76c49304556e17bfb"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0035.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0035.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1363148,
+      "sha256": "60ae41302c15ebb37fa836160bef7e4a5bc62895cdf0fff0960b8df38f473ce9"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0040.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0040.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1572864,
+      "sha256": "b266bf651a2022f45f5951a813b092b7b458b6763810c083189023c45911ad9c"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0045.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0045.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1258291,
+      "sha256": "87fd9f3615e556f490b2b399f38245ffa2b32148c1cbf47ff8e55434edbef8c4"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0050.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0050.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1258291,
+      "sha256": "bb94ec69b9905e2c5e47b2e0a658a227a654af005358186f2b31428c6b0a799a"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0055.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0055.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1468006,
+      "sha256": "effb68961d18530036eeb21a9431366aa6c1efa8214667e9358ab8431febf97b"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0100.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0100.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1572864,
+      "sha256": "281cfadf51f342757a5bbc203ec96aabd8200b6843e2a57b748170e23ca81c7e"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0105.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0105.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1572864,
+      "sha256": "44b0211a64335df315bcfd27523229907887ec894805dcb9ff862110659f5e60"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0110.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0110.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1782579,
+      "sha256": "0c9d02966fe7a8efcc9362b4f2832f25665c9638378f5fa661eaa390697f95b6"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0115.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0115.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1363148,
+      "sha256": "5eb0dd05265211564cce56dcbe3d3fe4bce9bfd3479ddeca3141e3c357a845b5"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0120.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0120.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1363148,
+      "sha256": "8cfc72974691e7b54ccdc2a0ab52c9ceb9ea25e4811712e93e0cc1638b8ff256"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0125.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0125.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1887436,
+      "sha256": "0a3a206f995948fb65d478f72866de09f45c1ca00a9ba6f5c91f2c13336f16e6"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0130.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0130.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1258291,
+      "sha256": "0390a0e4c75cf9a14ce35d7730a28c561ea952d13263e0b8e8e27a77bf120258"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0135.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0135.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1363148,
+      "sha256": "9207fc0f18b97fc60ed6d708411c62b9f454cee97e64bce902a9e1230857c64f"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0140.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0140.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1468006,
+      "sha256": "e54ddfe7f637a1dd8afb39251e227c0c66065d1b3de55e6991b28252ddbdbc0f"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0145.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0145.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1572864,
+      "sha256": "a93f77b4b85f86c3790481b7f14653e198fff41c15ba033728d882636b54c9cb"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0150.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0150.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1363148,
+      "sha256": "918535b07e5eea54f0a5d183a9daa3448f03d9659d560dd2b479aee6323d5681"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0155.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0155.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1468006,
+      "sha256": "1aeec9a2ca506e6264cceffaa9a863775b484f6291e728347082af0c881e2c6e"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0200.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0200.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1572864,
+      "sha256": "b0e24b7c31597102bf5432ddab256bb69647dda1e185ab49695edbb91db771ee"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0205.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0205.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1363148,
+      "sha256": "c5e64e8a651e337af7fff0e117680028979bb5197efed028c4496584f4fbe90a"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0210.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0210.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1887436,
+      "sha256": "e810790969fac8e788965c77263a65503954e21c46bf38fa9b7f38daa0ea99ad"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0215.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0215.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1572864,
+      "sha256": "ce1785bf82002f9be6c88dfeb3a20e3752a41e010bf03f85b65485ed0cb72a50"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0220.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0220.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1468006,
+      "sha256": "a4846cb90c9835cee924cbd99253ed25240c1995b6d980421aa0d48a1d88fb53"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0225.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0225.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 2411724,
+      "sha256": "c2b14990ab11e3b87bca270a14f3205a749b72b4d77c2c9c31191ca8a68c3540"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0230.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0230.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1677721,
+      "sha256": "297156f77278c6a6a5d57d77ed52cc3ce1b1048ed0209a46a1e3c325872872f1"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0235.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0235.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 2621440,
+      "sha256": "384b8d7c4a87150563e2bce9f2311ce73011782a6a5c66ac589d43c3fd28183a"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0240.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0240.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1572864,
+      "sha256": "79ee2afabec7f8cfad7ba158514114a3ca5060128fe8ee7fef1934526abeb678"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0245.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0245.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1468006,
+      "sha256": "305a1611178885d887f58bf58b470e7b043759bd17122938134b34c1bda9a8e1"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0250.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0250.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1258291,
+      "sha256": "b52ecb46faf2bc390fae4b133722b4b46df0c22dc88ffea9507fc44294fb998d"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0255.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0255.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1887436,
+      "sha256": "512f43201a0df0089b075f30284736f4a3d14ec8f532a322bb18a0dd749ef8da"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0300.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0300.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1677721,
+      "sha256": "44887084fc9382d76dc321ecd88a857bd716e104e865add5ed8f5d38d236c893"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0305.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0305.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1468006,
+      "sha256": "58b012bae7933c77e01d1666525609fd0c5911b343c6c4f3c95284cc2bdaa3f0"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0310.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0310.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1572864,
+      "sha256": "b61670feb31f72c13fe3d5f20d1db2826533ac4364869b3bcdb21e118ad4d608"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0315.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0315.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1363148,
+      "sha256": "f7a410fc0982105b92b2d458a11cf5fe59aa9819550089bd82b5b32463dab24b"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0320.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0320.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1468006,
+      "sha256": "2c596b8ccf22f2b15f8e4b8a43be3f8c9a841d86eef2060dc594ac732c2153d0"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0325.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0325.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1677721,
+      "sha256": "879fcb785013ce527631f98f32e5c090531057546264673e8168036fa468a3be"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0330.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0330.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1468006,
+      "sha256": "062c98a3bcb72e3100305980e55422d8fc5b8178623ae7dbbf0f3635351bdd05"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0335.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0335.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1782579,
+      "sha256": "23b9952d5fc59ad963b205fdb7796402714ca983640c49b0b2612cb8c274297e"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0340.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0340.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 2202009,
+      "sha256": "7d92ffb8ba0639cf4651e7855ad73ec25a36640d0d9811db210579c1e70062dc"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0345.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0345.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 2202009,
+      "sha256": "104e55b1d9a533ee5a78a52f66e0d8e16e431fa08efd1c155271ba679fdc1d05"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0350.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0350.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1887436,
+      "sha256": "23931521bfcfd736878ed120fd17cfd0a385d7e1b2cf9e10ca41ef6c289a0c84"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0355.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0355.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1572864,
+      "sha256": "10ba0de5eb64ba6bca4f413212aac946e5faddcfa77f36c62e1042e283c76a8b"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0400.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0400.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1468006,
+      "sha256": "97d6b06c4791df717b1cb1fb1f6c4a69fa3bdba21f228e0a9f1ae2720b84e594"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0405.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0405.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1782579,
+      "sha256": "37fb40eb0e56555ca7028a5f3b1d4b3587eaf274277caca27d80341e1efcbb08"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0410.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0410.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1677721,
+      "sha256": "87561fcde600044a7a01cb5bce66c94cb5dc2d4c7adc9ffa682f004a618b1c86"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0415.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0415.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1572864,
+      "sha256": "92f76a54ef4e5578c8d00b451f23841d1ced414a240d08962af468f391391360"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0420.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0420.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1363148,
+      "sha256": "8271c3933615baee3838d738a11ecaa622f722ef19d712179d22558ce3eefb82"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0425.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0425.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1782579,
+      "sha256": "61809ad68e70b6485ab2d0ab650a18d382e2206c721c941598ad0d6b9b2a26b7"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0430.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0430.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 2411724,
+      "sha256": "4524054b81334cd6d66270745c352bae4ebefa8f3c79630069e95a3180d35623"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0435.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0435.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 2202009,
+      "sha256": "8774a8cafbe211dec17fac451a27a59e063f78f01885ea104c317b9abe532920"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0440.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0440.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1992294,
+      "sha256": "032b7b73677065e32a5015c285c40918f81140dc8de198ad253b4340b531ba7e"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0445.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0445.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1782579,
+      "sha256": "1ac5c810058dedf8c8b53b89860eae0361d8635968c16c8721cbdf4a8e275ff3"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0450.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0450.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1782579,
+      "sha256": "e599c80da633e1aaeb58dffac7258f9a261a2b20fef9f0a88f0f53afd761d646"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0455.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0455.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1887436,
+      "sha256": "1abc8df9477183add1daa7e8e921e95731d365fdb39e16be9fc1e86713711eec"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0500.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0500.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 3879731,
+      "sha256": "6e274767338afbacaa2f669f5a2a36ae346b9d3237a9e4fd0dd8df21e4293466"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0505.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0505.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1363148,
+      "sha256": "8a80233a26832b75324ff1777f346ee9fb70ea65ee1647a00daa4d68ccc1c719"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0510.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0510.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1992294,
+      "sha256": "fa0452b70d1b3d2a92b4910f962c7d2d160c0f09f63a9965934e124a35b7f928"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0515.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0515.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 2097152,
+      "sha256": "0f8bea1125c1d8b8a09b2a9216725c27c3d8c61b1bd45479f5466229f7bfcbb9"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0520.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0520.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1572864,
+      "sha256": "a2bd2841ae10c05359fa0f188395c73d8ca317a6144d065ae202312065668932"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0525.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0525.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 2411724,
+      "sha256": "4ad987ee828bc5c52f26952735900ea0a956d8263f8f31aa66ff6d9b931adaa3"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0530.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0530.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 2097152,
+      "sha256": "942e5349c7ad46b5588debd5534e722805148855657149c0bc63691aad6384af"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0535.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0535.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1572864,
+      "sha256": "5afa9855ad8b1787bf4693e3074a6942f1d94c820d100e0485aec7b4af920c7c"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0540.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0540.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1782579,
+      "sha256": "0f3723d4cb4414cb49961f5b17af41a5f6dfb8146ebefa1d8ea9a4fedd340ee7"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0545.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0545.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1468006,
+      "sha256": "f18ebacb9fdbf4167c926b30b37771f7815122d49057fcbb28b0ce52636b48bf"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0550.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0550.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1572864,
+      "sha256": "265197a44437ac7e74338b4f70bacdaab6474fd05f4a831f696195a2b599cfff"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0555.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0555.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1572864,
+      "sha256": "45a14602996df1ee294e14061277df10fc47f709164f8ace8bb070d629eab69a"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0600.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0600.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1887436,
+      "sha256": "f264cbe74228ecdf26a67395ffe5535ef3a452d96ec1a611a207099f2a6c0817"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0605.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0605.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 2202009,
+      "sha256": "36ddb4d2fe550011f2470d15d5dde7dc19a6be847d4ef1164cafe7dcbefab49a"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0610.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0610.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1887436,
+      "sha256": "54d89e02f500c1d596d42c5e91f6ea508cc4cf00aafbb817a1490c046b93de17"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0615.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0615.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1992294,
+      "sha256": "520ecb5ecef1ba9cd24d21a0cd37d4938e0b3c522bdac5a278e4646a46c221bf"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0620.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0620.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1782579,
+      "sha256": "20aa01a1ade9427145442d0591330c190677eb7471c23c463bcc22c3ade21e7d"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0625.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0625.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1992294,
+      "sha256": "df810e09102b7348ca0804c1bf52ceb88db80c6c5c33ec5e4868ea8af521577b"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0630.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0630.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1992294,
+      "sha256": "05b32d3bf8731bfe071f52c6afc16372989f416135241b8936508c03c09fcaf6"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0635.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0635.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 2516582,
+      "sha256": "10dec495906ad5c926a8e1d30916dce72b4598340ddd77763f549c4b47cc2900"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0640.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0640.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 2306867,
+      "sha256": "7e7a06793cb85373364eed71b9e33569f95c3b05db6d4450a5b1fd26ea47cbc1"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0645.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0645.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1992294,
+      "sha256": "5c7e700db3d8c7677721ee029b2878bd3b00fb62d42038ab310677662b1ab2aa"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0650.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0650.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1887436,
+      "sha256": "fdf433161a2e3022ef96181b55bb2fdd680187ed9edefb2ec6ac7de0c5ab271e"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0655.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0655.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1677721,
+      "sha256": "2260bb6f2309a931bdaf1d01f86ffd8fa1d366504049ea9489dde3b6095d890c"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0700.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0700.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 2202009,
+      "sha256": "e6e1e9d595212e45c608e9fe427311f354ba212358c324fcb95970751f9656ad"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0705.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0705.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1782579,
+      "sha256": "1e61d67784ed0e90fca9f9d281be114292b8faf04913804737959546f7383f47"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0710.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0710.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1887436,
+      "sha256": "b232feb938aabd860a6986dc4341e2b050d12ab49bc40eb4dedd7c07915fb9dd"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0715.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0715.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1887436,
+      "sha256": "04b8e1eaff717b893349582eeebc7564f89428fe80e496708731c7976954e5fa"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0720.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0720.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1887436,
+      "sha256": "74a6b9fd9138b49b1a17872b8591f377d16b923cd496cd614b7bf8c7dfcba3d8"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0725.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0725.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1992294,
+      "sha256": "5e6435a23d08b5af6394fa8ad1102f38bb2255b9d2a220d75eb49916b359e3d8"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0730.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0730.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 2831155,
+      "sha256": "a028b7c01e9794d39b8e14df7754456a9af6dcbe4d23609b51839db25e15142a"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0735.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0735.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1992294,
+      "sha256": "8dd5b0c3e6f9c0f9d4a47012c7cda1a63f45a5be3cad5b486f5a8c9cb17199b9"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0740.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0740.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1887436,
+      "sha256": "394c9693668e1240e489d756d8be474bc81b787d2da9906a1182f0df55732586"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0745.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0745.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1572864,
+      "sha256": "e92ed39d2eaabe12f1f5e723597cee8d4e984287f08b1c1725729a69422935cd"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0750.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0750.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1468006,
+      "sha256": "d645edcbd1db7d6bc398b13bee2673f734f87a9d59157e95fc5bad05aec4ca7f"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0755.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0755.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1572864,
+      "sha256": "8ef435abce90d7b5b81c7c7b52f7b47c0f34dc033d1b27ba3541b56f864751ff"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0800.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0800.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 2411724,
+      "sha256": "2eaea3038a63c08c635918779825ffe2ab41bc1fdbc6ce72f6a23d85f2bb1e52"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0805.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0805.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1782579,
+      "sha256": "deeddc5af784822a0fa38ccff8375dd7646cc6fab045c20d96cc266d6f279fef"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0810.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0810.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1887436,
+      "sha256": "b58979364a4d1620bbfe88a9fbe889b91d717c260f6dbe4d1a315b7bd618f5ba"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0815.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0815.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 6396313,
+      "sha256": "856a6c2a41b8c1a7132c02b6e5f8cce5821f2d0c97b729018f358c8053426372"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0820.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0820.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1782579,
+      "sha256": "478a75a6d3100e8303a480c578e289e719227bf3cf8a3f55f16a41239ccfce37"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0825.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0825.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 2097152,
+      "sha256": "9197b93c1a1c63ec8f4a77427daf2a1b00e1f8abbd52aee950867e9f7aef550f"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0830.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0830.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1992294,
+      "sha256": "d9d12a48393fdd197bad1127eaeed14e67e72b3d596a14ccc7f4b64e0d7c8ecd"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0835.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0835.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1677721,
+      "sha256": "024867cbf6e8459b19339aa17908448289bdd9d2156a22063ad0757163ec832f"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0840.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0840.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 7654604,
+      "sha256": "ee4b8229a3bec1cbc8a7fd18df23021351de50ae47e579ca2ced50359bf8fb4e"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0845.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0845.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1992294,
+      "sha256": "a0e8942f4636437b83fd1ea4148dcc6cd95914893f290652e7af22c45a0e01ee"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0850.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0850.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1782579,
+      "sha256": "0dfef9ac562c1008de0080e1d987c91c28c72f495ed2b7363d56dab193e2cae2"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0855.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0855.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1782579,
+      "sha256": "fc1aa9188f6f764074a81904d54671bc2334076ee1d5bd5e7af539e054e1a270"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0900.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0900.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1572864,
+      "sha256": "3dc704b87f4118912ff3d447458d55e4d3e2087d56e5de08aab3d7628cb0b360"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0905.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0905.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1782579,
+      "sha256": "e9e78942b1ce33f67f0b111bcba5a00fbaf290882e695ebbc9c7db60e64c76cb"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0910.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0910.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1677721,
+      "sha256": "08c8fae0af7c185b4574e1d19834a64b19383a85e6c12d315996abf83b4b9c72"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0915.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0915.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1992294,
+      "sha256": "da8266aecd9c0ad2eee9cbdca66864722e6017694ee3af210172391d153f3a80"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0920.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0920.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1677721,
+      "sha256": "0595890f01fe7d7a574a526e964031f9222c5fe705276155241486550db01f30"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0925.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0925.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1782579,
+      "sha256": "0f148be3c9b4f54bc986758620285a74f81b2f3e813597b25fed1bd124686369"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0930.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0930.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1992294,
+      "sha256": "6d6e693de621dae1329a44f6dea3f93eae93451445c0711b5e853e5979253474"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0935.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0935.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1572864,
+      "sha256": "85940c6ef57e0c23e3bc45cd613c4cce123309916b83fa46126c4199ebb1cee6"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0940.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0940.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1782579,
+      "sha256": "1a2a46b573e6e458ab6df5fde0a26d4ad4fab1e87e130d6ff5f7cfd249427636"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0945.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0945.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1677721,
+      "sha256": "fb4fc06ee4d23c54596a3c4efb5ba3411f60e327d6b25348c6c3f19fd3211ece"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0950.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0950.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1887436,
+      "sha256": "a44d8d102a1cb93c9e0cf8fd9a37ffe28f82f5fccc173f86439b1b98145db132"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.0955.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.0955.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1782579,
+      "sha256": "09888ebbd6b3fc510d4ce416df0b47c0b9fdd5ed6f720220f904ad684fef8b06"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1000.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1000.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 2097152,
+      "sha256": "e188227fe633ba0a9b12daea4fff776d05a150580c4f20e8901de0d8d8a9119d"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1005.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1005.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1468006,
+      "sha256": "3ff80e8ff990b252bd9c96f3515a96feba7bc617a797ea5b8fd539b632983079"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1010.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1010.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1572864,
+      "sha256": "fe385cb85a87e9910a4ed2f8c7b1a91811a843bb787a6a17d5ba203c28e8ccaf"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1015.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1015.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1992294,
+      "sha256": "8834cfa33aa42f23697b3a2a5d8f169f2c5e8bdf037759705bd2cd95a1a2af3d"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1020.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1020.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1887436,
+      "sha256": "646cd73a940d12c983d5e4edc18a230ee4049f8036819ffe0cfe4157d3eafd98"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1025.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1025.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1572864,
+      "sha256": "1ca6e061cea959c66ee7e9fd6f236cad94557bb3554c5f4c67e9fcaf4d0a621d"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1030.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1030.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1468006,
+      "sha256": "4d505b541c14bbfda1f9aba6e1c25f187473550166f567a0e9d5611ac0ef227e"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1035.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1035.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1468006,
+      "sha256": "db391f1dee52d27babaad5f69b3ad7abc39c9ffc0a8c2e807651eb639f32bb1b"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1040.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1040.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1782579,
+      "sha256": "18b41eb3ed032dd43ebbe24bc09d69827c457e6aa97b6e057583d446bf193fa9"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1045.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1045.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1992294,
+      "sha256": "d893b1639d11a1b30de2157fbfefadbe0ad0fcdc1aa30151f35debb4c699a6f7"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1050.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1050.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1677721,
+      "sha256": "555d8f06e90fe805b1d3e436dbbd1d1864a34ff9bda1518192839d273056fb0e"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1055.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1055.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1677721,
+      "sha256": "3146e6d9a31e13640e929dd1e69f46ce0f429c4a65d37c5d385a5beec8057bed"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1100.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1100.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1677721,
+      "sha256": "847ac9a71981c516df2caeda14f06a22d2cadd2d17d47b4191ac491c4feb5c2f"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1105.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1105.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1572864,
+      "sha256": "475b7ff520b310fca29e136673374ec7709f78c92021cb5e49d4765c7ceeb417"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1110.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1110.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1782579,
+      "sha256": "d8062dbbe11bc1c72f6c01e2a8924a2f9afa0d8430c1d427c6130be0db12bec8"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1115.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1115.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1677721,
+      "sha256": "53f8ea87bf222e66e81b14be185e76d17e58b55d6753a4689fafa2175af53ef7"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1120.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1120.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1677721,
+      "sha256": "64125d9168fc16406f01135c5d29d4085e5b3bfcb879a4c399c593bc58cf603a"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1125.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1125.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1782579,
+      "sha256": "6604fc8fab18c585d651d38fd5a3f18b535142fb1b2665dc74d74db545cd3437"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1130.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1130.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1782579,
+      "sha256": "6e532c7550839388499774dbee9af5087325bcf7e7a58590d7ddd2c88f1acc0f"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1135.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1135.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1572864,
+      "sha256": "b4ca2f313fc0e088b8573c3915fdff30d1a004f399b0ca9a1b28a555d6e8007c"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1140.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1140.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1572864,
+      "sha256": "6250f5bdc25f6943899a2a0e42dd2d1afc245e91cb486660669974129cb99215"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1145.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1145.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1887436,
+      "sha256": "930eb5d86e298e121ce6e28c79d286accbf35f0f3548605a9ae0d23c942eb8bb"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1150.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1150.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1572864,
+      "sha256": "720e31d91f3e907814d03e02a3457d133d35b66a6ceb9fb38e69cdbeb48c6bfe"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1155.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1155.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1782579,
+      "sha256": "281645f69bbdbf6e91cbe98b2da1c37aadf0de0e1c18c48bac659ea8066cf3cc"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1200.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1200.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1782579,
+      "sha256": "a4c068a2cf2d510f028b6943587db9f9cc8296ac4b48026aaf4fd2937532ec79"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1205.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1205.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1992294,
+      "sha256": "cf6831257a616b42d782befd764273495d2f378b3bdcb47c59fb19f41c9ea076"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1210.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1210.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1572864,
+      "sha256": "9d2d4949b6bffc705019746678d91ca73f5e9cc18efd7d61b85e34937a6dc1cd"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1215.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1215.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1992294,
+      "sha256": "15ffadb354c540051cb3ebb1faf75850668751c3f57cb70ff6b8f00a1dbb2d0e"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1220.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1220.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1887436,
+      "sha256": "2e5df8c6a79c4d848c73f5321204230f73b6f53cf65659c10a0f71a7fdb95bc5"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1225.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1225.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1782579,
+      "sha256": "e063f3862f39a4cec22056e44827576f218c66b7b5eb24752d8f07487853e347"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1230.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1230.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1572864,
+      "sha256": "979d46a73d392f08cdf61aa06a9ea7c675d8990d7ada505793adcad5dab96dc4"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1235.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1235.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1887436,
+      "sha256": "029dc124cb450311c5ee18211f6b17057153d34960c7a7421f82aa7627e872e1"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1240.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1240.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1677721,
+      "sha256": "7da59b077734f8ab7915780d55a01bd744fe7c059ea67095966a191483be175c"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1245.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1245.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1992294,
+      "sha256": "7938a8d8e09c8cecf8378ab945479553d6c1aaba96b6b3dba64cec12667bb5e6"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1250.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1250.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1782579,
+      "sha256": "feaaea8d9c1ce6541efc415d504b901c066cf5e9415c71e40bb90c1216fe930f"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1255.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1255.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1572864,
+      "sha256": "2bf7be5d7b6ec53dfae755bdec4eee832b46bc5f236c1e666e273284ea537e87"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1300.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1300.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1468006,
+      "sha256": "bf5c40430bb590c73feeda1c6eb26d00686efc2b691c6be44cb806f36ba45657"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1305.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1305.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1782579,
+      "sha256": "24dadaaa2b0f0f7f1d833274a4c2c445d98f12e7eeca2ad219f3b9ce041f29f5"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1310.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1310.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1782579,
+      "sha256": "85be1edc59aaa0d7af4619d3d41e76935cfa0e367858569688beede7c3506af8"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1315.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1315.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1782579,
+      "sha256": "c69ebccea7bf36d2bc1164aef939bded845666ac1d78f0f5a4f16abbd0cfb6d6"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1320.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1320.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 2202009,
+      "sha256": "0ce6708ebb0c2ccea6c18e0e13596402eb341176261a8f3962a421b03b728e2a"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1325.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1325.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1677721,
+      "sha256": "61575d19c55e885d6c637ed993b94e71d95b7cbf90e8e85509c5bde763ef0eeb"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1330.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1330.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1572864,
+      "sha256": "9acc97f1aa098b4bf389a45e609547c1f24700908b672fec9c44a0df9701e95f"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1335.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1335.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1992294,
+      "sha256": "b3ff7dd55d49b4e3697e5e8a4aa27e1c3759fa56626daf0d35ed37a439dd1f77"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1340.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1340.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1572864,
+      "sha256": "13ca18b68df2628d105fd8ac6840d06ed0f7f00a439e01c17a37f3358287f4f3"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1345.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1345.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1782579,
+      "sha256": "fe9ffb4b3c6153b5a11d08a7d10d932b943aebb736762c34aa328a6ca9d8c756"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1350.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1350.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1468006,
+      "sha256": "9b90b27580d12caabf1365f5f9b38a2fa54a428c03ccaa2101a99b65bf1e3b05"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1355.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1355.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1468006,
+      "sha256": "f42b36c6470a3b75bc05d70f7b3514cbf739563f1f92c09dbb1d207ffd84db04"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1400.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1400.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1992294,
+      "sha256": "5fb345452fb17695b3350b962e46ee57b698d3d883b528c6fbc8d22904126160"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1405.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1405.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 2097152,
+      "sha256": "c0df6760e20f784c2b02839c1a700929e14383e84995688935d63f1c6b67ab35"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1410.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1410.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 2097152,
+      "sha256": "df4660d303a30508abc609a974189336bc7ab7c642c4fa6980af7b2a02bcef1e"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1415.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1415.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 2202009,
+      "sha256": "94a960be79986f7bc9150dff3638f533b0ae191a988dc966e1ffc81719b57533"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1420.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1420.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1677721,
+      "sha256": "91f126fca6353be921d17bbed302f11c5ec011e84d710e4d0fff2bc98a766f56"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1425.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1425.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1572864,
+      "sha256": "b73b3fcabea84fa9bf155e57cbbdd4aa8979721c213192cfd5d4fdc075f10af9"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1430.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1430.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 6920601,
+      "sha256": "33260139f6d1937f6c991089c2e1520fd85555d347e0c89869679e4fe575881b"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1435.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1435.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1782579,
+      "sha256": "13b6ed432b50f3790678b13532818a525d4b1f2864b869e22a9f53ff4ad7999f"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1440.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1440.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1677721,
+      "sha256": "1a0ce811f515abe71f00fbf7c17aecce5bf6b67658c94a9dfde19817131d4766"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1445.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1445.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1887436,
+      "sha256": "38383e90d39cb5bc1af37e3328c641ccbf7440b60539e850301e379a52fb534c"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1450.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1450.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1677721,
+      "sha256": "4ee67900b923402b4ce9d149525fa5badd54aa061a58d811a91bcd4d6b8186e1"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1455.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1455.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1677721,
+      "sha256": "e7c6d456a81ebb7253dc0c7802d5f5e69483e8a3ae0df685a83a4dd33c445974"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1500.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1500.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 2411724,
+      "sha256": "b085a863aa2ef7e9a65b40a2662ab876bae0c98fbde460bc2bb042a75e710d2c"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1505.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1505.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1887436,
+      "sha256": "f132877f6aec3130ec3182ddc000371e08a0add8d1df5fcdc3dbd2637cd069f5"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1510.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1510.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1572864,
+      "sha256": "99825b4638d6d0751f2620c16ada21e4f74c29b77f3341db80478329c5399a59"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1515.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1515.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 2831155,
+      "sha256": "2124769df208be4a071ad071bf2ca83c59dee7eb9e7042cd41804c8471754c54"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1520.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1520.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 2202009,
+      "sha256": "b6b6a22808ecea6e165221645ce8a9eef933680505d9993d7b3244521cbe81f0"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1525.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1525.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1782579,
+      "sha256": "23b770a55aaab3d1ea9630d836534d601858e33baac9a0e3a9f5d19270aa4736"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1530.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1530.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 2411724,
+      "sha256": "7d4412e851c5aab673df7d2ae72458fa508a43fedf02ab57cddaa79eaace4be3"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1535.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1535.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 4299161,
+      "sha256": "ae0a8e2b0d60c72fda6d4275999c434fce63c7ae1a77c0472953e9b35d746645"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1540.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1540.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 4404019,
+      "sha256": "6568e1695feaf1f30f8b7cd1d00a03559ca57bc17aa88fe7666de329bc6666ef"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1545.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1545.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 7025459,
+      "sha256": "a2ce9220df4b8a4997d579c82f076c07ac772e8c1dee1723a74e782b4aef236b"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1550.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1550.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 2097152,
+      "sha256": "15029503ad1b5f633cd017728a64dc8fd2c51943e71f6b3bef740e9da3142d93"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1555.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1555.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1782579,
+      "sha256": "bb3525d32b69d1a30a6d5efe15d5569a642aebb824742d0cdb6df2fef1c2aea0"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1600.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1600.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1782579,
+      "sha256": "cd4ed1d6ca379344064ce30b3bd6a2691dfc7aba04bd49e25e7760f82257da19"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1605.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1605.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 2202009,
+      "sha256": "1f9171df211737502263886c17d65396a07d0dcaceb775c495f8a0001931556b"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1610.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1610.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 3040870,
+      "sha256": "3d8bdab27f0ba8ac63be33f0f06c87c16ce098f109668d3e58ed4e1fae953ed6"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1615.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1615.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 2411724,
+      "sha256": "43974ef31dc07ba7820d3c383e005e5fe881894d1b1ad4b9ccc16fcd39603656"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1620.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1620.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1992294,
+      "sha256": "eea49f2c97a2cf96459937933b44bd856172200875916a4dcbbbfe08a62fd698"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1625.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1625.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 2097152,
+      "sha256": "f9c5237f5c7964d763c395f8ba43c6dc4b7424fe48f1ad6e7e6ac8a7e7933019"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1630.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1630.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1677721,
+      "sha256": "b11661ab2657980e5a74a40902c5dbd4513c62c1016dcd60f05eb5f0ef41e196"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1635.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1635.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1887436,
+      "sha256": "eac7f2591e7e02ff278a6f46fc67db29a5bf8daac6d98684965bb8e352462466"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1640.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1640.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1887436,
+      "sha256": "49b534db757c7f178af680c22a9fd2a90d59c6846db112dda7fd1bde8dec69f5"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1645.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1645.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1782579,
+      "sha256": "0d42c1c1f827a98d6005f943dfca74edf931e8a9e3996715b61c08d0f946579c"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1650.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1650.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 2097152,
+      "sha256": "e33093b766c640cc6579e29a34f9ce6cb9069e66c8fa1efcb3211ec1b07f8fb8"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1655.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1655.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1782579,
+      "sha256": "5a9e4bb790564405a100e7b2b973dbd6fbdafd35f36faebac208af9d1bdd00ec"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1700.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1700.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1887436,
+      "sha256": "288d7279f393cff5f5644a57a5fa077ba2c597f7b301f94d27c796298a260cd3"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1705.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1705.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 2411724,
+      "sha256": "3ada2c4f9da4579d3f2a73c352ede08680a4adc97862a5cf119956f3bcb6b3b2"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1710.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1710.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1992294,
+      "sha256": "08fdae0c19a4c908635b19b36c4fb34194034d7436e8987d48187d9ec78c8891"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1715.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1715.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1677721,
+      "sha256": "d9111d8192a340308109336697572917b484e08791438660d746fcd8da234f7c"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1720.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1720.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1782579,
+      "sha256": "056cdc3a63a4754a135aa50dcbdf3533e7ad5c402400be9cfcf25503e22539c5"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1725.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1725.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1992294,
+      "sha256": "59e922c9f140cc062ddacc2a213d14e60bd7e5e857da48821ee0bff188efbfae"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1730.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1730.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1677721,
+      "sha256": "544538332c9a098fdc4e2019e4c5e28675826fdaab6f3a39201a079bef57d677"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1735.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1735.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1992294,
+      "sha256": "eaaf0a3e9e44fcff197a06a50ff35e7cc9c9d03105144ba345ed563976613937"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1740.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1740.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1782579,
+      "sha256": "4002c72a2bde498f640a815db14c8c6f2986f5178e387421de726ce71a590eba"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1745.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1745.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1887436,
+      "sha256": "c8a35f4c6f55c44df8cec1c41353fc9a73f58e504031b8d682569c1003c4c9b5"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1750.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1750.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1887436,
+      "sha256": "0671ed0a4a1d689c32c8a0fcd03e935c04c3293684c67f60a417c3462e9095e6"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1755.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1755.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1468006,
+      "sha256": "baf5c1df370c61193cef65165049c46daf0bf460ab3072e2ef433ad77bbd9642"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1800.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1800.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 6710886,
+      "sha256": "6f3c4d2c91e739c95f3dc9821fac999490880e93458eeadfd3e800e1e8428dd7"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1805.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1805.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 3565158,
+      "sha256": "ba20db1ed9eb1354eef80c82cda71ec2fbf3c022e5dc25df27bd4fb9ac411b40"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1810.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1810.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1572864,
+      "sha256": "f1712f438eca45aa471321903990971c3b4a3b0a46ac36757652e570f7919479"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1815.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1815.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1572864,
+      "sha256": "3aca1293b0a87c2bc87852573196b4b2f9c0788092b9b91846a6d52f8d6a0db8"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1820.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1820.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1677721,
+      "sha256": "197c129bc434c314d2d974f356d83de20241effdff94c447d1148a52d65c1b09"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1825.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1825.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1572864,
+      "sha256": "5b4383b9a2cfd413526c53630318008c8cf9385442c943698162b726c36e5928"
+    },
+    {
+      "url": "https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1830.gz",
+      "local_path": "cache/ris-preflight/rrc00/updates/updates.20190821.1830.gz",
+      "collector_id": "rrc00",
+      "data_type": "updates",
+      "size_bytes": 1468006,
+      "sha256": "44e864f5b0b9b2c459978cd014c59c9de2590596c12286e8cb374e5593124fdf"
+    }
+  ]
+}

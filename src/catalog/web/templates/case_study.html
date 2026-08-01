@@ -224,16 +224,24 @@
 <p class="muted">No independent observer runs are linked yet (RouteViews pilot plus selected RIPE RIS runs). Comparison appears once runs are linked.</p>
 {% else %}
 <p class="muted">{{ observer_comparison.conclusion }}</p>
+{% for e in observer_comparison.planes_explainer %}
+<p class="muted">{{ e }}</p>
+{% endfor %}
 <p class="muted">Each run keeps its own evidence; rows are per normalized prefix per collector. Agreement across collectors is not global proof.</p>
 <table>
-<thead><tr><th>Prefix</th><th>Collector</th><th>Family</th><th>Peer</th><th>First change (UTC)</th><th>Temporary absence</th><th>Path replacement</th><th>Transit departure</th><th>Restoration (UTC)</th><th>Baseline visibility</th></tr></thead>
+<thead><tr><th>Prefix</th><th>Collector</th><th>Location</th><th>Family</th><th>Peer</th><th>Peer ASN</th><th>Relationship</th><th>Plane</th><th>Cohort predicate</th><th>First change (UTC)</th><th>Temporary absence</th><th>Path replacement</th><th>Transit departure</th><th>Restoration (UTC)</th><th>Baseline visibility</th></tr></thead>
 <tbody>
 {% for r in observer_comparison.rows %}
 <tr>
   <td><code>{{ r.prefix }}</code></td>
   <td>{{ r.collector }}</td>
+  <td>{{ r.location }}</td>
   <td>{{ r.family }}</td>
   <td>{{ r.peer }}</td>
+  <td>{{ r.peer_asn }}</td>
+  <td>{{ r.relationship }}</td>
+  <td>{{ r.plane }}</td>
+  <td>{{ r.cohort_predicate }}</td>
   <td>{{ r.first_change_utc }}</td>
   <td>{{ r.temporary_absence }}</td>
   <td>{{ r.path_replacement }}</td>
