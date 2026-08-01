@@ -897,3 +897,149 @@ mod session_audit_tests {
         assert_eq!(rows[1].distinct_prefixes, 1);
     }
 }
+
+impl SessionAuditRow {
+    /// Display the session's relationship(s) to the named planes, derived
+    /// ONLY from the historical peer evidence (peer ASN for direct, path
+    /// membership counts for indirect). Direct and indirect are separate
+    /// facts and are rendered separately.
+    pub fn relationship_displays(&self, profile: &ServicePlaneProfile) -> Vec<String> {
+        let mut out: Vec<String> = Vec::new();
+        for plane in &profile.service_planes {
+            let direct = plane.asns.contains(&self.peer_asn);
+            if direct {
+                out.push(format!(
+                    "direct-peer-to-named-plane: {}",
+                    plane.display_label
+                ));
+            }
+            // Indirect for the same plane never co-occurs with direct
+            // (a direct peer's path trivially contains the plane ASN).
+            let indirect = !direct
+                && self
+                    .path_class
+                    .per_plane_contains
+                    .iter()
+                    .find(|(id, _)| id == &plane.id)
+                    .map(|(_, n)| *n > 0)
+                    .unwrap_or(false);
+            if indirect {
+                out.push(format!(
+                    "indirect-path-via-named-plane: {}",
+                    plane.display_label
+                ));
+            }
+        }
+        if out.is_empty() {
+            if self.origin_route_count == 0 {
+                out.push("no-origin-matching-routes".to_string());
+            } else {
+                out.push("other-observed-path".to_string());
+            }
+        }
+        out
+    }
+}
+
+#[cfg(test)]
+mod wording_tests {
+    use super::*;
+
+    fn profile_two_planes() -> ServicePlaneProfile {
+        ServicePlaneProfile {
+            service_planes: vec![
+                NamedServicePlane {
+                    id: "re".to_string(),
+                    display_label: "R&E".to_string(),
+                    asns: vec![64500],
+                },
+                NamedServicePlane {
+                    id: "pex".to_string(),
+                    display_label: "Peer Exchange".to_string(),
+                    asns: vec![64501],
+                },
+            ],
+            asn_roles: vec![],
+            updated_utc: String::new(),
+            provenance: String::new(),
+        }
+    }
+
+    fn row(
+        peer_asn: u32,
+        origin_routes: usize,
+        per_plane: Vec<(&str, usize)>,
+        neither: usize,
+    ) -> SessionAuditRow {
+        SessionAuditRow {
+            source_family: "ris".to_string(),
+            collector: "rrc00".to_string(),
+            location: "Amsterdam".to_string(),
+            rib_timestamp_utc: "2019-08-21T00:00:00Z".to_string(),
+            rib_source_sha: "sha".to_string(),
+            peer_ip: "192.0.2.1".to_string(),
+            peer_asn,
+            address_family: "ipv4".to_string(),
+            origin_route_count: origin_routes,
+            distinct_prefixes: origin_routes,
+            path_class: PathClassCounts {
+                per_plane_contains: per_plane
+                    .into_iter()
+                    .map(|(id, n)| (id.to_string(), n))
+                    .collect(),
+                neither_plane: neither,
+                total: origin_routes,
+            },
+        }
+    }
+
+    #[test]
+    fn direct_peer_and_indirect_path_are_displayed_separately() {
+        let p = profile_two_planes();
+        // A direct peer of the R&E plane (peer ASN in its ASN set).
+        let direct = row(64500, 3, vec![("re", 3)], 0);
+        let d = direct.relationship_displays(&p);
+        assert_eq!(d, vec!["direct-peer-to-named-plane: R&E"]);
+        // An indirect session (peer differs, path contains the plane ASN).
+        let indirect = row(64600, 3, vec![("re", 3)], 0);
+        let i = indirect.relationship_displays(&p);
+        assert_eq!(i, vec!["indirect-path-via-named-plane: R&E"]);
+        // The two facts render as distinct, never-conflated strings.
+        assert_ne!(d, i);
+        assert!(!d[0].contains("indirect"));
+        assert!(!i[0].starts_with("direct-peer"));
+        assert!(i[0].starts_with("indirect-path"));
+    }
+
+    #[test]
+    fn no_visibility_and_no_predicate_match_are_distinct() {
+        let p = profile_two_planes();
+        // A session with NO origin-matching routes at all (nothing
+        // observed from this peer for the target origin).
+        let no_vis = row(64600, 0, vec![], 0);
+        let nv = no_vis.relationship_displays(&p);
+        assert_eq!(nv, vec!["no-origin-matching-routes"]);
+        // A session WITH origin routes but no named-plane path match.
+        let no_match = row(64600, 5, vec![], 5);
+        let nm = no_match.relationship_displays(&p);
+        assert_eq!(nm, vec!["other-observed-path"]);
+        // Different states, different renderings.
+        assert_ne!(nv, nm);
+    }
+
+    #[test]
+    fn qualifying_predicate_visibility_is_not_rendered_as_total_visibility() {
+        let p = profile_two_planes();
+        // Indirect visibility is plane-scoped: only the matched plane is
+        // named; the rendering never claims other planes or other
+        // observers were absent.
+        let row_re = row(64600, 5, vec![("re", 2)], 3);
+        let out = row_re.relationship_displays(&p);
+        assert_eq!(out, vec!["indirect-path-via-named-plane: R&E"]);
+        assert!(!out[0].contains("Peer Exchange"));
+        // A route set matching both planes names both — again per-plane.
+        let row_both = row(64600, 5, vec![("re", 2), ("pex", 1)], 2);
+        let out = row_both.relationship_displays(&p);
+        assert_eq!(out.len(), 2);
+    }
+}

@@ -392,10 +392,7 @@ fn production_source_contains_no_internet2_specific_plane_branch() {
     for (token, frozen) in [("11537", frozen_11537), ("internet2", frozen_internet2)] {
         let mut live: Vec<String> = rs_files_containing(token);
         live.sort();
-        let mut expected: Vec<String> = frozen
-            .iter()
-            .map(|p| p.to_string())
-            .collect();
+        let mut expected: Vec<String> = frozen.iter().map(|p| p.to_string()).collect();
         expected.sort();
         assert_eq!(
             live, expected,
@@ -410,19 +407,28 @@ fn production_source_contains_no_internet2_specific_plane_branch() {
 #[test]
 fn reviewed_service_plane_profile_declares_two_planes() {
     let text = read("case-studies/manlan-2019/pilot/network-profile.json");
-    let profile: serde_json::Value = serde_json::from_str(&text)
-        .expect("network-profile.json must be valid JSON");
-    let planes = profile["service_planes"].as_array().expect("service_planes");
+    let profile: serde_json::Value =
+        serde_json::from_str(&text).expect("network-profile.json must be valid JSON");
+    let planes = profile["service_planes"]
+        .as_array()
+        .expect("service_planes");
     assert_eq!(planes.len(), 2, "exactly two reviewed service planes");
-    let re = planes.iter().find(|p| p["asns"][0] == 11537)
+    let re = planes
+        .iter()
+        .find(|p| p["asns"][0] == 11537)
         .expect("R&E plane with ASN 11537");
-    let i2px = planes.iter().find(|p| p["asns"][0] == 11164)
+    let i2px = planes
+        .iter()
+        .find(|p| p["asns"][0] == 11164)
         .expect("I2PX plane with ASN 11164");
     assert_eq!(re["id"], "internet2-re");
     assert_eq!(i2px["id"], "internet2-i2px");
     assert_ne!(re["display_label"], i2px["display_label"]);
     // ASN-role entries are data too.
-    assert!(profile["asn_roles"].as_array().map(|a| a.len() >= 3).unwrap_or(false));
+    assert!(profile["asn_roles"]
+        .as_array()
+        .map(|a| a.len() >= 3)
+        .unwrap_or(false));
 }
 
 fn rs_files_containing(token: &str) -> Vec<String> {
@@ -439,4 +445,34 @@ fn rs_files_containing(token: &str) -> Vec<String> {
         }
     }
     out
+}
+
+/// The collector-selection report's rejected-reason wording names the
+/// exact reviewed predicate (Part 4): rejection states the predicate
+/// that produced zero matches, never a blanket visibility claim.
+#[test]
+fn rejected_collector_reason_names_the_exact_predicate() {
+    let text = read("case-studies/manlan-2019/pilot/ris-collector-selection.md");
+    let rejected_section = text
+        .split("## Rejected collectors and reasons")
+        .nth(1)
+        .expect("rejected section");
+    assert!(
+        rejected_section.contains("AS11537-in-path"),
+        "rejected reasons must name the exact predicate"
+    );
+    assert!(
+        rejected_section.contains("AS11537"),
+        "rejected reasons must name the exact predicate ASN"
+    );
+    // The selection doc must not claim other collectors lacked visibility
+    // beyond the reviewed predicate.
+    assert!(
+        !rejected_section.contains("had no visibility"),
+        "blanket visibility claims are forbidden"
+    );
+    assert!(
+        !rejected_section.contains("no AS2603 visibility"),
+        "blanket origin-visibility claims are forbidden"
+    );
 }

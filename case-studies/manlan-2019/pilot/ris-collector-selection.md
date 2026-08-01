@@ -68,7 +68,12 @@ archive coverage (verified 01:30–18:30 UTC updates).
   (`bview.20190821.0000.gz`). Without baseline visibility for the
   reviewed predicate, an observer-prefix stream cannot be frozen, so
   these collectors cannot produce evidence for the reviewed target.
-  Not selected solely because they exist.
+  Not selected solely because they exist. This states visibility for
+  the reviewed predicate (`ContainsAny[11537]`, AS11537-in-path) at the
+  pre-window baseline only: it does NOT establish that other collectors
+  lacked AS2603 visibility, lacked other-plane (e.g. AS11164) visibility,
+  or could not observe other consequences of the event; and it does not
+  establish that the selected paths came directly from Internet2.
 - **rrc22** — metadata: the 2019-08 `bview.20190821.0000.gz` is a
   3.9 KB stub (no usable baseline RIB).
 
