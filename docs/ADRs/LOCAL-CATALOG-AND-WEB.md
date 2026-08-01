@@ -108,3 +108,12 @@ worker:
 
 The worker queue is not implemented in this session; catalog import does
 not require it.
+
+### Update (Session 30)
+
+The catalog schema moved to **v2** with the case-study layer (see
+`docs/ADRs/CASE-STUDY-LAYER.md`): case-study tables plus `run_transitions`
+(imported from the new `transitions.json` artifact) and the
+`reference_documents`/`document_revisions` pair. The web layer gained
+read-only case-study pages/API and validated document serving; the
+"no analysis on any request path" property is unchanged.

@@ -114,3 +114,25 @@ parallel runs produce identical artifacts).
   paths.
 - The catalog database uses versioned migrations (`PRAGMA user_version`),
   foreign keys, and WAL mode; migrations and imports are transactional.
+
+## Case-study provenance (Session 30)
+
+- A case study's source documents are immutable reference records: source
+  URL, SHA-256, media type, best-effort page count/metadata, import time,
+  provenance note, redistribution status. Content deduplicates by SHA-256;
+  changed content is a new revision.
+- "Referenced by the AAR" and "independently retrieved source snapshot
+  exists" are distinct states. Historical tickets that are only referenced
+  keep their external identifiers as unresolved document references; the
+  importer never fabricates a source snapshot.
+- Phase boundaries and claims record their source document and
+  page/section. `exact` vs `summarized` precision preserves the difference
+  between a timestamp stated in the detailed timeline and a broad boundary
+  summarized by the report.
+- The archive plan records the reproducible horizon (warmup / incident /
+  cooldown), expected files, and estimated sizes flagged as estimates;
+  exact sizes are recorded at acquisition. Plans are `Draft` until
+  reviewed.
+- The MAN LAN AAR PDF is not redistributed: its record carries
+  redistribution status `Unknown` and no local copy exists in this
+  repository; local document storage is excluded from the crate package.

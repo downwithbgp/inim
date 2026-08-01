@@ -57,3 +57,25 @@ Per observer-prefix stream, the lifecycle records:
 - Absent communities do not prove a mechanism was unused
 - Event declarations and BGP changes establish temporal association, not
   automatic causation
+
+## Claim observability matrix (Session 30)
+
+Every case-study claim carries an explicit reviewed classification:
+
+- **PotentiallyVisibleInPublicBgp** — the condition itself may appear as a
+  public-BGP route-state change (e.g. participant path withdrawal, path
+  shift to alternate transit, rollback restoration).
+- **IndirectlyVisible** — only exported consequences may appear (e.g.
+  administratively disabled customer interfaces; the action itself is not
+  visible).
+- **NotDirectlyVisible** — not observable in public BGP (e.g. Layer-2
+  broadcast/unknown-unicast/multicast replication, physical cross-connect
+  swaps, OESS circuit migration as an operation, missing switch
+  telemetry).
+- **Unknown** — classification not yet reviewed.
+
+These are reviewed data, never hard-coded claims about any specific
+incident. A NotDirectlyVisible claim is classified as
+`NotDirectlyObservable` in the comparison matrix — never reported as a
+missed detection; `no BGP change does not refute a Layer-2 incident`, and
+`observed BGP change does not prove the reported mechanism`.

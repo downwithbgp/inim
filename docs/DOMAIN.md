@@ -131,6 +131,45 @@ actual temporal clustering — never forced. SEQUITUR describes repeated
 sequences; it never assigns semantic labels and never determines the
 assessment.
 
+## Incident case studies (Session 30)
+
+The catalog distinguishes six kinds of objects; the distinction is
+semantic, not a naming accident:
+
+| Concept | What it is |
+|---|---|
+| `CatalogEvent` | one source ticket (one external record) |
+| `IncidentCaseStudy` | reviewed grouping and interpretation of several sources and analyses |
+| `EventSnapshot` | what a source ticket said at one point in time (immutable) |
+| `ReferenceDocument` | immutable external supporting material (e.g. an after-action report) |
+| `AnalysisRun` | what inim observed under one exact plan (immutable) |
+| `CaseStudyComparison` | reviewed comparison of operator reports with BGP observation — interpretation, not a causal foreign-key relationship |
+
+- `CaseStudy` links to `CatalogEvent`s (relationship vocabulary:
+  PrimaryChange, PrimaryIncident, RollbackChange, ParticipantIncident,
+  Alarm, OperationalTask, Communication, Related), to `ReferenceDocument`s,
+  and to `AnalysisRun`s. A link to a ticket that only exists in a source
+  document has no catalog event — the external identifier is preserved as
+  an unresolved document reference.
+- `ReferenceDocument` content revisions are deduplicated by SHA-256; a
+  changed document is a new revision. The local file, when available, is a
+  catalog-relative path under `data/documents/`.
+- `CaseStudyPhase` boundaries carry precision flags: `exact` (stated in
+  the detailed timeline) vs `summarized` (broad boundary summarized by the
+  source). Retrospective belief is never rendered as measured fact.
+- `CaseStudyClaim` carries reviewed wording, qualification, source
+  document + section, and an explicit observability classification
+  (PotentiallyVisibleInPublicBgp / IndirectlyVisible / NotDirectlyVisible
+  / Unknown) with rationale.
+- `CaseStudyTarget` carries a research status; `Unresearched` and
+  `NotApplicableToPublicBgp` are valid reviewed states, never guesses.
+- `CaseStudyAnalysisPlan` (Draft until reviewed) records the horizon and
+  expected archives; producing it downloads nothing.
+- Phase-conditioned summaries derive from one continuous run: transitions
+  are assigned to exactly one phase by time, stream visibility walks
+  across phase boundaries without resetting baseline state, and counts are
+  observer-stream counts.
+
 ## Assessment
 
 ### Verdict

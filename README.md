@@ -80,6 +80,9 @@ inim compare --a <event-out-dir> --b <event-out-dir> [--blocked <plan-dir>] --ou
 inim catalog init --db data/inim.sqlite
 inim catalog import --db data/inim.sqlite --root .
 inim catalog sync grnoc --db data/inim.sqlite --source-dir <dir>
+inim catalog document import --db data/inim.sqlite --file <aar.pdf> --source-url <url>
+inim catalog case-study import --db data/inim.sqlite --path case-studies/<slug>
+inim catalog case-study plan --db data/inim.sqlite --slug <slug>
 inim serve --db data/inim.sqlite --root . --bind 127.0.0.1:8080
 ```
 
@@ -107,6 +110,41 @@ the administration, automation, and debugging interface.
   the CLI.
 - Sync only populates the catalog: it never starts planning or analysis
   and never infers reviewed ASN mappings from names.
+
+### Multi-ticket incident case studies
+
+A `CaseStudy` is a reviewed grouping and interpretation of several sources
+and analysis runs — **not** a synthetic ticket and **not** an owner of BGP
+observations. The association path is
+`CaseStudy → AnalysisRun → stream lifecycle → route-instance evidence`.
+See `docs/ADRs/CASE-STUDY-LAYER.md`.
+
+- `inim catalog case-study import` reads a reviewed `case-studies/<slug>/`
+  data file (documents, phases with `exact`/`summarized` precision,
+  related tickets, claims with explicit observability classifications,
+  analysis targets). Import is transactional and idempotent; a conflicting
+  immutable revision is rejected.
+- Tickets that are only referenced by the source document stay unresolved
+  document references — no source snapshot is ever fabricated.
+- `inim catalog document import` stores an immutable reference document
+  (SHA-256, media type, best-effort PDF metadata) under
+  `data/documents/<sha12>/`; identical content deduplicates, changed
+  content creates a new revision. Local document storage is excluded from
+  the crate package.
+- `inim catalog case-study plan` computes the reproducible horizon and
+  expected 2019 archive files **without downloading anything**; targets
+  with unresolved historical mappings are reported as blocked, and the
+  plan stays `Draft` until reviewed.
+- Web pages: `/case-studies`, `/case-studies/<slug>` (What happened /
+  What public BGP showed / What BGP could not show, timeline, related
+  tickets, document provenance, targets, plan, phase-conditioned BGP
+  summaries, operator/BGP comparison matrix), `/documents/<id>` (validated
+  serving). API: `/api/v1/case-studies[...]`.
+- The MAN LAN 2019 case study (`case-studies/manlan-2019/`) demonstrates a
+  detailed operator timeline combining Layer-2, physical, configuration,
+  and routing effects: only part of the incident may be externally
+  BGP-visible. Its target research is deliberately incomplete and its BGP
+  analysis deliberately **not executed** — no conclusions are invented.
 
 ### Process exit status contract
 

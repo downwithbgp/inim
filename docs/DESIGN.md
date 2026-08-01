@@ -211,3 +211,46 @@ this as an Internet2 naming convention with provenance tracking, so
 future adapters for other networks can implement their own expectation
 derivation without misunderstanding this as a universal rule.
 
+
+## Case-study layer (Session 30)
+
+- **Schema v2** adds the case-study tables (`case_studies`,
+  `case_study_event_links`, `reference_documents`, `document_revisions`,
+  `case_study_document_links`, `case_study_phases`, `case_study_analysis_links`,
+  `case_study_claims`, `case_study_targets`, `case_study_analysis_plans`,
+  `run_transitions`). All FKs are `ON DELETE RESTRICT`.
+- **Transitions artifact**: every completed run writes `transitions.json`
+  (compact per-transition records: kind, occurred UTC with evidence
+  fallback for absent states, phase, key, effects, observation id). The
+  catalog imports it into `run_transitions`; phase summaries are pure
+  read-only derivations over `run_transitions` + lifecycle + wave
+  summaries.
+- **Case-study import** (`case-studies/<slug>/case-study.json`, schema v1):
+  transactional, idempotent by (slug, content hash), conflicting immutable
+  revision rejected; documents resolved by SHA-256 (metadata-only records
+  when the file is absent); related tickets linked to existing catalog
+  events or preserved as unresolved references.
+- **Document import**: media-type allowlist, SHA-256, basename-only storage
+  under `<root>/data/documents/<sha12>/`, catalog-relative paths, best-effort
+  PDF page count + Info metadata from raw bytes (no OCR, no external
+  dependencies). Same content idempotent; changed content → new revision;
+  existing files never overwritten; a later import may attach a missing
+  local file (availability update only).
+- **Archive planner**: pure computation (no downloads). Reproducible
+  horizon (2h warmup / incident / 2h cooldown), expected 2019 RouteViews
+  RIB+update files with estimated sizes (flagged as estimates), blocked
+  targets with reasons, `Draft` status until reviewed.
+- **Phase summaries**: one run summarized by reviewed phases; transitions
+  assigned to exactly one phase by time; stream visibility walked
+  continuously across the run (no baseline reset); counts are
+  observer-stream counts; outside-phases bucket reported explicitly.
+- **Comparison matrix**: operator claims (first five categories) × BGP
+  observation from linked runs; labels Before/During/After/Overlapping/
+  NoObservedCounterpart/NotDirectlyObservable/Indeterminate; never
+  ConfirmedCause; no linked runs → Indeterminate ("not yet executed").
+- **Web/API**: `/case-studies`, `/case-studies/{slug}`, `/documents/{id}`,
+  `/api/v1/case-studies`, `/case-studies/{slug}`,
+  `/case-studies/{slug}/timeline`, `/case-studies/{slug}/comparison`.
+  Document serving validates record existence, catalog-relative path,
+  canonical containment under the catalog root, SHA-256 match, and media
+  allowlist (inline only for approved types).
