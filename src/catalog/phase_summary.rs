@@ -471,11 +471,33 @@ mod tests {
             .unwrap()
             .collect::<Result<_, _>>()
             .unwrap();
-        for forbidden in ["before_path", "after_path", "from_path", "to_path", "raw_payload", "evidence_json"] {
-            assert!(!cols.iter().any(|c| c.contains(forbidden)), "index must not duplicate full evidence: {forbidden}");
+        for forbidden in [
+            "before_path",
+            "after_path",
+            "from_path",
+            "to_path",
+            "raw_payload",
+            "evidence_json",
+        ] {
+            assert!(
+                !cols.iter().any(|c| c.contains(forbidden)),
+                "index must not duplicate full evidence: {forbidden}"
+            );
         }
-        for required in ["run_id", "seq", "kind", "occurred_utc", "collector", "peer_ip", "prefix", "observation_id"] {
-            assert!(cols.iter().any(|c| c == required), "index must keep {required}");
+        for required in [
+            "run_id",
+            "seq",
+            "kind",
+            "occurred_utc",
+            "collector",
+            "peer_ip",
+            "prefix",
+            "observation_id",
+        ] {
+            assert!(
+                cols.iter().any(|c| c == required),
+                "index must keep {required}"
+            );
         }
     }
 
@@ -659,6 +681,135 @@ mod tests {
             assert!(p.last_evidence_utc.is_none());
         }
         assert_eq!(summary.outside_phases, 0);
+    }
+
+    #[test]
+    fn inherited_impairment_is_not_counted_as_new_phase_transition() {
+        let (_dir, conn) = open_temp_db();
+        let cs_id = seed_case_study(&conn);
+        let run_id = seed_run(&conn);
+        seed_stream(&conn, run_id, "rv2", "1.1.1.1", "192.0.2.0/24", "Unchanged");
+        // Withdrawn in phase 1 (09:00); still absent through phase 2.
+        insert_t(
+            &conn,
+            run_id,
+            0,
+            "Withdrawal",
+            "2019-08-21T09:00:00Z",
+            "rv2|1.1.1.1|192.0.2.0/24",
+            Some(1),
+        );
+        let summary = summarize_run(&conn, run_id, cs_id).unwrap();
+        let p2 = &summary.phases[1];
+        // The impairment is inherited: not a new phase-2 transition, and the
+        // stream is not active entering phase 2.
+        assert_eq!(
+            p2.withdrawals, 0,
+            "inherited impairment is not a new transition"
+        );
+        assert_eq!(p2.active_streams_entering, 0);
+        assert!(p2.first_evidence_utc.is_none());
+    }
+
+    #[test]
+    fn restoration_phase_can_close_prior_phase_lifecycle() {
+        let (_dir, conn) = open_temp_db();
+        let cs_id = seed_case_study(&conn);
+        let run_id = seed_run(&conn);
+        seed_stream(&conn, run_id, "rv2", "1.1.1.1", "192.0.2.0/24", "Unchanged");
+        // Lifecycle: withdrawal in phase 1, restoration in phase 2 — the
+        // restoration CLOSES the phase-1 lifecycle (one lifecycle total).
+        insert_t(
+            &conn,
+            run_id,
+            0,
+            "Withdrawal",
+            "2019-08-21T09:00:00Z",
+            "rv2|1.1.1.1|192.0.2.0/24",
+            Some(1),
+        );
+        insert_t(
+            &conn,
+            run_id,
+            1,
+            "Restoration",
+            "2019-08-21T11:00:00Z",
+            "rv2|1.1.1.1|192.0.2.0/24",
+            Some(2),
+        );
+        let summary = summarize_run(&conn, run_id, cs_id).unwrap();
+        assert_eq!(summary.phases[0].withdrawals, 1);
+        assert_eq!(summary.phases[1].restorations, 1);
+        let total_lifecycle_events: usize = summary
+            .phases
+            .iter()
+            .map(|p| p.withdrawals + p.restorations + p.announcements + p.path_changes)
+            .sum();
+        assert_eq!(total_lifecycle_events, 2, "one lifecycle, two transitions");
+    }
+
+    #[test]
+    fn phase_boundary_does_not_reset_baseline() {
+        let (_dir, conn) = open_temp_db();
+        let cs_id = seed_case_study(&conn);
+        let run_id = seed_run(&conn);
+        seed_stream(&conn, run_id, "rv2", "1.1.1.1", "192.0.2.0/24", "Unchanged");
+        seed_stream(
+            &conn,
+            run_id,
+            "rv2",
+            "2.2.2.2",
+            "198.51.100.0/24",
+            "Unchanged",
+        );
+        // No transitions at all: both streams stay active in every phase —
+        // the baseline is never reset and no phase invents changes.
+        let summary = summarize_run(&conn, run_id, cs_id).unwrap();
+        for p in &summary.phases {
+            assert_eq!(p.active_streams_entering, 2);
+            assert_eq!(
+                p.withdrawals + p.restorations + p.announcements + p.path_changes,
+                0
+            );
+        }
+    }
+
+    #[test]
+    fn one_lifecycle_can_span_multiple_phases() {
+        let (_dir, conn) = open_temp_db();
+        let cs_id = seed_case_study(&conn);
+        let run_id = seed_run(&conn);
+        seed_stream(&conn, run_id, "rv2", "1.1.1.1", "192.0.2.0/24", "Unchanged");
+        // Withdrawn 09:00 (phase 1), restored 12:00 (phase 2): the same
+        // lifecycle spans both phases without being split or duplicated.
+        insert_t(
+            &conn,
+            run_id,
+            0,
+            "Withdrawal",
+            "2019-08-21T09:00:00Z",
+            "rv2|1.1.1.1|192.0.2.0/24",
+            Some(1),
+        );
+        insert_t(
+            &conn,
+            run_id,
+            1,
+            "ReturnToBaseline",
+            "2019-08-21T12:00:00Z",
+            "rv2|1.1.1.1|192.0.2.0/24",
+            Some(2),
+        );
+        let summary = summarize_run(&conn, run_id, cs_id).unwrap();
+        assert_eq!(summary.phases[0].withdrawals, 1);
+        assert_eq!(summary.phases[1].restorations, 1);
+        // The restored stream is active again in any later phase.
+        let total: usize = summary
+            .phases
+            .iter()
+            .map(|p| p.withdrawals + p.restorations)
+            .sum();
+        assert_eq!(total, 2);
     }
 
     #[test]
