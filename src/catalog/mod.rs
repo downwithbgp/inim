@@ -11,6 +11,7 @@ pub mod domain;
 pub mod grnoc;
 pub mod import;
 pub mod migrations;
+pub mod phase_summary;
 pub mod status;
 pub mod store;
 pub mod sync;

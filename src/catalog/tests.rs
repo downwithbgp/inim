@@ -14,7 +14,7 @@ fn open_temp_db() -> (tempfile::TempDir, Connection) {
     (dir, conn)
 }
 
-fn sample_snapshot(event_id: i64, payload: &str) -> EventSnapshot {
+pub(crate) fn sample_snapshot(event_id: i64, payload: &str) -> EventSnapshot {
     EventSnapshot {
         id: 0,
         event_id,
@@ -27,7 +27,11 @@ fn sample_snapshot(event_id: i64, payload: &str) -> EventSnapshot {
     }
 }
 
-fn sample_manifest_revision(event_id: i64, snapshot_id: i64, payload: &str) -> ManifestRevision {
+pub(crate) fn sample_manifest_revision(
+    event_id: i64,
+    snapshot_id: i64,
+    payload: &str,
+) -> ManifestRevision {
     ManifestRevision {
         id: 0,
         event_id,
@@ -41,7 +45,7 @@ fn sample_manifest_revision(event_id: i64, snapshot_id: i64, payload: &str) -> M
     }
 }
 
-fn sample_plan(manifest_revision_id: i64, status: &str) -> AnalysisPlanRecord {
+pub(crate) fn sample_plan(manifest_revision_id: i64, status: &str) -> AnalysisPlanRecord {
     let payload = format!(r#"{{"manifest_revision":{manifest_revision_id},"status":"{status}"}}"#);
     AnalysisPlanRecord {
         id: 0,
@@ -59,7 +63,7 @@ fn sample_plan(manifest_revision_id: i64, status: &str) -> AnalysisPlanRecord {
     }
 }
 
-fn sample_run(plan_id: i64, started_at: &str) -> AnalysisRun {
+pub(crate) fn sample_run(plan_id: i64, started_at: &str) -> AnalysisRun {
     AnalysisRun {
         id: 0,
         plan_id,
