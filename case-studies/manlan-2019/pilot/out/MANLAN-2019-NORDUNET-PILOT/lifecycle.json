@@ -1,0 +1,5396 @@
+{
+  "schema_version": 1,
+  "event_id": "MANLAN-2019-NORDUNET-PILOT",
+  "lifecycles": [
+    {
+      "collector": "route-views2",
+      "peer_ip": "137.164.16.84",
+      "prefix": "109.105.112.0/21",
+      "baseline_path": [
+        2152,
+        2153,
+        11537,
+        2603
+      ],
+      "baseline_instance_count": 1,
+      "max_concurrent_instances": 1,
+      "total_route_instances": 1,
+      "category": "PathChangedStillViaTransit",
+      "flags": {
+        "restored": false,
+        "not_restored": false,
+        "multiple_cycles": false,
+        "add_path_ambiguous": false
+      },
+      "first_change": "2019-08-21T16:45:48Z",
+      "transitions": [
+        {
+          "timestamp": "2019-08-21T16:45:48Z",
+          "phase": "Event",
+          "kind": "PathReplacement",
+          "path_id": null,
+          "before_path": [
+            2152,
+            2153,
+            11537,
+            20965,
+            2603
+          ],
+          "after_path": [
+            2152,
+            2153,
+            11537,
+            22388,
+            24489,
+            24489,
+            24489,
+            24489,
+            24490,
+            20965,
+            2603
+          ],
+          "path_shape": "PathChangedStillViaRequiredTransit",
+          "observation_id": 201,
+          "archive_sha256": "4546b78f8fb9ced87b93867cbb5f76e4abc11f37e564001f73f593313b9fd182",
+          "has_gshut_after": false
+        },
+        {
+          "timestamp": "2019-08-21T16:59:49Z",
+          "phase": "Event",
+          "kind": "ReturnToBaseline",
+          "path_id": null,
+          "before_path": [
+            2152,
+            2153,
+            11537,
+            22388,
+            24489,
+            24489,
+            24489,
+            24489,
+            24490,
+            20965,
+            2603
+          ],
+          "after_path": [
+            2152,
+            2153,
+            11537,
+            20965,
+            2603
+          ],
+          "path_shape": null,
+          "observation_id": 216,
+          "archive_sha256": "4546b78f8fb9ced87b93867cbb5f76e4abc11f37e564001f73f593313b9fd182",
+          "has_gshut_after": false
+        }
+      ],
+      "min_absence_secs": null,
+      "max_absence_secs": null,
+      "was_withdrawn": false,
+      "stream_withdrawal_time": null,
+      "active_before_absence": 0,
+      "transit_at_withdrawal": null,
+      "withdrawn_instances": [],
+      "stream_withdrawal_count": 0,
+      "restorations": [],
+      "add_path_ambiguity": null,
+      "replacement_appeared": true,
+      "replacement_retained_transit": true,
+      "prepending_changed": false,
+      "cooldown_transitions": [],
+      "final_state": {
+        "prefix": "109.105.112.0/21",
+        "attributes": {
+          "as_path": [
+            2152,
+            2153,
+            11537,
+            20965,
+            2603
+          ],
+          "origin_asns": [
+            2603
+          ],
+          "next_hop": "137.164.16.84",
+          "origin": "IGP",
+          "med": 0,
+          "local_pref": 0,
+          "atomic_aggregate": false,
+          "communities": [
+            "2153:65397",
+            "2153:65419",
+            "2153:65436",
+            "11537:2501",
+            "20965:155",
+            "20965:2603"
+          ]
+        },
+        "timestamp": "2019-08-21T16:59:49Z",
+        "observer": "route-views2:137.164.16.84",
+        "path_id": null
+      },
+      "baseline_restored": true,
+      "restoration_time": null,
+      "affected_duration_secs": 6252.0,
+      "graceful_shutdown_seen": false,
+      "gshut_present_at_baseline": false,
+      "gshut_newly_added": false,
+      "gshut_removed": false,
+      "first_gshut_timestamp": null,
+      "last_gshut_timestamp": null,
+      "gshut_before_withdrawal": false,
+      "gshut_before_path_change": false,
+      "gshut_to_consequence_secs": null,
+      "gshut_removed_during_restoration": false,
+      "communities_before": [
+        "2153:65397",
+        "2153:65419",
+        "2153:65436",
+        "11537:2501",
+        "20965:155",
+        "20965:2603"
+      ],
+      "communities_after": [
+        "2153:65397",
+        "2153:65419",
+        "2153:65436",
+        "11537:2501",
+        "20965:155",
+        "20965:2603"
+      ]
+    },
+    {
+      "collector": "route-views2",
+      "peer_ip": "137.164.16.84",
+      "prefix": "109.105.120.0/22",
+      "baseline_path": [
+        2152,
+        2153,
+        11537,
+        2603
+      ],
+      "baseline_instance_count": 1,
+      "max_concurrent_instances": 1,
+      "total_route_instances": 1,
+      "category": "PathChangedStillViaTransit",
+      "flags": {
+        "restored": false,
+        "not_restored": false,
+        "multiple_cycles": false,
+        "add_path_ambiguous": false
+      },
+      "first_change": "2019-08-21T16:45:48Z",
+      "transitions": [
+        {
+          "timestamp": "2019-08-21T16:45:48Z",
+          "phase": "Event",
+          "kind": "PathReplacement",
+          "path_id": null,
+          "before_path": [
+            2152,
+            2153,
+            11537,
+            20965,
+            2603
+          ],
+          "after_path": [
+            2152,
+            2153,
+            11537,
+            22388,
+            24489,
+            24489,
+            24489,
+            24489,
+            24490,
+            20965,
+            2603
+          ],
+          "path_shape": "PathChangedStillViaRequiredTransit",
+          "observation_id": 204,
+          "archive_sha256": "4546b78f8fb9ced87b93867cbb5f76e4abc11f37e564001f73f593313b9fd182",
+          "has_gshut_after": false
+        },
+        {
+          "timestamp": "2019-08-21T16:59:49Z",
+          "phase": "Event",
+          "kind": "ReturnToBaseline",
+          "path_id": null,
+          "before_path": [
+            2152,
+            2153,
+            11537,
+            22388,
+            24489,
+            24489,
+            24489,
+            24489,
+            24490,
+            20965,
+            2603
+          ],
+          "after_path": [
+            2152,
+            2153,
+            11537,
+            20965,
+            2603
+          ],
+          "path_shape": null,
+          "observation_id": 215,
+          "archive_sha256": "4546b78f8fb9ced87b93867cbb5f76e4abc11f37e564001f73f593313b9fd182",
+          "has_gshut_after": false
+        }
+      ],
+      "min_absence_secs": null,
+      "max_absence_secs": null,
+      "was_withdrawn": false,
+      "stream_withdrawal_time": null,
+      "active_before_absence": 0,
+      "transit_at_withdrawal": null,
+      "withdrawn_instances": [],
+      "stream_withdrawal_count": 0,
+      "restorations": [],
+      "add_path_ambiguity": null,
+      "replacement_appeared": true,
+      "replacement_retained_transit": true,
+      "prepending_changed": false,
+      "cooldown_transitions": [],
+      "final_state": {
+        "prefix": "109.105.120.0/22",
+        "attributes": {
+          "as_path": [
+            2152,
+            2153,
+            11537,
+            20965,
+            2603
+          ],
+          "origin_asns": [
+            2603
+          ],
+          "next_hop": "137.164.16.84",
+          "origin": "IGP",
+          "med": 0,
+          "local_pref": 0,
+          "atomic_aggregate": false,
+          "communities": [
+            "2153:65397",
+            "2153:65419",
+            "2153:65436",
+            "11537:2501",
+            "20965:155",
+            "20965:2603"
+          ]
+        },
+        "timestamp": "2019-08-21T16:59:49Z",
+        "observer": "route-views2:137.164.16.84",
+        "path_id": null
+      },
+      "baseline_restored": true,
+      "restoration_time": null,
+      "affected_duration_secs": 6252.0,
+      "graceful_shutdown_seen": false,
+      "gshut_present_at_baseline": false,
+      "gshut_newly_added": false,
+      "gshut_removed": false,
+      "first_gshut_timestamp": null,
+      "last_gshut_timestamp": null,
+      "gshut_before_withdrawal": false,
+      "gshut_before_path_change": false,
+      "gshut_to_consequence_secs": null,
+      "gshut_removed_during_restoration": false,
+      "communities_before": [
+        "2153:65397",
+        "2153:65419",
+        "2153:65436",
+        "11537:2501",
+        "20965:155",
+        "20965:2603"
+      ],
+      "communities_after": [
+        "2153:65397",
+        "2153:65419",
+        "2153:65436",
+        "11537:2501",
+        "20965:155",
+        "20965:2603"
+      ]
+    },
+    {
+      "collector": "route-views2",
+      "peer_ip": "137.164.16.84",
+      "prefix": "109.105.96.0/20",
+      "baseline_path": [
+        2152,
+        2153,
+        11537,
+        2603
+      ],
+      "baseline_instance_count": 1,
+      "max_concurrent_instances": 1,
+      "total_route_instances": 1,
+      "category": "PathChangedStillViaTransit",
+      "flags": {
+        "restored": false,
+        "not_restored": false,
+        "multiple_cycles": false,
+        "add_path_ambiguous": false
+      },
+      "first_change": "2019-08-21T16:45:48Z",
+      "transitions": [
+        {
+          "timestamp": "2019-08-21T16:45:48Z",
+          "phase": "Event",
+          "kind": "PathReplacement",
+          "path_id": null,
+          "before_path": [
+            2152,
+            2153,
+            11537,
+            20965,
+            2603
+          ],
+          "after_path": [
+            2152,
+            2153,
+            11537,
+            22388,
+            24489,
+            24489,
+            24489,
+            24489,
+            24490,
+            20965,
+            2603
+          ],
+          "path_shape": "PathChangedStillViaRequiredTransit",
+          "observation_id": 203,
+          "archive_sha256": "4546b78f8fb9ced87b93867cbb5f76e4abc11f37e564001f73f593313b9fd182",
+          "has_gshut_after": false
+        },
+        {
+          "timestamp": "2019-08-21T16:59:49Z",
+          "phase": "Event",
+          "kind": "ReturnToBaseline",
+          "path_id": null,
+          "before_path": [
+            2152,
+            2153,
+            11537,
+            22388,
+            24489,
+            24489,
+            24489,
+            24489,
+            24490,
+            20965,
+            2603
+          ],
+          "after_path": [
+            2152,
+            2153,
+            11537,
+            20965,
+            2603
+          ],
+          "path_shape": null,
+          "observation_id": 217,
+          "archive_sha256": "4546b78f8fb9ced87b93867cbb5f76e4abc11f37e564001f73f593313b9fd182",
+          "has_gshut_after": false
+        }
+      ],
+      "min_absence_secs": null,
+      "max_absence_secs": null,
+      "was_withdrawn": false,
+      "stream_withdrawal_time": null,
+      "active_before_absence": 0,
+      "transit_at_withdrawal": null,
+      "withdrawn_instances": [],
+      "stream_withdrawal_count": 0,
+      "restorations": [],
+      "add_path_ambiguity": null,
+      "replacement_appeared": true,
+      "replacement_retained_transit": true,
+      "prepending_changed": false,
+      "cooldown_transitions": [],
+      "final_state": {
+        "prefix": "109.105.96.0/20",
+        "attributes": {
+          "as_path": [
+            2152,
+            2153,
+            11537,
+            20965,
+            2603
+          ],
+          "origin_asns": [
+            2603
+          ],
+          "next_hop": "137.164.16.84",
+          "origin": "IGP",
+          "med": 0,
+          "local_pref": 0,
+          "atomic_aggregate": false,
+          "communities": [
+            "2153:65397",
+            "2153:65419",
+            "2153:65436",
+            "11537:2501",
+            "20965:155",
+            "20965:2603"
+          ]
+        },
+        "timestamp": "2019-08-21T16:59:49Z",
+        "observer": "route-views2:137.164.16.84",
+        "path_id": null
+      },
+      "baseline_restored": true,
+      "restoration_time": null,
+      "affected_duration_secs": 6252.0,
+      "graceful_shutdown_seen": false,
+      "gshut_present_at_baseline": false,
+      "gshut_newly_added": false,
+      "gshut_removed": false,
+      "first_gshut_timestamp": null,
+      "last_gshut_timestamp": null,
+      "gshut_before_withdrawal": false,
+      "gshut_before_path_change": false,
+      "gshut_to_consequence_secs": null,
+      "gshut_removed_during_restoration": false,
+      "communities_before": [
+        "2153:65397",
+        "2153:65419",
+        "2153:65436",
+        "11537:2501",
+        "20965:155",
+        "20965:2603"
+      ],
+      "communities_after": [
+        "2153:65397",
+        "2153:65419",
+        "2153:65436",
+        "11537:2501",
+        "20965:155",
+        "20965:2603"
+      ]
+    },
+    {
+      "collector": "route-views2",
+      "peer_ip": "137.164.16.84",
+      "prefix": "185.174.116.0/22",
+      "baseline_path": [
+        2152,
+        2153,
+        11537,
+        2603
+      ],
+      "baseline_instance_count": 1,
+      "max_concurrent_instances": 1,
+      "total_route_instances": 1,
+      "category": "PathChangedStillViaTransit",
+      "flags": {
+        "restored": false,
+        "not_restored": false,
+        "multiple_cycles": false,
+        "add_path_ambiguous": false
+      },
+      "first_change": "2019-08-21T16:45:48Z",
+      "transitions": [
+        {
+          "timestamp": "2019-08-21T16:45:48Z",
+          "phase": "Event",
+          "kind": "PathReplacement",
+          "path_id": null,
+          "before_path": [
+            2152,
+            2153,
+            11537,
+            20965,
+            2603
+          ],
+          "after_path": [
+            2152,
+            2153,
+            11537,
+            22388,
+            24489,
+            24489,
+            24489,
+            24489,
+            24490,
+            20965,
+            2603
+          ],
+          "path_shape": "PathChangedStillViaRequiredTransit",
+          "observation_id": 207,
+          "archive_sha256": "4546b78f8fb9ced87b93867cbb5f76e4abc11f37e564001f73f593313b9fd182",
+          "has_gshut_after": false
+        },
+        {
+          "timestamp": "2019-08-21T17:02:19Z",
+          "phase": "Event",
+          "kind": "ReturnToBaseline",
+          "path_id": null,
+          "before_path": [
+            2152,
+            2153,
+            11537,
+            22388,
+            24489,
+            24489,
+            24489,
+            24489,
+            24490,
+            20965,
+            2603
+          ],
+          "after_path": [
+            2152,
+            2153,
+            11537,
+            20965,
+            2603
+          ],
+          "path_shape": null,
+          "observation_id": 249,
+          "archive_sha256": "a56a86cbce313bd04106babd94f9018a2c211d870fb07234efd320e89734786f",
+          "has_gshut_after": false
+        }
+      ],
+      "min_absence_secs": null,
+      "max_absence_secs": null,
+      "was_withdrawn": false,
+      "stream_withdrawal_time": null,
+      "active_before_absence": 0,
+      "transit_at_withdrawal": null,
+      "withdrawn_instances": [],
+      "stream_withdrawal_count": 0,
+      "restorations": [],
+      "add_path_ambiguity": null,
+      "replacement_appeared": true,
+      "replacement_retained_transit": true,
+      "prepending_changed": false,
+      "cooldown_transitions": [],
+      "final_state": {
+        "prefix": "185.174.116.0/22",
+        "attributes": {
+          "as_path": [
+            2152,
+            2153,
+            11537,
+            20965,
+            2603
+          ],
+          "origin_asns": [
+            2603
+          ],
+          "next_hop": "137.164.16.84",
+          "origin": "IGP",
+          "med": 0,
+          "local_pref": 0,
+          "atomic_aggregate": false,
+          "communities": [
+            "2153:65397",
+            "2153:65419",
+            "2153:65436",
+            "11537:2501",
+            "20965:155",
+            "20965:2603"
+          ]
+        },
+        "timestamp": "2019-08-21T17:02:19Z",
+        "observer": "route-views2:137.164.16.84",
+        "path_id": null
+      },
+      "baseline_restored": true,
+      "restoration_time": null,
+      "affected_duration_secs": 6252.0,
+      "graceful_shutdown_seen": false,
+      "gshut_present_at_baseline": false,
+      "gshut_newly_added": false,
+      "gshut_removed": false,
+      "first_gshut_timestamp": null,
+      "last_gshut_timestamp": null,
+      "gshut_before_withdrawal": false,
+      "gshut_before_path_change": false,
+      "gshut_to_consequence_secs": null,
+      "gshut_removed_during_restoration": false,
+      "communities_before": [
+        "2153:65397",
+        "2153:65419",
+        "2153:65436",
+        "11537:2501",
+        "20965:155",
+        "20965:2603"
+      ],
+      "communities_after": [
+        "2153:65397",
+        "2153:65419",
+        "2153:65436",
+        "11537:2501",
+        "20965:155",
+        "20965:2603"
+      ]
+    },
+    {
+      "collector": "route-views2",
+      "peer_ip": "137.164.16.84",
+      "prefix": "192.36.171.0/24",
+      "baseline_path": [
+        2152,
+        2153,
+        11537,
+        2603
+      ],
+      "baseline_instance_count": 1,
+      "max_concurrent_instances": 1,
+      "total_route_instances": 1,
+      "category": "PathChangedStillViaTransit",
+      "flags": {
+        "restored": false,
+        "not_restored": false,
+        "multiple_cycles": false,
+        "add_path_ambiguous": false
+      },
+      "first_change": "2019-08-21T16:45:48Z",
+      "transitions": [
+        {
+          "timestamp": "2019-08-21T16:45:48Z",
+          "phase": "Event",
+          "kind": "PathReplacement",
+          "path_id": null,
+          "before_path": [
+            2152,
+            2153,
+            11537,
+            20965,
+            2603
+          ],
+          "after_path": [
+            2152,
+            2153,
+            11537,
+            22388,
+            24489,
+            24489,
+            24489,
+            24489,
+            24490,
+            20965,
+            2603
+          ],
+          "path_shape": "PathChangedStillViaRequiredTransit",
+          "observation_id": 206,
+          "archive_sha256": "4546b78f8fb9ced87b93867cbb5f76e4abc11f37e564001f73f593313b9fd182",
+          "has_gshut_after": false
+        },
+        {
+          "timestamp": "2019-08-21T17:00:19Z",
+          "phase": "Event",
+          "kind": "ReturnToBaseline",
+          "path_id": null,
+          "before_path": [
+            2152,
+            2153,
+            11537,
+            22388,
+            24489,
+            24489,
+            24489,
+            24489,
+            24490,
+            20965,
+            2603
+          ],
+          "after_path": [
+            2152,
+            2153,
+            11537,
+            20965,
+            2603
+          ],
+          "path_shape": null,
+          "observation_id": 221,
+          "archive_sha256": "a56a86cbce313bd04106babd94f9018a2c211d870fb07234efd320e89734786f",
+          "has_gshut_after": false
+        }
+      ],
+      "min_absence_secs": null,
+      "max_absence_secs": null,
+      "was_withdrawn": false,
+      "stream_withdrawal_time": null,
+      "active_before_absence": 0,
+      "transit_at_withdrawal": null,
+      "withdrawn_instances": [],
+      "stream_withdrawal_count": 0,
+      "restorations": [],
+      "add_path_ambiguity": null,
+      "replacement_appeared": true,
+      "replacement_retained_transit": true,
+      "prepending_changed": false,
+      "cooldown_transitions": [],
+      "final_state": {
+        "prefix": "192.36.171.0/24",
+        "attributes": {
+          "as_path": [
+            2152,
+            2153,
+            11537,
+            20965,
+            2603
+          ],
+          "origin_asns": [
+            2603
+          ],
+          "next_hop": "137.164.16.84",
+          "origin": "IGP",
+          "med": 0,
+          "local_pref": 0,
+          "atomic_aggregate": false,
+          "communities": [
+            "2153:65397",
+            "2153:65419",
+            "2153:65436",
+            "11537:2501",
+            "20965:155",
+            "20965:2603"
+          ]
+        },
+        "timestamp": "2019-08-21T17:00:19Z",
+        "observer": "route-views2:137.164.16.84",
+        "path_id": null
+      },
+      "baseline_restored": true,
+      "restoration_time": null,
+      "affected_duration_secs": 6252.0,
+      "graceful_shutdown_seen": false,
+      "gshut_present_at_baseline": false,
+      "gshut_newly_added": false,
+      "gshut_removed": false,
+      "first_gshut_timestamp": null,
+      "last_gshut_timestamp": null,
+      "gshut_before_withdrawal": false,
+      "gshut_before_path_change": false,
+      "gshut_to_consequence_secs": null,
+      "gshut_removed_during_restoration": false,
+      "communities_before": [
+        "2153:65397",
+        "2153:65419",
+        "2153:65436",
+        "11537:2501",
+        "20965:155",
+        "20965:2603"
+      ],
+      "communities_after": [
+        "2153:65397",
+        "2153:65419",
+        "2153:65436",
+        "11537:2501",
+        "20965:155",
+        "20965:2603"
+      ]
+    },
+    {
+      "collector": "route-views2",
+      "peer_ip": "137.164.16.84",
+      "prefix": "193.10.252.0/24",
+      "baseline_path": [
+        2152,
+        2153,
+        11537,
+        2603
+      ],
+      "baseline_instance_count": 1,
+      "max_concurrent_instances": 1,
+      "total_route_instances": 1,
+      "category": "PathChangedStillViaTransit",
+      "flags": {
+        "restored": false,
+        "not_restored": false,
+        "multiple_cycles": false,
+        "add_path_ambiguous": false
+      },
+      "first_change": "2019-08-21T16:45:48Z",
+      "transitions": [
+        {
+          "timestamp": "2019-08-21T16:45:48Z",
+          "phase": "Event",
+          "kind": "PathReplacement",
+          "path_id": null,
+          "before_path": [
+            2152,
+            2153,
+            11537,
+            20965,
+            2603
+          ],
+          "after_path": [
+            2152,
+            2153,
+            11537,
+            22388,
+            24489,
+            24489,
+            24489,
+            24489,
+            24490,
+            20965,
+            2603
+          ],
+          "path_shape": "PathChangedStillViaRequiredTransit",
+          "observation_id": 200,
+          "archive_sha256": "4546b78f8fb9ced87b93867cbb5f76e4abc11f37e564001f73f593313b9fd182",
+          "has_gshut_after": false
+        },
+        {
+          "timestamp": "2019-08-21T17:00:49Z",
+          "phase": "Event",
+          "kind": "ReturnToBaseline",
+          "path_id": null,
+          "before_path": [
+            2152,
+            2153,
+            11537,
+            22388,
+            24489,
+            24489,
+            24489,
+            24489,
+            24490,
+            20965,
+            2603
+          ],
+          "after_path": [
+            2152,
+            2153,
+            11537,
+            20965,
+            2603
+          ],
+          "path_shape": null,
+          "observation_id": 242,
+          "archive_sha256": "a56a86cbce313bd04106babd94f9018a2c211d870fb07234efd320e89734786f",
+          "has_gshut_after": false
+        }
+      ],
+      "min_absence_secs": null,
+      "max_absence_secs": null,
+      "was_withdrawn": false,
+      "stream_withdrawal_time": null,
+      "active_before_absence": 0,
+      "transit_at_withdrawal": null,
+      "withdrawn_instances": [],
+      "stream_withdrawal_count": 0,
+      "restorations": [],
+      "add_path_ambiguity": null,
+      "replacement_appeared": true,
+      "replacement_retained_transit": true,
+      "prepending_changed": false,
+      "cooldown_transitions": [],
+      "final_state": {
+        "prefix": "193.10.252.0/24",
+        "attributes": {
+          "as_path": [
+            2152,
+            2153,
+            11537,
+            20965,
+            2603
+          ],
+          "origin_asns": [
+            2603
+          ],
+          "next_hop": "137.164.16.84",
+          "origin": "IGP",
+          "med": 0,
+          "local_pref": 0,
+          "atomic_aggregate": false,
+          "communities": [
+            "2153:65397",
+            "2153:65419",
+            "2153:65436",
+            "11537:2501",
+            "20965:155",
+            "20965:2603"
+          ]
+        },
+        "timestamp": "2019-08-21T17:00:49Z",
+        "observer": "route-views2:137.164.16.84",
+        "path_id": null
+      },
+      "baseline_restored": true,
+      "restoration_time": null,
+      "affected_duration_secs": 6252.0,
+      "graceful_shutdown_seen": false,
+      "gshut_present_at_baseline": false,
+      "gshut_newly_added": false,
+      "gshut_removed": false,
+      "first_gshut_timestamp": null,
+      "last_gshut_timestamp": null,
+      "gshut_before_withdrawal": false,
+      "gshut_before_path_change": false,
+      "gshut_to_consequence_secs": null,
+      "gshut_removed_during_restoration": false,
+      "communities_before": [
+        "2153:65397",
+        "2153:65419",
+        "2153:65436",
+        "11537:2501",
+        "20965:155",
+        "20965:2603"
+      ],
+      "communities_after": [
+        "2153:65397",
+        "2153:65419",
+        "2153:65436",
+        "11537:2501",
+        "20965:155",
+        "20965:2603"
+      ]
+    },
+    {
+      "collector": "route-views2",
+      "peer_ip": "137.164.16.84",
+      "prefix": "193.10.254.0/24",
+      "baseline_path": [
+        2152,
+        2153,
+        11537,
+        2603
+      ],
+      "baseline_instance_count": 1,
+      "max_concurrent_instances": 1,
+      "total_route_instances": 1,
+      "category": "PathChangedStillViaTransit",
+      "flags": {
+        "restored": false,
+        "not_restored": false,
+        "multiple_cycles": false,
+        "add_path_ambiguous": false
+      },
+      "first_change": "2019-08-21T16:45:48Z",
+      "transitions": [
+        {
+          "timestamp": "2019-08-21T16:45:48Z",
+          "phase": "Event",
+          "kind": "PathReplacement",
+          "path_id": null,
+          "before_path": [
+            2152,
+            2153,
+            11537,
+            20965,
+            2603
+          ],
+          "after_path": [
+            2152,
+            2153,
+            11537,
+            22388,
+            24489,
+            24489,
+            24489,
+            24489,
+            24490,
+            20965,
+            2603
+          ],
+          "path_shape": "PathChangedStillViaRequiredTransit",
+          "observation_id": 205,
+          "archive_sha256": "4546b78f8fb9ced87b93867cbb5f76e4abc11f37e564001f73f593313b9fd182",
+          "has_gshut_after": false
+        },
+        {
+          "timestamp": "2019-08-21T17:00:49Z",
+          "phase": "Event",
+          "kind": "ReturnToBaseline",
+          "path_id": null,
+          "before_path": [
+            2152,
+            2153,
+            11537,
+            22388,
+            24489,
+            24489,
+            24489,
+            24489,
+            24490,
+            20965,
+            2603
+          ],
+          "after_path": [
+            2152,
+            2153,
+            11537,
+            20965,
+            2603
+          ],
+          "path_shape": null,
+          "observation_id": 244,
+          "archive_sha256": "a56a86cbce313bd04106babd94f9018a2c211d870fb07234efd320e89734786f",
+          "has_gshut_after": false
+        }
+      ],
+      "min_absence_secs": null,
+      "max_absence_secs": null,
+      "was_withdrawn": false,
+      "stream_withdrawal_time": null,
+      "active_before_absence": 0,
+      "transit_at_withdrawal": null,
+      "withdrawn_instances": [],
+      "stream_withdrawal_count": 0,
+      "restorations": [],
+      "add_path_ambiguity": null,
+      "replacement_appeared": true,
+      "replacement_retained_transit": true,
+      "prepending_changed": false,
+      "cooldown_transitions": [],
+      "final_state": {
+        "prefix": "193.10.254.0/24",
+        "attributes": {
+          "as_path": [
+            2152,
+            2153,
+            11537,
+            20965,
+            2603
+          ],
+          "origin_asns": [
+            2603
+          ],
+          "next_hop": "137.164.16.84",
+          "origin": "IGP",
+          "med": 0,
+          "local_pref": 0,
+          "atomic_aggregate": false,
+          "communities": [
+            "2153:65397",
+            "2153:65419",
+            "2153:65436",
+            "11537:2501",
+            "20965:155",
+            "20965:2603"
+          ]
+        },
+        "timestamp": "2019-08-21T17:00:49Z",
+        "observer": "route-views2:137.164.16.84",
+        "path_id": null
+      },
+      "baseline_restored": true,
+      "restoration_time": null,
+      "affected_duration_secs": 6252.0,
+      "graceful_shutdown_seen": false,
+      "gshut_present_at_baseline": false,
+      "gshut_newly_added": false,
+      "gshut_removed": false,
+      "first_gshut_timestamp": null,
+      "last_gshut_timestamp": null,
+      "gshut_before_withdrawal": false,
+      "gshut_before_path_change": false,
+      "gshut_to_consequence_secs": null,
+      "gshut_removed_during_restoration": false,
+      "communities_before": [
+        "2153:65397",
+        "2153:65419",
+        "2153:65436",
+        "11537:2501",
+        "20965:155",
+        "20965:2603"
+      ],
+      "communities_after": [
+        "2153:65397",
+        "2153:65419",
+        "2153:65436",
+        "11537:2501",
+        "20965:155",
+        "20965:2603"
+      ]
+    },
+    {
+      "collector": "route-views2",
+      "peer_ip": "137.164.16.84",
+      "prefix": "193.10.68.0/24",
+      "baseline_path": [
+        2152,
+        2153,
+        11537,
+        2603
+      ],
+      "baseline_instance_count": 1,
+      "max_concurrent_instances": 1,
+      "total_route_instances": 1,
+      "category": "PathChangedStillViaTransit",
+      "flags": {
+        "restored": false,
+        "not_restored": false,
+        "multiple_cycles": false,
+        "add_path_ambiguous": false
+      },
+      "first_change": "2019-08-21T16:45:48Z",
+      "transitions": [
+        {
+          "timestamp": "2019-08-21T16:45:48Z",
+          "phase": "Event",
+          "kind": "PathReplacement",
+          "path_id": null,
+          "before_path": [
+            2152,
+            2153,
+            11537,
+            20965,
+            2603
+          ],
+          "after_path": [
+            2152,
+            2153,
+            11537,
+            22388,
+            24489,
+            24489,
+            24489,
+            24489,
+            24490,
+            20965,
+            2603
+          ],
+          "path_shape": "PathChangedStillViaRequiredTransit",
+          "observation_id": 202,
+          "archive_sha256": "4546b78f8fb9ced87b93867cbb5f76e4abc11f37e564001f73f593313b9fd182",
+          "has_gshut_after": false
+        },
+        {
+          "timestamp": "2019-08-21T17:00:49Z",
+          "phase": "Event",
+          "kind": "ReturnToBaseline",
+          "path_id": null,
+          "before_path": [
+            2152,
+            2153,
+            11537,
+            22388,
+            24489,
+            24489,
+            24489,
+            24489,
+            24490,
+            20965,
+            2603
+          ],
+          "after_path": [
+            2152,
+            2153,
+            11537,
+            20965,
+            2603
+          ],
+          "path_shape": null,
+          "observation_id": 245,
+          "archive_sha256": "a56a86cbce313bd04106babd94f9018a2c211d870fb07234efd320e89734786f",
+          "has_gshut_after": false
+        }
+      ],
+      "min_absence_secs": null,
+      "max_absence_secs": null,
+      "was_withdrawn": false,
+      "stream_withdrawal_time": null,
+      "active_before_absence": 0,
+      "transit_at_withdrawal": null,
+      "withdrawn_instances": [],
+      "stream_withdrawal_count": 0,
+      "restorations": [],
+      "add_path_ambiguity": null,
+      "replacement_appeared": true,
+      "replacement_retained_transit": true,
+      "prepending_changed": false,
+      "cooldown_transitions": [],
+      "final_state": {
+        "prefix": "193.10.68.0/24",
+        "attributes": {
+          "as_path": [
+            2152,
+            2153,
+            11537,
+            20965,
+            2603
+          ],
+          "origin_asns": [
+            2603
+          ],
+          "next_hop": "137.164.16.84",
+          "origin": "IGP",
+          "med": 0,
+          "local_pref": 0,
+          "atomic_aggregate": false,
+          "communities": [
+            "2153:65397",
+            "2153:65419",
+            "2153:65436",
+            "11537:2501",
+            "20965:155",
+            "20965:2603"
+          ]
+        },
+        "timestamp": "2019-08-21T17:00:49Z",
+        "observer": "route-views2:137.164.16.84",
+        "path_id": null
+      },
+      "baseline_restored": true,
+      "restoration_time": null,
+      "affected_duration_secs": 6252.0,
+      "graceful_shutdown_seen": false,
+      "gshut_present_at_baseline": false,
+      "gshut_newly_added": false,
+      "gshut_removed": false,
+      "first_gshut_timestamp": null,
+      "last_gshut_timestamp": null,
+      "gshut_before_withdrawal": false,
+      "gshut_before_path_change": false,
+      "gshut_to_consequence_secs": null,
+      "gshut_removed_during_restoration": false,
+      "communities_before": [
+        "2153:65397",
+        "2153:65419",
+        "2153:65436",
+        "11537:2501",
+        "20965:155",
+        "20965:2603"
+      ],
+      "communities_after": [
+        "2153:65397",
+        "2153:65419",
+        "2153:65436",
+        "11537:2501",
+        "20965:155",
+        "20965:2603"
+      ]
+    },
+    {
+      "collector": "route-views2",
+      "peer_ip": "137.164.16.84",
+      "prefix": "193.10.95.0/24",
+      "baseline_path": [
+        2152,
+        2153,
+        11537,
+        2603
+      ],
+      "baseline_instance_count": 1,
+      "max_concurrent_instances": 1,
+      "total_route_instances": 1,
+      "category": "PathChangedStillViaTransit",
+      "flags": {
+        "restored": false,
+        "not_restored": false,
+        "multiple_cycles": false,
+        "add_path_ambiguous": false
+      },
+      "first_change": "2019-08-21T16:45:48Z",
+      "transitions": [
+        {
+          "timestamp": "2019-08-21T16:45:48Z",
+          "phase": "Event",
+          "kind": "PathReplacement",
+          "path_id": null,
+          "before_path": [
+            2152,
+            2153,
+            11537,
+            20965,
+            2603
+          ],
+          "after_path": [
+            2152,
+            2153,
+            11537,
+            22388,
+            24489,
+            24489,
+            24489,
+            24489,
+            24490,
+            20965,
+            2603
+          ],
+          "path_shape": "PathChangedStillViaRequiredTransit",
+          "observation_id": 198,
+          "archive_sha256": "4546b78f8fb9ced87b93867cbb5f76e4abc11f37e564001f73f593313b9fd182",
+          "has_gshut_after": false
+        },
+        {
+          "timestamp": "2019-08-21T17:00:49Z",
+          "phase": "Event",
+          "kind": "ReturnToBaseline",
+          "path_id": null,
+          "before_path": [
+            2152,
+            2153,
+            11537,
+            22388,
+            24489,
+            24489,
+            24489,
+            24489,
+            24490,
+            20965,
+            2603
+          ],
+          "after_path": [
+            2152,
+            2153,
+            11537,
+            20965,
+            2603
+          ],
+          "path_shape": null,
+          "observation_id": 243,
+          "archive_sha256": "a56a86cbce313bd04106babd94f9018a2c211d870fb07234efd320e89734786f",
+          "has_gshut_after": false
+        }
+      ],
+      "min_absence_secs": null,
+      "max_absence_secs": null,
+      "was_withdrawn": false,
+      "stream_withdrawal_time": null,
+      "active_before_absence": 0,
+      "transit_at_withdrawal": null,
+      "withdrawn_instances": [],
+      "stream_withdrawal_count": 0,
+      "restorations": [],
+      "add_path_ambiguity": null,
+      "replacement_appeared": true,
+      "replacement_retained_transit": true,
+      "prepending_changed": false,
+      "cooldown_transitions": [],
+      "final_state": {
+        "prefix": "193.10.95.0/24",
+        "attributes": {
+          "as_path": [
+            2152,
+            2153,
+            11537,
+            20965,
+            2603
+          ],
+          "origin_asns": [
+            2603
+          ],
+          "next_hop": "137.164.16.84",
+          "origin": "IGP",
+          "med": 0,
+          "local_pref": 0,
+          "atomic_aggregate": false,
+          "communities": [
+            "2153:65397",
+            "2153:65419",
+            "2153:65436",
+            "11537:2501",
+            "20965:155",
+            "20965:2603"
+          ]
+        },
+        "timestamp": "2019-08-21T17:00:49Z",
+        "observer": "route-views2:137.164.16.84",
+        "path_id": null
+      },
+      "baseline_restored": true,
+      "restoration_time": null,
+      "affected_duration_secs": 6252.0,
+      "graceful_shutdown_seen": false,
+      "gshut_present_at_baseline": false,
+      "gshut_newly_added": false,
+      "gshut_removed": false,
+      "first_gshut_timestamp": null,
+      "last_gshut_timestamp": null,
+      "gshut_before_withdrawal": false,
+      "gshut_before_path_change": false,
+      "gshut_to_consequence_secs": null,
+      "gshut_removed_during_restoration": false,
+      "communities_before": [
+        "2153:65397",
+        "2153:65419",
+        "2153:65436",
+        "11537:2501",
+        "20965:155",
+        "20965:2603"
+      ],
+      "communities_after": [
+        "2153:65397",
+        "2153:65419",
+        "2153:65436",
+        "11537:2501",
+        "20965:155",
+        "20965:2603"
+      ]
+    },
+    {
+      "collector": "route-views2",
+      "peer_ip": "137.164.16.84",
+      "prefix": "193.11.3.0/24",
+      "baseline_path": [
+        2152,
+        2153,
+        11537,
+        2603
+      ],
+      "baseline_instance_count": 1,
+      "max_concurrent_instances": 1,
+      "total_route_instances": 1,
+      "category": "PathChangedStillViaTransit",
+      "flags": {
+        "restored": false,
+        "not_restored": false,
+        "multiple_cycles": false,
+        "add_path_ambiguous": false
+      },
+      "first_change": "2019-08-21T16:45:48Z",
+      "transitions": [
+        {
+          "timestamp": "2019-08-21T16:45:48Z",
+          "phase": "Event",
+          "kind": "PathReplacement",
+          "path_id": null,
+          "before_path": [
+            2152,
+            2153,
+            11537,
+            20965,
+            2603
+          ],
+          "after_path": [
+            2152,
+            2153,
+            11537,
+            22388,
+            24489,
+            24489,
+            24489,
+            24489,
+            24490,
+            20965,
+            2603
+          ],
+          "path_shape": "PathChangedStillViaRequiredTransit",
+          "observation_id": 199,
+          "archive_sha256": "4546b78f8fb9ced87b93867cbb5f76e4abc11f37e564001f73f593313b9fd182",
+          "has_gshut_after": false
+        },
+        {
+          "timestamp": "2019-08-21T17:00:49Z",
+          "phase": "Event",
+          "kind": "ReturnToBaseline",
+          "path_id": null,
+          "before_path": [
+            2152,
+            2153,
+            11537,
+            22388,
+            24489,
+            24489,
+            24489,
+            24489,
+            24490,
+            20965,
+            2603
+          ],
+          "after_path": [
+            2152,
+            2153,
+            11537,
+            20965,
+            2603
+          ],
+          "path_shape": null,
+          "observation_id": 241,
+          "archive_sha256": "a56a86cbce313bd04106babd94f9018a2c211d870fb07234efd320e89734786f",
+          "has_gshut_after": false
+        }
+      ],
+      "min_absence_secs": null,
+      "max_absence_secs": null,
+      "was_withdrawn": false,
+      "stream_withdrawal_time": null,
+      "active_before_absence": 0,
+      "transit_at_withdrawal": null,
+      "withdrawn_instances": [],
+      "stream_withdrawal_count": 0,
+      "restorations": [],
+      "add_path_ambiguity": null,
+      "replacement_appeared": true,
+      "replacement_retained_transit": true,
+      "prepending_changed": false,
+      "cooldown_transitions": [],
+      "final_state": {
+        "prefix": "193.11.3.0/24",
+        "attributes": {
+          "as_path": [
+            2152,
+            2153,
+            11537,
+            20965,
+            2603
+          ],
+          "origin_asns": [
+            2603
+          ],
+          "next_hop": "137.164.16.84",
+          "origin": "IGP",
+          "med": 0,
+          "local_pref": 0,
+          "atomic_aggregate": false,
+          "communities": [
+            "2153:65397",
+            "2153:65419",
+            "2153:65436",
+            "11537:2501",
+            "20965:155",
+            "20965:2603"
+          ]
+        },
+        "timestamp": "2019-08-21T17:00:49Z",
+        "observer": "route-views2:137.164.16.84",
+        "path_id": null
+      },
+      "baseline_restored": true,
+      "restoration_time": null,
+      "affected_duration_secs": 6252.0,
+      "graceful_shutdown_seen": false,
+      "gshut_present_at_baseline": false,
+      "gshut_newly_added": false,
+      "gshut_removed": false,
+      "first_gshut_timestamp": null,
+      "last_gshut_timestamp": null,
+      "gshut_before_withdrawal": false,
+      "gshut_before_path_change": false,
+      "gshut_to_consequence_secs": null,
+      "gshut_removed_during_restoration": false,
+      "communities_before": [
+        "2153:65397",
+        "2153:65419",
+        "2153:65436",
+        "11537:2501",
+        "20965:155",
+        "20965:2603"
+      ],
+      "communities_after": [
+        "2153:65397",
+        "2153:65419",
+        "2153:65436",
+        "11537:2501",
+        "20965:155",
+        "20965:2603"
+      ]
+    },
+    {
+      "collector": "route-views2",
+      "peer_ip": "137.164.16.84",
+      "prefix": "194.68.13.0/24",
+      "baseline_path": [
+        2152,
+        2153,
+        11537,
+        2603
+      ],
+      "baseline_instance_count": 1,
+      "max_concurrent_instances": 1,
+      "total_route_instances": 1,
+      "category": "PathChangedStillViaTransit",
+      "flags": {
+        "restored": false,
+        "not_restored": false,
+        "multiple_cycles": false,
+        "add_path_ambiguous": false
+      },
+      "first_change": "2019-08-21T16:45:48Z",
+      "transitions": [
+        {
+          "timestamp": "2019-08-21T16:45:48Z",
+          "phase": "Event",
+          "kind": "PathReplacement",
+          "path_id": null,
+          "before_path": [
+            2152,
+            2153,
+            11537,
+            20965,
+            2603
+          ],
+          "after_path": [
+            2152,
+            2153,
+            11537,
+            22388,
+            24489,
+            24489,
+            24489,
+            24489,
+            24490,
+            20965,
+            2603
+          ],
+          "path_shape": "PathChangedStillViaRequiredTransit",
+          "observation_id": 208,
+          "archive_sha256": "4546b78f8fb9ced87b93867cbb5f76e4abc11f37e564001f73f593313b9fd182",
+          "has_gshut_after": false
+        },
+        {
+          "timestamp": "2019-08-21T17:00:49Z",
+          "phase": "Event",
+          "kind": "ReturnToBaseline",
+          "path_id": null,
+          "before_path": [
+            2152,
+            2153,
+            11537,
+            22388,
+            24489,
+            24489,
+            24489,
+            24489,
+            24490,
+            20965,
+            2603
+          ],
+          "after_path": [
+            2152,
+            2153,
+            11537,
+            20965,
+            2603
+          ],
+          "path_shape": null,
+          "observation_id": 240,
+          "archive_sha256": "a56a86cbce313bd04106babd94f9018a2c211d870fb07234efd320e89734786f",
+          "has_gshut_after": false
+        }
+      ],
+      "min_absence_secs": null,
+      "max_absence_secs": null,
+      "was_withdrawn": false,
+      "stream_withdrawal_time": null,
+      "active_before_absence": 0,
+      "transit_at_withdrawal": null,
+      "withdrawn_instances": [],
+      "stream_withdrawal_count": 0,
+      "restorations": [],
+      "add_path_ambiguity": null,
+      "replacement_appeared": true,
+      "replacement_retained_transit": true,
+      "prepending_changed": false,
+      "cooldown_transitions": [],
+      "final_state": {
+        "prefix": "194.68.13.0/24",
+        "attributes": {
+          "as_path": [
+            2152,
+            2153,
+            11537,
+            20965,
+            2603
+          ],
+          "origin_asns": [
+            2603
+          ],
+          "next_hop": "137.164.16.84",
+          "origin": "IGP",
+          "med": 0,
+          "local_pref": 0,
+          "atomic_aggregate": false,
+          "communities": [
+            "2153:65397",
+            "2153:65419",
+            "2153:65436",
+            "11537:2501",
+            "20965:155",
+            "20965:2603"
+          ]
+        },
+        "timestamp": "2019-08-21T17:00:49Z",
+        "observer": "route-views2:137.164.16.84",
+        "path_id": null
+      },
+      "baseline_restored": true,
+      "restoration_time": null,
+      "affected_duration_secs": 6252.0,
+      "graceful_shutdown_seen": false,
+      "gshut_present_at_baseline": false,
+      "gshut_newly_added": false,
+      "gshut_removed": false,
+      "first_gshut_timestamp": null,
+      "last_gshut_timestamp": null,
+      "gshut_before_withdrawal": false,
+      "gshut_before_path_change": false,
+      "gshut_to_consequence_secs": null,
+      "gshut_removed_during_restoration": false,
+      "communities_before": [
+        "2153:65397",
+        "2153:65419",
+        "2153:65436",
+        "11537:2501",
+        "20965:155",
+        "20965:2603"
+      ],
+      "communities_after": [
+        "2153:65397",
+        "2153:65419",
+        "2153:65436",
+        "11537:2501",
+        "20965:155",
+        "20965:2603"
+      ]
+    },
+    {
+      "collector": "route-views2",
+      "peer_ip": "203.181.248.168",
+      "prefix": "109.105.112.0/21",
+      "baseline_path": [
+        7660,
+        22388,
+        11537,
+        2603
+      ],
+      "baseline_instance_count": 1,
+      "max_concurrent_instances": 1,
+      "total_route_instances": 1,
+      "category": "DepartedTransitPath",
+      "flags": {
+        "restored": false,
+        "not_restored": false,
+        "multiple_cycles": false,
+        "add_path_ambiguous": false
+      },
+      "first_change": "2019-08-21T16:45:27Z",
+      "transitions": [
+        {
+          "timestamp": "2019-08-21T16:45:27Z",
+          "phase": "Event",
+          "kind": "PathReplacement",
+          "path_id": null,
+          "before_path": [
+            7660,
+            22388,
+            11537,
+            20965,
+            2603
+          ],
+          "after_path": [
+            7660,
+            24287,
+            24490,
+            20965,
+            2603
+          ],
+          "path_shape": "PathDepartedRequiredTransit",
+          "observation_id": 180,
+          "archive_sha256": "4546b78f8fb9ced87b93867cbb5f76e4abc11f37e564001f73f593313b9fd182",
+          "has_gshut_after": false
+        },
+        {
+          "timestamp": "2019-08-21T16:59:27Z",
+          "phase": "Event",
+          "kind": "ReturnToBaseline",
+          "path_id": null,
+          "before_path": [
+            7660,
+            24287,
+            24490,
+            20965,
+            2603
+          ],
+          "after_path": [
+            7660,
+            22388,
+            11537,
+            20965,
+            2603
+          ],
+          "path_shape": null,
+          "observation_id": 213,
+          "archive_sha256": "4546b78f8fb9ced87b93867cbb5f76e4abc11f37e564001f73f593313b9fd182",
+          "has_gshut_after": false
+        }
+      ],
+      "min_absence_secs": null,
+      "max_absence_secs": null,
+      "was_withdrawn": false,
+      "stream_withdrawal_time": null,
+      "active_before_absence": 0,
+      "transit_at_withdrawal": null,
+      "withdrawn_instances": [],
+      "stream_withdrawal_count": 0,
+      "restorations": [],
+      "add_path_ambiguity": null,
+      "replacement_appeared": true,
+      "replacement_retained_transit": false,
+      "prepending_changed": false,
+      "cooldown_transitions": [],
+      "final_state": {
+        "prefix": "109.105.112.0/21",
+        "attributes": {
+          "as_path": [
+            7660,
+            22388,
+            11537,
+            20965,
+            2603
+          ],
+          "origin_asns": [
+            2603
+          ],
+          "next_hop": "203.181.248.168",
+          "origin": "IGP",
+          "med": 0,
+          "local_pref": 0,
+          "atomic_aggregate": false,
+          "communities": [
+            "7660:4000",
+            "7660:9001"
+          ]
+        },
+        "timestamp": "2019-08-21T16:59:27Z",
+        "observer": "route-views2:203.181.248.168",
+        "path_id": null
+      },
+      "baseline_restored": true,
+      "restoration_time": null,
+      "affected_duration_secs": 6273.0,
+      "graceful_shutdown_seen": false,
+      "gshut_present_at_baseline": false,
+      "gshut_newly_added": false,
+      "gshut_removed": false,
+      "first_gshut_timestamp": null,
+      "last_gshut_timestamp": null,
+      "gshut_before_withdrawal": false,
+      "gshut_before_path_change": false,
+      "gshut_to_consequence_secs": null,
+      "gshut_removed_during_restoration": false,
+      "communities_before": [
+        "7660:4000",
+        "7660:9001"
+      ],
+      "communities_after": [
+        "7660:4000",
+        "7660:9001"
+      ]
+    },
+    {
+      "collector": "route-views2",
+      "peer_ip": "203.181.248.168",
+      "prefix": "109.105.120.0/22",
+      "baseline_path": [
+        7660,
+        22388,
+        11537,
+        2603
+      ],
+      "baseline_instance_count": 1,
+      "max_concurrent_instances": 1,
+      "total_route_instances": 1,
+      "category": "DepartedTransitPath",
+      "flags": {
+        "restored": false,
+        "not_restored": false,
+        "multiple_cycles": false,
+        "add_path_ambiguous": false
+      },
+      "first_change": "2019-08-21T16:45:27Z",
+      "transitions": [
+        {
+          "timestamp": "2019-08-21T16:45:27Z",
+          "phase": "Event",
+          "kind": "PathReplacement",
+          "path_id": null,
+          "before_path": [
+            7660,
+            22388,
+            11537,
+            20965,
+            2603
+          ],
+          "after_path": [
+            7660,
+            24287,
+            24490,
+            20965,
+            2603
+          ],
+          "path_shape": "PathDepartedRequiredTransit",
+          "observation_id": 183,
+          "archive_sha256": "4546b78f8fb9ced87b93867cbb5f76e4abc11f37e564001f73f593313b9fd182",
+          "has_gshut_after": false
+        },
+        {
+          "timestamp": "2019-08-21T16:59:27Z",
+          "phase": "Event",
+          "kind": "ReturnToBaseline",
+          "path_id": null,
+          "before_path": [
+            7660,
+            24287,
+            24490,
+            20965,
+            2603
+          ],
+          "after_path": [
+            7660,
+            22388,
+            11537,
+            20965,
+            2603
+          ],
+          "path_shape": null,
+          "observation_id": 212,
+          "archive_sha256": "4546b78f8fb9ced87b93867cbb5f76e4abc11f37e564001f73f593313b9fd182",
+          "has_gshut_after": false
+        }
+      ],
+      "min_absence_secs": null,
+      "max_absence_secs": null,
+      "was_withdrawn": false,
+      "stream_withdrawal_time": null,
+      "active_before_absence": 0,
+      "transit_at_withdrawal": null,
+      "withdrawn_instances": [],
+      "stream_withdrawal_count": 0,
+      "restorations": [],
+      "add_path_ambiguity": null,
+      "replacement_appeared": true,
+      "replacement_retained_transit": false,
+      "prepending_changed": false,
+      "cooldown_transitions": [],
+      "final_state": {
+        "prefix": "109.105.120.0/22",
+        "attributes": {
+          "as_path": [
+            7660,
+            22388,
+            11537,
+            20965,
+            2603
+          ],
+          "origin_asns": [
+            2603
+          ],
+          "next_hop": "203.181.248.168",
+          "origin": "IGP",
+          "med": 0,
+          "local_pref": 0,
+          "atomic_aggregate": false,
+          "communities": [
+            "7660:4000",
+            "7660:9001"
+          ]
+        },
+        "timestamp": "2019-08-21T16:59:27Z",
+        "observer": "route-views2:203.181.248.168",
+        "path_id": null
+      },
+      "baseline_restored": true,
+      "restoration_time": null,
+      "affected_duration_secs": 6273.0,
+      "graceful_shutdown_seen": false,
+      "gshut_present_at_baseline": false,
+      "gshut_newly_added": false,
+      "gshut_removed": false,
+      "first_gshut_timestamp": null,
+      "last_gshut_timestamp": null,
+      "gshut_before_withdrawal": false,
+      "gshut_before_path_change": false,
+      "gshut_to_consequence_secs": null,
+      "gshut_removed_during_restoration": false,
+      "communities_before": [
+        "7660:4000",
+        "7660:9001"
+      ],
+      "communities_after": [
+        "7660:4000",
+        "7660:9001"
+      ]
+    },
+    {
+      "collector": "route-views2",
+      "peer_ip": "203.181.248.168",
+      "prefix": "109.105.96.0/20",
+      "baseline_path": [
+        7660,
+        22388,
+        11537,
+        2603
+      ],
+      "baseline_instance_count": 1,
+      "max_concurrent_instances": 1,
+      "total_route_instances": 1,
+      "category": "DepartedTransitPath",
+      "flags": {
+        "restored": false,
+        "not_restored": false,
+        "multiple_cycles": false,
+        "add_path_ambiguous": false
+      },
+      "first_change": "2019-08-21T16:45:27Z",
+      "transitions": [
+        {
+          "timestamp": "2019-08-21T16:45:27Z",
+          "phase": "Event",
+          "kind": "PathReplacement",
+          "path_id": null,
+          "before_path": [
+            7660,
+            22388,
+            11537,
+            20965,
+            2603
+          ],
+          "after_path": [
+            7660,
+            24287,
+            24490,
+            20965,
+            2603
+          ],
+          "path_shape": "PathDepartedRequiredTransit",
+          "observation_id": 182,
+          "archive_sha256": "4546b78f8fb9ced87b93867cbb5f76e4abc11f37e564001f73f593313b9fd182",
+          "has_gshut_after": false
+        },
+        {
+          "timestamp": "2019-08-21T16:59:27Z",
+          "phase": "Event",
+          "kind": "ReturnToBaseline",
+          "path_id": null,
+          "before_path": [
+            7660,
+            24287,
+            24490,
+            20965,
+            2603
+          ],
+          "after_path": [
+            7660,
+            22388,
+            11537,
+            20965,
+            2603
+          ],
+          "path_shape": null,
+          "observation_id": 214,
+          "archive_sha256": "4546b78f8fb9ced87b93867cbb5f76e4abc11f37e564001f73f593313b9fd182",
+          "has_gshut_after": false
+        }
+      ],
+      "min_absence_secs": null,
+      "max_absence_secs": null,
+      "was_withdrawn": false,
+      "stream_withdrawal_time": null,
+      "active_before_absence": 0,
+      "transit_at_withdrawal": null,
+      "withdrawn_instances": [],
+      "stream_withdrawal_count": 0,
+      "restorations": [],
+      "add_path_ambiguity": null,
+      "replacement_appeared": true,
+      "replacement_retained_transit": false,
+      "prepending_changed": false,
+      "cooldown_transitions": [],
+      "final_state": {
+        "prefix": "109.105.96.0/20",
+        "attributes": {
+          "as_path": [
+            7660,
+            22388,
+            11537,
+            20965,
+            2603
+          ],
+          "origin_asns": [
+            2603
+          ],
+          "next_hop": "203.181.248.168",
+          "origin": "IGP",
+          "med": 0,
+          "local_pref": 0,
+          "atomic_aggregate": false,
+          "communities": [
+            "7660:4000",
+            "7660:9001"
+          ]
+        },
+        "timestamp": "2019-08-21T16:59:27Z",
+        "observer": "route-views2:203.181.248.168",
+        "path_id": null
+      },
+      "baseline_restored": true,
+      "restoration_time": null,
+      "affected_duration_secs": 6273.0,
+      "graceful_shutdown_seen": false,
+      "gshut_present_at_baseline": false,
+      "gshut_newly_added": false,
+      "gshut_removed": false,
+      "first_gshut_timestamp": null,
+      "last_gshut_timestamp": null,
+      "gshut_before_withdrawal": false,
+      "gshut_before_path_change": false,
+      "gshut_to_consequence_secs": null,
+      "gshut_removed_during_restoration": false,
+      "communities_before": [
+        "7660:4000",
+        "7660:9001"
+      ],
+      "communities_after": [
+        "7660:4000",
+        "7660:9001"
+      ]
+    },
+    {
+      "collector": "route-views2",
+      "peer_ip": "203.181.248.168",
+      "prefix": "185.174.116.0/22",
+      "baseline_path": [
+        7660,
+        22388,
+        11537,
+        2603
+      ],
+      "baseline_instance_count": 1,
+      "max_concurrent_instances": 1,
+      "total_route_instances": 1,
+      "category": "DepartedTransitPath",
+      "flags": {
+        "restored": false,
+        "not_restored": false,
+        "multiple_cycles": false,
+        "add_path_ambiguous": false
+      },
+      "first_change": "2019-08-21T16:45:26Z",
+      "transitions": [
+        {
+          "timestamp": "2019-08-21T16:45:26Z",
+          "phase": "Event",
+          "kind": "PathReplacement",
+          "path_id": null,
+          "before_path": [
+            7660,
+            22388,
+            11537,
+            20965,
+            2603
+          ],
+          "after_path": [
+            7660,
+            24287,
+            24490,
+            20965,
+            2603
+          ],
+          "path_shape": "PathDepartedRequiredTransit",
+          "observation_id": 177,
+          "archive_sha256": "4546b78f8fb9ced87b93867cbb5f76e4abc11f37e564001f73f593313b9fd182",
+          "has_gshut_after": false
+        },
+        {
+          "timestamp": "2019-08-21T17:02:03Z",
+          "phase": "Event",
+          "kind": "PathReplacement",
+          "path_id": null,
+          "before_path": [
+            7660,
+            24287,
+            24490,
+            20965,
+            2603
+          ],
+          "after_path": [
+            7660,
+            11537,
+            20965,
+            2603
+          ],
+          "path_shape": "PathReturnedToRequiredTransit",
+          "observation_id": 247,
+          "archive_sha256": "a56a86cbce313bd04106babd94f9018a2c211d870fb07234efd320e89734786f",
+          "has_gshut_after": false
+        },
+        {
+          "timestamp": "2019-08-21T17:02:04Z",
+          "phase": "Event",
+          "kind": "ReturnToBaseline",
+          "path_id": null,
+          "before_path": [
+            7660,
+            11537,
+            20965,
+            2603
+          ],
+          "after_path": [
+            7660,
+            22388,
+            11537,
+            20965,
+            2603
+          ],
+          "path_shape": null,
+          "observation_id": 248,
+          "archive_sha256": "a56a86cbce313bd04106babd94f9018a2c211d870fb07234efd320e89734786f",
+          "has_gshut_after": false
+        }
+      ],
+      "min_absence_secs": null,
+      "max_absence_secs": null,
+      "was_withdrawn": false,
+      "stream_withdrawal_time": null,
+      "active_before_absence": 0,
+      "transit_at_withdrawal": null,
+      "withdrawn_instances": [],
+      "stream_withdrawal_count": 0,
+      "restorations": [],
+      "add_path_ambiguity": null,
+      "replacement_appeared": true,
+      "replacement_retained_transit": false,
+      "prepending_changed": false,
+      "cooldown_transitions": [],
+      "final_state": {
+        "prefix": "185.174.116.0/22",
+        "attributes": {
+          "as_path": [
+            7660,
+            22388,
+            11537,
+            20965,
+            2603
+          ],
+          "origin_asns": [
+            2603
+          ],
+          "next_hop": "203.181.248.168",
+          "origin": "IGP",
+          "med": 0,
+          "local_pref": 0,
+          "atomic_aggregate": false,
+          "communities": [
+            "7660:4000",
+            "7660:9001"
+          ]
+        },
+        "timestamp": "2019-08-21T17:02:04Z",
+        "observer": "route-views2:203.181.248.168",
+        "path_id": null
+      },
+      "baseline_restored": true,
+      "restoration_time": "2019-08-21T17:02:03Z",
+      "affected_duration_secs": 997.0,
+      "graceful_shutdown_seen": false,
+      "gshut_present_at_baseline": false,
+      "gshut_newly_added": false,
+      "gshut_removed": false,
+      "first_gshut_timestamp": null,
+      "last_gshut_timestamp": null,
+      "gshut_before_withdrawal": false,
+      "gshut_before_path_change": false,
+      "gshut_to_consequence_secs": null,
+      "gshut_removed_during_restoration": false,
+      "communities_before": [
+        "7660:4000",
+        "7660:9001"
+      ],
+      "communities_after": [
+        "7660:4000",
+        "7660:9001"
+      ]
+    },
+    {
+      "collector": "route-views2",
+      "peer_ip": "203.181.248.168",
+      "prefix": "192.36.171.0/24",
+      "baseline_path": [
+        7660,
+        22388,
+        11537,
+        2603
+      ],
+      "baseline_instance_count": 1,
+      "max_concurrent_instances": 1,
+      "total_route_instances": 1,
+      "category": "DepartedTransitPath",
+      "flags": {
+        "restored": false,
+        "not_restored": false,
+        "multiple_cycles": false,
+        "add_path_ambiguous": false
+      },
+      "first_change": "2019-08-21T16:45:26Z",
+      "transitions": [
+        {
+          "timestamp": "2019-08-21T16:45:26Z",
+          "phase": "Event",
+          "kind": "PathReplacement",
+          "path_id": null,
+          "before_path": [
+            7660,
+            22388,
+            11537,
+            20965,
+            2603
+          ],
+          "after_path": [
+            7660,
+            24287,
+            24490,
+            20965,
+            2603
+          ],
+          "path_shape": "PathDepartedRequiredTransit",
+          "observation_id": 178,
+          "archive_sha256": "4546b78f8fb9ced87b93867cbb5f76e4abc11f37e564001f73f593313b9fd182",
+          "has_gshut_after": false
+        },
+        {
+          "timestamp": "2019-08-21T17:00:18Z",
+          "phase": "Event",
+          "kind": "PathReplacement",
+          "path_id": null,
+          "before_path": [
+            7660,
+            24287,
+            24490,
+            20965,
+            2603
+          ],
+          "after_path": [
+            7660,
+            11537,
+            20965,
+            2603
+          ],
+          "path_shape": "PathReturnedToRequiredTransit",
+          "observation_id": 219,
+          "archive_sha256": "a56a86cbce313bd04106babd94f9018a2c211d870fb07234efd320e89734786f",
+          "has_gshut_after": false
+        },
+        {
+          "timestamp": "2019-08-21T17:00:18Z",
+          "phase": "Event",
+          "kind": "ReturnToBaseline",
+          "path_id": null,
+          "before_path": [
+            7660,
+            11537,
+            20965,
+            2603
+          ],
+          "after_path": [
+            7660,
+            22388,
+            11537,
+            20965,
+            2603
+          ],
+          "path_shape": null,
+          "observation_id": 220,
+          "archive_sha256": "a56a86cbce313bd04106babd94f9018a2c211d870fb07234efd320e89734786f",
+          "has_gshut_after": false
+        }
+      ],
+      "min_absence_secs": null,
+      "max_absence_secs": null,
+      "was_withdrawn": false,
+      "stream_withdrawal_time": null,
+      "active_before_absence": 0,
+      "transit_at_withdrawal": null,
+      "withdrawn_instances": [],
+      "stream_withdrawal_count": 0,
+      "restorations": [],
+      "add_path_ambiguity": null,
+      "replacement_appeared": true,
+      "replacement_retained_transit": false,
+      "prepending_changed": false,
+      "cooldown_transitions": [],
+      "final_state": {
+        "prefix": "192.36.171.0/24",
+        "attributes": {
+          "as_path": [
+            7660,
+            22388,
+            11537,
+            20965,
+            2603
+          ],
+          "origin_asns": [
+            2603
+          ],
+          "next_hop": "203.181.248.168",
+          "origin": "IGP",
+          "med": 0,
+          "local_pref": 0,
+          "atomic_aggregate": false,
+          "communities": [
+            "7660:4000",
+            "7660:9003"
+          ]
+        },
+        "timestamp": "2019-08-21T17:00:18Z",
+        "observer": "route-views2:203.181.248.168",
+        "path_id": null
+      },
+      "baseline_restored": true,
+      "restoration_time": "2019-08-21T17:00:18Z",
+      "affected_duration_secs": 892.0,
+      "graceful_shutdown_seen": false,
+      "gshut_present_at_baseline": false,
+      "gshut_newly_added": false,
+      "gshut_removed": false,
+      "first_gshut_timestamp": null,
+      "last_gshut_timestamp": null,
+      "gshut_before_withdrawal": false,
+      "gshut_before_path_change": false,
+      "gshut_to_consequence_secs": null,
+      "gshut_removed_during_restoration": false,
+      "communities_before": [
+        "7660:4000",
+        "7660:9003"
+      ],
+      "communities_after": [
+        "7660:4000",
+        "7660:9003"
+      ]
+    },
+    {
+      "collector": "route-views2",
+      "peer_ip": "203.181.248.168",
+      "prefix": "193.10.252.0/24",
+      "baseline_path": [
+        7660,
+        22388,
+        11537,
+        2603
+      ],
+      "baseline_instance_count": 1,
+      "max_concurrent_instances": 1,
+      "total_route_instances": 1,
+      "category": "DepartedTransitPath",
+      "flags": {
+        "restored": false,
+        "not_restored": false,
+        "multiple_cycles": false,
+        "add_path_ambiguous": false
+      },
+      "first_change": "2019-08-21T16:45:27Z",
+      "transitions": [
+        {
+          "timestamp": "2019-08-21T16:45:27Z",
+          "phase": "Event",
+          "kind": "PathReplacement",
+          "path_id": null,
+          "before_path": [
+            7660,
+            22388,
+            11537,
+            20965,
+            2603
+          ],
+          "after_path": [
+            7660,
+            24287,
+            24490,
+            20965,
+            2603
+          ],
+          "path_shape": "PathDepartedRequiredTransit",
+          "observation_id": 185,
+          "archive_sha256": "4546b78f8fb9ced87b93867cbb5f76e4abc11f37e564001f73f593313b9fd182",
+          "has_gshut_after": false
+        },
+        {
+          "timestamp": "2019-08-21T17:00:27Z",
+          "phase": "Event",
+          "kind": "PathReplacement",
+          "path_id": null,
+          "before_path": [
+            7660,
+            24287,
+            24490,
+            20965,
+            2603
+          ],
+          "after_path": [
+            7660,
+            11537,
+            20965,
+            2603
+          ],
+          "path_shape": "PathReturnedToRequiredTransit",
+          "observation_id": 230,
+          "archive_sha256": "a56a86cbce313bd04106babd94f9018a2c211d870fb07234efd320e89734786f",
+          "has_gshut_after": false
+        },
+        {
+          "timestamp": "2019-08-21T17:00:27Z",
+          "phase": "Event",
+          "kind": "ReturnToBaseline",
+          "path_id": null,
+          "before_path": [
+            7660,
+            11537,
+            20965,
+            2603
+          ],
+          "after_path": [
+            7660,
+            22388,
+            11537,
+            20965,
+            2603
+          ],
+          "path_shape": null,
+          "observation_id": 235,
+          "archive_sha256": "a56a86cbce313bd04106babd94f9018a2c211d870fb07234efd320e89734786f",
+          "has_gshut_after": false
+        }
+      ],
+      "min_absence_secs": null,
+      "max_absence_secs": null,
+      "was_withdrawn": false,
+      "stream_withdrawal_time": null,
+      "active_before_absence": 0,
+      "transit_at_withdrawal": null,
+      "withdrawn_instances": [],
+      "stream_withdrawal_count": 0,
+      "restorations": [],
+      "add_path_ambiguity": null,
+      "replacement_appeared": true,
+      "replacement_retained_transit": false,
+      "prepending_changed": false,
+      "cooldown_transitions": [],
+      "final_state": {
+        "prefix": "193.10.252.0/24",
+        "attributes": {
+          "as_path": [
+            7660,
+            22388,
+            11537,
+            20965,
+            2603
+          ],
+          "origin_asns": [
+            2603
+          ],
+          "next_hop": "203.181.248.168",
+          "origin": "IGP",
+          "med": 0,
+          "local_pref": 0,
+          "atomic_aggregate": false,
+          "communities": [
+            "7660:4000",
+            "7660:9001"
+          ]
+        },
+        "timestamp": "2019-08-21T17:00:27Z",
+        "observer": "route-views2:203.181.248.168",
+        "path_id": null
+      },
+      "baseline_restored": true,
+      "restoration_time": "2019-08-21T17:00:27Z",
+      "affected_duration_secs": 900.0,
+      "graceful_shutdown_seen": false,
+      "gshut_present_at_baseline": false,
+      "gshut_newly_added": false,
+      "gshut_removed": false,
+      "first_gshut_timestamp": null,
+      "last_gshut_timestamp": null,
+      "gshut_before_withdrawal": false,
+      "gshut_before_path_change": false,
+      "gshut_to_consequence_secs": null,
+      "gshut_removed_during_restoration": false,
+      "communities_before": [
+        "7660:4000",
+        "7660:9001"
+      ],
+      "communities_after": [
+        "7660:4000",
+        "7660:9001"
+      ]
+    },
+    {
+      "collector": "route-views2",
+      "peer_ip": "203.181.248.168",
+      "prefix": "193.10.254.0/24",
+      "baseline_path": [
+        7660,
+        22388,
+        11537,
+        2603
+      ],
+      "baseline_instance_count": 1,
+      "max_concurrent_instances": 1,
+      "total_route_instances": 1,
+      "category": "DepartedTransitPath",
+      "flags": {
+        "restored": false,
+        "not_restored": false,
+        "multiple_cycles": false,
+        "add_path_ambiguous": false
+      },
+      "first_change": "2019-08-21T16:45:27Z",
+      "transitions": [
+        {
+          "timestamp": "2019-08-21T16:45:27Z",
+          "phase": "Event",
+          "kind": "PathReplacement",
+          "path_id": null,
+          "before_path": [
+            7660,
+            22388,
+            11537,
+            20965,
+            2603
+          ],
+          "after_path": [
+            7660,
+            24287,
+            24490,
+            20965,
+            2603
+          ],
+          "path_shape": "PathDepartedRequiredTransit",
+          "observation_id": 181,
+          "archive_sha256": "4546b78f8fb9ced87b93867cbb5f76e4abc11f37e564001f73f593313b9fd182",
+          "has_gshut_after": false
+        },
+        {
+          "timestamp": "2019-08-21T17:00:27Z",
+          "phase": "Event",
+          "kind": "PathReplacement",
+          "path_id": null,
+          "before_path": [
+            7660,
+            24287,
+            24490,
+            20965,
+            2603
+          ],
+          "after_path": [
+            7660,
+            11537,
+            20965,
+            2603
+          ],
+          "path_shape": "PathReturnedToRequiredTransit",
+          "observation_id": 228,
+          "archive_sha256": "a56a86cbce313bd04106babd94f9018a2c211d870fb07234efd320e89734786f",
+          "has_gshut_after": false
+        },
+        {
+          "timestamp": "2019-08-21T17:00:27Z",
+          "phase": "Event",
+          "kind": "ReturnToBaseline",
+          "path_id": null,
+          "before_path": [
+            7660,
+            11537,
+            20965,
+            2603
+          ],
+          "after_path": [
+            7660,
+            22388,
+            11537,
+            20965,
+            2603
+          ],
+          "path_shape": null,
+          "observation_id": 232,
+          "archive_sha256": "a56a86cbce313bd04106babd94f9018a2c211d870fb07234efd320e89734786f",
+          "has_gshut_after": false
+        }
+      ],
+      "min_absence_secs": null,
+      "max_absence_secs": null,
+      "was_withdrawn": false,
+      "stream_withdrawal_time": null,
+      "active_before_absence": 0,
+      "transit_at_withdrawal": null,
+      "withdrawn_instances": [],
+      "stream_withdrawal_count": 0,
+      "restorations": [],
+      "add_path_ambiguity": null,
+      "replacement_appeared": true,
+      "replacement_retained_transit": false,
+      "prepending_changed": false,
+      "cooldown_transitions": [],
+      "final_state": {
+        "prefix": "193.10.254.0/24",
+        "attributes": {
+          "as_path": [
+            7660,
+            22388,
+            11537,
+            20965,
+            2603
+          ],
+          "origin_asns": [
+            2603
+          ],
+          "next_hop": "203.181.248.168",
+          "origin": "IGP",
+          "med": 0,
+          "local_pref": 0,
+          "atomic_aggregate": false,
+          "communities": [
+            "7660:4000",
+            "7660:9001"
+          ]
+        },
+        "timestamp": "2019-08-21T17:00:27Z",
+        "observer": "route-views2:203.181.248.168",
+        "path_id": null
+      },
+      "baseline_restored": true,
+      "restoration_time": "2019-08-21T17:00:27Z",
+      "affected_duration_secs": 900.0,
+      "graceful_shutdown_seen": false,
+      "gshut_present_at_baseline": false,
+      "gshut_newly_added": false,
+      "gshut_removed": false,
+      "first_gshut_timestamp": null,
+      "last_gshut_timestamp": null,
+      "gshut_before_withdrawal": false,
+      "gshut_before_path_change": false,
+      "gshut_to_consequence_secs": null,
+      "gshut_removed_during_restoration": false,
+      "communities_before": [
+        "7660:4000",
+        "7660:9001"
+      ],
+      "communities_after": [
+        "7660:4000",
+        "7660:9001"
+      ]
+    },
+    {
+      "collector": "route-views2",
+      "peer_ip": "203.181.248.168",
+      "prefix": "193.10.68.0/24",
+      "baseline_path": [
+        7660,
+        22388,
+        11537,
+        2603
+      ],
+      "baseline_instance_count": 1,
+      "max_concurrent_instances": 1,
+      "total_route_instances": 1,
+      "category": "DepartedTransitPath",
+      "flags": {
+        "restored": false,
+        "not_restored": false,
+        "multiple_cycles": false,
+        "add_path_ambiguous": false
+      },
+      "first_change": "2019-08-21T16:45:27Z",
+      "transitions": [
+        {
+          "timestamp": "2019-08-21T16:45:27Z",
+          "phase": "Event",
+          "kind": "PathReplacement",
+          "path_id": null,
+          "before_path": [
+            7660,
+            22388,
+            11537,
+            20965,
+            2603
+          ],
+          "after_path": [
+            7660,
+            24287,
+            24490,
+            20965,
+            2603
+          ],
+          "path_shape": "PathDepartedRequiredTransit",
+          "observation_id": 184,
+          "archive_sha256": "4546b78f8fb9ced87b93867cbb5f76e4abc11f37e564001f73f593313b9fd182",
+          "has_gshut_after": false
+        },
+        {
+          "timestamp": "2019-08-21T17:00:27Z",
+          "phase": "Event",
+          "kind": "PathReplacement",
+          "path_id": null,
+          "before_path": [
+            7660,
+            24287,
+            24490,
+            20965,
+            2603
+          ],
+          "after_path": [
+            7660,
+            11537,
+            20965,
+            2603
+          ],
+          "path_shape": "PathReturnedToRequiredTransit",
+          "observation_id": 229,
+          "archive_sha256": "a56a86cbce313bd04106babd94f9018a2c211d870fb07234efd320e89734786f",
+          "has_gshut_after": false
+        },
+        {
+          "timestamp": "2019-08-21T17:00:27Z",
+          "phase": "Event",
+          "kind": "ReturnToBaseline",
+          "path_id": null,
+          "before_path": [
+            7660,
+            11537,
+            20965,
+            2603
+          ],
+          "after_path": [
+            7660,
+            22388,
+            11537,
+            20965,
+            2603
+          ],
+          "path_shape": null,
+          "observation_id": 234,
+          "archive_sha256": "a56a86cbce313bd04106babd94f9018a2c211d870fb07234efd320e89734786f",
+          "has_gshut_after": false
+        }
+      ],
+      "min_absence_secs": null,
+      "max_absence_secs": null,
+      "was_withdrawn": false,
+      "stream_withdrawal_time": null,
+      "active_before_absence": 0,
+      "transit_at_withdrawal": null,
+      "withdrawn_instances": [],
+      "stream_withdrawal_count": 0,
+      "restorations": [],
+      "add_path_ambiguity": null,
+      "replacement_appeared": true,
+      "replacement_retained_transit": false,
+      "prepending_changed": false,
+      "cooldown_transitions": [],
+      "final_state": {
+        "prefix": "193.10.68.0/24",
+        "attributes": {
+          "as_path": [
+            7660,
+            22388,
+            11537,
+            20965,
+            2603
+          ],
+          "origin_asns": [
+            2603
+          ],
+          "next_hop": "203.181.248.168",
+          "origin": "IGP",
+          "med": 0,
+          "local_pref": 0,
+          "atomic_aggregate": false,
+          "communities": [
+            "7660:4000",
+            "7660:9001"
+          ]
+        },
+        "timestamp": "2019-08-21T17:00:27Z",
+        "observer": "route-views2:203.181.248.168",
+        "path_id": null
+      },
+      "baseline_restored": true,
+      "restoration_time": "2019-08-21T17:00:27Z",
+      "affected_duration_secs": 900.0,
+      "graceful_shutdown_seen": false,
+      "gshut_present_at_baseline": false,
+      "gshut_newly_added": false,
+      "gshut_removed": false,
+      "first_gshut_timestamp": null,
+      "last_gshut_timestamp": null,
+      "gshut_before_withdrawal": false,
+      "gshut_before_path_change": false,
+      "gshut_to_consequence_secs": null,
+      "gshut_removed_during_restoration": false,
+      "communities_before": [
+        "7660:4000",
+        "7660:9001"
+      ],
+      "communities_after": [
+        "7660:4000",
+        "7660:9001"
+      ]
+    },
+    {
+      "collector": "route-views2",
+      "peer_ip": "203.181.248.168",
+      "prefix": "193.10.95.0/24",
+      "baseline_path": [
+        7660,
+        22388,
+        11537,
+        2603
+      ],
+      "baseline_instance_count": 1,
+      "max_concurrent_instances": 1,
+      "total_route_instances": 1,
+      "category": "DepartedTransitPath",
+      "flags": {
+        "restored": false,
+        "not_restored": false,
+        "multiple_cycles": false,
+        "add_path_ambiguous": false
+      },
+      "first_change": "2019-08-21T16:45:27Z",
+      "transitions": [
+        {
+          "timestamp": "2019-08-21T16:45:27Z",
+          "phase": "Event",
+          "kind": "PathReplacement",
+          "path_id": null,
+          "before_path": [
+            7660,
+            22388,
+            11537,
+            20965,
+            2603
+          ],
+          "after_path": [
+            7660,
+            24287,
+            24490,
+            20965,
+            2603
+          ],
+          "path_shape": "PathDepartedRequiredTransit",
+          "observation_id": 186,
+          "archive_sha256": "4546b78f8fb9ced87b93867cbb5f76e4abc11f37e564001f73f593313b9fd182",
+          "has_gshut_after": false
+        },
+        {
+          "timestamp": "2019-08-21T17:00:27Z",
+          "phase": "Event",
+          "kind": "PathReplacement",
+          "path_id": null,
+          "before_path": [
+            7660,
+            24287,
+            24490,
+            20965,
+            2603
+          ],
+          "after_path": [
+            7660,
+            11537,
+            20965,
+            2603
+          ],
+          "path_shape": "PathReturnedToRequiredTransit",
+          "observation_id": 231,
+          "archive_sha256": "a56a86cbce313bd04106babd94f9018a2c211d870fb07234efd320e89734786f",
+          "has_gshut_after": false
+        },
+        {
+          "timestamp": "2019-08-21T17:00:27Z",
+          "phase": "Event",
+          "kind": "ReturnToBaseline",
+          "path_id": null,
+          "before_path": [
+            7660,
+            11537,
+            20965,
+            2603
+          ],
+          "after_path": [
+            7660,
+            22388,
+            11537,
+            20965,
+            2603
+          ],
+          "path_shape": null,
+          "observation_id": 236,
+          "archive_sha256": "a56a86cbce313bd04106babd94f9018a2c211d870fb07234efd320e89734786f",
+          "has_gshut_after": false
+        }
+      ],
+      "min_absence_secs": null,
+      "max_absence_secs": null,
+      "was_withdrawn": false,
+      "stream_withdrawal_time": null,
+      "active_before_absence": 0,
+      "transit_at_withdrawal": null,
+      "withdrawn_instances": [],
+      "stream_withdrawal_count": 0,
+      "restorations": [],
+      "add_path_ambiguity": null,
+      "replacement_appeared": true,
+      "replacement_retained_transit": false,
+      "prepending_changed": false,
+      "cooldown_transitions": [],
+      "final_state": {
+        "prefix": "193.10.95.0/24",
+        "attributes": {
+          "as_path": [
+            7660,
+            22388,
+            11537,
+            20965,
+            2603
+          ],
+          "origin_asns": [
+            2603
+          ],
+          "next_hop": "203.181.248.168",
+          "origin": "IGP",
+          "med": 0,
+          "local_pref": 0,
+          "atomic_aggregate": false,
+          "communities": [
+            "7660:4000",
+            "7660:9001"
+          ]
+        },
+        "timestamp": "2019-08-21T17:00:27Z",
+        "observer": "route-views2:203.181.248.168",
+        "path_id": null
+      },
+      "baseline_restored": true,
+      "restoration_time": "2019-08-21T17:00:27Z",
+      "affected_duration_secs": 900.0,
+      "graceful_shutdown_seen": false,
+      "gshut_present_at_baseline": false,
+      "gshut_newly_added": false,
+      "gshut_removed": false,
+      "first_gshut_timestamp": null,
+      "last_gshut_timestamp": null,
+      "gshut_before_withdrawal": false,
+      "gshut_before_path_change": false,
+      "gshut_to_consequence_secs": null,
+      "gshut_removed_during_restoration": false,
+      "communities_before": [
+        "7660:4000",
+        "7660:9001"
+      ],
+      "communities_after": [
+        "7660:4000",
+        "7660:9001"
+      ]
+    },
+    {
+      "collector": "route-views2",
+      "peer_ip": "203.181.248.168",
+      "prefix": "193.11.3.0/24",
+      "baseline_path": [
+        7660,
+        22388,
+        11537,
+        2603
+      ],
+      "baseline_instance_count": 1,
+      "max_concurrent_instances": 1,
+      "total_route_instances": 1,
+      "category": "DepartedTransitPath",
+      "flags": {
+        "restored": false,
+        "not_restored": false,
+        "multiple_cycles": false,
+        "add_path_ambiguous": false
+      },
+      "first_change": "2019-08-21T16:45:26Z",
+      "transitions": [
+        {
+          "timestamp": "2019-08-21T16:45:26Z",
+          "phase": "Event",
+          "kind": "PathReplacement",
+          "path_id": null,
+          "before_path": [
+            7660,
+            22388,
+            11537,
+            20965,
+            2603
+          ],
+          "after_path": [
+            7660,
+            24287,
+            24490,
+            20965,
+            2603
+          ],
+          "path_shape": "PathDepartedRequiredTransit",
+          "observation_id": 176,
+          "archive_sha256": "4546b78f8fb9ced87b93867cbb5f76e4abc11f37e564001f73f593313b9fd182",
+          "has_gshut_after": false
+        },
+        {
+          "timestamp": "2019-08-21T17:00:27Z",
+          "phase": "Event",
+          "kind": "PathReplacement",
+          "path_id": null,
+          "before_path": [
+            7660,
+            24287,
+            24490,
+            20965,
+            2603
+          ],
+          "after_path": [
+            7660,
+            11537,
+            20965,
+            2603
+          ],
+          "path_shape": "PathReturnedToRequiredTransit",
+          "observation_id": 227,
+          "archive_sha256": "a56a86cbce313bd04106babd94f9018a2c211d870fb07234efd320e89734786f",
+          "has_gshut_after": false
+        },
+        {
+          "timestamp": "2019-08-21T17:00:27Z",
+          "phase": "Event",
+          "kind": "ReturnToBaseline",
+          "path_id": null,
+          "before_path": [
+            7660,
+            11537,
+            20965,
+            2603
+          ],
+          "after_path": [
+            7660,
+            22388,
+            11537,
+            20965,
+            2603
+          ],
+          "path_shape": null,
+          "observation_id": 233,
+          "archive_sha256": "a56a86cbce313bd04106babd94f9018a2c211d870fb07234efd320e89734786f",
+          "has_gshut_after": false
+        }
+      ],
+      "min_absence_secs": null,
+      "max_absence_secs": null,
+      "was_withdrawn": false,
+      "stream_withdrawal_time": null,
+      "active_before_absence": 0,
+      "transit_at_withdrawal": null,
+      "withdrawn_instances": [],
+      "stream_withdrawal_count": 0,
+      "restorations": [],
+      "add_path_ambiguity": null,
+      "replacement_appeared": true,
+      "replacement_retained_transit": false,
+      "prepending_changed": false,
+      "cooldown_transitions": [],
+      "final_state": {
+        "prefix": "193.11.3.0/24",
+        "attributes": {
+          "as_path": [
+            7660,
+            22388,
+            11537,
+            20965,
+            2603
+          ],
+          "origin_asns": [
+            2603
+          ],
+          "next_hop": "203.181.248.168",
+          "origin": "IGP",
+          "med": 0,
+          "local_pref": 0,
+          "atomic_aggregate": false,
+          "communities": [
+            "7660:4000",
+            "7660:9001"
+          ]
+        },
+        "timestamp": "2019-08-21T17:00:27Z",
+        "observer": "route-views2:203.181.248.168",
+        "path_id": null
+      },
+      "baseline_restored": true,
+      "restoration_time": "2019-08-21T17:00:27Z",
+      "affected_duration_secs": 901.0,
+      "graceful_shutdown_seen": false,
+      "gshut_present_at_baseline": false,
+      "gshut_newly_added": false,
+      "gshut_removed": false,
+      "first_gshut_timestamp": null,
+      "last_gshut_timestamp": null,
+      "gshut_before_withdrawal": false,
+      "gshut_before_path_change": false,
+      "gshut_to_consequence_secs": null,
+      "gshut_removed_during_restoration": false,
+      "communities_before": [
+        "7660:4000",
+        "7660:9001"
+      ],
+      "communities_after": [
+        "7660:4000",
+        "7660:9001"
+      ]
+    },
+    {
+      "collector": "route-views2",
+      "peer_ip": "203.181.248.168",
+      "prefix": "194.68.13.0/24",
+      "baseline_path": [
+        7660,
+        22388,
+        11537,
+        2603
+      ],
+      "baseline_instance_count": 1,
+      "max_concurrent_instances": 1,
+      "total_route_instances": 1,
+      "category": "DepartedTransitPath",
+      "flags": {
+        "restored": false,
+        "not_restored": false,
+        "multiple_cycles": false,
+        "add_path_ambiguous": false
+      },
+      "first_change": "2019-08-21T16:45:26Z",
+      "transitions": [
+        {
+          "timestamp": "2019-08-21T16:45:26Z",
+          "phase": "Event",
+          "kind": "PathReplacement",
+          "path_id": null,
+          "before_path": [
+            7660,
+            22388,
+            11537,
+            20965,
+            2603
+          ],
+          "after_path": [
+            7660,
+            24287,
+            24490,
+            20965,
+            2603
+          ],
+          "path_shape": "PathDepartedRequiredTransit",
+          "observation_id": 179,
+          "archive_sha256": "4546b78f8fb9ced87b93867cbb5f76e4abc11f37e564001f73f593313b9fd182",
+          "has_gshut_after": false
+        },
+        {
+          "timestamp": "2019-08-21T17:00:29Z",
+          "phase": "Event",
+          "kind": "PathReplacement",
+          "path_id": null,
+          "before_path": [
+            7660,
+            24287,
+            24490,
+            20965,
+            2603
+          ],
+          "after_path": [
+            7660,
+            11537,
+            20965,
+            2603
+          ],
+          "path_shape": "PathReturnedToRequiredTransit",
+          "observation_id": 238,
+          "archive_sha256": "a56a86cbce313bd04106babd94f9018a2c211d870fb07234efd320e89734786f",
+          "has_gshut_after": false
+        },
+        {
+          "timestamp": "2019-08-21T17:00:29Z",
+          "phase": "Event",
+          "kind": "ReturnToBaseline",
+          "path_id": null,
+          "before_path": [
+            7660,
+            11537,
+            20965,
+            2603
+          ],
+          "after_path": [
+            7660,
+            22388,
+            11537,
+            20965,
+            2603
+          ],
+          "path_shape": null,
+          "observation_id": 239,
+          "archive_sha256": "a56a86cbce313bd04106babd94f9018a2c211d870fb07234efd320e89734786f",
+          "has_gshut_after": false
+        }
+      ],
+      "min_absence_secs": null,
+      "max_absence_secs": null,
+      "was_withdrawn": false,
+      "stream_withdrawal_time": null,
+      "active_before_absence": 0,
+      "transit_at_withdrawal": null,
+      "withdrawn_instances": [],
+      "stream_withdrawal_count": 0,
+      "restorations": [],
+      "add_path_ambiguity": null,
+      "replacement_appeared": true,
+      "replacement_retained_transit": false,
+      "prepending_changed": false,
+      "cooldown_transitions": [],
+      "final_state": {
+        "prefix": "194.68.13.0/24",
+        "attributes": {
+          "as_path": [
+            7660,
+            22388,
+            11537,
+            20965,
+            2603
+          ],
+          "origin_asns": [
+            2603
+          ],
+          "next_hop": "203.181.248.168",
+          "origin": "IGP",
+          "med": 0,
+          "local_pref": 0,
+          "atomic_aggregate": false,
+          "communities": [
+            "7660:4000",
+            "7660:9003"
+          ]
+        },
+        "timestamp": "2019-08-21T17:00:29Z",
+        "observer": "route-views2:203.181.248.168",
+        "path_id": null
+      },
+      "baseline_restored": true,
+      "restoration_time": "2019-08-21T17:00:29Z",
+      "affected_duration_secs": 903.0,
+      "graceful_shutdown_seen": false,
+      "gshut_present_at_baseline": false,
+      "gshut_newly_added": false,
+      "gshut_removed": false,
+      "first_gshut_timestamp": null,
+      "last_gshut_timestamp": null,
+      "gshut_before_withdrawal": false,
+      "gshut_before_path_change": false,
+      "gshut_to_consequence_secs": null,
+      "gshut_removed_during_restoration": false,
+      "communities_before": [
+        "7660:4000",
+        "7660:9003"
+      ],
+      "communities_after": [
+        "7660:4000",
+        "7660:9003"
+      ]
+    },
+    {
+      "collector": "route-views2",
+      "peer_ip": "64.57.28.241",
+      "prefix": "109.105.112.0/21",
+      "baseline_path": [
+        11537,
+        2603
+      ],
+      "baseline_instance_count": 1,
+      "max_concurrent_instances": 1,
+      "total_route_instances": 1,
+      "category": "Withdrawn",
+      "flags": {
+        "restored": true,
+        "not_restored": false,
+        "multiple_cycles": false,
+        "add_path_ambiguous": false
+      },
+      "first_change": "2019-08-21T16:45:25Z",
+      "transitions": [
+        {
+          "timestamp": "2019-08-21T16:45:25Z",
+          "phase": "Event",
+          "kind": "Withdrawal",
+          "path_id": null,
+          "before_path": [
+            11537,
+            20965,
+            2603
+          ],
+          "after_path": [],
+          "path_shape": null,
+          "observation_id": 168,
+          "archive_sha256": "4546b78f8fb9ced87b93867cbb5f76e4abc11f37e564001f73f593313b9fd182",
+          "has_gshut_after": false
+        },
+        {
+          "timestamp": "2019-08-21T16:45:27Z",
+          "phase": "Event",
+          "kind": "Announcement",
+          "path_id": null,
+          "before_path": [],
+          "after_path": [
+            11537,
+            22388,
+            24489,
+            24489,
+            24489,
+            24489,
+            24490,
+            20965,
+            2603
+          ],
+          "path_shape": null,
+          "observation_id": 196,
+          "archive_sha256": "4546b78f8fb9ced87b93867cbb5f76e4abc11f37e564001f73f593313b9fd182",
+          "has_gshut_after": false
+        },
+        {
+          "timestamp": "2019-08-21T16:59:26Z",
+          "phase": "Event",
+          "kind": "ReturnToBaseline",
+          "path_id": null,
+          "before_path": [
+            11537,
+            22388,
+            24489,
+            24489,
+            24489,
+            24489,
+            24490,
+            20965,
+            2603
+          ],
+          "after_path": [
+            11537,
+            20965,
+            2603
+          ],
+          "path_shape": null,
+          "observation_id": 210,
+          "archive_sha256": "4546b78f8fb9ced87b93867cbb5f76e4abc11f37e564001f73f593313b9fd182",
+          "has_gshut_after": false
+        }
+      ],
+      "min_absence_secs": 2.0,
+      "max_absence_secs": 2.0,
+      "was_withdrawn": true,
+      "stream_withdrawal_time": "2019-08-21T16:45:25Z",
+      "active_before_absence": 1,
+      "transit_at_withdrawal": true,
+      "withdrawn_instances": [
+        {
+          "collector": "route-views2",
+          "peer_ip": "64.57.28.241",
+          "prefix": "109.105.112.0/21",
+          "path_id": null
+        }
+      ],
+      "stream_withdrawal_count": 1,
+      "restorations": [
+        {
+          "timestamp": "2019-08-21T16:45:27Z",
+          "old_path_ids": [
+            null
+          ],
+          "new_path_ids": [
+            null
+          ],
+          "exact_instance": false,
+          "equivalent_route": false,
+          "observer_prefix": true,
+          "baseline_set": false,
+          "evidence": {
+            "observation_id": 196,
+            "source_url": "http://archive.routeviews.org/bgpdata/2019.08/UPDATES/updates.20190821.1645.bz2",
+            "archive_sha256": "4546b78f8fb9ced87b93867cbb5f76e4abc11f37e564001f73f593313b9fd182",
+            "collector": "route-views2",
+            "peer_ip": "64.57.28.241",
+            "peer_asn": 11537,
+            "prefix": "109.105.112.0/21",
+            "timestamp": "2019-08-21T16:45:27Z",
+            "element_seq": 17178,
+            "path_id": null
+          }
+        }
+      ],
+      "add_path_ambiguity": null,
+      "replacement_appeared": true,
+      "replacement_retained_transit": true,
+      "prepending_changed": false,
+      "cooldown_transitions": [],
+      "final_state": {
+        "prefix": "109.105.112.0/21",
+        "attributes": {
+          "as_path": [
+            11537,
+            20965,
+            2603
+          ],
+          "origin_asns": [
+            2603
+          ],
+          "next_hop": "64.57.28.241",
+          "origin": "IGP",
+          "med": 2016,
+          "local_pref": 0,
+          "atomic_aggregate": false,
+          "communities": [
+            "11537:2501",
+            "20965:155",
+            "20965:2603"
+          ]
+        },
+        "timestamp": "2019-08-21T16:59:26Z",
+        "observer": "route-views2:64.57.28.241",
+        "path_id": null
+      },
+      "baseline_restored": true,
+      "restoration_time": "2019-08-21T16:45:27Z",
+      "affected_duration_secs": 2.0,
+      "graceful_shutdown_seen": false,
+      "gshut_present_at_baseline": false,
+      "gshut_newly_added": false,
+      "gshut_removed": false,
+      "first_gshut_timestamp": null,
+      "last_gshut_timestamp": null,
+      "gshut_before_withdrawal": false,
+      "gshut_before_path_change": false,
+      "gshut_to_consequence_secs": null,
+      "gshut_removed_during_restoration": false,
+      "communities_before": [
+        "11537:2501",
+        "20965:155",
+        "20965:2603"
+      ],
+      "communities_after": [
+        "11537:2501",
+        "20965:155",
+        "20965:2603"
+      ]
+    },
+    {
+      "collector": "route-views2",
+      "peer_ip": "64.57.28.241",
+      "prefix": "109.105.120.0/22",
+      "baseline_path": [
+        11537,
+        2603
+      ],
+      "baseline_instance_count": 1,
+      "max_concurrent_instances": 1,
+      "total_route_instances": 1,
+      "category": "Withdrawn",
+      "flags": {
+        "restored": true,
+        "not_restored": false,
+        "multiple_cycles": false,
+        "add_path_ambiguous": false
+      },
+      "first_change": "2019-08-21T16:45:25Z",
+      "transitions": [
+        {
+          "timestamp": "2019-08-21T16:45:25Z",
+          "phase": "Event",
+          "kind": "Withdrawal",
+          "path_id": null,
+          "before_path": [
+            11537,
+            20965,
+            2603
+          ],
+          "after_path": [],
+          "path_shape": null,
+          "observation_id": 171,
+          "archive_sha256": "4546b78f8fb9ced87b93867cbb5f76e4abc11f37e564001f73f593313b9fd182",
+          "has_gshut_after": false
+        },
+        {
+          "timestamp": "2019-08-21T16:45:27Z",
+          "phase": "Event",
+          "kind": "Announcement",
+          "path_id": null,
+          "before_path": [],
+          "after_path": [
+            11537,
+            22388,
+            24489,
+            24489,
+            24489,
+            24489,
+            24490,
+            20965,
+            2603
+          ],
+          "path_shape": null,
+          "observation_id": 190,
+          "archive_sha256": "4546b78f8fb9ced87b93867cbb5f76e4abc11f37e564001f73f593313b9fd182",
+          "has_gshut_after": false
+        },
+        {
+          "timestamp": "2019-08-21T16:59:26Z",
+          "phase": "Event",
+          "kind": "ReturnToBaseline",
+          "path_id": null,
+          "before_path": [
+            11537,
+            22388,
+            24489,
+            24489,
+            24489,
+            24489,
+            24490,
+            20965,
+            2603
+          ],
+          "after_path": [
+            11537,
+            20965,
+            2603
+          ],
+          "path_shape": null,
+          "observation_id": 211,
+          "archive_sha256": "4546b78f8fb9ced87b93867cbb5f76e4abc11f37e564001f73f593313b9fd182",
+          "has_gshut_after": false
+        }
+      ],
+      "min_absence_secs": 2.0,
+      "max_absence_secs": 2.0,
+      "was_withdrawn": true,
+      "stream_withdrawal_time": "2019-08-21T16:45:25Z",
+      "active_before_absence": 1,
+      "transit_at_withdrawal": true,
+      "withdrawn_instances": [
+        {
+          "collector": "route-views2",
+          "peer_ip": "64.57.28.241",
+          "prefix": "109.105.120.0/22",
+          "path_id": null
+        }
+      ],
+      "stream_withdrawal_count": 1,
+      "restorations": [
+        {
+          "timestamp": "2019-08-21T16:45:27Z",
+          "old_path_ids": [
+            null
+          ],
+          "new_path_ids": [
+            null
+          ],
+          "exact_instance": false,
+          "equivalent_route": false,
+          "observer_prefix": true,
+          "baseline_set": false,
+          "evidence": {
+            "observation_id": 190,
+            "source_url": "http://archive.routeviews.org/bgpdata/2019.08/UPDATES/updates.20190821.1645.bz2",
+            "archive_sha256": "4546b78f8fb9ced87b93867cbb5f76e4abc11f37e564001f73f593313b9fd182",
+            "collector": "route-views2",
+            "peer_ip": "64.57.28.241",
+            "peer_asn": 11537,
+            "prefix": "109.105.120.0/22",
+            "timestamp": "2019-08-21T16:45:27Z",
+            "element_seq": 17172,
+            "path_id": null
+          }
+        }
+      ],
+      "add_path_ambiguity": null,
+      "replacement_appeared": true,
+      "replacement_retained_transit": true,
+      "prepending_changed": false,
+      "cooldown_transitions": [],
+      "final_state": {
+        "prefix": "109.105.120.0/22",
+        "attributes": {
+          "as_path": [
+            11537,
+            20965,
+            2603
+          ],
+          "origin_asns": [
+            2603
+          ],
+          "next_hop": "64.57.28.241",
+          "origin": "IGP",
+          "med": 2016,
+          "local_pref": 0,
+          "atomic_aggregate": false,
+          "communities": [
+            "11537:2501",
+            "20965:155",
+            "20965:2603"
+          ]
+        },
+        "timestamp": "2019-08-21T16:59:26Z",
+        "observer": "route-views2:64.57.28.241",
+        "path_id": null
+      },
+      "baseline_restored": true,
+      "restoration_time": "2019-08-21T16:45:27Z",
+      "affected_duration_secs": 2.0,
+      "graceful_shutdown_seen": false,
+      "gshut_present_at_baseline": false,
+      "gshut_newly_added": false,
+      "gshut_removed": false,
+      "first_gshut_timestamp": null,
+      "last_gshut_timestamp": null,
+      "gshut_before_withdrawal": false,
+      "gshut_before_path_change": false,
+      "gshut_to_consequence_secs": null,
+      "gshut_removed_during_restoration": false,
+      "communities_before": [
+        "11537:2501",
+        "20965:155",
+        "20965:2603"
+      ],
+      "communities_after": [
+        "11537:2501",
+        "20965:155",
+        "20965:2603"
+      ]
+    },
+    {
+      "collector": "route-views2",
+      "peer_ip": "64.57.28.241",
+      "prefix": "109.105.96.0/20",
+      "baseline_path": [
+        11537,
+        2603
+      ],
+      "baseline_instance_count": 1,
+      "max_concurrent_instances": 1,
+      "total_route_instances": 1,
+      "category": "Withdrawn",
+      "flags": {
+        "restored": true,
+        "not_restored": false,
+        "multiple_cycles": false,
+        "add_path_ambiguous": false
+      },
+      "first_change": "2019-08-21T16:45:25Z",
+      "transitions": [
+        {
+          "timestamp": "2019-08-21T16:45:25Z",
+          "phase": "Event",
+          "kind": "Withdrawal",
+          "path_id": null,
+          "before_path": [
+            11537,
+            20965,
+            2603
+          ],
+          "after_path": [],
+          "path_shape": null,
+          "observation_id": 170,
+          "archive_sha256": "4546b78f8fb9ced87b93867cbb5f76e4abc11f37e564001f73f593313b9fd182",
+          "has_gshut_after": false
+        },
+        {
+          "timestamp": "2019-08-21T16:45:27Z",
+          "phase": "Event",
+          "kind": "Announcement",
+          "path_id": null,
+          "before_path": [],
+          "after_path": [
+            11537,
+            22388,
+            24489,
+            24489,
+            24489,
+            24489,
+            24490,
+            20965,
+            2603
+          ],
+          "path_shape": null,
+          "observation_id": 187,
+          "archive_sha256": "4546b78f8fb9ced87b93867cbb5f76e4abc11f37e564001f73f593313b9fd182",
+          "has_gshut_after": false
+        },
+        {
+          "timestamp": "2019-08-21T16:59:26Z",
+          "phase": "Event",
+          "kind": "ReturnToBaseline",
+          "path_id": null,
+          "before_path": [
+            11537,
+            22388,
+            24489,
+            24489,
+            24489,
+            24489,
+            24490,
+            20965,
+            2603
+          ],
+          "after_path": [
+            11537,
+            20965,
+            2603
+          ],
+          "path_shape": null,
+          "observation_id": 209,
+          "archive_sha256": "4546b78f8fb9ced87b93867cbb5f76e4abc11f37e564001f73f593313b9fd182",
+          "has_gshut_after": false
+        }
+      ],
+      "min_absence_secs": 2.0,
+      "max_absence_secs": 2.0,
+      "was_withdrawn": true,
+      "stream_withdrawal_time": "2019-08-21T16:45:25Z",
+      "active_before_absence": 1,
+      "transit_at_withdrawal": true,
+      "withdrawn_instances": [
+        {
+          "collector": "route-views2",
+          "peer_ip": "64.57.28.241",
+          "prefix": "109.105.96.0/20",
+          "path_id": null
+        }
+      ],
+      "stream_withdrawal_count": 1,
+      "restorations": [
+        {
+          "timestamp": "2019-08-21T16:45:27Z",
+          "old_path_ids": [
+            null
+          ],
+          "new_path_ids": [
+            null
+          ],
+          "exact_instance": false,
+          "equivalent_route": false,
+          "observer_prefix": true,
+          "baseline_set": false,
+          "evidence": {
+            "observation_id": 187,
+            "source_url": "http://archive.routeviews.org/bgpdata/2019.08/UPDATES/updates.20190821.1645.bz2",
+            "archive_sha256": "4546b78f8fb9ced87b93867cbb5f76e4abc11f37e564001f73f593313b9fd182",
+            "collector": "route-views2",
+            "peer_ip": "64.57.28.241",
+            "peer_asn": 11537,
+            "prefix": "109.105.96.0/20",
+            "timestamp": "2019-08-21T16:45:27Z",
+            "element_seq": 17169,
+            "path_id": null
+          }
+        }
+      ],
+      "add_path_ambiguity": null,
+      "replacement_appeared": true,
+      "replacement_retained_transit": true,
+      "prepending_changed": false,
+      "cooldown_transitions": [],
+      "final_state": {
+        "prefix": "109.105.96.0/20",
+        "attributes": {
+          "as_path": [
+            11537,
+            20965,
+            2603
+          ],
+          "origin_asns": [
+            2603
+          ],
+          "next_hop": "64.57.28.241",
+          "origin": "IGP",
+          "med": 2016,
+          "local_pref": 0,
+          "atomic_aggregate": false,
+          "communities": [
+            "11537:2501",
+            "20965:155",
+            "20965:2603"
+          ]
+        },
+        "timestamp": "2019-08-21T16:59:26Z",
+        "observer": "route-views2:64.57.28.241",
+        "path_id": null
+      },
+      "baseline_restored": true,
+      "restoration_time": "2019-08-21T16:45:27Z",
+      "affected_duration_secs": 2.0,
+      "graceful_shutdown_seen": false,
+      "gshut_present_at_baseline": false,
+      "gshut_newly_added": false,
+      "gshut_removed": false,
+      "first_gshut_timestamp": null,
+      "last_gshut_timestamp": null,
+      "gshut_before_withdrawal": false,
+      "gshut_before_path_change": false,
+      "gshut_to_consequence_secs": null,
+      "gshut_removed_during_restoration": false,
+      "communities_before": [
+        "11537:2501",
+        "20965:155",
+        "20965:2603"
+      ],
+      "communities_after": [
+        "11537:2501",
+        "20965:155",
+        "20965:2603"
+      ]
+    },
+    {
+      "collector": "route-views2",
+      "peer_ip": "64.57.28.241",
+      "prefix": "185.174.116.0/22",
+      "baseline_path": [
+        11537,
+        2603
+      ],
+      "baseline_instance_count": 1,
+      "max_concurrent_instances": 1,
+      "total_route_instances": 1,
+      "category": "Withdrawn",
+      "flags": {
+        "restored": true,
+        "not_restored": false,
+        "multiple_cycles": false,
+        "add_path_ambiguous": false
+      },
+      "first_change": "2019-08-21T16:45:25Z",
+      "transitions": [
+        {
+          "timestamp": "2019-08-21T16:45:25Z",
+          "phase": "Event",
+          "kind": "Withdrawal",
+          "path_id": null,
+          "before_path": [
+            11537,
+            20965,
+            2603
+          ],
+          "after_path": [],
+          "path_shape": null,
+          "observation_id": 174,
+          "archive_sha256": "4546b78f8fb9ced87b93867cbb5f76e4abc11f37e564001f73f593313b9fd182",
+          "has_gshut_after": false
+        },
+        {
+          "timestamp": "2019-08-21T16:45:27Z",
+          "phase": "Event",
+          "kind": "Announcement",
+          "path_id": null,
+          "before_path": [],
+          "after_path": [
+            11537,
+            22388,
+            24489,
+            24489,
+            24489,
+            24489,
+            24490,
+            20965,
+            2603
+          ],
+          "path_shape": null,
+          "observation_id": 193,
+          "archive_sha256": "4546b78f8fb9ced87b93867cbb5f76e4abc11f37e564001f73f593313b9fd182",
+          "has_gshut_after": false
+        },
+        {
+          "timestamp": "2019-08-21T17:02:03Z",
+          "phase": "Event",
+          "kind": "ReturnToBaseline",
+          "path_id": null,
+          "before_path": [
+            11537,
+            22388,
+            24489,
+            24489,
+            24489,
+            24489,
+            24490,
+            20965,
+            2603
+          ],
+          "after_path": [
+            11537,
+            20965,
+            2603
+          ],
+          "path_shape": null,
+          "observation_id": 246,
+          "archive_sha256": "a56a86cbce313bd04106babd94f9018a2c211d870fb07234efd320e89734786f",
+          "has_gshut_after": false
+        }
+      ],
+      "min_absence_secs": 2.0,
+      "max_absence_secs": 2.0,
+      "was_withdrawn": true,
+      "stream_withdrawal_time": "2019-08-21T16:45:25Z",
+      "active_before_absence": 1,
+      "transit_at_withdrawal": true,
+      "withdrawn_instances": [
+        {
+          "collector": "route-views2",
+          "peer_ip": "64.57.28.241",
+          "prefix": "185.174.116.0/22",
+          "path_id": null
+        }
+      ],
+      "stream_withdrawal_count": 1,
+      "restorations": [
+        {
+          "timestamp": "2019-08-21T16:45:27Z",
+          "old_path_ids": [
+            null
+          ],
+          "new_path_ids": [
+            null
+          ],
+          "exact_instance": false,
+          "equivalent_route": false,
+          "observer_prefix": true,
+          "baseline_set": false,
+          "evidence": {
+            "observation_id": 193,
+            "source_url": "http://archive.routeviews.org/bgpdata/2019.08/UPDATES/updates.20190821.1645.bz2",
+            "archive_sha256": "4546b78f8fb9ced87b93867cbb5f76e4abc11f37e564001f73f593313b9fd182",
+            "collector": "route-views2",
+            "peer_ip": "64.57.28.241",
+            "peer_asn": 11537,
+            "prefix": "185.174.116.0/22",
+            "timestamp": "2019-08-21T16:45:27Z",
+            "element_seq": 17175,
+            "path_id": null
+          }
+        }
+      ],
+      "add_path_ambiguity": null,
+      "replacement_appeared": true,
+      "replacement_retained_transit": true,
+      "prepending_changed": false,
+      "cooldown_transitions": [],
+      "final_state": {
+        "prefix": "185.174.116.0/22",
+        "attributes": {
+          "as_path": [
+            11537,
+            20965,
+            2603
+          ],
+          "origin_asns": [
+            2603
+          ],
+          "next_hop": "64.57.28.241",
+          "origin": "IGP",
+          "med": 2016,
+          "local_pref": 0,
+          "atomic_aggregate": false,
+          "communities": [
+            "11537:2501",
+            "20965:155",
+            "20965:2603"
+          ]
+        },
+        "timestamp": "2019-08-21T17:02:03Z",
+        "observer": "route-views2:64.57.28.241",
+        "path_id": null
+      },
+      "baseline_restored": true,
+      "restoration_time": "2019-08-21T16:45:27Z",
+      "affected_duration_secs": 2.0,
+      "graceful_shutdown_seen": false,
+      "gshut_present_at_baseline": false,
+      "gshut_newly_added": false,
+      "gshut_removed": false,
+      "first_gshut_timestamp": null,
+      "last_gshut_timestamp": null,
+      "gshut_before_withdrawal": false,
+      "gshut_before_path_change": false,
+      "gshut_to_consequence_secs": null,
+      "gshut_removed_during_restoration": false,
+      "communities_before": [
+        "11537:2501",
+        "20965:155",
+        "20965:2603"
+      ],
+      "communities_after": [
+        "11537:2501",
+        "20965:155",
+        "20965:2603"
+      ]
+    },
+    {
+      "collector": "route-views2",
+      "peer_ip": "64.57.28.241",
+      "prefix": "192.36.171.0/24",
+      "baseline_path": [
+        11537,
+        2603
+      ],
+      "baseline_instance_count": 1,
+      "max_concurrent_instances": 1,
+      "total_route_instances": 1,
+      "category": "Withdrawn",
+      "flags": {
+        "restored": true,
+        "not_restored": false,
+        "multiple_cycles": false,
+        "add_path_ambiguous": false
+      },
+      "first_change": "2019-08-21T16:45:25Z",
+      "transitions": [
+        {
+          "timestamp": "2019-08-21T16:45:25Z",
+          "phase": "Event",
+          "kind": "Withdrawal",
+          "path_id": null,
+          "before_path": [
+            11537,
+            20965,
+            2603
+          ],
+          "after_path": [],
+          "path_shape": null,
+          "observation_id": 173,
+          "archive_sha256": "4546b78f8fb9ced87b93867cbb5f76e4abc11f37e564001f73f593313b9fd182",
+          "has_gshut_after": false
+        },
+        {
+          "timestamp": "2019-08-21T16:45:27Z",
+          "phase": "Event",
+          "kind": "Announcement",
+          "path_id": null,
+          "before_path": [],
+          "after_path": [
+            11537,
+            22388,
+            24489,
+            24489,
+            24489,
+            24489,
+            24490,
+            20965,
+            2603
+          ],
+          "path_shape": null,
+          "observation_id": 192,
+          "archive_sha256": "4546b78f8fb9ced87b93867cbb5f76e4abc11f37e564001f73f593313b9fd182",
+          "has_gshut_after": false
+        },
+        {
+          "timestamp": "2019-08-21T17:00:18Z",
+          "phase": "Event",
+          "kind": "ReturnToBaseline",
+          "path_id": null,
+          "before_path": [
+            11537,
+            22388,
+            24489,
+            24489,
+            24489,
+            24489,
+            24490,
+            20965,
+            2603
+          ],
+          "after_path": [
+            11537,
+            20965,
+            2603
+          ],
+          "path_shape": null,
+          "observation_id": 218,
+          "archive_sha256": "a56a86cbce313bd04106babd94f9018a2c211d870fb07234efd320e89734786f",
+          "has_gshut_after": false
+        }
+      ],
+      "min_absence_secs": 2.0,
+      "max_absence_secs": 2.0,
+      "was_withdrawn": true,
+      "stream_withdrawal_time": "2019-08-21T16:45:25Z",
+      "active_before_absence": 1,
+      "transit_at_withdrawal": true,
+      "withdrawn_instances": [
+        {
+          "collector": "route-views2",
+          "peer_ip": "64.57.28.241",
+          "prefix": "192.36.171.0/24",
+          "path_id": null
+        }
+      ],
+      "stream_withdrawal_count": 1,
+      "restorations": [
+        {
+          "timestamp": "2019-08-21T16:45:27Z",
+          "old_path_ids": [
+            null
+          ],
+          "new_path_ids": [
+            null
+          ],
+          "exact_instance": false,
+          "equivalent_route": false,
+          "observer_prefix": true,
+          "baseline_set": false,
+          "evidence": {
+            "observation_id": 192,
+            "source_url": "http://archive.routeviews.org/bgpdata/2019.08/UPDATES/updates.20190821.1645.bz2",
+            "archive_sha256": "4546b78f8fb9ced87b93867cbb5f76e4abc11f37e564001f73f593313b9fd182",
+            "collector": "route-views2",
+            "peer_ip": "64.57.28.241",
+            "peer_asn": 11537,
+            "prefix": "192.36.171.0/24",
+            "timestamp": "2019-08-21T16:45:27Z",
+            "element_seq": 17174,
+            "path_id": null
+          }
+        }
+      ],
+      "add_path_ambiguity": null,
+      "replacement_appeared": true,
+      "replacement_retained_transit": true,
+      "prepending_changed": false,
+      "cooldown_transitions": [],
+      "final_state": {
+        "prefix": "192.36.171.0/24",
+        "attributes": {
+          "as_path": [
+            11537,
+            20965,
+            2603
+          ],
+          "origin_asns": [
+            2603
+          ],
+          "next_hop": "64.57.28.241",
+          "origin": "IGP",
+          "med": 2016,
+          "local_pref": 0,
+          "atomic_aggregate": false,
+          "communities": [
+            "11537:2501",
+            "20965:155",
+            "20965:2603"
+          ]
+        },
+        "timestamp": "2019-08-21T17:00:18Z",
+        "observer": "route-views2:64.57.28.241",
+        "path_id": null
+      },
+      "baseline_restored": true,
+      "restoration_time": "2019-08-21T16:45:27Z",
+      "affected_duration_secs": 2.0,
+      "graceful_shutdown_seen": false,
+      "gshut_present_at_baseline": false,
+      "gshut_newly_added": false,
+      "gshut_removed": false,
+      "first_gshut_timestamp": null,
+      "last_gshut_timestamp": null,
+      "gshut_before_withdrawal": false,
+      "gshut_before_path_change": false,
+      "gshut_to_consequence_secs": null,
+      "gshut_removed_during_restoration": false,
+      "communities_before": [
+        "11537:2501",
+        "20965:155",
+        "20965:2603"
+      ],
+      "communities_after": [
+        "11537:2501",
+        "20965:155",
+        "20965:2603"
+      ]
+    },
+    {
+      "collector": "route-views2",
+      "peer_ip": "64.57.28.241",
+      "prefix": "193.10.252.0/24",
+      "baseline_path": [
+        11537,
+        2603
+      ],
+      "baseline_instance_count": 1,
+      "max_concurrent_instances": 1,
+      "total_route_instances": 1,
+      "category": "Withdrawn",
+      "flags": {
+        "restored": true,
+        "not_restored": false,
+        "multiple_cycles": false,
+        "add_path_ambiguous": false
+      },
+      "first_change": "2019-08-21T16:45:25Z",
+      "transitions": [
+        {
+          "timestamp": "2019-08-21T16:45:25Z",
+          "phase": "Event",
+          "kind": "Withdrawal",
+          "path_id": null,
+          "before_path": [
+            11537,
+            20965,
+            2603
+          ],
+          "after_path": [],
+          "path_shape": null,
+          "observation_id": 167,
+          "archive_sha256": "4546b78f8fb9ced87b93867cbb5f76e4abc11f37e564001f73f593313b9fd182",
+          "has_gshut_after": false
+        },
+        {
+          "timestamp": "2019-08-21T16:45:27Z",
+          "phase": "Event",
+          "kind": "Announcement",
+          "path_id": null,
+          "before_path": [],
+          "after_path": [
+            11537,
+            22388,
+            24489,
+            24489,
+            24489,
+            24489,
+            24490,
+            20965,
+            2603
+          ],
+          "path_shape": null,
+          "observation_id": 195,
+          "archive_sha256": "4546b78f8fb9ced87b93867cbb5f76e4abc11f37e564001f73f593313b9fd182",
+          "has_gshut_after": false
+        },
+        {
+          "timestamp": "2019-08-21T17:00:26Z",
+          "phase": "Event",
+          "kind": "ReturnToBaseline",
+          "path_id": null,
+          "before_path": [
+            11537,
+            22388,
+            24489,
+            24489,
+            24489,
+            24489,
+            24490,
+            20965,
+            2603
+          ],
+          "after_path": [
+            11537,
+            20965,
+            2603
+          ],
+          "path_shape": null,
+          "observation_id": 223,
+          "archive_sha256": "a56a86cbce313bd04106babd94f9018a2c211d870fb07234efd320e89734786f",
+          "has_gshut_after": false
+        }
+      ],
+      "min_absence_secs": 2.0,
+      "max_absence_secs": 2.0,
+      "was_withdrawn": true,
+      "stream_withdrawal_time": "2019-08-21T16:45:25Z",
+      "active_before_absence": 1,
+      "transit_at_withdrawal": true,
+      "withdrawn_instances": [
+        {
+          "collector": "route-views2",
+          "peer_ip": "64.57.28.241",
+          "prefix": "193.10.252.0/24",
+          "path_id": null
+        }
+      ],
+      "stream_withdrawal_count": 1,
+      "restorations": [
+        {
+          "timestamp": "2019-08-21T16:45:27Z",
+          "old_path_ids": [
+            null
+          ],
+          "new_path_ids": [
+            null
+          ],
+          "exact_instance": false,
+          "equivalent_route": false,
+          "observer_prefix": true,
+          "baseline_set": false,
+          "evidence": {
+            "observation_id": 195,
+            "source_url": "http://archive.routeviews.org/bgpdata/2019.08/UPDATES/updates.20190821.1645.bz2",
+            "archive_sha256": "4546b78f8fb9ced87b93867cbb5f76e4abc11f37e564001f73f593313b9fd182",
+            "collector": "route-views2",
+            "peer_ip": "64.57.28.241",
+            "peer_asn": 11537,
+            "prefix": "193.10.252.0/24",
+            "timestamp": "2019-08-21T16:45:27Z",
+            "element_seq": 17177,
+            "path_id": null
+          }
+        }
+      ],
+      "add_path_ambiguity": null,
+      "replacement_appeared": true,
+      "replacement_retained_transit": true,
+      "prepending_changed": false,
+      "cooldown_transitions": [],
+      "final_state": {
+        "prefix": "193.10.252.0/24",
+        "attributes": {
+          "as_path": [
+            11537,
+            20965,
+            2603
+          ],
+          "origin_asns": [
+            2603
+          ],
+          "next_hop": "64.57.28.241",
+          "origin": "IGP",
+          "med": 2016,
+          "local_pref": 0,
+          "atomic_aggregate": false,
+          "communities": [
+            "11537:2501",
+            "20965:155",
+            "20965:2603"
+          ]
+        },
+        "timestamp": "2019-08-21T17:00:26Z",
+        "observer": "route-views2:64.57.28.241",
+        "path_id": null
+      },
+      "baseline_restored": true,
+      "restoration_time": "2019-08-21T16:45:27Z",
+      "affected_duration_secs": 2.0,
+      "graceful_shutdown_seen": false,
+      "gshut_present_at_baseline": false,
+      "gshut_newly_added": false,
+      "gshut_removed": false,
+      "first_gshut_timestamp": null,
+      "last_gshut_timestamp": null,
+      "gshut_before_withdrawal": false,
+      "gshut_before_path_change": false,
+      "gshut_to_consequence_secs": null,
+      "gshut_removed_during_restoration": false,
+      "communities_before": [
+        "11537:2501",
+        "20965:155",
+        "20965:2603"
+      ],
+      "communities_after": [
+        "11537:2501",
+        "20965:155",
+        "20965:2603"
+      ]
+    },
+    {
+      "collector": "route-views2",
+      "peer_ip": "64.57.28.241",
+      "prefix": "193.10.254.0/24",
+      "baseline_path": [
+        11537,
+        2603
+      ],
+      "baseline_instance_count": 1,
+      "max_concurrent_instances": 1,
+      "total_route_instances": 1,
+      "category": "Withdrawn",
+      "flags": {
+        "restored": true,
+        "not_restored": false,
+        "multiple_cycles": false,
+        "add_path_ambiguous": false
+      },
+      "first_change": "2019-08-21T16:45:25Z",
+      "transitions": [
+        {
+          "timestamp": "2019-08-21T16:45:25Z",
+          "phase": "Event",
+          "kind": "Withdrawal",
+          "path_id": null,
+          "before_path": [
+            11537,
+            20965,
+            2603
+          ],
+          "after_path": [],
+          "path_shape": null,
+          "observation_id": 172,
+          "archive_sha256": "4546b78f8fb9ced87b93867cbb5f76e4abc11f37e564001f73f593313b9fd182",
+          "has_gshut_after": false
+        },
+        {
+          "timestamp": "2019-08-21T16:45:27Z",
+          "phase": "Event",
+          "kind": "Announcement",
+          "path_id": null,
+          "before_path": [],
+          "after_path": [
+            11537,
+            22388,
+            24489,
+            24489,
+            24489,
+            24489,
+            24490,
+            20965,
+            2603
+          ],
+          "path_shape": null,
+          "observation_id": 191,
+          "archive_sha256": "4546b78f8fb9ced87b93867cbb5f76e4abc11f37e564001f73f593313b9fd182",
+          "has_gshut_after": false
+        },
+        {
+          "timestamp": "2019-08-21T17:00:26Z",
+          "phase": "Event",
+          "kind": "ReturnToBaseline",
+          "path_id": null,
+          "before_path": [
+            11537,
+            22388,
+            24489,
+            24489,
+            24489,
+            24489,
+            24490,
+            20965,
+            2603
+          ],
+          "after_path": [
+            11537,
+            20965,
+            2603
+          ],
+          "path_shape": null,
+          "observation_id": 226,
+          "archive_sha256": "a56a86cbce313bd04106babd94f9018a2c211d870fb07234efd320e89734786f",
+          "has_gshut_after": false
+        }
+      ],
+      "min_absence_secs": 2.0,
+      "max_absence_secs": 2.0,
+      "was_withdrawn": true,
+      "stream_withdrawal_time": "2019-08-21T16:45:25Z",
+      "active_before_absence": 1,
+      "transit_at_withdrawal": true,
+      "withdrawn_instances": [
+        {
+          "collector": "route-views2",
+          "peer_ip": "64.57.28.241",
+          "prefix": "193.10.254.0/24",
+          "path_id": null
+        }
+      ],
+      "stream_withdrawal_count": 1,
+      "restorations": [
+        {
+          "timestamp": "2019-08-21T16:45:27Z",
+          "old_path_ids": [
+            null
+          ],
+          "new_path_ids": [
+            null
+          ],
+          "exact_instance": false,
+          "equivalent_route": false,
+          "observer_prefix": true,
+          "baseline_set": false,
+          "evidence": {
+            "observation_id": 191,
+            "source_url": "http://archive.routeviews.org/bgpdata/2019.08/UPDATES/updates.20190821.1645.bz2",
+            "archive_sha256": "4546b78f8fb9ced87b93867cbb5f76e4abc11f37e564001f73f593313b9fd182",
+            "collector": "route-views2",
+            "peer_ip": "64.57.28.241",
+            "peer_asn": 11537,
+            "prefix": "193.10.254.0/24",
+            "timestamp": "2019-08-21T16:45:27Z",
+            "element_seq": 17173,
+            "path_id": null
+          }
+        }
+      ],
+      "add_path_ambiguity": null,
+      "replacement_appeared": true,
+      "replacement_retained_transit": true,
+      "prepending_changed": false,
+      "cooldown_transitions": [],
+      "final_state": {
+        "prefix": "193.10.254.0/24",
+        "attributes": {
+          "as_path": [
+            11537,
+            20965,
+            2603
+          ],
+          "origin_asns": [
+            2603
+          ],
+          "next_hop": "64.57.28.241",
+          "origin": "IGP",
+          "med": 2016,
+          "local_pref": 0,
+          "atomic_aggregate": false,
+          "communities": [
+            "11537:2501",
+            "20965:155",
+            "20965:2603"
+          ]
+        },
+        "timestamp": "2019-08-21T17:00:26Z",
+        "observer": "route-views2:64.57.28.241",
+        "path_id": null
+      },
+      "baseline_restored": true,
+      "restoration_time": "2019-08-21T16:45:27Z",
+      "affected_duration_secs": 2.0,
+      "graceful_shutdown_seen": false,
+      "gshut_present_at_baseline": false,
+      "gshut_newly_added": false,
+      "gshut_removed": false,
+      "first_gshut_timestamp": null,
+      "last_gshut_timestamp": null,
+      "gshut_before_withdrawal": false,
+      "gshut_before_path_change": false,
+      "gshut_to_consequence_secs": null,
+      "gshut_removed_during_restoration": false,
+      "communities_before": [
+        "11537:2501",
+        "20965:155",
+        "20965:2603"
+      ],
+      "communities_after": [
+        "11537:2501",
+        "20965:155",
+        "20965:2603"
+      ]
+    },
+    {
+      "collector": "route-views2",
+      "peer_ip": "64.57.28.241",
+      "prefix": "193.10.68.0/24",
+      "baseline_path": [
+        11537,
+        2603
+      ],
+      "baseline_instance_count": 1,
+      "max_concurrent_instances": 1,
+      "total_route_instances": 1,
+      "category": "Withdrawn",
+      "flags": {
+        "restored": true,
+        "not_restored": false,
+        "multiple_cycles": false,
+        "add_path_ambiguous": false
+      },
+      "first_change": "2019-08-21T16:45:25Z",
+      "transitions": [
+        {
+          "timestamp": "2019-08-21T16:45:25Z",
+          "phase": "Event",
+          "kind": "Withdrawal",
+          "path_id": null,
+          "before_path": [
+            11537,
+            20965,
+            2603
+          ],
+          "after_path": [],
+          "path_shape": null,
+          "observation_id": 169,
+          "archive_sha256": "4546b78f8fb9ced87b93867cbb5f76e4abc11f37e564001f73f593313b9fd182",
+          "has_gshut_after": false
+        },
+        {
+          "timestamp": "2019-08-21T16:45:27Z",
+          "phase": "Event",
+          "kind": "Announcement",
+          "path_id": null,
+          "before_path": [],
+          "after_path": [
+            11537,
+            22388,
+            24489,
+            24489,
+            24489,
+            24489,
+            24490,
+            20965,
+            2603
+          ],
+          "path_shape": null,
+          "observation_id": 197,
+          "archive_sha256": "4546b78f8fb9ced87b93867cbb5f76e4abc11f37e564001f73f593313b9fd182",
+          "has_gshut_after": false
+        },
+        {
+          "timestamp": "2019-08-21T17:00:26Z",
+          "phase": "Event",
+          "kind": "ReturnToBaseline",
+          "path_id": null,
+          "before_path": [
+            11537,
+            22388,
+            24489,
+            24489,
+            24489,
+            24489,
+            24490,
+            20965,
+            2603
+          ],
+          "after_path": [
+            11537,
+            20965,
+            2603
+          ],
+          "path_shape": null,
+          "observation_id": 225,
+          "archive_sha256": "a56a86cbce313bd04106babd94f9018a2c211d870fb07234efd320e89734786f",
+          "has_gshut_after": false
+        }
+      ],
+      "min_absence_secs": 2.0,
+      "max_absence_secs": 2.0,
+      "was_withdrawn": true,
+      "stream_withdrawal_time": "2019-08-21T16:45:25Z",
+      "active_before_absence": 1,
+      "transit_at_withdrawal": true,
+      "withdrawn_instances": [
+        {
+          "collector": "route-views2",
+          "peer_ip": "64.57.28.241",
+          "prefix": "193.10.68.0/24",
+          "path_id": null
+        }
+      ],
+      "stream_withdrawal_count": 1,
+      "restorations": [
+        {
+          "timestamp": "2019-08-21T16:45:27Z",
+          "old_path_ids": [
+            null
+          ],
+          "new_path_ids": [
+            null
+          ],
+          "exact_instance": false,
+          "equivalent_route": false,
+          "observer_prefix": true,
+          "baseline_set": false,
+          "evidence": {
+            "observation_id": 197,
+            "source_url": "http://archive.routeviews.org/bgpdata/2019.08/UPDATES/updates.20190821.1645.bz2",
+            "archive_sha256": "4546b78f8fb9ced87b93867cbb5f76e4abc11f37e564001f73f593313b9fd182",
+            "collector": "route-views2",
+            "peer_ip": "64.57.28.241",
+            "peer_asn": 11537,
+            "prefix": "193.10.68.0/24",
+            "timestamp": "2019-08-21T16:45:27Z",
+            "element_seq": 17179,
+            "path_id": null
+          }
+        }
+      ],
+      "add_path_ambiguity": null,
+      "replacement_appeared": true,
+      "replacement_retained_transit": true,
+      "prepending_changed": false,
+      "cooldown_transitions": [],
+      "final_state": {
+        "prefix": "193.10.68.0/24",
+        "attributes": {
+          "as_path": [
+            11537,
+            20965,
+            2603
+          ],
+          "origin_asns": [
+            2603
+          ],
+          "next_hop": "64.57.28.241",
+          "origin": "IGP",
+          "med": 2016,
+          "local_pref": 0,
+          "atomic_aggregate": false,
+          "communities": [
+            "11537:2501",
+            "20965:155",
+            "20965:2603"
+          ]
+        },
+        "timestamp": "2019-08-21T17:00:26Z",
+        "observer": "route-views2:64.57.28.241",
+        "path_id": null
+      },
+      "baseline_restored": true,
+      "restoration_time": "2019-08-21T16:45:27Z",
+      "affected_duration_secs": 2.0,
+      "graceful_shutdown_seen": false,
+      "gshut_present_at_baseline": false,
+      "gshut_newly_added": false,
+      "gshut_removed": false,
+      "first_gshut_timestamp": null,
+      "last_gshut_timestamp": null,
+      "gshut_before_withdrawal": false,
+      "gshut_before_path_change": false,
+      "gshut_to_consequence_secs": null,
+      "gshut_removed_during_restoration": false,
+      "communities_before": [
+        "11537:2501",
+        "20965:155",
+        "20965:2603"
+      ],
+      "communities_after": [
+        "11537:2501",
+        "20965:155",
+        "20965:2603"
+      ]
+    },
+    {
+      "collector": "route-views2",
+      "peer_ip": "64.57.28.241",
+      "prefix": "193.10.95.0/24",
+      "baseline_path": [
+        11537,
+        2603
+      ],
+      "baseline_instance_count": 1,
+      "max_concurrent_instances": 1,
+      "total_route_instances": 1,
+      "category": "Withdrawn",
+      "flags": {
+        "restored": true,
+        "not_restored": false,
+        "multiple_cycles": false,
+        "add_path_ambiguous": false
+      },
+      "first_change": "2019-08-21T16:45:25Z",
+      "transitions": [
+        {
+          "timestamp": "2019-08-21T16:45:25Z",
+          "phase": "Event",
+          "kind": "Withdrawal",
+          "path_id": null,
+          "before_path": [
+            11537,
+            20965,
+            2603
+          ],
+          "after_path": [],
+          "path_shape": null,
+          "observation_id": 165,
+          "archive_sha256": "4546b78f8fb9ced87b93867cbb5f76e4abc11f37e564001f73f593313b9fd182",
+          "has_gshut_after": false
+        },
+        {
+          "timestamp": "2019-08-21T16:45:27Z",
+          "phase": "Event",
+          "kind": "Announcement",
+          "path_id": null,
+          "before_path": [],
+          "after_path": [
+            11537,
+            22388,
+            24489,
+            24489,
+            24489,
+            24489,
+            24490,
+            20965,
+            2603
+          ],
+          "path_shape": null,
+          "observation_id": 188,
+          "archive_sha256": "4546b78f8fb9ced87b93867cbb5f76e4abc11f37e564001f73f593313b9fd182",
+          "has_gshut_after": false
+        },
+        {
+          "timestamp": "2019-08-21T17:00:26Z",
+          "phase": "Event",
+          "kind": "ReturnToBaseline",
+          "path_id": null,
+          "before_path": [
+            11537,
+            22388,
+            24489,
+            24489,
+            24489,
+            24489,
+            24490,
+            20965,
+            2603
+          ],
+          "after_path": [
+            11537,
+            20965,
+            2603
+          ],
+          "path_shape": null,
+          "observation_id": 224,
+          "archive_sha256": "a56a86cbce313bd04106babd94f9018a2c211d870fb07234efd320e89734786f",
+          "has_gshut_after": false
+        }
+      ],
+      "min_absence_secs": 2.0,
+      "max_absence_secs": 2.0,
+      "was_withdrawn": true,
+      "stream_withdrawal_time": "2019-08-21T16:45:25Z",
+      "active_before_absence": 1,
+      "transit_at_withdrawal": true,
+      "withdrawn_instances": [
+        {
+          "collector": "route-views2",
+          "peer_ip": "64.57.28.241",
+          "prefix": "193.10.95.0/24",
+          "path_id": null
+        }
+      ],
+      "stream_withdrawal_count": 1,
+      "restorations": [
+        {
+          "timestamp": "2019-08-21T16:45:27Z",
+          "old_path_ids": [
+            null
+          ],
+          "new_path_ids": [
+            null
+          ],
+          "exact_instance": false,
+          "equivalent_route": false,
+          "observer_prefix": true,
+          "baseline_set": false,
+          "evidence": {
+            "observation_id": 188,
+            "source_url": "http://archive.routeviews.org/bgpdata/2019.08/UPDATES/updates.20190821.1645.bz2",
+            "archive_sha256": "4546b78f8fb9ced87b93867cbb5f76e4abc11f37e564001f73f593313b9fd182",
+            "collector": "route-views2",
+            "peer_ip": "64.57.28.241",
+            "peer_asn": 11537,
+            "prefix": "193.10.95.0/24",
+            "timestamp": "2019-08-21T16:45:27Z",
+            "element_seq": 17170,
+            "path_id": null
+          }
+        }
+      ],
+      "add_path_ambiguity": null,
+      "replacement_appeared": true,
+      "replacement_retained_transit": true,
+      "prepending_changed": false,
+      "cooldown_transitions": [],
+      "final_state": {
+        "prefix": "193.10.95.0/24",
+        "attributes": {
+          "as_path": [
+            11537,
+            20965,
+            2603
+          ],
+          "origin_asns": [
+            2603
+          ],
+          "next_hop": "64.57.28.241",
+          "origin": "IGP",
+          "med": 2016,
+          "local_pref": 0,
+          "atomic_aggregate": false,
+          "communities": [
+            "11537:2501",
+            "20965:155",
+            "20965:2603"
+          ]
+        },
+        "timestamp": "2019-08-21T17:00:26Z",
+        "observer": "route-views2:64.57.28.241",
+        "path_id": null
+      },
+      "baseline_restored": true,
+      "restoration_time": "2019-08-21T16:45:27Z",
+      "affected_duration_secs": 2.0,
+      "graceful_shutdown_seen": false,
+      "gshut_present_at_baseline": false,
+      "gshut_newly_added": false,
+      "gshut_removed": false,
+      "first_gshut_timestamp": null,
+      "last_gshut_timestamp": null,
+      "gshut_before_withdrawal": false,
+      "gshut_before_path_change": false,
+      "gshut_to_consequence_secs": null,
+      "gshut_removed_during_restoration": false,
+      "communities_before": [
+        "11537:2501",
+        "20965:155",
+        "20965:2603"
+      ],
+      "communities_after": [
+        "11537:2501",
+        "20965:155",
+        "20965:2603"
+      ]
+    },
+    {
+      "collector": "route-views2",
+      "peer_ip": "64.57.28.241",
+      "prefix": "193.11.3.0/24",
+      "baseline_path": [
+        11537,
+        2603
+      ],
+      "baseline_instance_count": 1,
+      "max_concurrent_instances": 1,
+      "total_route_instances": 1,
+      "category": "Withdrawn",
+      "flags": {
+        "restored": true,
+        "not_restored": false,
+        "multiple_cycles": false,
+        "add_path_ambiguous": false
+      },
+      "first_change": "2019-08-21T16:45:25Z",
+      "transitions": [
+        {
+          "timestamp": "2019-08-21T16:45:25Z",
+          "phase": "Event",
+          "kind": "Withdrawal",
+          "path_id": null,
+          "before_path": [
+            11537,
+            20965,
+            2603
+          ],
+          "after_path": [],
+          "path_shape": null,
+          "observation_id": 166,
+          "archive_sha256": "4546b78f8fb9ced87b93867cbb5f76e4abc11f37e564001f73f593313b9fd182",
+          "has_gshut_after": false
+        },
+        {
+          "timestamp": "2019-08-21T16:45:27Z",
+          "phase": "Event",
+          "kind": "Announcement",
+          "path_id": null,
+          "before_path": [],
+          "after_path": [
+            11537,
+            22388,
+            24489,
+            24489,
+            24489,
+            24489,
+            24490,
+            20965,
+            2603
+          ],
+          "path_shape": null,
+          "observation_id": 189,
+          "archive_sha256": "4546b78f8fb9ced87b93867cbb5f76e4abc11f37e564001f73f593313b9fd182",
+          "has_gshut_after": false
+        },
+        {
+          "timestamp": "2019-08-21T17:00:26Z",
+          "phase": "Event",
+          "kind": "ReturnToBaseline",
+          "path_id": null,
+          "before_path": [
+            11537,
+            22388,
+            24489,
+            24489,
+            24489,
+            24489,
+            24490,
+            20965,
+            2603
+          ],
+          "after_path": [
+            11537,
+            20965,
+            2603
+          ],
+          "path_shape": null,
+          "observation_id": 222,
+          "archive_sha256": "a56a86cbce313bd04106babd94f9018a2c211d870fb07234efd320e89734786f",
+          "has_gshut_after": false
+        }
+      ],
+      "min_absence_secs": 2.0,
+      "max_absence_secs": 2.0,
+      "was_withdrawn": true,
+      "stream_withdrawal_time": "2019-08-21T16:45:25Z",
+      "active_before_absence": 1,
+      "transit_at_withdrawal": true,
+      "withdrawn_instances": [
+        {
+          "collector": "route-views2",
+          "peer_ip": "64.57.28.241",
+          "prefix": "193.11.3.0/24",
+          "path_id": null
+        }
+      ],
+      "stream_withdrawal_count": 1,
+      "restorations": [
+        {
+          "timestamp": "2019-08-21T16:45:27Z",
+          "old_path_ids": [
+            null
+          ],
+          "new_path_ids": [
+            null
+          ],
+          "exact_instance": false,
+          "equivalent_route": false,
+          "observer_prefix": true,
+          "baseline_set": false,
+          "evidence": {
+            "observation_id": 189,
+            "source_url": "http://archive.routeviews.org/bgpdata/2019.08/UPDATES/updates.20190821.1645.bz2",
+            "archive_sha256": "4546b78f8fb9ced87b93867cbb5f76e4abc11f37e564001f73f593313b9fd182",
+            "collector": "route-views2",
+            "peer_ip": "64.57.28.241",
+            "peer_asn": 11537,
+            "prefix": "193.11.3.0/24",
+            "timestamp": "2019-08-21T16:45:27Z",
+            "element_seq": 17171,
+            "path_id": null
+          }
+        }
+      ],
+      "add_path_ambiguity": null,
+      "replacement_appeared": true,
+      "replacement_retained_transit": true,
+      "prepending_changed": false,
+      "cooldown_transitions": [],
+      "final_state": {
+        "prefix": "193.11.3.0/24",
+        "attributes": {
+          "as_path": [
+            11537,
+            20965,
+            2603
+          ],
+          "origin_asns": [
+            2603
+          ],
+          "next_hop": "64.57.28.241",
+          "origin": "IGP",
+          "med": 2016,
+          "local_pref": 0,
+          "atomic_aggregate": false,
+          "communities": [
+            "11537:2501",
+            "20965:155",
+            "20965:2603"
+          ]
+        },
+        "timestamp": "2019-08-21T17:00:26Z",
+        "observer": "route-views2:64.57.28.241",
+        "path_id": null
+      },
+      "baseline_restored": true,
+      "restoration_time": "2019-08-21T16:45:27Z",
+      "affected_duration_secs": 2.0,
+      "graceful_shutdown_seen": false,
+      "gshut_present_at_baseline": false,
+      "gshut_newly_added": false,
+      "gshut_removed": false,
+      "first_gshut_timestamp": null,
+      "last_gshut_timestamp": null,
+      "gshut_before_withdrawal": false,
+      "gshut_before_path_change": false,
+      "gshut_to_consequence_secs": null,
+      "gshut_removed_during_restoration": false,
+      "communities_before": [
+        "11537:2501",
+        "20965:155",
+        "20965:2603"
+      ],
+      "communities_after": [
+        "11537:2501",
+        "20965:155",
+        "20965:2603"
+      ]
+    },
+    {
+      "collector": "route-views2",
+      "peer_ip": "64.57.28.241",
+      "prefix": "194.68.13.0/24",
+      "baseline_path": [
+        11537,
+        2603
+      ],
+      "baseline_instance_count": 1,
+      "max_concurrent_instances": 1,
+      "total_route_instances": 1,
+      "category": "Withdrawn",
+      "flags": {
+        "restored": true,
+        "not_restored": false,
+        "multiple_cycles": false,
+        "add_path_ambiguous": false
+      },
+      "first_change": "2019-08-21T16:45:25Z",
+      "transitions": [
+        {
+          "timestamp": "2019-08-21T16:45:25Z",
+          "phase": "Event",
+          "kind": "Withdrawal",
+          "path_id": null,
+          "before_path": [
+            11537,
+            20965,
+            2603
+          ],
+          "after_path": [],
+          "path_shape": null,
+          "observation_id": 175,
+          "archive_sha256": "4546b78f8fb9ced87b93867cbb5f76e4abc11f37e564001f73f593313b9fd182",
+          "has_gshut_after": false
+        },
+        {
+          "timestamp": "2019-08-21T16:45:27Z",
+          "phase": "Event",
+          "kind": "Announcement",
+          "path_id": null,
+          "before_path": [],
+          "after_path": [
+            11537,
+            22388,
+            24489,
+            24489,
+            24489,
+            24489,
+            24490,
+            20965,
+            2603
+          ],
+          "path_shape": null,
+          "observation_id": 194,
+          "archive_sha256": "4546b78f8fb9ced87b93867cbb5f76e4abc11f37e564001f73f593313b9fd182",
+          "has_gshut_after": false
+        },
+        {
+          "timestamp": "2019-08-21T17:00:28Z",
+          "phase": "Event",
+          "kind": "ReturnToBaseline",
+          "path_id": null,
+          "before_path": [
+            11537,
+            22388,
+            24489,
+            24489,
+            24489,
+            24489,
+            24490,
+            20965,
+            2603
+          ],
+          "after_path": [
+            11537,
+            20965,
+            2603
+          ],
+          "path_shape": null,
+          "observation_id": 237,
+          "archive_sha256": "a56a86cbce313bd04106babd94f9018a2c211d870fb07234efd320e89734786f",
+          "has_gshut_after": false
+        }
+      ],
+      "min_absence_secs": 2.0,
+      "max_absence_secs": 2.0,
+      "was_withdrawn": true,
+      "stream_withdrawal_time": "2019-08-21T16:45:25Z",
+      "active_before_absence": 1,
+      "transit_at_withdrawal": true,
+      "withdrawn_instances": [
+        {
+          "collector": "route-views2",
+          "peer_ip": "64.57.28.241",
+          "prefix": "194.68.13.0/24",
+          "path_id": null
+        }
+      ],
+      "stream_withdrawal_count": 1,
+      "restorations": [
+        {
+          "timestamp": "2019-08-21T16:45:27Z",
+          "old_path_ids": [
+            null
+          ],
+          "new_path_ids": [
+            null
+          ],
+          "exact_instance": false,
+          "equivalent_route": false,
+          "observer_prefix": true,
+          "baseline_set": false,
+          "evidence": {
+            "observation_id": 194,
+            "source_url": "http://archive.routeviews.org/bgpdata/2019.08/UPDATES/updates.20190821.1645.bz2",
+            "archive_sha256": "4546b78f8fb9ced87b93867cbb5f76e4abc11f37e564001f73f593313b9fd182",
+            "collector": "route-views2",
+            "peer_ip": "64.57.28.241",
+            "peer_asn": 11537,
+            "prefix": "194.68.13.0/24",
+            "timestamp": "2019-08-21T16:45:27Z",
+            "element_seq": 17176,
+            "path_id": null
+          }
+        }
+      ],
+      "add_path_ambiguity": null,
+      "replacement_appeared": true,
+      "replacement_retained_transit": true,
+      "prepending_changed": false,
+      "cooldown_transitions": [],
+      "final_state": {
+        "prefix": "194.68.13.0/24",
+        "attributes": {
+          "as_path": [
+            11537,
+            20965,
+            2603
+          ],
+          "origin_asns": [
+            2603
+          ],
+          "next_hop": "64.57.28.241",
+          "origin": "IGP",
+          "med": 2016,
+          "local_pref": 0,
+          "atomic_aggregate": false,
+          "communities": [
+            "11537:2501",
+            "20965:155",
+            "20965:2603"
+          ]
+        },
+        "timestamp": "2019-08-21T17:00:28Z",
+        "observer": "route-views2:64.57.28.241",
+        "path_id": null
+      },
+      "baseline_restored": true,
+      "restoration_time": "2019-08-21T16:45:27Z",
+      "affected_duration_secs": 2.0,
+      "graceful_shutdown_seen": false,
+      "gshut_present_at_baseline": false,
+      "gshut_newly_added": false,
+      "gshut_removed": false,
+      "first_gshut_timestamp": null,
+      "last_gshut_timestamp": null,
+      "gshut_before_withdrawal": false,
+      "gshut_before_path_change": false,
+      "gshut_to_consequence_secs": null,
+      "gshut_removed_during_restoration": false,
+      "communities_before": [
+        "11537:2501",
+        "20965:155",
+        "20965:2603"
+      ],
+      "communities_after": [
+        "11537:2501",
+        "20965:155",
+        "20965:2603"
+      ]
+    }
+  ]
+}

@@ -900,8 +900,10 @@ pub struct TargetView {
     pub candidate_asns: String,
     pub historical_validity_status: String,
     pub research_status: String,
+    pub path_predicate_status: String,
     pub provenance: String,
     pub reviewed_note: String,
+    pub research_updated: String,
 }
 
 #[derive(Serialize)]
@@ -913,9 +915,26 @@ pub struct PlanView {
     pub cooldown_end: String,
     pub collectors: Vec<String>,
     pub estimated_bytes: i64,
+    pub estimated_uncompressed_bytes: i64,
     pub blocked_targets: Vec<String>,
     pub skipped_targets: Vec<String>,
     pub notes: Vec<String>,
+    pub baseline_ribs: Vec<String>,
+    pub validation_ribs: Vec<String>,
+    pub update_ranges: Vec<String>,
+    /// "none" when no pilot has been planned.
+    pub pilot_status: String,
+    pub pilot_target: String,
+    pub pilot_collector: String,
+    pub pilot_window: String,
+    pub pilot_run_id: String,
+    pub pilot_baseline_streams: usize,
+    pub pilot_operator_evidence: String,
+    pub pilot_bgp_observation: String,
+    pub pilot_temporal_relationship: String,
+    pub pilot_interpretation: String,
+    pub pilot_limitation: String,
+    pub pilot_finding: String,
 }
 
 #[derive(Serialize)]
@@ -1179,7 +1198,9 @@ pub fn load_case_study(
                         COALESCE(candidate_origin_asns_json, '[]'),
                         COALESCE(candidate_predicate, ''),
                         historical_validity_status, research_status,
-                        COALESCE(provenance, ''), COALESCE(reviewed_note, '')
+                        COALESCE(path_predicate_status, ''),
+                        COALESCE(provenance, ''), COALESCE(reviewed_note, ''),
+                        COALESCE(research_updated_utc, '')
                  FROM case_study_targets WHERE case_study_id = ?1 ORDER BY sort_order",
             )
             .map_err(|e| format!("catalog read failed: {e}"))?;
@@ -1195,11 +1216,13 @@ pub fn load_case_study(
                     r.get::<_, String>(6)?,
                     r.get::<_, String>(7)?,
                     r.get::<_, String>(8)?,
+                    r.get::<_, String>(9)?,
+                    r.get::<_, String>(10)?,
                 ))
             })
             .map_err(|e| format!("catalog read failed: {e}"))?;
         for row in rows {
-            let (label, role, org, asns, _pred, hv, rs, prov, note) =
+            let (label, role, org, asns, pred, hv, rs, pstatus, prov, note, updated) =
                 row.map_err(|e| format!("catalog read failed: {e}"))?;
             targets.push(TargetView {
                 source_label: label,
@@ -1212,8 +1235,14 @@ pub fn load_case_study(
                 },
                 historical_validity_status: hv,
                 research_status: rs,
+                path_predicate_status: if pred.is_empty() {
+                    pstatus
+                } else {
+                    format!("{pred} ({pstatus})")
+                },
                 provenance: prov,
                 reviewed_note: note,
+                research_updated: updated,
             });
         }
     }
@@ -1241,7 +1270,89 @@ pub fn load_case_study(
                 estimated_total_uncompressed_bytes: 0,
                 estimated_total_is_estimate: true,
                 notes: Vec::new(),
+                pilot: None,
             });
+        let baseline_ribs: Vec<String> = ap
+            .collectors
+            .iter()
+            .map(|c| {
+                format!(
+                    "{}: {}",
+                    c.collector,
+                    c.baseline_rib.url.rsplit('/').next().unwrap_or_default()
+                )
+            })
+            .collect();
+        let validation_ribs: Vec<String> = ap
+            .collectors
+            .iter()
+            .map(|c| {
+                format!(
+                    "{}: {}",
+                    c.collector,
+                    c.validation_rib
+                        .as_ref()
+                        .map(|r| r.url.rsplit('/').next().unwrap_or_default().to_string())
+                        .unwrap_or_else(|| "none".to_string())
+                )
+            })
+            .collect();
+        let update_ranges: Vec<String> = ap
+            .collectors
+            .iter()
+            .map(|c| {
+                format!(
+                    "{}: {} → {} ({} files)",
+                    c.collector,
+                    c.first_update_utc,
+                    c.last_update_utc,
+                    c.updates.len()
+                )
+            })
+            .collect();
+        let (
+            pilot_status,
+            pilot_target,
+            pilot_collector,
+            pilot_window,
+            pilot_run_id,
+            pilot_baseline_streams,
+            pilot_operator_evidence,
+            pilot_bgp_observation,
+            pilot_temporal_relationship,
+            pilot_interpretation,
+            pilot_limitation,
+            pilot_finding,
+        ) = match &ap.pilot {
+            Some(pl) => (
+                pl.status.clone(),
+                pl.target.clone(),
+                pl.collector.clone(),
+                format!("{} → {}", pl.window_start_utc, pl.window_end_utc),
+                pl.run_id.map(|r| r.to_string()).unwrap_or_default(),
+                pl.baseline_streams,
+                pl.operator_evidence.clone(),
+                pl.bgp_observation.clone(),
+                pl.temporal_relationship.clone(),
+                pl.interpretation.clone(),
+                pl.limitation.clone(),
+                pl.finding.clone(),
+            ),
+            None => (
+                "Not planned".to_string(),
+                String::new(),
+                String::new(),
+                String::new(),
+                String::new(),
+                0,
+                String::new(),
+                String::new(),
+                String::new(),
+                String::new(),
+                String::new(),
+                String::new(),
+            ),
+        };
         PlanView {
             status: p.status,
             warmup_start: horizon.warmup_start_utc,
@@ -1265,6 +1376,22 @@ pub fn load_case_study(
                 })
                 .collect(),
             estimated_bytes: ap.estimated_total_bytes,
+            estimated_uncompressed_bytes: ap.estimated_total_uncompressed_bytes,
+            baseline_ribs,
+            validation_ribs,
+            update_ranges,
+            pilot_status,
+            pilot_target,
+            pilot_collector,
+            pilot_window,
+            pilot_run_id,
+            pilot_baseline_streams,
+            pilot_operator_evidence,
+            pilot_bgp_observation,
+            pilot_temporal_relationship,
+            pilot_interpretation,
+            pilot_limitation,
+            pilot_finding,
             blocked_targets: ap
                 .blocked_targets
                 .iter()

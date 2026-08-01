@@ -81,6 +81,27 @@ pub struct BlockedTarget {
     pub reason: String,
 }
 
+/// Pilot-analysis state (reviewed data, Part 10).
+///
+/// A pilot is ONE target, ONE collector, ONE bounded window — never a
+/// whole-incident conclusion.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct PilotRecord {
+    pub status: String,
+    pub target: String,
+    pub collector: String,
+    pub window_start_utc: String,
+    pub window_end_utc: String,
+    pub run_id: Option<i64>,
+    pub baseline_streams: usize,
+    pub operator_evidence: String,
+    pub bgp_observation: String,
+    pub temporal_relationship: String,
+    pub interpretation: String,
+    pub limitation: String,
+    pub finding: String,
+}
+
 /// The complete archive plan.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ArchivePlan {
@@ -93,6 +114,9 @@ pub struct ArchivePlan {
     pub estimated_total_uncompressed_bytes: i64,
     pub estimated_total_is_estimate: bool,
     pub notes: Vec<String>,
+    /// Reviewed pilot state (none when not yet planned).
+    #[serde(default)]
+    pub pilot: Option<PilotRecord>,
 }
 
 fn parse_utc(s: &str) -> chrono::DateTime<chrono::Utc> {
@@ -308,6 +332,7 @@ pub fn build_plan(
             estimated_total_uncompressed_bytes,
             estimated_total_is_estimate: true,
             notes,
+            pilot: None,
         },
     ))
 }
@@ -348,6 +373,99 @@ pub fn load_plan(conn: &Connection, case_study_id: i64) -> Option<CaseStudyAnaly
         },
     )
     .ok()
+}
+
+/// Reviewed pilot-result record file (pilot-result.json).
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct PilotResultFile {
+    pub schema_version: u32,
+    pub case_study_slug: String,
+    pub reviewed_at: String,
+    pub status: String,
+    pub target: String,
+    pub collector: String,
+    pub window_start_utc: String,
+    pub window_end_utc: String,
+    pub run_id: Option<i64>,
+    pub baseline_streams: usize,
+    pub operator_evidence: String,
+    pub bgp_observation: String,
+    pub temporal_relationship: String,
+    pub interpretation: String,
+    pub limitation: String,
+    pub finding: String,
+}
+
+impl PilotResultFile {
+    pub fn to_record(&self) -> PilotRecord {
+        PilotRecord {
+            status: self.status.clone(),
+            target: self.target.clone(),
+            collector: self.collector.clone(),
+            window_start_utc: self.window_start_utc.clone(),
+            window_end_utc: self.window_end_utc.clone(),
+            run_id: self.run_id,
+            baseline_streams: self.baseline_streams,
+            operator_evidence: self.operator_evidence.clone(),
+            bgp_observation: self.bgp_observation.clone(),
+            temporal_relationship: self.temporal_relationship.clone(),
+            interpretation: self.interpretation.clone(),
+            limitation: self.limitation.clone(),
+            finding: self.finding.clone(),
+        }
+    }
+}
+
+/// Apply a reviewed pilot-result record to the case study's plan.
+pub fn apply_pilot_result(conn: &Connection, path: &std::path::Path) -> Result<String, String> {
+    let raw = std::fs::read_to_string(path)
+        .map_err(|e| format!("cannot read {}: {e}", path.display()))?;
+    let data: PilotResultFile = serde_json::from_str(&raw)
+        .map_err(|e| format!("invalid pilot-result file {}: {e}", path.display()))?;
+    if data.schema_version != 1 {
+        return Err(format!(
+            "unsupported pilot-result schema {}",
+            data.schema_version
+        ));
+    }
+    let Some(cs) = super::archive_plan::find_case_study(conn, &data.case_study_slug) else {
+        return Err(format!(
+            "no case study with slug '{}'",
+            data.case_study_slug
+        ));
+    };
+    save_pilot(conn, cs.id, &data.to_record())?;
+    Ok(data.case_study_slug)
+}
+
+/// Record (or update) the reviewed pilot state on the case study's plan.
+pub fn save_pilot(
+    conn: &Connection,
+    case_study_id: i64,
+    pilot: &PilotRecord,
+) -> Result<(), String> {
+    let Some(mut plan) = load_plan(conn, case_study_id) else {
+        return Err(
+            "no analysis plan exists for this case study; run the planner first".to_string(),
+        );
+    };
+    let mut ap: ArchivePlan =
+        serde_json::from_str(&plan.plan_json).map_err(|e| format!("invalid stored plan: {e}"))?;
+    ap.pilot = Some(pilot.clone());
+    plan.plan_json = serde_json::to_string(&ap).map_err(|e| format!("serialize: {e}"))?;
+    store::upsert_case_study_analysis_plan(
+        conn,
+        &CaseStudyAnalysisPlan {
+            id: plan.id,
+            case_study_id,
+            horizon_json: plan.horizon_json,
+            plan_json: plan.plan_json,
+            status: plan.status,
+            created_utc: plan.created_utc,
+        },
+    )?;
+    Ok(())
 }
 
 /// Case-study target rows in deterministic order.

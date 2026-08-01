@@ -86,7 +86,7 @@
 
 <h3>Reviewed analysis targets</h3>
 <table>
-<thead><tr><th>Source label</th><th>Role in report</th><th>Candidate org</th><th>Candidate origin ASNs</th><th>Validity</th><th>Research</th><th>Provenance</th></tr></thead>
+<thead><tr><th>Source label</th><th>Role in report</th><th>Candidate org</th><th>Candidate origin ASNs</th><th>Path predicate</th><th>Research</th><th>BGP applicability</th><th>Provenance</th></tr></thead>
 <tbody>
 {% for t in targets %}
 <tr>
@@ -94,12 +94,13 @@
   <td>{{ t.role_in_report }}</td>
   <td>{{ t.candidate_org }}</td>
   <td>{{ t.candidate_asns }}</td>
-  <td>{{ t.historical_validity_status }}</td>
+  <td>{{ t.path_predicate_status }}</td>
   <td>{{ t.research_status }}</td>
+  <td>{{ t.historical_validity_status }}</td>
   <td class="muted">{{ t.provenance }}</td>
 </tr>
 {% else %}
-<tr><td colspan="7" class="muted">No analysis targets recorded.</td></tr>
+<tr><td colspan="8" class="muted">No analysis targets recorded.</td></tr>
 {% endfor %}
 </tbody>
 </table>
@@ -112,7 +113,10 @@
   <tr><th>Status</th><td>{{ p.status }} (review required before execution)</td></tr>
   <tr><th>Horizon</th><td>warmup {{ p.warmup_start }} · incident {{ p.incident_start }} → {{ p.incident_end }} · cooldown to {{ p.cooldown_end }}</td></tr>
   <tr><th>Collectors</th><td>{% for c in p.collectors %}{{ c }}<br>{% endfor %}</td></tr>
-  <tr><th>Estimated volume</th><td>~{{ p.estimated_bytes }} bytes (estimate; no archives downloaded)</td></tr>
+  <tr><th>Baseline RIB (initial state)</th><td>{% for b in p.baseline_ribs %}{{ b }}<br>{% endfor %}</td></tr>
+  <tr><th>Validation RIB (checkpoint only)</th><td>{% for v in p.validation_ribs %}{{ v }}<br>{% endfor %}</td></tr>
+  <tr><th>UPDATE sequence</th><td>{% for u in p.update_ranges %}{{ u }}<br>{% endfor %}</td></tr>
+  <tr><th>Estimated volume</th><td>~{{ p.estimated_bytes }} bytes compressed / ~{{ p.estimated_uncompressed_bytes }} bytes uncompressed (estimates; no archives downloaded to plan)</td></tr>
   {% if !p.blocked_targets.is_empty() %}
   <tr><th>Blocked targets</th><td>{% for b in p.blocked_targets %}{{ b }}<br>{% endfor %}</td></tr>
   {% endif %}
@@ -128,6 +132,27 @@
 </ul>
 {% else %}
 <p class="muted">No historical archive plan yet. Run <code>inim catalog case-study plan</code> to produce a draft plan without downloading archives.</p>
+{% endif %}
+
+<h3>Historical pilot</h3>
+{% if plan.is_some() && plan.as_ref().unwrap().pilot_status != "Not planned" %}
+{% let p = plan.as_ref().unwrap() %}
+<p class="muted">Historical pilot — {{ p.pilot_target }}. A single-target, single-collector, bounded-window pilot; it is not a complete MAN LAN incident verdict.</p>
+<table>
+<tbody>
+  <tr><th>Status</th><td>{{ p.pilot_status }}</td></tr>
+  <tr><th>Target / collector</th><td>{{ p.pilot_target }} · {{ p.pilot_collector }} · window {{ p.pilot_window }} UTC</td></tr>
+  <tr><th>Run</th><td>{% if !p.pilot_run_id.is_empty() %}<a href="/analyses/{{ p.pilot_run_id }}">{{ p.pilot_run_id }}</a>{% else %}not linked{% endif %} · {{ p.pilot_baseline_streams }} baseline streams</td></tr>
+  <tr><th>Operator-reported</th><td>{{ p.pilot_operator_evidence }}</td></tr>
+  <tr><th>Public BGP</th><td>{{ p.pilot_bgp_observation }}</td></tr>
+  <tr><th>Temporal relationship</th><td>{{ p.pilot_temporal_relationship }}</td></tr>
+  <tr><th>Interpretation</th><td>{{ p.pilot_interpretation }}</td></tr>
+  <tr><th>Limitation</th><td class="muted">{{ p.pilot_limitation }}</td></tr>
+  <tr><th>Finding</th><td>{{ p.pilot_finding }}</td></tr>
+</tbody>
+</table>
+{% else %}
+<p class="muted">Historical pilot — Not planned. The case study continues to hold no complete incident-wide public-BGP conclusion.</p>
 {% endif %}
 
 <h3>Analysis runs</h3>

@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "case_study_slug": "manlan-2019",
+  "reviewed_at": "2026-08-01",
+  "status": "Complete",
+  "target": "NORDUnet (AS2603)",
+  "collector": "route-views2",
+  "window_start_utc": "2019-08-21T16:00:00Z",
+  "window_end_utc": "2019-08-21T17:30:00Z",
+  "run_id": 3,
+  "baseline_streams": 33,
+  "operator_evidence": "AAR Appendix A: NORDUnet interface flapping reported at 15:33 (INC0040272); customer disabled the interface at 16:50 to regain stability; availability window 16:50-21:33 (INC0040289); interface re-enabled at 20:48.",
+  "bgp_observation": "11 of 33 selected observer-prefix streams (all AS2603 via AS11537) became absent at 16:45:25Z and returned at 16:45:27Z (2 s); 30 path replacements followed (16:45:26-17:02:03Z), with 11 streams departing the reviewed transit and 11 retaining it with material path changes; all 33 streams returned to baseline paths by 17:02:19Z.",
+  "temporal_relationship": "Before / within stated precision (absence 16:45:25Z; reported disable 16:50 UTC)",
+  "interpretation": "Temporally consistent with an exported routing consequence of the reported instability and interface disable; public BGP does not reveal the interface command, and temporal consistency does not prove causation.",
+  "limitation": "One selected public collector (route-views2, single peer 64.57.28.241); a 2-second absence at one observer may reflect session behavior rather than the participant's own action; Layer-2 replication and the interface command are not observable in public BGP.",
+  "finding": "Public BGP exposed a temporally related routing consequence for one reviewed participant (NORDUnet, AS2603) at one selected public collector during the reported incident. This is a single-target, single-collector, single-window pilot — it is not a complete MAN LAN incident verdict."
+}

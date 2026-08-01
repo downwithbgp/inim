@@ -1,0 +1,8 @@
+{
+  "id": "MANLAN-2019-NORDUNET-PILOT",
+  "title": "Historical pilot - NORDUnet during MAN LAN core node hardware upgrade",
+  "start": "2019-08-21 16:00:00",
+  "end": "2019-08-21 17:30:00",
+  "type": "incident",
+  "description": "Session 31 pilot analysis event (local-repository). NOT a ticket: a reviewed pilot AnalysisRun for one participant target (NORDUnet, AS2603) around the AAR-documented 16:50 UTC interface disable during the 2019-08-21 MAN LAN core node hardware upgrade. Operator-reported evidence: AAR Appendix A (INC0040272: flapping at 15:33, interface disabled at 16:50; INC0040289: availability 16:50-21:33)."
+}

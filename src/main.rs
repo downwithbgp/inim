@@ -236,6 +236,14 @@ enum CaseStudyCommands {
         #[arg(long, value_name = "TEXT")]
         note: Option<String>,
     },
+    /// Apply a reviewed pilot-result record to the case study's plan.
+    PilotResult {
+        #[arg(long, value_name = "PATH")]
+        db: PathBuf,
+        /// Reviewed pilot-result record (pilot-result.json).
+        #[arg(long, value_name = "PATH")]
+        path: PathBuf,
+    },
     /// Apply a reviewed target-research record to a case study.
     ///
     /// Updates ONLY the research fields of matching target rows (mapped
@@ -680,6 +688,25 @@ fn cmd_catalog(stdout: &mut dyn Write, command: &CatalogCommands) -> i32 {
                         "run {run} linked to case study '{}' (role {role}, link id {id})",
                         cs.slug
                     );
+                }
+                Err(e) => {
+                    let _ = writeln!(stdout, "error: {e}");
+                    return EXIT_INVALID_INPUT;
+                }
+            }
+            EXIT_SUCCESS
+        }
+        CatalogCommands::CaseStudy(CaseStudyCommands::PilotResult { db, path }) => {
+            let conn = match inim::catalog::db::open_catalog(db) {
+                Ok(c) => c,
+                Err(e) => {
+                    let _ = writeln!(stdout, "error: {e}");
+                    return EXIT_INVALID_INPUT;
+                }
+            };
+            match inim::catalog::archive_plan::apply_pilot_result(&conn, path) {
+                Ok(slug) => {
+                    let _ = writeln!(stdout, "pilot result recorded for case study '{slug}'");
                 }
                 Err(e) => {
                     let _ = writeln!(stdout, "error: {e}");
