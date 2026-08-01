@@ -5,10 +5,10 @@
 //! reopened database at the current version is a no-op.
 
 /// Current catalog schema version.
-pub const CATALOG_SCHEMA_VERSION: u32 = 3;
+pub const CATALOG_SCHEMA_VERSION: u32 = 4;
 
 /// Ordered migrations. Index i migrates user_version i -> i+1.
-pub const MIGRATIONS: &[&str] = &[V1, V2, V3];
+pub const MIGRATIONS: &[&str] = &[V1, V2, V3, V4];
 
 const V1: &str = r#"
 CREATE TABLE catalog_events (
@@ -306,4 +306,48 @@ CREATE INDEX idx_run_transitions_run ON run_transitions(run_id, occurred_utc);
 const V3: &str = r#"
 ALTER TABLE case_study_targets ADD COLUMN research_updated_utc TEXT;
 ALTER TABLE case_study_targets ADD COLUMN path_predicate_status TEXT;
+"#;
+
+/// V4 (Session 33): corpus discovery + per-fetch provenance.
+///
+/// `ticket_discoveries` records how each ticket identifier entered the
+/// corpus (analyst seed, document reference, description reference,
+/// public search result, case-study reference) with its discovery
+/// provenance. `snapshot_fetches` records one row PER FETCH attempt with
+/// the HTTP metadata; `event_snapshots` stays pure content-addressed
+/// immutability (a 304 or unchanged payload inserts a fetch row with
+/// `snapshot_id` NULL — no duplicate snapshot is created).
+const V4: &str = r#"
+CREATE TABLE ticket_discoveries (
+    id                 INTEGER PRIMARY KEY,
+    source_kind        TEXT NOT NULL,
+    external_id        TEXT NOT NULL,
+    provenance         TEXT NOT NULL,
+    source_snapshot_id INTEGER REFERENCES event_snapshots(id),
+    source_document_id INTEGER REFERENCES reference_documents(id),
+    discovered_at      TEXT NOT NULL,
+    status             TEXT NOT NULL DEFAULT 'Pending',
+    UNIQUE (source_kind, external_id, provenance)
+);
+
+CREATE TABLE snapshot_fetches (
+    id                    INTEGER PRIMARY KEY,
+    event_id              INTEGER NOT NULL REFERENCES catalog_events(id),
+    sync_run_id           INTEGER NOT NULL REFERENCES catalog_sync_runs(id),
+    fetched_at            TEXT NOT NULL,
+    source_url            TEXT NOT NULL,
+    http_status           INTEGER NOT NULL,
+    content_type          TEXT,
+    etag                  TEXT,
+    last_modified         TEXT,
+    acquisition_method    TEXT NOT NULL,
+    retry_count           INTEGER NOT NULL DEFAULT 0,
+    snapshot_id           INTEGER REFERENCES event_snapshots(id),
+    conditional_requested INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE INDEX idx_discoveries_status ON ticket_discoveries(source_kind, status);
+CREATE INDEX idx_discoveries_id ON ticket_discoveries(external_id);
+CREATE INDEX idx_fetches_event ON snapshot_fetches(event_id, fetched_at);
+CREATE INDEX idx_fetches_sync ON snapshot_fetches(sync_run_id);
 "#;

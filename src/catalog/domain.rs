@@ -158,6 +158,63 @@ pub struct CatalogSourceItem {
     pub normalized_json: String,
 }
 
+// ── Corpus discovery layer (Session 33, Parts 3–4) ────────────────
+//
+// Discovery records how a ticket identifier entered the corpus; fetch
+// records capture one HTTP fetch attempt per row. Event snapshots stay
+// pure content-addressed immutability — fetch metadata never mutates a
+// snapshot row.
+
+pub const DISCOVERY_ANALYST_SEED: &str = "AnalystSeed";
+pub const DISCOVERY_DOCUMENT_REFERENCE: &str = "DocumentReference";
+pub const DISCOVERY_DESCRIPTION_REFERENCE: &str = "TicketDescriptionReference";
+pub const DISCOVERY_PUBLIC_SEARCH_RESULT: &str = "PublicSearchResult";
+pub const DISCOVERY_CASE_STUDY_REFERENCE: &str = "CaseStudyReference";
+pub const DISCOVERY_OTHER_REVIEWED_SOURCE: &str = "OtherReviewedSource";
+
+pub const DISCOVERY_STATUS_PENDING: &str = "Pending";
+pub const DISCOVERY_STATUS_FETCHED: &str = "Fetched";
+pub const DISCOVERY_STATUS_UNRESOLVED: &str = "Unresolved";
+pub const DISCOVERY_STATUS_FAILED: &str = "Failed";
+
+/// One discovery path of a ticket identifier into the corpus.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TicketDiscovery {
+    pub id: i64,
+    pub source_kind: String,
+    pub external_id: String,
+    /// One of the `DISCOVERY_*` provenance constants.
+    pub provenance: String,
+    /// Snapshot whose description text referenced the ticket
+    /// (TicketDescriptionReference).
+    pub source_snapshot_id: Option<i64>,
+    /// Document whose text referenced the ticket (DocumentReference).
+    pub source_document_id: Option<i64>,
+    pub discovered_at: String,
+    /// Pending | Fetched | Unresolved | Failed.
+    pub status: String,
+}
+
+/// One HTTP fetch attempt against a public source.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SnapshotFetch {
+    pub id: i64,
+    pub event_id: i64,
+    pub sync_run_id: i64,
+    pub fetched_at: String,
+    pub source_url: String,
+    pub http_status: i64,
+    pub content_type: Option<String>,
+    pub etag: Option<String>,
+    pub last_modified: Option<String>,
+    /// e.g. "grnoc-viewer-api".
+    pub acquisition_method: String,
+    pub retry_count: i64,
+    /// NULL when the fetch produced no new content (304/unchanged).
+    pub snapshot_id: Option<i64>,
+    pub conditional_requested: bool,
+}
+
 // ── Case-study layer (Session 30) ──────────────────────────────────
 //
 // A CaseStudy is a reviewed grouping and interpretation of several sources

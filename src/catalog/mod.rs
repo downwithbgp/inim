@@ -8,6 +8,7 @@ pub mod archive_plan;
 pub mod case_study_compare;
 pub mod case_study_import;
 pub mod db;
+pub mod discovery;
 pub mod document;
 pub mod domain;
 pub mod grnoc;

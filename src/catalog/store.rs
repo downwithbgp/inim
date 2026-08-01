@@ -666,3 +666,206 @@ pub fn insert_run_transition(conn: &Connection, t: &RunTransitionRecord) -> Resu
     .map_err(|e| format!("catalog write failed: {e}"))?;
     Ok(conn.last_insert_rowid())
 }
+
+// ── Corpus discovery + fetch records (Session 33) ─────────────────
+
+/// Record a discovery path. Duplicate (source, external_id, provenance)
+/// paths merge: the existing row is returned and nothing is inserted.
+pub fn record_discovery(conn: &Connection, d: &TicketDiscovery) -> Result<i64, String> {
+    let existing: Option<i64> = conn
+        .query_row(
+            "SELECT id FROM ticket_discoveries
+             WHERE source_kind = ?1 AND external_id = ?2 AND provenance = ?3",
+            params![d.source_kind, d.external_id, d.provenance],
+            |r| r.get(0),
+        )
+        .ok();
+    if let Some(id) = existing {
+        return Ok(id);
+    }
+    conn.execute(
+        "INSERT INTO ticket_discoveries
+           (source_kind, external_id, provenance, source_snapshot_id,
+            source_document_id, discovered_at, status)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+        params![
+            d.source_kind,
+            d.external_id,
+            d.provenance,
+            d.source_snapshot_id,
+            d.source_document_id,
+            d.discovered_at,
+            d.status
+        ],
+    )
+    .map_err(|e| format!("catalog write failed: {e}"))?;
+    Ok(conn.last_insert_rowid())
+}
+
+/// Update a discovery row's status.
+pub fn update_discovery_status(
+    conn: &Connection,
+    discovery_id: i64,
+    status: &str,
+) -> Result<(), String> {
+    conn.execute(
+        "UPDATE ticket_discoveries SET status = ?1 WHERE id = ?2",
+        params![status, discovery_id],
+    )
+    .map_err(|e| format!("catalog write failed: {e}"))?;
+    Ok(())
+}
+
+/// All discovery rows for a source, optionally filtered by status.
+pub fn list_discoveries(
+    conn: &Connection,
+    source_kind: &str,
+    status: Option<&str>,
+) -> Result<Vec<TicketDiscovery>, String> {
+    let mut sql = String::from(
+        "SELECT id, source_kind, external_id, provenance, source_snapshot_id,
+                source_document_id, discovered_at, status
+         FROM ticket_discoveries WHERE source_kind = ?1",
+    );
+    let mut p: Vec<Box<dyn rusqlite::ToSql>> = vec![Box::new(source_kind.to_string())];
+    if let Some(s) = status {
+        sql.push_str(" AND status = ?2");
+        p.push(Box::new(s.to_string()));
+    }
+    sql.push_str(" ORDER BY discovered_at, id");
+    let mut stmt = conn
+        .prepare(&sql)
+        .map_err(|e| format!("catalog read failed: {e}"))?;
+    let rows = stmt
+        .query_map(
+            rusqlite::params_from_iter(p.iter().map(|x| x.as_ref())),
+            |r| {
+                Ok(TicketDiscovery {
+                    id: r.get(0)?,
+                    source_kind: r.get(1)?,
+                    external_id: r.get(2)?,
+                    provenance: r.get(3)?,
+                    source_snapshot_id: r.get(4)?,
+                    source_document_id: r.get(5)?,
+                    discovered_at: r.get(6)?,
+                    status: r.get(7)?,
+                })
+            },
+        )
+        .map_err(|e| format!("catalog read failed: {e}"))?;
+    let mut out = Vec::new();
+    for row in rows {
+        out.push(row.map_err(|e| format!("catalog read failed: {e}"))?);
+    }
+    Ok(out)
+}
+
+/// The fetch frontier: distinct external ids with at least one Pending
+/// discovery, in deterministic (discovered_at, id) order.
+pub fn pending_frontier(conn: &Connection, source_kind: &str) -> Result<Vec<String>, String> {
+    let mut stmt = conn
+        .prepare(
+            "SELECT external_id FROM ticket_discoveries
+             WHERE source_kind = ?1 AND status = ?2
+             GROUP BY external_id
+             ORDER BY MIN(discovered_at), MIN(id)",
+        )
+        .map_err(|e| format!("catalog read failed: {e}"))?;
+    let rows = stmt
+        .query_map(params![source_kind, DISCOVERY_STATUS_PENDING], |r| {
+            r.get::<_, String>(0)
+        })
+        .map_err(|e| format!("catalog read failed: {e}"))?;
+    let mut out = Vec::new();
+    for row in rows {
+        out.push(row.map_err(|e| format!("catalog read failed: {e}"))?);
+    }
+    Ok(out)
+}
+
+/// Mark every discovery row of one ticket as Fetched.
+pub fn mark_frontier_fetched(
+    conn: &Connection,
+    source_kind: &str,
+    external_id: &str,
+) -> Result<(), String> {
+    conn.execute(
+        "UPDATE ticket_discoveries SET status = ?1
+         WHERE source_kind = ?2 AND external_id = ?3 AND status = ?4",
+        params![
+            DISCOVERY_STATUS_FETCHED,
+            source_kind,
+            external_id,
+            DISCOVERY_STATUS_PENDING
+        ],
+    )
+    .map_err(|e| format!("catalog write failed: {e}"))?;
+    Ok(())
+}
+
+/// Insert one fetch record (per-fetch provenance; never mutates the
+/// snapshot row).
+pub fn insert_snapshot_fetch(conn: &Connection, fetch: &SnapshotFetch) -> Result<i64, String> {
+    conn.execute(
+        "INSERT INTO snapshot_fetches
+           (event_id, sync_run_id, fetched_at, source_url, http_status,
+            content_type, etag, last_modified, acquisition_method,
+            retry_count, snapshot_id, conditional_requested)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)",
+        params![
+            fetch.event_id,
+            fetch.sync_run_id,
+            fetch.fetched_at,
+            fetch.source_url,
+            fetch.http_status,
+            fetch.content_type,
+            fetch.etag,
+            fetch.last_modified,
+            fetch.acquisition_method,
+            fetch.retry_count,
+            fetch.snapshot_id,
+            i64::from(fetch.conditional_requested)
+        ],
+    )
+    .map_err(|e| format!("catalog write failed: {e}"))?;
+    Ok(conn.last_insert_rowid())
+}
+
+/// Fetch records for an event, newest first.
+pub fn list_snapshot_fetches(
+    conn: &Connection,
+    event_id: i64,
+) -> Result<Vec<SnapshotFetch>, String> {
+    let mut stmt = conn
+        .prepare(
+            "SELECT id, event_id, sync_run_id, fetched_at, source_url, http_status,
+                    content_type, etag, last_modified, acquisition_method,
+                    retry_count, snapshot_id, conditional_requested
+             FROM snapshot_fetches WHERE event_id = ?1 ORDER BY fetched_at DESC, id DESC",
+        )
+        .map_err(|e| format!("catalog read failed: {e}"))?;
+    let rows = stmt
+        .query_map([event_id], |r| {
+            Ok(SnapshotFetch {
+                id: r.get(0)?,
+                event_id: r.get(1)?,
+                sync_run_id: r.get(2)?,
+                fetched_at: r.get(3)?,
+                source_url: r.get(4)?,
+                http_status: r.get(5)?,
+                content_type: r.get(6)?,
+                etag: r.get(7)?,
+                last_modified: r.get(8)?,
+                acquisition_method: r.get(9)?,
+                retry_count: r.get(10)?,
+                snapshot_id: r.get(11)?,
+                conditional_requested: r.get(12)?,
+            })
+        })
+        .map_err(|e| format!("catalog read failed: {e}"))?;
+    let mut out = Vec::new();
+    for row in rows {
+        out.push(row.map_err(|e| format!("catalog read failed: {e}"))?);
+    }
+    Ok(out)
+}
