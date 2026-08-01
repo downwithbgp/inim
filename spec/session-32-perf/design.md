@@ -68,8 +68,9 @@ tests.
 `--jobs`, effective parse/download/cache-writer counts, cgroup/affinity
 limits when detectable (/sys/fs/cgroup/cpu.max v2, cpu.cfs_quota_us v1,
 /proc/self/status Cpus_allowed_list). `--jobs 0` becomes an explicit error
-(previously "auto"); `--parse-jobs`/`--download-jobs` replace the derived
-split. 5 required tests.
+(previously "auto") — acknowledged as a breaking CLI change (pre-1.0);
+`--parse-jobs`/`--download-jobs` are the replacement; the error message
+says so. 5 required tests.
 
 ## Part 5+9 — Benchmark + goals
 
@@ -84,9 +85,15 @@ memory. Best worker count + diminishing point + default recorded in docs.
 
 ## Part 6+7+8 — Parallelism, download split, memory
 
-- Bounded work queues: download stage (download_jobs workers, conservative
-  default 2) → parse stage (parse_jobs workers, default from measurement);
-  pipeline overlap (download N while parsing M). Cache writes atomic
+- Bounded work queues: TWO queues — download queue sized `download_jobs`
+  (conservative default 2) and parse queue sized `parse_jobs` (default from
+  measurement); pipeline overlap (download N while parsing M).
+  **Determinism invariant: `archive_order` is assigned from the discovery
+  sort order BEFORE any download task is dispatched** (never after
+  completion), so parallel completion cannot reorder archives. Worst-case
+  retained memory ~ `(download_jobs + parse_jobs) ×
+  max_archive_decompressed_size` + merged observation vec. Cache writes
+  atomic
   (temp+rename, existing behavior), failures keep archive identity, retries
   dedupe (sha keyed), merge deterministic (archive_order slots; ids assigned
   after `sort_deterministic` — unchanged).
