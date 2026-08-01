@@ -1,0 +1,395 @@
+{
+  "schema_version": 1,
+  "slug": "manlan-2019",
+  "title": "MAN LAN Core Node Hardware Upgrade",
+  "summary": "Operator-authored after-action report for the MAN LAN core node hardware upgrade of 2019-08-21. The AAR records a scheduled migration that encountered physical and configuration problems, a subsequent traffic-replication incident associated with the deployed EVPN and inter-switch configuration, and a rollback with service restoration. Operator-reported; treated as operational evidence, not infallible global truth.",
+  "start_utc": "2019-08-21T04:00:00Z",
+  "end_utc": "2019-08-21T22:38:00Z",
+  "status": "Active",
+  "documents": [
+    {
+      "title": "MAN LAN Core Node Hardware Upgrade After Action Report",
+      "source_url": "https://docs.globalnoc.iu.edu/uploads/c5/88/c5881bec35cb83807dd4b0a7ee32effe/MANLAN-20190821-Postmortem.pdf",
+      "doc_type": "AfterActionReport",
+      "media_type": "application/pdf",
+      "sha256": "d29df26a269962afeb4c671063ea64dec6103e226c039e5939d5af99eedd7114",
+      "page_count": 15,
+      "publication_date": "2019-08-22",
+      "provenance": "operator-authored after-action report; supplied SHA-256 from the review brief. The local PDF was not available at import time; attach it with `inim catalog document import` (redistribution rights not established).",
+      "redistribution_status": "Unknown"
+    }
+  ],
+  "document_links": [
+    {
+      "document": 0,
+      "relationship": "PrimarySource",
+      "reviewed_note": "The AAR is the primary operator-reported source for this case study."
+    }
+  ],
+  "phases": [
+    {
+      "label": "Scheduled migration",
+      "start_utc": "2019-08-21T04:00:00Z",
+      "end_utc": "2019-08-21T10:00:00Z",
+      "start_precision": "exact",
+      "end_precision": "summarized",
+      "description": "AAR timeline records the scheduled maintenance window for the core node hardware upgrade; AAR states installation work was delayed by the electrician.",
+      "source_document": 0,
+      "source_page_or_section": "Timeline (detailed)",
+      "review_status": "Reviewed"
+    },
+    {
+      "label": "Physical and configuration troubleshooting",
+      "start_utc": "2019-08-21T10:00:00Z",
+      "end_utc": "2019-08-21T14:14:00Z",
+      "start_precision": "summarized",
+      "end_precision": "exact",
+      "description": "AAR states several physical and configuration problems were addressed during this period; IS-IS was established at 14:14 UTC.",
+      "source_document": 0,
+      "source_page_or_section": "Timeline (detailed)",
+      "review_status": "Reviewed"
+    },
+    {
+      "label": "Traffic-replication incident",
+      "start_utc": "2019-08-21T14:14:00Z",
+      "end_utc": "2019-08-21T18:01:00Z",
+      "start_precision": "exact",
+      "end_precision": "exact",
+      "description": "AAR associates subsequent traffic replication with the deployed EVPN and inter-switch configuration; replication is believed to have begun around 14:14 UTC. Some connectors shut ports during this period.",
+      "source_document": 0,
+      "source_page_or_section": "Timeline (detailed)",
+      "review_status": "Reviewed"
+    },
+    {
+      "label": "Rollback and service restoration",
+      "start_utc": "2019-08-21T18:01:00Z",
+      "end_utc": "2019-08-21T22:22:00Z",
+      "start_precision": "exact",
+      "end_precision": "exact",
+      "description": "AAR states rollback was initiated at 18:01 UTC and the last connection was migrated by 22:22 UTC.",
+      "source_document": 0,
+      "source_page_or_section": "Timeline (detailed)",
+      "review_status": "Reviewed"
+    },
+    {
+      "label": "Final maintenance closure",
+      "start_utc": "2019-08-21T22:22:00Z",
+      "end_utc": "2019-08-21T22:38:00Z",
+      "start_precision": "exact",
+      "end_precision": "summarized",
+      "description": "AAR records emergency-maintenance closure at approximately 22:38 UTC; the closing boundary is summarized, not an independently measured time.",
+      "source_document": 0,
+      "source_page_or_section": "Timeline (detailed)",
+      "review_status": "Reviewed"
+    }
+  ],
+  "related_events": [
+    {
+      "external_identifier": "CHG0038258",
+      "relationship": "PrimaryChange",
+      "reviewed_note": "scheduled core-node hardware upgrade change record as listed by the AAR; not independently retrieved",
+      "source_document": 0
+    },
+    {
+      "external_identifier": "INC0040257",
+      "relationship": "PrimaryIncident",
+      "reviewed_note": "incident record associated with the upgrade disruption as listed by the AAR; not independently retrieved",
+      "source_document": 0
+    },
+    {
+      "external_identifier": "CHG0038386",
+      "relationship": "RollbackChange",
+      "reviewed_note": "rollback change record as listed by the AAR; not independently retrieved",
+      "source_document": 0
+    },
+    {
+      "external_identifier": "INC0040258",
+      "relationship": "Related",
+      "reviewed_note": "AAR-listed record; precise role requires the AAR text, assigned conservatively",
+      "source_document": 0
+    },
+    {
+      "external_identifier": "INC0040272",
+      "relationship": "Related",
+      "reviewed_note": "AAR-listed record; precise role requires the AAR text, assigned conservatively",
+      "source_document": 0
+    },
+    {
+      "external_identifier": "TASK0038206",
+      "relationship": "OperationalTask",
+      "reviewed_note": "operational task record as listed by the AAR; not independently retrieved",
+      "source_document": 0
+    },
+    {
+      "external_identifier": "INC0040289",
+      "relationship": "Related",
+      "reviewed_note": "AAR-listed record; precise role requires the AAR text, assigned conservatively",
+      "source_document": 0
+    },
+    {
+      "external_identifier": "INC0040290",
+      "relationship": "Related",
+      "reviewed_note": "AAR-listed record; precise role requires the AAR text, assigned conservatively",
+      "source_document": 0
+    },
+    {
+      "external_identifier": "INC0040291",
+      "relationship": "Related",
+      "reviewed_note": "AAR-listed record; precise role requires the AAR text, assigned conservatively",
+      "source_document": 0
+    },
+    {
+      "external_identifier": "INC0040293",
+      "relationship": "Related",
+      "reviewed_note": "AAR-listed record; precise role requires the AAR text, assigned conservatively",
+      "source_document": 0
+    },
+    {
+      "external_identifier": "TASK0038211",
+      "relationship": "OperationalTask",
+      "reviewed_note": "operational task record as listed by the AAR; not independently retrieved",
+      "source_document": 0
+    },
+    {
+      "external_identifier": "INC0040318",
+      "relationship": "Related",
+      "reviewed_note": "AAR-listed record associated with the maintenance closure; not independently retrieved",
+      "source_document": 0
+    }
+  ],
+  "claims": [
+    {
+      "claim_type": "ReportedImpact",
+      "claim_text": "The scheduled core replacement caused Layer-2 and Layer-3 disruption for MAN LAN connectors.",
+      "qualification": "operator-reported impact; the AAR does not quantify every connector's experience",
+      "source_document": 0,
+      "source_page_or_section": "Summary (AAR)",
+      "review_status": "Reviewed",
+      "time_or_phase": "phase:0",
+      "observability": "PotentiallyVisibleInPublicBgp",
+      "observability_rationale": "Participant BGP path withdrawal or shifts to alternate transit may be visible for participants announcing public prefixes."
+    },
+    {
+      "claim_type": "ReportedRecovery",
+      "claim_text": "Rollback of the deployed configuration was required.",
+      "qualification": "AAR states rollback was initiated at 18:01 UTC",
+      "source_document": 0,
+      "source_page_or_section": "Timeline (detailed)",
+      "review_status": "Reviewed",
+      "time_or_phase": "phase:3",
+      "observability": "PotentiallyVisibleInPublicBgp",
+      "observability_rationale": "Rollback restoration may be visible through route restoration."
+    },
+    {
+      "claim_type": "ReportedImpact",
+      "claim_text": "All MAN LAN connectors were affected in some fashion.",
+      "qualification": "AAR statement; the nature and extent of the effect varied",
+      "source_document": 0,
+      "source_page_or_section": "Summary (AAR)",
+      "review_status": "Reviewed",
+      "time_or_phase": "phase:1",
+      "observability": "IndirectlyVisible",
+      "observability_rationale": "Effects may appear through exported route consequences where participants announce public prefixes."
+    },
+    {
+      "claim_type": "ReportedImpact",
+      "claim_text": "Participant impact varied with physical and Layer-3 redundancy.",
+      "qualification": "AAR analysis: some multihomed networks may have uniquely routed portions of their networks through MAN LAN and could have experienced complete outage for those portions; this does not mean all participants experienced complete outage",
+      "source_document": 0,
+      "source_page_or_section": "Summary (AAR)",
+      "review_status": "Reviewed",
+      "time_or_phase": "phase:2",
+      "observability": "PotentiallyVisibleInPublicBgp",
+      "observability_rationale": "Participants with unique-route portions may show path loss; redundant participants may show no change."
+    },
+    {
+      "claim_type": "ReportedImpact",
+      "claim_text": "Some customers disabled interfaces in response to instability.",
+      "qualification": "operator report; customer action is not directly observable",
+      "source_document": 0,
+      "source_page_or_section": "After-action review (AAR)",
+      "review_status": "Reviewed",
+      "time_or_phase": "phase:2",
+      "observability": "IndirectlyVisible",
+      "observability_rationale": "Administratively disabled customer interfaces are visible only through exported consequences."
+    },
+    {
+      "claim_type": "ReportedLimitation",
+      "claim_text": "Telemetry was incomplete and delayed understanding of the incident.",
+      "qualification": "AAR states missing switch management telemetry",
+      "source_document": 0,
+      "source_page_or_section": "After-action review (AAR)",
+      "review_status": "Reviewed",
+      "time_or_phase": "phase:1",
+      "observability": "NotDirectlyVisible",
+      "observability_rationale": "Missing switch management telemetry is not observable in public BGP."
+    },
+    {
+      "claim_type": "ReportedMechanism",
+      "claim_text": "Traffic replication was associated with the deployed EVPN and inter-switch configuration.",
+      "qualification": "AAR association; mechanism inferred by the operators",
+      "source_document": 0,
+      "source_page_or_section": "After-action review (AAR)",
+      "review_status": "Reviewed",
+      "time_or_phase": "phase:2",
+      "observability": "NotDirectlyVisible",
+      "observability_rationale": "Layer-2 broadcast/unknown-unicast/multicast replication itself is not directly observable in public BGP."
+    },
+    {
+      "claim_type": "ReportedTimeline",
+      "claim_text": "IS-IS was established and traffic replication is believed to have begun at 14:14 UTC.",
+      "qualification": "AAR timeline records IS-IS establishment at 14:14 UTC; the replication onset is retrospective belief, not a measured boundary",
+      "source_document": 0,
+      "source_page_or_section": "Timeline (detailed)",
+      "review_status": "Reviewed",
+      "time_or_phase": "phase:2",
+      "observability": "IndirectlyVisible",
+      "observability_rationale": "Route-state consequences may follow; the replication mechanism itself is not directly visible."
+    },
+    {
+      "claim_type": "ReportedTimeline",
+      "claim_text": "Rollback began at 18:01 UTC.",
+      "qualification": "AAR timeline records rollback initiation",
+      "source_document": 0,
+      "source_page_or_section": "Timeline (detailed)",
+      "review_status": "Reviewed",
+      "time_or_phase": "phase:3",
+      "observability": "PotentiallyVisibleInPublicBgp",
+      "observability_rationale": "Restoration may appear as route restoration."
+    },
+    {
+      "claim_type": "ReportedRecovery",
+      "claim_text": "The last connection was migrated by 22:22 UTC and emergency maintenance closed at approximately 22:38 UTC.",
+      "qualification": "AAR timeline records these times; the closing boundary is summarized",
+      "source_document": 0,
+      "source_page_or_section": "Timeline (detailed)",
+      "review_status": "Reviewed",
+      "time_or_phase": "phase:4",
+      "observability": "PotentiallyVisibleInPublicBgp",
+      "observability_rationale": "Restoration completion may be visible through route restoration."
+    },
+    {
+      "claim_type": "ReportedLimitation",
+      "claim_text": "Physical cross-connect swaps and OESS circuit migrations are not directly visible as operations.",
+      "qualification": "AAR describes physical and configuration actions; only route consequences may be visible",
+      "source_document": 0,
+      "source_page_or_section": "After-action review (AAR)",
+      "review_status": "Reviewed",
+      "time_or_phase": "phase:1",
+      "observability": "NotDirectlyVisible",
+      "observability_rationale": "Physical operations are not observable in public BGP; OESS circuit migration is not visible as an operation."
+    }
+  ],
+  "targets": [
+    {
+      "source_label": "CANARIE",
+      "role_in_report": "participant",
+      "candidate_org_identity": null,
+      "candidate_origin_asns": [],
+      "candidate_predicate": null,
+      "historical_validity_status": "Unresearched",
+      "provenance": "AAR participant context (per review brief); no independent identity research performed",
+      "research_status": "Unresearched",
+      "reviewed_note": "historical mapping not researched; current organization ASN metadata must not be used as 2019 truth"
+    },
+    {
+      "source_label": "NORDUnet",
+      "role_in_report": "participant",
+      "candidate_org_identity": null,
+      "candidate_origin_asns": [],
+      "candidate_predicate": null,
+      "historical_validity_status": "Unresearched",
+      "provenance": "AAR participant context (per review brief); no independent identity research performed",
+      "research_status": "Unresearched",
+      "reviewed_note": "historical mapping not researched; current organization ASN metadata must not be used as 2019 truth"
+    },
+    {
+      "source_label": "ESnet",
+      "role_in_report": "participant",
+      "candidate_org_identity": null,
+      "candidate_origin_asns": [],
+      "candidate_predicate": null,
+      "historical_validity_status": "Unresearched",
+      "provenance": "AAR participant context (per review brief); no independent identity research performed",
+      "research_status": "Unresearched",
+      "reviewed_note": "historical mapping not researched; current organization ASN metadata must not be used as 2019 truth"
+    },
+    {
+      "source_label": "GÉANT",
+      "role_in_report": "participant",
+      "candidate_org_identity": null,
+      "candidate_origin_asns": [],
+      "candidate_predicate": null,
+      "historical_validity_status": "Unresearched",
+      "provenance": "AAR participant context (per review brief); no independent identity research performed",
+      "research_status": "Unresearched",
+      "reviewed_note": "historical mapping not researched; current organization ASN metadata must not be used as 2019 truth"
+    },
+    {
+      "source_label": "Ixia",
+      "role_in_report": "connector context",
+      "candidate_org_identity": null,
+      "candidate_origin_asns": [],
+      "candidate_predicate": null,
+      "historical_validity_status": "Unresearched",
+      "provenance": "AAR connector context (per review brief); no independent identity research performed",
+      "research_status": "Unresearched",
+      "reviewed_note": "may be not applicable to public BGP; requires review of the AAR role"
+    },
+    {
+      "source_label": "NEAAR",
+      "role_in_report": "connector context",
+      "candidate_org_identity": null,
+      "candidate_origin_asns": [],
+      "candidate_predicate": null,
+      "historical_validity_status": "Unresearched",
+      "provenance": "AAR connector context (per review brief); no independent identity research performed",
+      "research_status": "Unresearched",
+      "reviewed_note": "may be not applicable to public BGP; requires review of the AAR role"
+    },
+    {
+      "source_label": "TWAREN",
+      "role_in_report": "participant",
+      "candidate_org_identity": null,
+      "candidate_origin_asns": [],
+      "candidate_predicate": null,
+      "historical_validity_status": "Unresearched",
+      "provenance": "AAR participant context (per review brief); no independent identity research performed",
+      "research_status": "Unresearched",
+      "reviewed_note": "historical mapping not researched; current organization ASN metadata must not be used as 2019 truth"
+    },
+    {
+      "source_label": "OMAN",
+      "role_in_report": "participant",
+      "candidate_org_identity": null,
+      "candidate_origin_asns": [],
+      "candidate_predicate": null,
+      "historical_validity_status": "Unresearched",
+      "provenance": "AAR participant context (per review brief); no independent identity research performed",
+      "research_status": "Unresearched",
+      "reviewed_note": "historical mapping not researched; current organization ASN metadata must not be used as 2019 truth"
+    },
+    {
+      "source_label": "SINET",
+      "role_in_report": "participant",
+      "candidate_org_identity": null,
+      "candidate_origin_asns": [],
+      "candidate_predicate": null,
+      "historical_validity_status": "Unresearched",
+      "provenance": "AAR participant context (per review brief); no independent identity research performed",
+      "research_status": "Unresearched",
+      "reviewed_note": "historical mapping not researched; current organization ASN metadata must not be used as 2019 truth"
+    },
+    {
+      "source_label": "WIX interconnect",
+      "role_in_report": "interconnect context",
+      "candidate_org_identity": null,
+      "candidate_origin_asns": [],
+      "candidate_predicate": null,
+      "historical_validity_status": "Unresearched",
+      "provenance": "AAR interconnect context (per review brief); no independent identity research performed",
+      "research_status": "Unresearched",
+      "reviewed_note": "interconnect, not a single origin; may be not applicable to public BGP analysis as an origin target"
+    }
+  ]
+}
