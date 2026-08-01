@@ -220,3 +220,35 @@ Running > Failed > Stale > Blocked > Complete > Ready > NeedsReview >
 Discovered. Stale means the current event state has not yet been analyzed
 under the latest inputs — an old completed run remains historically
 complete.
+
+## Corpus domain (Session 33)
+
+- **DiscoveryProvenance** — how a ticket identifier entered the corpus:
+  AnalystSeed, DocumentReference, TicketDescriptionReference,
+  PublicSearchResult, CaseStudyReference, OtherReviewedSource. Each
+  discovery row keeps status (Pending/Fetched/Unresolved/Failed).
+- **SnapshotFetch** — one HTTP fetch attempt: status, content-type,
+  ETag, Last-Modified, acquisition method, retries, conditional flag,
+  optional snapshot link (NULL on 304/unchanged).
+- **TicketRelationship** — from_event → to_event (or unresolved
+  external id), relationship_kind (References, TracksRemainingImpactIn,
+  SupersededBy, RelatedChange/Incident/Task, UnknownReference,
+  TemporalOverlap), evidence_kind (ExplicitTicketText,
+  ReferenceDocument, SharedCaseStudy, AnalystReviewed,
+  DerivedTemporalOverlap, DerivedEntityOverlap), snapshot/document
+  provenance, review status. Derived edges are never causal.
+- **Analyzability** — per-event BGP-analysis readiness derived from
+  reviewed inputs: NotReviewed, NeedsEntityMapping,
+  NeedsTransitPredicate, NeedsAnalysisWindow, NotApplicableToPublicBgp,
+  ReadyForArchivePlanning, ArchivePlanReady,
+  InsufficientBaselineVisibility, AnalysisComplete, AnalysisStale,
+  AnalysisFailed, AnalysisRunning.
+- **IncidentGroupCandidate** — member events, evidence signals,
+  categorical confidence (ExplicitlyLinked, StrongCandidate,
+  WeakCandidate, Rejected), evidence fingerprint for rejection
+  persistence; groups never replace events.
+- **CorrelationBatch** — per-event cohort plans + unique raw archives +
+  consumer map; archives avoided through reuse; deterministic; evidence
+  identity independent of batch membership.
+- **SourceFamily** — RouteViews | RipeRis; part of collector identity
+  in archive plans.

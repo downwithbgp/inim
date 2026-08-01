@@ -109,3 +109,17 @@ Key decisions:
 - Historical analysis parallelism is archive-level with a bounded
   download→parse pipeline; reconstruction stays sequential and
   deterministic; performance.json is separate from substantive output.
+
+## Session 33 addendum — corpus linkage
+
+Case-study event links resolve to catalog events **by identifier only**
+(never by title matching) once the ticket is acquired; unresolved
+references (e.g. TASK numbers the viewer does not serve) stay
+unresolved without fabricated events. Source ticket timings and AAR
+timings remain distinct values — nothing is silently reconciled.
+Ticket-to-ticket relationships extracted from public descriptions
+retain snapshot provenance and are stored in the source-neutral
+`ticket_relationships` graph, distinct from machine-derived overlap
+candidates. The NORDUnet analysis remains associated with its exact
+AnalysisRun and the reviewed case study — never causally attached to
+every related ticket.

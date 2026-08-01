@@ -88,3 +88,19 @@ cargo clippy --all-targets --all-features -- -D warnings
 - Release checklist: verify `tmp/` stays out of the package
   (`cargo package --list`), and that no browser dependency enters the Rust
   runtime graph.
+
+## Corpus packaging (Session 33)
+
+- The downloaded corpus (public ticket snapshots acquired by
+  `inim catalog sync grnoc` into the local database) is **excluded
+  from the crate package**: `data/` and `*.sqlite*` are in the
+  `exclude` list, and no corpus dump is ever committed.
+- Test fixtures under `tests/fixtures/grnoc/viewer/` are small,
+  provenance-documented public responses and stay in the package
+  (they are required by the parser tests).
+- Corpus export is metadata-only by default; do not publish raw
+  payloads without a separate redistribution review
+  (`docs/DATA_PROVENANCE.md`).
+- The GRNOC bulk-access request draft
+  (`docs/sources/GRNOC_BULK_ACCESS_REQUEST.md`) must NOT be sent
+  without user approval.

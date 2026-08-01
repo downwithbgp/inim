@@ -318,3 +318,41 @@ derivation without misunderstanding this as a universal rule.
   chromium, shuts the server down (trap on failure), and writes
   `tmp/ui-review/*.png` (gitignored, excluded from the package). Visual
   quality is reviewed externally, never self-certified.
+
+## Corpus workspace (Session 33)
+
+The corpus layer sits beside the case-study layer in the catalog and
+never changes lifecycle semantics:
+
+- **Acquisition** (`catalog/access.rs`, `catalog/grnoc_viewer.rs`): a
+  strictly serial, paced, budget-bounded HTTP client drives exact
+  ticket lookups against the public viewer. Discovery provenance
+  (`catalog/discovery.rs`) records how each identifier entered
+  (`AnalystSeed`, `DocumentReference`, `TicketDescriptionReference`,
+  `PublicSearchResult`, `CaseStudyReference`).
+- **Snapshots + per-fetch records**: `event_snapshots` stays pure
+  content-addressed immutability; `snapshot_fetches` holds one row per
+  HTTP attempt with whitelisted metadata.
+- **Relationships** (`catalog/relationships.rs`): explicit edges with
+  wording-classified kinds and exact source spans; derived
+  temporal-overlap candidates with distinct evidence kinds; bounded
+  adjacency traversal; reviewed edges never overwritten.
+- **Readiness** (`catalog/analyzability.rs`): derived per event from
+  reviewed manifests/plans/runs — separate from lifecycle, sync status,
+  and verdict.
+- **Grouping** (`catalog/grouping.rs`): candidate incident groups with
+  categorical confidence and rejection persistence via evidence
+  fingerprints.
+- **Batching** (`catalog/batch.rs`): deterministic raw-archive sharing
+  across event cohorts; evidence identity never depends on batch
+  membership.
+- **Observer families**: `SourceFamily` (RouteViews | RipeRis) is part
+  of collector identity; RIS planning uses RIPE RIS URLs and cadence;
+  RIS execution remains documented-Unsupported (see
+  `docs/ADRs/RIPE-RIS-SUPPORT.md`).
+
+Design invariants: HTTP GET never crawls or analyzes; corpus
+completeness is never assumed; source snapshots are immutable; explicit
+and inferred relationships stay distinct; reviewed mappings remain
+human-controlled; RouteViews/RIS are observer sources, not ground
+truth; temporal correlation is not causal attribution.

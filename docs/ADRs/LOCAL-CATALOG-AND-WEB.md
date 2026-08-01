@@ -117,3 +117,18 @@ The catalog schema moved to **v2** with the case-study layer (see
 `reference_documents`/`document_revisions` pair. The web layer gained
 read-only case-study pages/API and validated document serving; the
 "no analysis on any request path" property is unchanged.
+
+## Session 33 addendum — corpus workspace
+
+The catalog web interface gained a read-only corpus workspace
+(`/corpus`, `/corpus/sync-runs`, `/events/{id}/relationships`,
+`/analysis-queue`, `/incident-candidates`, `/archive-batches`) plus
+matching `/api/v1/corpus/*` JSON endpoints. Invariants preserved:
+HTTP GET never starts crawling or analysis; the corpus is labeled a
+locally acquired public-ticket corpus (completeness never assumed);
+API responses use the existing envelope and never expose cookies, raw
+headers, absolute paths, or unreviewed mapping suggestions as reviewed
+truth. Acquisition state (discovery frontier, per-fetch metadata,
+relationship graph, candidate groups, batch plans) lives in catalog
+schema v4–v6 tables (`ticket_discoveries`, `snapshot_fetches`,
+`ticket_relationships`, `incident_group_candidates`).

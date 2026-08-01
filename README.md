@@ -208,3 +208,52 @@ and observability contracts.
 inim is licensed under the MIT License. See LICENSE.
 
 SPDX-License-Identifier: MIT
+
+## Local corpus workspace (Session 33)
+
+inim includes a **locally acquired public-ticket corpus** workspace for
+correlating historical operational events with public BGP data:
+
+- **Polite acquisition** — the GRNOC Public Task Viewer is queried with
+  1 concurrent request at 0.25 req/s (one every 4 s), burst 1, budget
+  100 requests per sync; higher rates require explicit flags. Repeated
+  429/403, unexpected auth, robots prohibition, and broad schema
+  incompatibility stop the sync; permanent 404s are never retried. See
+  `docs/sources/GRNOC_PUBLIC_TASK_VIEWER.md` for the protocol audit.
+- **Explicit discovery only** — ticket identifiers enter through
+  analyst seeds, document/case-study references, ticket-description
+  references, or a scoped public search. There is no blind numeric-ID
+  enumeration and no "download everything" mode.
+- **Immutable snapshots with provenance** — every fetch records HTTP
+  status, content-type, ETag, Last-Modified, acquisition method, retry
+  count, and discovery provenance; a changed payload creates a new
+  snapshot, a 304 never does, and old snapshots stay linked to their
+  historical runs. Fetch metadata is whitelisted (no cookies/headers).
+- **Relationship graph** — explicit ticket references (with exact
+  source spans and wording-classified kinds such as
+  `TracksRemainingImpactIn`) are stored distinctly from machine-derived
+  candidates (`TemporalOverlap`, evidence
+  `DerivedTemporalOverlap`); temporal overlap is never causal.
+- **Analysis queue** — each event derives a BGP-analysis readiness
+  state (NotReviewed … AnalysisComplete/Stale/Failed) from reviewed
+  inputs only; nothing is auto-analyzed and no ASN mapping or predicate
+  is inferred.
+- **Candidate groups** — categorical, explainable confidence
+  (ExplicitlyLinked / StrongCandidate / WeakCandidate / Rejected);
+  groups never replace individual events, and rejected candidates stay
+  suppressed until the evidence changes.
+- **Shared archive planning** — `CorrelationBatch` groups per-event raw
+  archive requirements (RouteViews and RIPE RIS families) so one
+  archive is downloaded once across overlapping cohorts, without
+  merging any event's evidence or verdict.
+- **Web UI / API** — `/corpus`, `/analysis-queue`,
+  `/incident-candidates`, `/archive-batches`,
+  `/events/{id}/relationships` and the matching read-only
+  `/api/v1/corpus/*` endpoints. No HTTP GET starts crawling or
+  analysis.
+
+The corpus is labeled a **locally acquired public-ticket corpus** —
+completeness is never assumed. Acquisition and redistribution policy:
+see `docs/DATA_PROVENANCE.md` (metadata-only export default; raw
+payloads excluded from the crate and from exports until separately
+reviewed).

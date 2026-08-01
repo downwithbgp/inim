@@ -101,3 +101,15 @@ as a consequence of that action; restoration before a reported re-enable
 is exposed. Broad instability intervals may legitimately overlap BGP
 activity. Public BGP absence at one selected collector is a temporary
 observer-stream observation, never proof of traffic loss.
+
+## Observer sources are not ground truth (Session 33)
+
+RouteViews and RIPE RIS are **observer sources**, not ground truth.
+The corpus planner treats both families on equal footing
+(`SourceFamily::RouteViews | SourceFamily::RipeRis`); collector
+identity includes the family, RIS archives are planned with their own
+URLs and cadence (bview 8-hour grid, 5-minute updates), and the
+analyst-facing report never labels a RIS observer as RouteViews.
+Observability classifications and verdicts are conditioned on the
+frozen observer cohort of each AnalysisRun — never on ticket text
+alone.
