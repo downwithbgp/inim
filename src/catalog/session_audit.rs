@@ -63,36 +63,58 @@ pub fn discover_ribs(opts: &SessionAuditOptions) -> Result<Vec<RibSource>, Strin
         }
         collectors.sort();
         for collector in collectors {
+            // Nested layout: <cache>/<collector>/rib/...
             let rib_dir = cache_dir.join(&collector).join("rib");
-            if !rib_dir.is_dir() {
-                continue;
+            if rib_dir.is_dir() {
+                collect_rib_candidates(rib_dir, &opts.date, family, &collector, &mut out);
             }
-            let mut candidates: Vec<(String, PathBuf)> = Vec::new();
-            for e in std::fs::read_dir(&rib_dir)
-                .map_err(|e| format!("cannot read {}: {e}", rib_dir.display()))?
-                .flatten()
-            {
-                let p = e.path();
-                if p.is_file() {
-                    let name = e.file_name().to_string_lossy().to_string();
-                    if name.contains(&opts.date) && !name.ends_with(".sha256") {
-                        candidates.push((name.clone(), p));
-                    }
-                }
-            }
-            candidates.sort();
-            if let Some((name, path)) = candidates.into_iter().next() {
-                out.push(RibSource {
-                    family: family.clone(),
-                    collector: collector.clone(),
-                    local_path: path,
-                    rib_timestamp_utc: filename_timestamp_utc(&name),
-                });
+        }
+        // Flat layout: <cache>/rib/... with the collector named after the
+        // cache directory itself (RouteViews collectors are cached flat).
+        let flat_rib = cache_dir.join("rib");
+        if flat_rib.is_dir() {
+            let collector = cache_dir
+                .file_name()
+                .map(|s| s.to_string_lossy().to_string())
+                .unwrap_or_default();
+            if !collector.is_empty() {
+                collect_rib_candidates(flat_rib, &opts.date, family, &collector, &mut out);
             }
         }
     }
     out.sort_by_key(|a| (a.family.clone(), a.collector.clone()));
     Ok(out)
+}
+
+/// Collect the earliest date-matching RIB file in one `rib/` directory.
+fn collect_rib_candidates(
+    rib_dir: PathBuf,
+    date: &str,
+    family: &str,
+    collector: &str,
+    out: &mut Vec<RibSource>,
+) {
+    let mut candidates: Vec<(String, PathBuf)> = Vec::new();
+    if let Ok(rd) = std::fs::read_dir(&rib_dir) {
+        for e in rd.flatten() {
+            let p = e.path();
+            if p.is_file() {
+                let name = e.file_name().to_string_lossy().to_string();
+                if name.contains(date) && !name.ends_with(".sha256") {
+                    candidates.push((name.clone(), p));
+                }
+            }
+        }
+    }
+    candidates.sort();
+    if let Some((name, path)) = candidates.into_iter().next() {
+        out.push(RibSource {
+            family: family.to_string(),
+            collector: collector.to_string(),
+            local_path: path,
+            rib_timestamp_utc: filename_timestamp_utc(&name),
+        });
+    }
 }
 
 /// Parse "bview.20190821.0000.gz" / "rib.20190821.0200.bz2" into UTC.
@@ -156,7 +178,7 @@ fn source_sha(local_path: &Path) -> Result<String, String> {
 
 /// Parse one RIB (or reuse its source extraction) and return the
 /// origin-matching path evidence.
-fn load_origin_routes(
+pub(crate) fn load_origin_routes(
     opts: &SessionAuditOptions,
     rib: &RibSource,
 ) -> Result<(String, Vec<PathEvidence>), String> {

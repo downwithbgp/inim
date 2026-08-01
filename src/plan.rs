@@ -488,3 +488,16 @@ mod tests {
         assert!(mapping.validate().is_err());
     }
 }
+
+/// A named path classifier: a reviewed predicate with a stable id and a
+/// display label. Classifiers are used ONLY for classification of
+/// origin-matching routes into named path classes (a route may match one,
+/// both, or neither classifier); they never select the baseline cohort —
+/// cohort selection stays with `transit_predicate`. Data-driven: the id
+/// and label are profile/manifest data, never control flow.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct NamedPathClassifier {
+    pub id: String,
+    pub display_label: String,
+    pub predicate: TransitPredicate,
+}

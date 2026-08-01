@@ -8,7 +8,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::domain::route::TransitPredicate as Predicate;
-use crate::plan::{Provenance, TransitPredicateMapping};
+use crate::plan::{NamedPathClassifier, Provenance, TransitPredicateMapping};
 use crate::schema::MANIFEST_SCHEMA_VERSION as CURRENT_MANIFEST_SCHEMA_VERSION;
 
 /// Schema version of the reviewed manifest format — canonical definition
@@ -93,6 +93,11 @@ pub struct ManifestTarget {
     pub internet2_asn: Option<u32>,
     #[serde(default)]
     pub transit_predicate: TransitPredicateMapping,
+    /// Named path classifiers for classification-only reporting
+    /// (origin inventories, cross-observer comparisons). Never used for
+    /// cohort selection.
+    #[serde(default)]
+    pub path_classifiers: Vec<NamedPathClassifier>,
     #[serde(default)]
     pub prefix_selection: String,
     #[serde(default)]

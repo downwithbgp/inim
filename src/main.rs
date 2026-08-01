@@ -164,6 +164,18 @@ enum Commands {
         #[arg(long, default_value_t = false)]
         preflight_only: bool,
 
+        /// Origin-only inventory: classify all origin-matching baseline
+        /// routes at each collector against the manifest's named path
+        /// classifiers (one/both/neither). No cohort verdict. Reuses the
+        /// source extraction cache; the RIB is parsed once if needed.
+        #[arg(long, default_value_t = false)]
+        origin_inventory: bool,
+
+        /// Reviewed network profile (network-profile.json) for inventory
+        /// plane display labels and ASN roles.
+        #[arg(long, value_name = "PATH")]
+        profile: Option<PathBuf>,
+
         /// Explicit parser-worker count (0 = follow --jobs).
         #[arg(long, default_value_t = 0)]
         parse_jobs: usize,
@@ -527,6 +539,8 @@ fn run(cli: &Cli) -> i32 {
             rebuild_derived_cache,
             jobs,
             preflight_only,
+            origin_inventory,
+            profile,
             parse_jobs,
             download_jobs,
             show_execution_plan,
@@ -535,6 +549,17 @@ fn run(cli: &Cli) -> i32 {
             if let Err(e) = validate_jobs(*jobs) {
                 let _ = writeln!(std::io::stderr(), "error: {e}");
                 return EXIT_INVALID_INPUT;
+            }
+            if *origin_inventory {
+                return cmd_origin_inventory(
+                    &mut std::io::stdout(),
+                    &mut std::io::stderr(),
+                    manifest.as_ref().map(|p| p.as_path()),
+                    profile.as_deref(),
+                    cache,
+                    out,
+                    *jobs,
+                );
             }
             if *show_execution_plan {
                 let info = inim::perf::host_info(*jobs, *parse_jobs, *download_jobs);
@@ -750,6 +775,95 @@ fn cmd_compare(
 /// any Broker query, archive download, or MRT parse. Incomplete analysis
 /// exits EXIT_ANALYSIS_INCOMPLETE.
 #[allow(clippy::too_many_arguments)]
+fn cmd_origin_inventory(
+    stdout: &mut dyn Write,
+    stderr: &mut dyn Write,
+    manifest_path: Option<&std::path::Path>,
+    profile_path: Option<&std::path::Path>,
+    cache: &std::path::Path,
+    out: &std::path::Path,
+    jobs: usize,
+) -> i32 {
+    use inim::catalog::netprofile::{CollectorLocationRegistry, ServicePlaneProfile};
+    use inim::catalog::origin_inventory::build_inventory;
+    use inim::manifest::Manifest;
+
+    let Some(manifest_path) = manifest_path else {
+        let _ = writeln!(stderr, "error: --origin-inventory requires --manifest");
+        return EXIT_INVALID_INPUT;
+    };
+    let manifest = match Manifest::load(manifest_path) {
+        Ok(m) => m,
+        Err(e) => {
+            let _ = writeln!(stderr, "error: {e}");
+            return EXIT_INVALID_INPUT;
+        }
+    };
+    let profile_path = profile_path.map(|p| p.to_path_buf()).unwrap_or_else(|| {
+        std::path::PathBuf::from("case-studies/manlan-2019/pilot/network-profile.json")
+    });
+    let profile = match ServicePlaneProfile::load(&profile_path) {
+        Ok(p) => p,
+        Err(e) => {
+            let _ = writeln!(stderr, "error: {e}");
+            return EXIT_INVALID_INPUT;
+        }
+    };
+    let locations_path = profile_path
+        .parent()
+        .map(|d| d.join("collector-locations.json"))
+        .unwrap_or_else(|| std::path::PathBuf::from("collector-locations.json"));
+    let registry = match CollectorLocationRegistry::load(&locations_path) {
+        Ok(r) => r,
+        Err(e) => {
+            let _ = writeln!(stderr, "error: {e}");
+            return EXIT_INVALID_INPUT;
+        }
+    };
+
+    match build_inventory(
+        &profile,
+        &registry,
+        cache,
+        &manifest.source_family,
+        &manifest.collectors,
+        &manifest.target.origin_asns,
+        &manifest.target.path_classifiers,
+        cache,
+        jobs,
+    ) {
+        Ok(inventories) => {
+            let json = match serde_json::to_string_pretty(&inventories) {
+                Ok(j) => j,
+                Err(e) => {
+                    let _ = writeln!(stderr, "error: cannot serialize inventory: {e}");
+                    return EXIT_INVALID_INPUT;
+                }
+            };
+            let _ = std::fs::create_dir_all(out);
+            let path = out.join("origin-inventory.json");
+            if let Err(e) = std::fs::write(&path, json) {
+                let _ = writeln!(stderr, "error: cannot write {}: {e}", path.display());
+                return EXIT_INVALID_INPUT;
+            }
+            let _ = writeln!(
+                stdout,
+                "origin inventory: {} collector(s) written to {}",
+                inventories.len(),
+                path.display()
+            );
+            EXIT_SUCCESS
+        }
+        Err(e) => {
+            let _ = writeln!(stderr, "error: {e}");
+            EXIT_INVALID_INPUT
+        }
+    }
+}
+
+/// Analyze a single event (see `--help`); EXIT_ANALYSIS_INCOMPLETE on
+/// partial analysis.
+#[allow(clippy::too_many_arguments)] // CLI passthrough; each maps to one flag
 fn cmd_analyze(
     stdout: &mut dyn Write,
     stderr: &mut dyn Write,

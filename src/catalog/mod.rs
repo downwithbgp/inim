@@ -22,6 +22,7 @@ pub mod migrations;
 pub mod mock_server;
 pub mod netprofile;
 pub mod observer_compare;
+pub mod origin_inventory;
 pub mod phase_summary;
 pub mod relationships;
 pub mod review;
