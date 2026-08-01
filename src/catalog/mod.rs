@@ -4,6 +4,7 @@
 //! See `docs/ADRs/LOCAL-CATALOG-AND-WEB.md` for the architecture decision.
 
 pub mod archive_plan;
+pub mod case_study_compare;
 pub mod case_study_import;
 pub mod db;
 pub mod document;
