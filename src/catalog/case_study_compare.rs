@@ -207,9 +207,8 @@ pub fn build_comparison(
         aggregated.push(agg);
     }
 
-    // Transitions outside any phase across runs (never silently dropped).
-    let outside: usize = run_summaries.iter().map(|rs| rs.outside_phases).sum();
-
+    // Transitions outside any phase across runs are surfaced through the
+    // phase summaries (never silently dropped).
     let mut rows = Vec::new();
     for c in &claims {
         // The public-BGP comparison uses the first five claim categories;
@@ -407,9 +406,6 @@ pub fn build_comparison(
         });
     }
 
-    // Transitions outside every reviewed phase are surfaced through the
-    // phase summaries; comparison rows stay self-contained.
-    let _ = outside;
     Ok(rows)
 }
 
