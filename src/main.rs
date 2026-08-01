@@ -218,6 +218,51 @@ enum CatalogCommands {
     /// Synchronize a catalog source into the catalog.
     #[command(subcommand)]
     Sync(SyncSource),
+    /// Rebuild the ticket relationship graph from fetched snapshots.
+    #[command(subcommand)]
+    Relationships(RelationshipsCommands),
+    /// Show the corpus-level BGP-analysis readiness queue.
+    AnalysisQueue {
+        #[arg(long, value_name = "PATH")]
+        db: PathBuf,
+        /// Filter by readiness state (e.g. NotReviewed, AnalysisComplete).
+        #[arg(long, value_name = "STATE")]
+        state: Option<String>,
+    },
+    /// Plan shared raw-archive batches across event cohorts.
+    #[command(subcommand)]
+    ArchiveBatches(ArchiveBatchesCommands),
+    /// Export corpus metadata only (no raw payloads) as JSON.
+    CorpusExport {
+        #[arg(long, value_name = "PATH")]
+        db: PathBuf,
+        /// Output path; defaults to stdout.
+        #[arg(long, value_name = "PATH")]
+        out: Option<PathBuf>,
+    },
+}
+
+/// Ticket-relationship administration.
+#[derive(Subcommand)]
+enum RelationshipsCommands {
+    /// Re-extract explicit relationships from all fetched snapshots,
+    /// resolve unresolved targets, derive temporal-overlap candidates,
+    /// and regenerate incident group candidates. Idempotent.
+    Rebuild {
+        #[arg(long, value_name = "PATH")]
+        db: PathBuf,
+    },
+}
+
+/// Shared archive-batch planning.
+#[derive(Subcommand)]
+enum ArchiveBatchesCommands {
+    /// Build a deterministic correlation batch per case study from its
+    /// stored archive plans. Pure computation; downloads nothing.
+    Plan {
+        #[arg(long, value_name = "PATH")]
+        db: PathBuf,
+    },
 }
 
 /// Incident case-study subcommands.
@@ -330,13 +375,49 @@ enum DocumentCommands {
 /// Catalog source adapters.
 #[derive(Subcommand)]
 enum SyncSource {
-    /// GRNOC Public Task Viewer records (one JSON file per ticket).
+    /// GRNOC Public Task Viewer records.
+    ///
+    /// Offline mode: `--source-dir DIR` syncs local JSON record files
+    /// (one `GnocRecord` per file).
+    ///
+    /// Live mode (no --source-dir): politely fetches exact ticket
+    /// numbers from the public task viewer. Requires at least one
+    /// discovery source (--seed, --case-study, or --expand-references);
+    /// there is no "download everything" mode.
     Grnoc {
         #[arg(long, value_name = "PATH")]
         db: PathBuf,
-        /// Directory containing GRNOC JSON records.
+        /// Offline mode: directory containing GRNOC JSON records.
         #[arg(long, value_name = "DIR")]
-        source_dir: PathBuf,
+        source_dir: Option<PathBuf>,
+        /// Live mode: exact ticket id to seed (repeatable).
+        #[arg(long, value_name = "ID")]
+        seed: Vec<String>,
+        /// Live mode: seed tickets from a reviewed case study (repeatable).
+        #[arg(long, value_name = "SLUG")]
+        case_study: Vec<String>,
+        /// Live mode: expand the frontier from fetched public descriptions.
+        #[arg(long)]
+        expand_references: bool,
+        /// Request budget for this sync (default 100; never unbounded).
+        #[arg(long, value_name = "N")]
+        max_requests: Option<usize>,
+        /// Sustained request rate (default 0.25; values above 1.0
+        /// require --allow-higher-rate).
+        #[arg(long, value_name = "RPS")]
+        requests_per_second: Option<f64>,
+        /// Explicitly allow a substantially higher request rate.
+        #[arg(long)]
+        allow_higher_rate: bool,
+        /// Contact (email or URL) placed in the User-Agent. Never invented.
+        #[arg(long, value_name = "CONTACT")]
+        contact: Option<String>,
+        /// Show the request frontier and budget; no network access.
+        #[arg(long)]
+        dry_run: bool,
+        /// Print the self-imposed access policy and exit; no network.
+        #[arg(long)]
+        show_access_policy: bool,
     },
 }
 
@@ -982,39 +1063,83 @@ fn cmd_catalog(stdout: &mut dyn Write, command: &CatalogCommands) -> i32 {
             }
         }
         CatalogCommands::Sync(source) => match source {
-            SyncSource::Grnoc { db, source_dir } => {
-                let conn = match inim::catalog::db::open_catalog(db) {
-                    Ok(c) => c,
-                    Err(e) => {
-                        let _ = writeln!(stdout, "error: {e}");
-                        return EXIT_INVALID_INPUT;
-                    }
-                };
-                let fetched = chrono::Utc::now().to_rfc3339();
-                let src = inim::catalog::grnoc::GrnocCatalogSource::new(
-                    source_dir.clone(),
-                    fetched.clone(),
-                );
-                match inim::catalog::sync::sync_catalog(&conn, &src, &fetched) {
-                    Ok(summary) => {
-                        let _ = writeln!(
-                            stdout,
-                            "grnoc sync complete: {} examined, {} new, {} changed, {} unchanged, {} failures",
-                            summary.events_examined,
-                            summary.new_events,
-                            summary.changed_events,
-                            summary.unchanged_events,
-                            summary.failures
-                        );
-                        EXIT_SUCCESS
-                    }
-                    Err(e) => {
-                        let _ = writeln!(stdout, "error: {e}");
-                        EXIT_INVALID_INPUT
-                    }
+            SyncSource::Grnoc {
+                db,
+                source_dir,
+                seed,
+                case_study,
+                expand_references,
+                max_requests,
+                requests_per_second,
+                allow_higher_rate,
+                contact,
+                dry_run,
+                show_access_policy,
+            } => {
+                if *show_access_policy {
+                    use inim::catalog::access::AccessPolicy;
+                    let policy = AccessPolicy::conservative();
+                    let _ = writeln!(
+                        stdout,
+                        "self-imposed access policy (public corpus acquisition):"
+                    );
+                    let _ = writeln!(stdout, "  max concurrency:    {}", policy.max_concurrency);
+                    let _ = writeln!(
+                        stdout,
+                        "  sustained rate:     {} requests/second (one every {:.0}s)",
+                        policy.requests_per_second,
+                        1.0 / policy.requests_per_second
+                    );
+                    let _ = writeln!(stdout, "  burst:              {}", policy.burst);
+                    let _ = writeln!(
+                        stdout,
+                        "  request budget:     {} per sync",
+                        policy.max_requests
+                    );
+                    let _ = writeln!(stdout, "  user agent:         {}", policy.user_agent());
+                    let _ = writeln!(
+                        stdout,
+                        "  retries:            {} per transient failure",
+                        policy.max_retries
+                    );
+                    let _ = writeln!(stdout, "  stop conditions:    repeated 429/403, unexpected auth, robots prohibition, schema incompatibility affecting most items");
+                    let _ = writeln!(
+                        stdout,
+                        "  404 policy:         permanent 404s are never retried"
+                    );
+                    let _ = writeln!(
+                        stdout,
+                        "  enumeration:        no blind numeric-ID enumeration"
+                    );
+                    return EXIT_SUCCESS;
+                }
+                match source_dir {
+                    Some(dir) => cmd_grnoc_sync_offline(stdout, db, dir),
+                    None => cmd_grnoc_sync_live(
+                        stdout,
+                        db,
+                        seed,
+                        case_study,
+                        *expand_references,
+                        *max_requests,
+                        *requests_per_second,
+                        *allow_higher_rate,
+                        contact.as_deref(),
+                        *dry_run,
+                    ),
                 }
             }
         },
+        CatalogCommands::Relationships(RelationshipsCommands::Rebuild { db }) => {
+            cmd_relationships_rebuild(stdout, db)
+        }
+        CatalogCommands::AnalysisQueue { db, state } => {
+            cmd_analysis_queue(stdout, db, state.as_deref())
+        }
+        CatalogCommands::ArchiveBatches(ArchiveBatchesCommands::Plan { db }) => {
+            cmd_archive_batches_plan(stdout, db)
+        }
+        CatalogCommands::CorpusExport { db, out } => cmd_corpus_export(stdout, db, out.as_deref()),
     }
 }
 
@@ -1575,5 +1700,780 @@ mod session32_cli_tests {
     fn jobs_error_message_names_the_replacement() {
         let err = validate_jobs(0).unwrap_err();
         assert!(err.contains("--parse-jobs"), "{err}");
+    }
+}
+
+// ── Session 33: corpus CLI commands ────────────────────────────────
+
+/// Offline fixture sync (existing behavior).
+fn cmd_grnoc_sync_offline(
+    stdout: &mut dyn Write,
+    db: &std::path::Path,
+    source_dir: &std::path::Path,
+) -> i32 {
+    let conn = match inim::catalog::db::open_catalog(db) {
+        Ok(c) => c,
+        Err(e) => {
+            let _ = writeln!(stdout, "error: {e}");
+            return EXIT_INVALID_INPUT;
+        }
+    };
+    let fetched = chrono::Utc::now().to_rfc3339();
+    let src =
+        inim::catalog::grnoc::GrnocCatalogSource::new(source_dir.to_path_buf(), fetched.clone());
+    match inim::catalog::sync::sync_catalog(&conn, &src, &fetched) {
+        Ok(summary) => {
+            let _ = writeln!(
+                stdout,
+                "grnoc sync complete: {} examined, {} new, {} changed, {} unchanged, {} failures",
+                summary.events_examined,
+                summary.new_events,
+                summary.changed_events,
+                summary.unchanged_events,
+                summary.failures
+            );
+            EXIT_SUCCESS
+        }
+        Err(e) => {
+            let _ = writeln!(stdout, "error: {e}");
+            EXIT_INVALID_INPUT
+        }
+    }
+}
+
+/// Live viewer sync: discover frontier → polite fetch → link case-study
+/// tickets → optional reference expansion.
+#[allow(clippy::too_many_arguments)]
+fn cmd_grnoc_sync_live(
+    stdout: &mut dyn Write,
+    db: &std::path::Path,
+    seeds: &[String],
+    case_studies: &[String],
+    expand_references: bool,
+    max_requests: Option<usize>,
+    requests_per_second: Option<f64>,
+    allow_higher_rate: bool,
+    contact: Option<&str>,
+    dry_run: bool,
+) -> i32 {
+    use inim::catalog::access::{AccessPolicy, DEFAULT_MAX_REQUESTS};
+    use inim::catalog::grnoc_viewer::{sync_frontier, GrnocViewerClient};
+
+    let conn = match inim::catalog::db::open_catalog(db) {
+        Ok(c) => c,
+        Err(e) => {
+            let _ = writeln!(stdout, "error: {e}");
+            return EXIT_INVALID_INPUT;
+        }
+    };
+
+    // ── Access policy ──────────────────────────────────────────────
+    let mut policy = AccessPolicy::conservative();
+    if let Some(rps) = requests_per_second {
+        if rps > 1.0 && !allow_higher_rate {
+            let _ = writeln!(
+                stdout,
+                "error: {rps} requests/second is substantially higher than the default 0.25; pass --allow-higher-rate to confirm"
+            );
+            return EXIT_INVALID_INPUT;
+        }
+        policy.requests_per_second = rps;
+    }
+    policy.max_requests = max_requests.unwrap_or(DEFAULT_MAX_REQUESTS);
+    if let Some(c) = contact {
+        if !c.is_empty() {
+            policy.contact = Some(c.to_string());
+        }
+    }
+    if let Err(e) = policy.validate() {
+        let _ = writeln!(stdout, "error: {e}");
+        return EXIT_INVALID_INPUT;
+    }
+
+    // ── Discovery frontier ─────────────────────────────────────────
+    let source_kind = "grnoc-public-task-viewer";
+    let now = chrono::Utc::now().to_rfc3339();
+    for seed in seeds {
+        if let Err(e) =
+            inim::catalog::discovery::record_analyst_seed(&conn, source_kind, seed, &now)
+        {
+            let _ = writeln!(stdout, "error: {e}");
+            return EXIT_INVALID_INPUT;
+        }
+    }
+    for slug in case_studies {
+        let Some(cs) = inim::catalog::archive_plan::find_case_study(&conn, slug) else {
+            let _ = writeln!(stdout, "error: no case study with slug '{slug}'");
+            return EXIT_INVALID_INPUT;
+        };
+        match inim::catalog::discovery::record_case_study_references(
+            &conn,
+            source_kind,
+            cs.id,
+            &now,
+        ) {
+            Ok(n) => {
+                let _ = writeln!(
+                    stdout,
+                    "case study '{slug}': {n} ticket references recorded"
+                );
+            }
+            Err(e) => {
+                let _ = writeln!(stdout, "error: {e}");
+                return EXIT_INVALID_INPUT;
+            }
+        }
+    }
+    if expand_references {
+        match inim::catalog::discovery::expand_from_snapshots(&conn, source_kind, &now) {
+            Ok(n) => {
+                let _ = writeln!(stdout, "reference expansion: {n} new discoveries");
+            }
+            Err(e) => {
+                let _ = writeln!(stdout, "error: {e}");
+                return EXIT_INVALID_INPUT;
+            }
+        }
+    }
+    let frontier = match inim::catalog::store::pending_frontier(&conn, source_kind) {
+        Ok(f) => f,
+        Err(e) => {
+            let _ = writeln!(stdout, "error: {e}");
+            return EXIT_INVALID_INPUT;
+        }
+    };
+    if frontier.is_empty() {
+        let _ = writeln!(
+            stdout,
+            "error: no pending tickets in the frontier; supply --seed, --case-study, or --expand-references"
+        );
+        return EXIT_INVALID_INPUT;
+    }
+    let _ = writeln!(
+        stdout,
+        "frontier: {} ticket(s) pending (budget {})",
+        frontier.len(),
+        policy.max_requests
+    );
+
+    // ── Dry run / policy display ───────────────────────────────────
+    if dry_run {
+        let _ = writeln!(stdout, "dry-run: no network access performed");
+        for id in &frontier {
+            let _ = writeln!(stdout, "  would fetch {id}");
+        }
+        let _ = writeln!(
+            stdout,
+            "  budget: {} requests; rate: {} req/s; concurrency: 1",
+            policy.max_requests, policy.requests_per_second
+        );
+        return EXIT_SUCCESS;
+    }
+
+    let mut client = match GrnocViewerClient::new(policy.clone()) {
+        Ok(c) => c,
+        Err(e) => {
+            let _ = writeln!(stdout, "error: {e}");
+            return EXIT_INVALID_INPUT;
+        }
+    };
+    let started_at = chrono::Utc::now().to_rfc3339();
+    let wall_start = std::time::Instant::now();
+    match sync_frontier(&conn, &mut client, source_kind, &frontier, &started_at) {
+        Ok(summary) => {
+            let elapsed = wall_start.elapsed();
+            let rate = if elapsed.as_secs_f64() > 0.0 {
+                summary.requests_made as f64 / elapsed.as_secs_f64()
+            } else {
+                0.0
+            };
+            let _ = writeln!(stdout, "corpus sync summary:");
+            let _ = writeln!(stdout, "  examined:        {}", summary.examined);
+            let _ = writeln!(stdout, "  new snapshots:   {}", summary.new_snapshots);
+            let _ = writeln!(stdout, "  unchanged:       {}", summary.unchanged);
+            let _ = writeln!(stdout, "  not modified:    {}", summary.not_modified);
+            let _ = writeln!(stdout, "  not found:       {}", summary.not_found);
+            let _ = writeln!(stdout, "  unsupported:     {}", summary.unsupported);
+            let _ = writeln!(stdout, "  failures:        {}", summary.failures);
+            let _ = writeln!(
+                stdout,
+                "  stopped:         {}",
+                summary
+                    .stopped
+                    .as_ref()
+                    .map(|s| format!("{s:?}"))
+                    .unwrap_or_else(|| "no".to_string())
+            );
+            let _ = writeln!(stdout, "  requests:        {}", summary.requests_made);
+            let _ = writeln!(stdout, "  bytes:           {}", client.bytes_transferred());
+            let _ = writeln!(stdout, "  elapsed:         {:.1}s", elapsed.as_secs_f64());
+            let _ = writeln!(stdout, "  avg rate:        {rate:.3} req/s");
+            // Link retrieved tickets to their case-study references.
+            for slug in case_studies {
+                if let Some(cs) = inim::catalog::archive_plan::find_case_study(&conn, slug) {
+                    match inim::catalog::grnoc_viewer::link_case_study_tickets(
+                        &conn,
+                        cs.id,
+                        source_kind,
+                    ) {
+                        Ok(n) => {
+                            let _ = writeln!(
+                                stdout,
+                                "case study '{slug}': {n} ticket link(s) resolved"
+                            );
+                        }
+                        Err(e) => {
+                            let _ = writeln!(stdout, "error: {e}");
+                            return EXIT_INVALID_INPUT;
+                        }
+                    }
+                }
+            }
+            if expand_references {
+                // Second pass: references from the freshly fetched
+                // descriptions enter the frontier for a later run.
+                match inim::catalog::discovery::expand_from_snapshots(
+                    &conn,
+                    source_kind,
+                    &chrono::Utc::now().to_rfc3339(),
+                ) {
+                    Ok(n) => {
+                        let _ = writeln!(stdout, "reference expansion: {n} new discoveries");
+                    }
+                    Err(e) => {
+                        let _ = writeln!(stdout, "error: {e}");
+                        return EXIT_INVALID_INPUT;
+                    }
+                }
+            }
+            if summary.stopped.is_some() {
+                EXIT_ANALYSIS_INCOMPLETE
+            } else {
+                EXIT_SUCCESS
+            }
+        }
+        Err(e) => {
+            let _ = writeln!(stdout, "error: {e}");
+            EXIT_INVALID_INPUT
+        }
+    }
+}
+
+/// `inim catalog relationships rebuild` — re-extract explicit
+/// relationships, resolve targets, derive overlap candidates, and
+/// regenerate incident group candidates. Idempotent.
+fn cmd_relationships_rebuild(stdout: &mut dyn Write, db: &std::path::Path) -> i32 {
+    use inim::catalog::relationships;
+    let conn = match inim::catalog::db::open_catalog(db) {
+        Ok(c) => c,
+        Err(e) => {
+            let _ = writeln!(stdout, "error: {e}");
+            return EXIT_INVALID_INPUT;
+        }
+    };
+    let now = chrono::Utc::now().to_rfc3339();
+    let source_kind = "grnoc-public-task-viewer";
+    let extracted =
+        match relationships::extract_relationships_from_snapshots(&conn, source_kind, &now) {
+            Ok(n) => n,
+            Err(e) => {
+                let _ = writeln!(stdout, "error: {e}");
+                return EXIT_INVALID_INPUT;
+            }
+        };
+    let resolved = match relationships::resolve_unresolved_edges(&conn, source_kind) {
+        Ok(n) => n,
+        Err(e) => {
+            let _ = writeln!(stdout, "error: {e}");
+            return EXIT_INVALID_INPUT;
+        }
+    };
+    let overlaps = match relationships::derive_temporal_overlaps(&conn, source_kind, &now) {
+        Ok(n) => n,
+        Err(e) => {
+            let _ = writeln!(stdout, "error: {e}");
+            return EXIT_INVALID_INPUT;
+        }
+    };
+    let groups = match inim::catalog::grouping::generate_candidates(&conn, &now) {
+        Ok(n) => n,
+        Err(e) => {
+            let _ = writeln!(stdout, "error: {e}");
+            return EXIT_INVALID_INPUT;
+        }
+    };
+    let _ = writeln!(
+        stdout,
+        "relationships rebuilt: {extracted} explicit edge(s) extracted, {resolved} target(s) resolved, {overlaps} overlap candidate(s), {groups} group candidate(s)"
+    );
+    EXIT_SUCCESS
+}
+
+/// `inim catalog analysis-queue` — print the derived readiness queue.
+fn cmd_analysis_queue(
+    stdout: &mut dyn Write,
+    db: &std::path::Path,
+    state_filter: Option<&str>,
+) -> i32 {
+    let conn = match inim::catalog::db::open_catalog(db) {
+        Ok(c) => c,
+        Err(e) => {
+            let _ = writeln!(stdout, "error: {e}");
+            return EXIT_INVALID_INPUT;
+        }
+    };
+    match inim::catalog::analyzability::derive_all_analyzability(&conn) {
+        Ok(rows) => {
+            let _ = writeln!(stdout, "{:<14} {:<28} REASON", "EVENT", "READINESS");
+            for r in rows {
+                if let Some(f) = state_filter {
+                    if r.readiness != f {
+                        continue;
+                    }
+                }
+                let _ = writeln!(
+                    stdout,
+                    "{:<14} {:<28} {}",
+                    r.external_id, r.readiness, r.reason
+                );
+            }
+            EXIT_SUCCESS
+        }
+        Err(e) => {
+            let _ = writeln!(stdout, "error: {e}");
+            EXIT_INVALID_INPUT
+        }
+    }
+}
+
+/// `inim catalog archive-batches plan` — deterministic correlation
+/// batches from stored case-study archive plans. Pure computation.
+fn cmd_archive_batches_plan(stdout: &mut dyn Write, db: &std::path::Path) -> i32 {
+    use inim::catalog::archive_plan::{AnalysisHorizon, ArchivePlan};
+    use inim::catalog::batch::{plan_batch, EventPlanInput};
+    let conn = match inim::catalog::db::open_catalog(db) {
+        Ok(c) => c,
+        Err(e) => {
+            let _ = writeln!(stdout, "error: {e}");
+            return EXIT_INVALID_INPUT;
+        }
+    };
+    let mut stmt = match conn.prepare(
+        "SELECT p.id, p.case_study_id, p.horizon_json, p.plan_json, c.slug, c.title
+         FROM case_study_analysis_plans p JOIN case_studies c ON c.id = p.case_study_id
+         ORDER BY c.slug",
+    ) {
+        Ok(s) => s,
+        Err(e) => {
+            let _ = writeln!(stdout, "error: {e}");
+            return EXIT_INVALID_INPUT;
+        }
+    };
+    let rows = stmt
+        .query_map([], |r| {
+            Ok((
+                r.get::<_, i64>(0)?,
+                r.get::<_, String>(3)?,
+                r.get::<_, String>(2)?,
+                r.get::<_, String>(4)?,
+                r.get::<_, String>(5)?,
+            ))
+        })
+        .map_err(|e| format!("catalog read failed: {e}"));
+    let rows = match rows {
+        Ok(r) => r,
+        Err(e) => {
+            let _ = writeln!(stdout, "error: {e}");
+            return EXIT_INVALID_INPUT;
+        }
+    };
+    let mut batches = 0usize;
+    for row in rows {
+        let row = match row {
+            Ok(r) => r,
+            Err(e) => {
+                let _ = writeln!(stdout, "error: {e}");
+                return EXIT_INVALID_INPUT;
+            }
+        };
+        let (plan_id, plan_json, horizon_json, slug, title) = row;
+        let Ok(plan) = serde_json::from_str::<ArchivePlan>(&plan_json) else {
+            let _ = writeln!(stdout, "case study '{slug}': stored plan unreadable");
+            continue;
+        };
+        let Ok(horizon) = serde_json::from_str::<AnalysisHorizon>(&horizon_json) else {
+            continue;
+        };
+        // Members: the case study's linked catalog events.
+        let mut stmt2 = match conn.prepare(
+            "SELECT external_identifier FROM case_study_event_links
+             WHERE case_study_id = ?1 AND catalog_event_id IS NOT NULL ORDER BY sort_order",
+        ) {
+            Ok(s) => s,
+            Err(e) => {
+                let _ = writeln!(stdout, "error: {e}");
+                return EXIT_INVALID_INPUT;
+            }
+        };
+        let rows2 = stmt2
+            .query_map([plan_id], |r| r.get::<_, String>(0))
+            .map_err(|e| format!("catalog read failed: {e}"));
+        let rows2 = match rows2 {
+            Ok(r) => r,
+            Err(e) => {
+                let _ = writeln!(stdout, "error: {e}");
+                return EXIT_INVALID_INPUT;
+            }
+        };
+        let mut ids = Vec::new();
+        for r in rows2 {
+            match r {
+                Ok(id) => ids.push(id),
+                Err(e) => {
+                    let _ = writeln!(stdout, "error: {e}");
+                    return EXIT_INVALID_INPUT;
+                }
+            }
+        }
+        if ids.is_empty() {
+            let _ = writeln!(stdout, "case study '{slug}': no linked events; skipped");
+            continue;
+        }
+        let inputs: Vec<EventPlanInput> = ids
+            .iter()
+            .map(|id| EventPlanInput {
+                event_id: id.clone(),
+                horizon: horizon.clone(),
+                plan: plan.clone(),
+            })
+            .collect();
+        let batch = plan_batch(&inputs);
+        let _ = writeln!(stdout, "batch for case study '{slug}' ({title}):");
+        let _ = writeln!(stdout, "  batch id:        {}", batch.batch_id);
+        let _ = writeln!(stdout, "  events:          {}", batch.events.len());
+        let _ = writeln!(stdout, "  unique archives: {}", batch.unique_archives.len());
+        let _ = writeln!(
+            stdout,
+            "  archives avoided through reuse: {}",
+            batch.archives_avoided_through_reuse
+        );
+        let _ = writeln!(
+            stdout,
+            "  estimated bytes: {}",
+            batch.estimated_compressed_bytes
+        );
+        let _ = writeln!(
+            stdout,
+            "  expected parse operations: {}",
+            batch.expected_parse_operations
+        );
+        let _ = writeln!(
+            stdout,
+            "  source families: {}",
+            batch.source_families.join(", ")
+        );
+        batches += 1;
+    }
+    let _ = writeln!(
+        stdout,
+        "{batches} batch plan(s) produced (deterministic; nothing downloaded)"
+    );
+    EXIT_SUCCESS
+}
+
+/// `inim catalog corpus export` — metadata-only export: no raw payloads
+/// by default, only hashes, source URLs, and normalized fields.
+fn cmd_corpus_export(
+    stdout: &mut dyn Write,
+    db: &std::path::Path,
+    out: Option<&std::path::Path>,
+) -> i32 {
+    use inim::catalog::db as cdb;
+    use inim::catalog::store;
+    let conn = match inim::catalog::db::open_catalog(db) {
+        Ok(c) => c,
+        Err(e) => {
+            let _ = writeln!(stdout, "error: {e}");
+            return EXIT_INVALID_INPUT;
+        }
+    };
+    let events = match cdb::list_events(&conn) {
+        Ok(e) => e,
+        Err(e) => {
+            let _ = writeln!(stdout, "error: {e}");
+            return EXIT_INVALID_INPUT;
+        }
+    };
+    let mut export = serde_json::json!({
+        "policy": "metadata-only export; raw payloads are excluded by default (redistribution review required before any payload export)",
+        "events": [],
+        "snapshots": [],
+        "relationships": [],
+        "discoveries": [],
+    });
+    let mut snapshots = Vec::new();
+    let mut discoveries = Vec::new();
+    for e in &events {
+        export["events"]
+            .as_array_mut()
+            .unwrap()
+            .push(serde_json::json!({
+                "external_id": e.external_id,
+                "source_kind": e.source_kind,
+                "first_seen": e.first_seen,
+                "last_seen": e.last_seen,
+            }));
+        for s in cdb::list_snapshots(&conn, e.id).unwrap_or_default() {
+            snapshots.push(serde_json::json!({
+                "event_id": e.external_id,
+                "fetched_at": s.fetched_at,
+                "source_url": s.source_url,
+                "content_sha256": s.content_sha256,
+                "parser_version": s.parser_version,
+            }));
+        }
+    }
+    export["snapshots"] = serde_json::Value::Array(snapshots);
+    export["relationships"] =
+        serde_json::to_value(store::list_relationships(&conn, None).unwrap_or_default())
+            .unwrap_or(serde_json::Value::Null);
+    for d in store::list_discoveries(&conn, "grnoc-public-task-viewer", None).unwrap_or_default() {
+        discoveries.push(serde_json::json!({
+            "external_id": d.external_id,
+            "provenance": d.provenance,
+            "status": d.status,
+            "discovered_at": d.discovered_at,
+        }));
+    }
+    export["discoveries"] = serde_json::Value::Array(discoveries);
+    let text = serde_json::to_string_pretty(&export).unwrap_or_default();
+    match out {
+        Some(path) => {
+            if let Err(e) = std::fs::write(path, &text) {
+                let _ = writeln!(stdout, "error: {e}");
+                return EXIT_INVALID_INPUT;
+            }
+            let _ = writeln!(stdout, "metadata export written to {}", path.display());
+        }
+        None => {
+            let _ = writeln!(stdout, "{text}");
+        }
+    }
+    EXIT_SUCCESS
+}
+
+#[cfg(test)]
+mod session33_cli_tests {
+    use super::*;
+    use std::io::Cursor;
+
+    fn temp_db() -> (tempfile::TempDir, std::path::PathBuf) {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("catalog.sqlite");
+        inim::catalog::db::open_catalog(&path).unwrap();
+        (dir, path)
+    }
+
+    #[test]
+    fn sync_grnoc_parses_live_flags() {
+        let args = vec![
+            "inim",
+            "catalog",
+            "sync",
+            "grnoc",
+            "--db",
+            "c.sqlite",
+            "--seed",
+            "CHG0038258",
+            "--seed",
+            "INC0040257",
+            "--case-study",
+            "manlan-2019",
+            "--expand-references",
+            "--max-requests",
+            "10",
+            "--requests-per-second",
+            "0.5",
+            "--allow-higher-rate",
+            "--contact",
+            "ops@example.invalid",
+            "--dry-run",
+        ];
+        let cli = Cli::try_parse_from(args).unwrap();
+        match cli.command {
+            Commands::Catalog(CatalogCommands::Sync(SyncSource::Grnoc {
+                db,
+                seed,
+                case_study,
+                expand_references,
+                max_requests,
+                requests_per_second,
+                allow_higher_rate,
+                contact,
+                dry_run,
+                source_dir,
+                show_access_policy,
+            })) => {
+                assert_eq!(db.to_string_lossy(), "c.sqlite");
+                assert_eq!(seed, vec!["CHG0038258", "INC0040257"]);
+                assert_eq!(case_study, vec!["manlan-2019"]);
+                assert!(expand_references);
+                assert_eq!(max_requests, Some(10));
+                assert_eq!(requests_per_second, Some(0.5));
+                assert!(allow_higher_rate);
+                assert_eq!(contact.as_deref(), Some("ops@example.invalid"));
+                assert!(dry_run);
+                assert!(!show_access_policy);
+                assert!(source_dir.is_none());
+            }
+            _ => panic!("unexpected command"),
+        }
+    }
+
+    #[test]
+    fn higher_rate_requires_explicit_flag() {
+        let (_dir, db) = temp_db();
+        let mut out = Cursor::new(Vec::new());
+        let code = cmd_grnoc_sync_live(
+            &mut out,
+            &db,
+            &["INC0040257".to_string()],
+            &[],
+            false,
+            None,
+            Some(2.0),
+            false,
+            None,
+            true,
+        );
+        assert_eq!(code, EXIT_INVALID_INPUT);
+        let text = String::from_utf8(out.into_inner()).unwrap();
+        assert!(text.contains("--allow-higher-rate"), "{text}");
+    }
+
+    #[test]
+    fn dry_run_shows_frontier_without_network() {
+        let (_dir, db) = temp_db();
+        let conn = inim::catalog::db::open_catalog(&db).unwrap();
+        inim::catalog::discovery::record_analyst_seed(
+            &conn,
+            "grnoc-public-task-viewer",
+            "INC0040257",
+            "2026-08-01T00:00:00Z",
+        )
+        .unwrap();
+        drop(conn);
+        let mut out = Cursor::new(Vec::new());
+        let code = cmd_grnoc_sync_live(
+            &mut out,
+            &db,
+            &[],
+            &[],
+            false,
+            None,
+            None,
+            false,
+            None,
+            true,
+        );
+        assert_eq!(code, EXIT_SUCCESS);
+        let text = String::from_utf8(out.into_inner()).unwrap();
+        assert!(
+            text.contains("dry-run: no network access performed"),
+            "{text}"
+        );
+        assert!(text.contains("would fetch INC0040257"), "{text}");
+    }
+
+    #[test]
+    fn live_mode_without_seed_sources_is_rejected() {
+        let (_dir, db) = temp_db();
+        let mut out = Cursor::new(Vec::new());
+        let code = cmd_grnoc_sync_live(
+            &mut out,
+            &db,
+            &[],
+            &[],
+            false,
+            None,
+            None,
+            false,
+            None,
+            true,
+        );
+        assert_eq!(code, EXIT_INVALID_INPUT);
+        let text = String::from_utf8(out.into_inner()).unwrap();
+        assert!(text.contains("no pending tickets"), "{text}");
+        assert!(text.contains("--seed"), "{text}");
+    }
+
+    #[test]
+    fn analysis_queue_renders_readiness() {
+        let (_dir, db) = temp_db();
+        let conn = inim::catalog::db::open_catalog(&db).unwrap();
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(
+            dir.path().join("e.json"),
+            r#"{"number":"INC0099901","short_description":"t","start":"2026-07-28T04:35:00Z","end":"2026-07-28T05:00:00Z"}"#,
+        )
+        .unwrap();
+        let src = inim::catalog::grnoc::GrnocCatalogSource::new(
+            dir.path().to_path_buf(),
+            "2026-08-01T00:00:00Z".into(),
+        );
+        inim::catalog::sync::sync_catalog(&conn, &src, "2026-08-01T00:00:00Z").unwrap();
+        drop(conn);
+        let mut out = Cursor::new(Vec::new());
+        let code = cmd_analysis_queue(&mut out, &db, None);
+        assert_eq!(code, EXIT_SUCCESS);
+        let text = String::from_utf8(out.into_inner()).unwrap();
+        assert!(text.contains("INC0099901"), "{text}");
+        assert!(text.contains("NotReviewed"), "{text}");
+        // State filter narrows the output.
+        let mut out = Cursor::new(Vec::new());
+        let _ = cmd_analysis_queue(&mut out, &db, Some("AnalysisComplete"));
+        let text = String::from_utf8(out.into_inner()).unwrap();
+        assert!(!text.contains("INC0099901"), "{text}");
+    }
+
+    #[test]
+    fn corpus_export_is_metadata_only() {
+        let (_dir, db) = temp_db();
+        let conn = inim::catalog::db::open_catalog(&db).unwrap();
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(
+            dir.path().join("e.json"),
+            r#"{"number":"INC0099902","short_description":"t","description":"secret payload","start":"2026-07-28T04:35:00Z","source_url":"https://ticket-viewer.grnoc.iu.edu/tickets/INC0099902/"}"#,
+        )
+        .unwrap();
+        let src = inim::catalog::grnoc::GrnocCatalogSource::new(
+            dir.path().to_path_buf(),
+            "2026-08-01T00:00:00Z".into(),
+        );
+        inim::catalog::sync::sync_catalog(&conn, &src, "2026-08-01T00:00:00Z").unwrap();
+        drop(conn);
+        let export_dir = tempfile::tempdir().unwrap();
+        let out_path = export_dir.path().join("export.json");
+        let mut out = Cursor::new(Vec::new());
+        let code = cmd_corpus_export(&mut out, &db, Some(&out_path));
+        assert_eq!(code, EXIT_SUCCESS);
+        let export: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(&out_path).unwrap()).unwrap();
+        assert_eq!(export["events"][0]["external_id"], "INC0099902");
+        assert_eq!(
+            export["snapshots"][0]["content_sha256"]
+                .as_str()
+                .unwrap()
+                .len(),
+            64
+        );
+        assert_eq!(
+            export["snapshots"][0]["source_url"],
+            "https://ticket-viewer.grnoc.iu.edu/tickets/INC0099902/"
+        );
+        // Raw payloads never appear in the metadata export.
+        let text = serde_json::to_string(&export).unwrap();
+        assert!(!text.contains("secret payload"), "{text}");
+        assert!(!text.contains("raw_payload"), "{text}");
     }
 }

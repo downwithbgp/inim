@@ -238,6 +238,9 @@ pub struct PoliteClient {
     last_request_at: Option<Instant>,
     /// Retries consumed by the most recent completed fetch.
     last_retries: u32,
+    /// Response bytes transferred (content-length where present, plus
+    /// body bytes) — for pilot accounting, not for any analysis input.
+    bytes_transferred: u64,
 }
 
 impl PoliteClient {
@@ -260,6 +263,7 @@ impl PoliteClient {
             budget_remaining: usize::MAX,
             last_request_at: None,
             last_retries: 0,
+            bytes_transferred: 0,
         })
     }
 
@@ -278,6 +282,11 @@ impl PoliteClient {
     /// Retries consumed by the most recently completed fetch.
     pub fn last_retries(&self) -> u32 {
         self.last_retries
+    }
+
+    /// Response bytes transferred so far (best-effort accounting).
+    pub fn bytes_transferred(&self) -> u64 {
+        self.bytes_transferred
     }
 
     /// Set the per-sync request budget for this client instance.
@@ -364,7 +373,10 @@ impl PoliteClient {
         None
     }
 
-    fn body_of(response: reqwest::blocking::Response) -> Result<FetchedBody, ClientError> {
+    fn body_of(
+        &mut self,
+        response: reqwest::blocking::Response,
+    ) -> Result<FetchedBody, ClientError> {
         let status = response.status().as_u16();
         let content_type = response
             .headers()
@@ -384,6 +396,7 @@ impl PoliteClient {
         let body = response
             .text()
             .map_err(|e| ClientError::Transport(format!("cannot read response body: {e}")))?;
+        self.bytes_transferred += body.len() as u64;
         Ok(FetchedBody {
             body,
             status,
@@ -448,7 +461,7 @@ impl PoliteClient {
             let response = request(self, etag, last_modified)?;
             let status = response.status().as_u16();
             match status {
-                200 => return Ok(FetchOutcome::Ok(Self::body_of(response)?)),
+                200 => return Ok(FetchOutcome::Ok(self.body_of(response)?)),
                 304 => {
                     self.last_retries = attempt;
                     return Ok(FetchOutcome::NotModified);

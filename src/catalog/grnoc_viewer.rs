@@ -94,6 +94,11 @@ impl GrnocViewerClient {
         self.client.requests_made()
     }
 
+    /// Response bytes transferred so far (pilot accounting only).
+    pub fn bytes_transferred(&self) -> u64 {
+        self.client.bytes_transferred()
+    }
+
     /// Endpoint for a ticket number; `None` for unsupported families.
     fn endpoint_for(number: &str) -> Option<&'static str> {
         let lower = number.to_ascii_lowercase();
