@@ -25,6 +25,7 @@ pub mod observer_compare;
 pub mod phase_summary;
 pub mod relationships;
 pub mod review;
+pub mod source_extract;
 pub mod status;
 pub mod store;
 pub mod sync;

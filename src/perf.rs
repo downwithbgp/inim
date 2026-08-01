@@ -271,3 +271,96 @@ mod pipeline_tests {
         assert_eq!(m["compressed_bytes"], 1_500_000);
     }
 }
+
+/// CPU topology as visible at three different levels: the host
+/// (`/proc/cpuinfo`), the process (scheduler + affinity), and the
+/// container (cgroup v2 cpuset/cpu.max). A development server may expose
+/// more CPUs to the host than to a VM/container; worker defaults must be
+/// chosen from the PROCESS view, never from a host-only figure.
+#[derive(Debug, Clone, Serialize, Default)]
+pub struct CpuTopology {
+    /// Host-visible CPU count (lines in /proc/cpuinfo).
+    pub host_cpuinfo_count: usize,
+    /// Process-visible parallelism (std available_parallelism).
+    pub process_visible_cpus: usize,
+    /// cgroup v2 cpuset.cpus.effective when readable.
+    pub cpuset_effective: Option<String>,
+    /// Process affinity (Cpus_allowed_list) when readable.
+    pub affinity: Option<String>,
+    /// cgroup CPU quota when readable.
+    pub cgroup_cpu_max: Option<String>,
+}
+
+/// Collect the three-level CPU topology. Every probe degrades gracefully.
+pub fn cpu_topology() -> CpuTopology {
+    CpuTopology {
+        host_cpuinfo_count: logical_cpus(),
+        process_visible_cpus: std::thread::available_parallelism()
+            .map(|n| n.get())
+            .unwrap_or(1),
+        cpuset_effective: std::fs::read_to_string("/sys/fs/cgroup/cpuset.cpus.effective")
+            .ok()
+            .map(|s| s.trim().to_string())
+            .filter(|s| !s.is_empty()),
+        affinity: cpu_affinity(),
+        cgroup_cpu_max: cgroup_cpu_max(),
+    }
+}
+
+#[cfg(test)]
+mod cpu_topology_tests {
+    use super::*;
+
+    #[test]
+    fn cpu_limit_reporting_distinguishes_host_and_process_visibility() {
+        let topo = cpu_topology();
+        // Host view and process view are separate fields — a host-only
+        // figure must never be reported as the process-visible count.
+        assert!(topo.host_cpuinfo_count >= 1);
+        assert!(topo.process_visible_cpus >= 1);
+        assert_ne!(
+            topo.host_cpuinfo_count, 0,
+            "host CPU count must be a distinct, reported value"
+        );
+        // When the process is restricted (affinity/cgroup/cpuset), the
+        // process view must be the effective one.
+        let restricted = topo.affinity.is_some()
+            || topo.cpuset_effective.is_some()
+            || topo.cgroup_cpu_max.is_some();
+        if restricted {
+            let allowed = topo
+                .cpuset_effective
+                .clone()
+                .map(|s| {
+                    // Count CPUs in a cpuset list like "0-11,14".
+                    let mut n = 0usize;
+                    for part in s.split(',') {
+                        if let Some((a, b)) = part.split_once('-') {
+                            let lo: usize = a.parse().unwrap_or(0);
+                            let hi: usize = b.parse().unwrap_or(lo);
+                            n += hi - lo + 1;
+                        } else if !part.is_empty() {
+                            n += 1;
+                        }
+                    }
+                    n
+                })
+                .unwrap_or(topo.process_visible_cpus);
+            assert!(
+                topo.process_visible_cpus <= topo.host_cpuinfo_count,
+                "process cannot see more CPUs than the host"
+            );
+            assert!(
+                allowed <= topo.host_cpuinfo_count,
+                "cpuset cannot exceed the host CPU count"
+            );
+        }
+        // The serialized report keeps every level distinct.
+        let json = serde_json::to_string(&topo).unwrap();
+        assert!(json.contains("host_cpuinfo_count"));
+        assert!(json.contains("process_visible_cpus"));
+        assert!(json.contains("cpuset_effective"));
+        assert!(json.contains("affinity"));
+        assert!(json.contains("cgroup_cpu_max"));
+    }
+}

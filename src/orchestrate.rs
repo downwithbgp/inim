@@ -253,44 +253,93 @@ fn run_inner(
             archive_order: 0,
         };
         let path = Path::new(&cached_rib.local_path);
-        let stream = ObservationStream::from_local_file(path.to_path_buf(), ctx)
-            .map_err(|e| format!("failed to open RIB {}: {e}", path.display()))?;
+        let origin_asns = manifest.target.origin_asns.clone();
+        let transit_predicate = reviewed_transit_predicate(&manifest)?;
+        let collector_id = collector.clone();
 
         let mut parsed: usize = 0;
         let mut origin_match: usize = 0;
         let mut transit_match: usize = 0;
-        let collector_id = collector.clone();
-        let transit_predicate = reviewed_transit_predicate(&manifest)?;
-        let origin_asns = manifest.target.origin_asns.clone();
         let mut collector_obs: Vec<RouteObservation> = Vec::new();
 
-        for result in stream {
-            let obs = result.map_err(|e| format!("RIB parse error: {e}"))?;
-            parsed += 1;
+        // ── Source-extraction reuse ────────────────────────────────
+        // Same source + same origin set (any transit predicate): load the
+        // origin-matching observations instead of re-parsing the archive.
+        // Predicate filtering and cohort admission run identically below.
+        let extraction_key = crate::catalog::source_extract::extraction_key(
+            &cached_rib.sha256,
+            family.as_str(),
+            collector,
+            &origin_asns,
+        );
+        let extraction_hit = if cache_control.no_derived_cache {
+            None
+        } else {
+            crate::catalog::source_extract::load_origin_extraction(cache_dir, &extraction_key)
+        };
 
-            // In-stream belt-and-braces: only keep elements matching origin AND path
-            let attrs = match &obs.attributes {
-                Some(a) => a,
-                None => continue,
-            };
-            let origin = attrs.origin_asns.first().map(|a| a.0).unwrap_or(0);
-            if !origin_asns.contains(&origin) {
-                continue;
+        if let Some(reused) = extraction_hit {
+            collector_obs = reused;
+            parsed = collector_obs.len();
+            origin_match = collector_obs.len();
+            transit_match = collector_obs
+                .iter()
+                .filter(|o| {
+                    o.attributes
+                        .as_ref()
+                        .map(|a| transit_predicate.evaluate(&a.as_path))
+                        .unwrap_or(false)
+                })
+                .count();
+            eprintln!(
+                "  [{collector_id} RIB] source extraction hit: {} origin-matching routes (0.0s parse)",
+                collector_obs.len(),
+            );
+        } else {
+            let stream = ObservationStream::from_local_file(path.to_path_buf(), ctx)
+                .map_err(|e| format!("failed to open RIB {}: {e}", path.display()))?;
+
+            for result in stream {
+                let obs = result.map_err(|e| format!("RIB parse error: {e}"))?;
+                parsed += 1;
+
+                // In-stream belt-and-braces: only keep elements matching origin AND path
+                let attrs = match &obs.attributes {
+                    Some(a) => a,
+                    None => continue,
+                };
+                let origin = attrs.origin_asns.first().map(|a| a.0).unwrap_or(0);
+                if !origin_asns.contains(&origin) {
+                    continue;
+                }
+                origin_match += 1;
+
+                if !transit_predicate.evaluate(&attrs.as_path) {
+                    continue;
+                }
+                transit_match += 1;
+
+                collector_obs.push(obs);
+
+                // Progress every 1M elements or if last
+                if parsed.is_multiple_of(1_000_000) {
+                    eprintln!(
+                        "  [{collector_id} RIB] {parsed} elements, {origin_match} origin, {transit_match} transit"
+                    );
+                }
             }
-            origin_match += 1;
-
-            if !transit_predicate.evaluate(&attrs.as_path) {
-                continue;
-            }
-            transit_match += 1;
-
-            collector_obs.push(obs);
-
-            // Progress every 1M elements or if last
-            if parsed.is_multiple_of(1_000_000) {
-                eprintln!(
-                    "  [{collector_id} RIB] {parsed} elements, {origin_match} origin, {transit_match} transit"
-                );
+            // Persist the origin-matching extraction for reuse by other
+            // selectors over the same source (two-plane batches, audits,
+            // inventories). Failure is non-fatal: standalone behavior is
+            // unchanged.
+            if !cache_control.no_derived_cache {
+                if let Err(e) = crate::catalog::source_extract::save_origin_extraction(
+                    cache_dir,
+                    &extraction_key,
+                    &collector_obs,
+                ) {
+                    eprintln!("  warning: failed to save source extraction: {e}");
+                }
             }
         }
 
