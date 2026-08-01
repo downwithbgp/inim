@@ -227,7 +227,7 @@ mod counting_tests {
     fn path_moving_between_planes_remains_admitted() {
         let cs = vec![classifier("re", 64500), classifier("pex", 64501)];
         // The same prefix's route INSTANCE moves from the R&E plane to the
-        // I2PX plane across time: both instances are admitted and counted
+        // PEX plane across time: both instances are admitted and counted
         // (each under its own class) — nothing is rejected for changing
         // planes.
         let routes = vec![
@@ -246,13 +246,16 @@ mod counting_tests {
     fn plane_specific_runs_use_independent_cohorts() {
         // The two plane manifests select independent cohorts: a route in
         // the R&E cohort is admitted only when its path contains the R&E
-        // plane ASN; the same route set under the I2PX selector produces a
+        // plane ASN; the same route set under the PEX selector produces a
         // DIFFERENT cohort (and possibly an empty one).
         let cs = vec![classifier("re", 64500), classifier("pex", 64501)];
         let routes = vec![route(vec![64600, 64500])];
         let (per, _, _) = inventory_counts(&cs, &routes);
         assert_eq!(per.get("re"), Some(&1));
-        assert!(!per.contains_key("pex"), "I2PX classifier sees nothing");
+        assert!(
+            !per.contains_key("pex"),
+            "Peer Exchange classifier sees nothing"
+        );
         // And the cohort selection itself (scan_rib_and_freeze) is
         // predicate-scoped — covered by source_extract reuse tests; here
         // we assert the two selectors are distinct predicates.

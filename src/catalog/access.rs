@@ -1,34 +1,44 @@
-//! Conservative HTTP access policy for public source acquisition
-//! (Session 33, Part 2).
+//! Reviewed HTTP access policy for public source acquisition.
 //!
-//! Until an official policy or explicit permission provides different
-//! limits, public source acquisition uses a self-imposed conservative
-//! default:
+//! Reviewed local operational guidance (Session 35, Part 8): the
+//! unauthenticated GRNOC Public Task Viewer endpoints can be accessed at
+//! up to **five requests per second** without operational concern. This
+//! is reviewed local operational guidance, NOT a publicly documented API
+//! service-level guarantee.
 //!
-//! - maximum concurrent requests: **1**
-//! - sustained request rate: **0.25 requests/second** (one request every
-//!   four seconds)
-//! - burst: **1**
+//! Default (self-imposed, never exceeded without an explicit flag):
+//!
+//! - sustained rate: **5 requests/second** (smooth token bucket)
+//! - burst: **2** immediate requests, then paced
+//! - maximum in-flight: **5**
 //! - default request budget per sync: **100**
 //!
-//! The client honors conditional requests (If-None-Match /
-//! If-Modified-Since), `Retry-After`, exponential backoff with bounded
-//! jitter, and documented stop conditions. A higher rate requires an
-//! explicit flag at the CLI (never a default).
+//! The client is fully responsive to source feedback: the first 429 or
+//! explicit throttle reduces the effective rate immediately (honoring
+//! `Retry-After`); repeated throttling stops the sync cleanly; sustained
+//! success allows bounded recovery up to the configured ceiling. Values
+//! above 5 requests/second require an explicit `--allow-higher-rate` flag
+//! (never a default). Conditional requests (If-None-Match /
+//! If-Modified-Since), request budgets, immutable snapshots, and no blind
+//! numeric-ID enumeration are retained.
 //!
 //! State/priority label maps elsewhere are lossless label translations;
 //! this module contains no severity or priority computation.
 
 use std::time::{Duration, Instant};
 
-/// Default maximum concurrent requests (strictly serial).
-pub const DEFAULT_MAX_CONCURRENCY: usize = 1;
-/// Default sustained request rate (one request every four seconds).
-pub const DEFAULT_REQUESTS_PER_SECOND: f64 = 0.25;
-/// Default burst size.
-pub const DEFAULT_BURST: usize = 1;
+/// Default maximum concurrent (in-flight) requests.
+pub const DEFAULT_MAX_CONCURRENCY: usize = 5;
+/// Default sustained request rate (reviewed local guidance, Session 35).
+pub const DEFAULT_REQUESTS_PER_SECOND: f64 = 5.0;
+/// Default burst size (immediate requests before pacing).
+pub const DEFAULT_BURST: usize = 2;
 /// Default request budget per sync.
 pub const DEFAULT_MAX_REQUESTS: usize = 100;
+/// Floor for the adaptive effective rate (never below this).
+pub const ADAPTIVE_RATE_FLOOR_RPS: f64 = 0.25;
+/// Consecutive successes before one bounded recovery step.
+pub const RECOVERY_SUCCESS_WINDOW: u64 = 20;
 /// Transient-failure retries per request (429/503/5xx).
 pub const DEFAULT_MAX_RETRIES: u32 = 3;
 /// Backoff base delay for the first retry.
@@ -235,12 +245,15 @@ pub struct PoliteClient {
     requests_made: u64,
     /// Remaining per-sync budget.
     budget_remaining: usize,
-    last_request_at: Option<Instant>,
+    /// Smooth adaptive rate limiter (tokens + in-flight cap).
+    limiter: RateLimiter,
     /// Retries consumed by the most recent completed fetch.
     last_retries: u32,
     /// Response bytes transferred (content-length where present, plus
     /// body bytes) — for pilot accounting, not for any analysis input.
     bytes_transferred: u64,
+    /// Per-sync acquisition metrics.
+    pub metrics: SyncMetrics,
 }
 
 impl PoliteClient {
@@ -251,6 +264,9 @@ impl PoliteClient {
     /// `new` with an explicit RNG seed (deterministic tests).
     pub fn new_with_seed(policy: AccessPolicy, seed: u64) -> Result<Self, String> {
         policy.validate()?;
+        let configured_rps = policy.requests_per_second;
+        let burst = policy.burst;
+        let max_concurrency = policy.max_concurrency;
         let http = reqwest::blocking::Client::builder()
             .user_agent(policy.user_agent())
             .build()
@@ -261,9 +277,13 @@ impl PoliteClient {
             rng: JitterRng::new(seed),
             requests_made: 0,
             budget_remaining: usize::MAX,
-            last_request_at: None,
+            limiter: RateLimiter::new(configured_rps, burst, max_concurrency),
             last_retries: 0,
             bytes_transferred: 0,
+            metrics: SyncMetrics {
+                configured_rps,
+                ..Default::default()
+            },
         })
     }
 
@@ -294,15 +314,10 @@ impl PoliteClient {
         self.budget_remaining = budget;
     }
 
-    /// Enforce the sustained request rate (sleep until the next slot).
+    /// Enforce the smooth sustained request rate: at most `burst`
+    /// immediate requests, then paced at the adaptive effective rate.
     fn pace(&mut self) {
-        let interval = self.policy.min_interval();
-        if let Some(last) = self.last_request_at {
-            let elapsed = last.elapsed();
-            if elapsed < interval {
-                std::thread::sleep(interval - elapsed);
-            }
-        }
+        self.limiter.acquire();
     }
 
     /// One paced, budgeted GET request against the source.
@@ -313,7 +328,6 @@ impl PoliteClient {
         last_modified: Option<&str>,
     ) -> Result<reqwest::blocking::Response, ClientError> {
         self.pace();
-        self.last_request_at = Some(Instant::now());
         self.requests_made += 1;
         self.budget_remaining = self.budget_remaining.saturating_sub(1);
         let mut req = self.http.get(url);
@@ -336,7 +350,6 @@ impl PoliteClient {
         last_modified: Option<&str>,
     ) -> Result<reqwest::blocking::Response, ClientError> {
         self.pace();
-        self.last_request_at = Some(Instant::now());
         self.requests_made += 1;
         self.budget_remaining = self.budget_remaining.saturating_sub(1);
         let mut req = self
@@ -458,22 +471,50 @@ impl PoliteClient {
             if self.budget_remaining == 0 {
                 return Err(ClientError::Stop(StopReason::BudgetExhausted));
             }
-            let response = request(self, etag, last_modified)?;
+            let t0 = Instant::now();
+            self.limiter
+                .acquire_inflight()
+                .map_err(ClientError::Transport)?;
+            let response = request(self, etag, last_modified);
+            self.limiter.release_inflight();
+            let response = response?;
+            self.metrics
+                .status_counts
+                .entry(response.status().as_u16())
+                .and_modify(|n| *n += 1)
+                .or_insert(1);
+            self.metrics.latencies_secs.push(t0.elapsed().as_secs_f64());
+            if Self::retry_after(&response).is_some() {
+                self.metrics.retry_after_responses += 1;
+            }
             let status = response.status().as_u16();
             match status {
-                200 => return Ok(FetchOutcome::Ok(self.body_of(response)?)),
+                200 => {
+                    // A completed (non-throttled) request: bounded recovery.
+                    self.limiter.note_success();
+                    self.metrics.rate_reductions = self.limiter.rate_reductions;
+                    self.metrics.rate_recoveries = self.limiter.rate_recoveries;
+                    self.metrics.max_observed_inflight = self.limiter.max_observed_inflight;
+                    self.metrics.final_effective_rps = self.limiter.effective_rps();
+                    return Ok(FetchOutcome::Ok(self.body_of(response)?));
+                }
                 304 => {
+                    self.limiter.note_success();
                     self.last_retries = attempt;
                     return Ok(FetchOutcome::NotModified);
                 }
                 404 => {
+                    self.limiter.note_success();
                     self.last_retries = attempt;
                     return Ok(FetchOutcome::NotFound);
                 }
                 401 => return Err(ClientError::Stop(StopReason::AuthenticationRequired)),
                 403 => return Err(ClientError::Stop(StopReason::Forbidden)),
                 429 => {
+                    // Source feedback: honor Retry-After AND reduce the
+                    // effective rate immediately.
                     let retry_after = Self::retry_after(&response);
+                    self.limiter.note_throttle();
                     drop(response);
                     if attempt >= self.policy.max_retries {
                         return Err(ClientError::Stop(StopReason::RepeatedRateLimited));
@@ -520,14 +561,14 @@ mod tests {
     use super::*;
 
     #[test]
-    fn default_rate_is_conservative() {
+    fn default_grnoc_rate_is_five_per_second() {
         let p = AccessPolicy::default();
-        assert_eq!(p.max_concurrency, 1);
-        assert_eq!(p.burst, 1);
+        assert_eq!(p.max_concurrency, 5);
+        assert_eq!(p.burst, 2);
         assert_eq!(p.max_requests, 100);
-        assert!((p.requests_per_second - 0.25).abs() < 1e-9);
-        // One request every four seconds.
-        assert_eq!(p.min_interval(), Duration::from_secs(4));
+        assert!((p.requests_per_second - 5.0).abs() < 1e-9);
+        // One request every 200 ms at the configured ceiling.
+        assert!((p.min_interval().as_secs_f64() - 0.2).abs() < 1e-9);
         // User-Agent names the tool, its version, and its purpose; no
         // invented contact appears when none is configured.
         let ua = p.user_agent();
@@ -588,9 +629,9 @@ mod tests {
     use std::sync::{Arc, Mutex};
 
     /// (status, headers, body)
-    type MockResponse = (u16, Vec<(String, String)>, String);
+    pub(super) type MockResponse = (u16, Vec<(String, String)>, String);
 
-    struct MockServer {
+    pub(super) struct MockServer {
         addr: String,
         requests: Arc<AtomicUsize>,
         /// (status, headers, body) responses consumed in order; the last
@@ -603,7 +644,7 @@ mod tests {
     }
 
     impl MockServer {
-        fn start(script: Vec<MockResponse>) -> Self {
+        pub(super) fn start(script: Vec<MockResponse>) -> Self {
             let listener = TcpListener::bind("127.0.0.1:0").unwrap();
             let addr = listener.local_addr().unwrap().to_string();
             let requests = Arc::new(AtomicUsize::new(0));
@@ -673,7 +714,7 @@ mod tests {
             }
         }
 
-        fn url(&self, path: &str) -> String {
+        pub(super) fn url(&self, path: &str) -> String {
             format!("http://{}{}", self.addr, path)
         }
 
@@ -904,5 +945,292 @@ mod tests {
             Some("Wed, 21 Aug 2019 04:00:00 GMT")
         );
         assert_eq!(body.content_type.as_deref(), Some("application/json"));
+    }
+}
+
+/// Smooth token-bucket rate limiter with adaptive response to source
+/// feedback.
+///
+/// - `configured_rps` is the ceiling (never exceeded).
+/// - `effective_rps` starts at the ceiling; `note_throttle()` halves it
+///   immediately (floor `ADAPTIVE_RATE_FLOOR_RPS`); `note_success()`
+///   recovers it in bounded doubling steps after
+///   `RECOVERY_SUCCESS_WINDOW` consecutive successes.
+/// - The bucket holds `burst` tokens: the first `burst` requests are
+///   immediate, then requests are paced at `1/effective_rps` (smooth
+///   delivery — never a burst of the whole budget).
+/// - `acquire_inflight`/`release_inflight` cap concurrent in-flight
+///   requests at `max_inflight`.
+#[derive(Debug)]
+pub struct RateLimiter {
+    configured_rps: f64,
+    effective_rps: f64,
+    burst: f64,
+    tokens: f64,
+    last_refill: Option<Instant>,
+    max_inflight: usize,
+    inflight: usize,
+    successes: u64,
+    pub rate_reductions: u64,
+    pub rate_recoveries: u64,
+    pub max_observed_inflight: usize,
+}
+
+impl RateLimiter {
+    pub fn new(configured_rps: f64, burst: usize, max_inflight: usize) -> Self {
+        RateLimiter {
+            configured_rps,
+            effective_rps: configured_rps,
+            burst: burst as f64,
+            tokens: burst as f64,
+            last_refill: None,
+            max_inflight,
+            inflight: 0,
+            successes: 0,
+            rate_reductions: 0,
+            rate_recoveries: 0,
+            max_observed_inflight: 0,
+        }
+    }
+
+    pub fn configured_rps(&self) -> f64 {
+        self.configured_rps
+    }
+
+    pub fn effective_rps(&self) -> f64 {
+        self.effective_rps
+    }
+
+    fn refill(&mut self, now: Instant) {
+        if let Some(last) = self.last_refill {
+            let elapsed = now.duration_since(last).as_secs_f64();
+            self.tokens = (self.tokens + elapsed * self.effective_rps).min(self.burst);
+        }
+        self.last_refill = Some(now);
+    }
+
+    /// Block until a request slot is available and consume one token.
+    /// Smooth: at most `burst` immediate requests, then paced.
+    pub fn acquire(&mut self) {
+        loop {
+            let now = Instant::now();
+            self.refill(now);
+            if self.tokens >= 1.0 {
+                self.tokens -= 1.0;
+                return;
+            }
+            let wait = (1.0 - self.tokens) / self.effective_rps;
+            std::thread::sleep(Duration::from_secs_f64(wait.max(0.001)));
+        }
+    }
+
+    /// Acquire an in-flight slot; `Err` when the cap is already reached.
+    pub fn acquire_inflight(&mut self) -> Result<(), String> {
+        if self.inflight >= self.max_inflight {
+            return Err(format!("in-flight cap {} reached", self.max_inflight));
+        }
+        self.inflight += 1;
+        self.max_observed_inflight = self.max_observed_inflight.max(self.inflight);
+        Ok(())
+    }
+
+    pub fn release_inflight(&mut self) {
+        self.inflight = self.inflight.saturating_sub(1);
+    }
+
+    /// A successful (non-throttled) request: bounded recovery toward the
+    /// configured ceiling.
+    pub fn note_success(&mut self) {
+        self.successes += 1;
+        if self.successes >= RECOVERY_SUCCESS_WINDOW && self.effective_rps < self.configured_rps {
+            self.effective_rps = (self.effective_rps * 2.0).min(self.configured_rps);
+            self.rate_recoveries += 1;
+            self.successes = 0;
+        }
+    }
+
+    /// A throttle response (429 or explicit control message): reduce the
+    /// effective rate immediately.
+    pub fn note_throttle(&mut self) {
+        self.effective_rps = (self.effective_rps / 2.0).max(ADAPTIVE_RATE_FLOOR_RPS);
+        self.rate_reductions += 1;
+        self.successes = 0;
+    }
+}
+
+/// Per-sync acquisition metrics (Part 9 reporting; never analysis input).
+#[derive(Debug, Clone, Default, PartialEq)]
+pub struct SyncMetrics {
+    /// HTTP status -> count.
+    pub status_counts: std::collections::BTreeMap<u16, usize>,
+    /// Responses carrying a Retry-After header.
+    pub retry_after_responses: usize,
+    /// Effective-rate reductions triggered by source feedback.
+    pub rate_reductions: u64,
+    /// Bounded recoveries back toward the configured ceiling.
+    pub rate_recoveries: u64,
+    /// Structured/control messages observed in responses (best effort).
+    pub control_messages: Vec<String>,
+    /// Per-request latency seconds (for distribution reporting).
+    pub latencies_secs: Vec<f64>,
+    pub max_observed_inflight: usize,
+    /// Configured ceiling at sync start.
+    pub configured_rps: f64,
+    /// Effective rate at sync end.
+    pub final_effective_rps: f64,
+}
+
+#[cfg(test)]
+mod limiter_tests {
+    use super::tests::MockServer;
+    use super::*;
+
+    fn response_with_header(
+        name: reqwest::header::HeaderName,
+        value: &str,
+    ) -> reqwest::blocking::Response {
+        // Build a raw http::Response and convert (the `http` types are
+        // re-exported by reqwest for exactly this purpose).
+        use reqwest::StatusCode;
+        let raw = http::response::Response::builder()
+            .status(StatusCode::OK)
+            .header(name, value)
+            .body("x")
+            .unwrap();
+        reqwest::blocking::Response::from(raw)
+    }
+
+    #[test]
+    fn default_rate_uses_smooth_not_burst_delivery() {
+        let mut limiter = RateLimiter::new(5.0, 2, 5);
+        let t0 = Instant::now();
+        limiter.acquire();
+        limiter.acquire();
+        let first_two = t0.elapsed();
+        assert!(
+            first_two.as_secs_f64() < 0.05,
+            "first two requests must be immediate, got {first_two:?}"
+        );
+        limiter.acquire();
+        let third = t0.elapsed();
+        assert!(
+            third.as_secs_f64() >= 0.15,
+            "third request must be paced at the 5/s ceiling, got {third:?}"
+        );
+    }
+
+    #[test]
+    fn maximum_inflight_is_respected() {
+        let mut limiter = RateLimiter::new(5.0, 2, 5);
+        for _ in 0..5 {
+            limiter.acquire_inflight().unwrap();
+        }
+        assert_eq!(limiter.max_observed_inflight, 5);
+        assert!(
+            limiter.acquire_inflight().is_err(),
+            "6th in-flight must fail"
+        );
+        limiter.release_inflight();
+        assert!(
+            limiter.acquire_inflight().is_ok(),
+            "slot freed after release"
+        );
+    }
+
+    #[test]
+    fn first_429_reduces_effective_rate() {
+        let mut limiter = RateLimiter::new(5.0, 2, 5);
+        assert_eq!(limiter.effective_rps(), 5.0);
+        limiter.note_throttle();
+        assert!(
+            (limiter.effective_rps() - 2.5).abs() < 1e-9,
+            "halved immediately"
+        );
+        assert_eq!(limiter.rate_reductions, 1);
+        for _ in 0..5 {
+            limiter.note_throttle();
+        }
+        assert!(
+            (limiter.effective_rps() - ADAPTIVE_RATE_FLOOR_RPS).abs() < 1e-9,
+            "rate must never drop below the floor"
+        );
+    }
+
+    #[test]
+    fn retry_after_is_honored() {
+        let response = response_with_header(reqwest::header::RETRY_AFTER, "7");
+        assert_eq!(
+            PoliteClient::retry_after(&response),
+            Some(Duration::from_secs(7))
+        );
+        let future = chrono::Utc::now() + chrono::Duration::seconds(30);
+        let response = response_with_header(reqwest::header::RETRY_AFTER, &future.to_rfc2822());
+        let d = PoliteClient::retry_after(&response);
+        assert!(d.is_some());
+        let secs = d.unwrap().as_secs();
+        assert!(
+            (20..=60).contains(&secs),
+            "HTTP-date Retry-After bounded, got {secs}s"
+        );
+    }
+
+    #[test]
+    fn repeated_throttling_stops_sync() {
+        let server = MockServer::start(vec![
+            (429, vec![], "{}".to_string()),
+            (429, vec![], "{}".to_string()),
+            (429, vec![], "{}".to_string()),
+            (429, vec![], "{}".to_string()),
+        ]);
+        let policy = AccessPolicy {
+            requests_per_second: 1000.0,
+            max_retries: 3,
+            backoff_base_ms: 1,
+            backoff_max_ms: 5,
+            ..AccessPolicy::conservative()
+        };
+        let mut client = PoliteClient::new(policy).unwrap();
+        let err = client.fetch(&server.url("/t"), None, None).unwrap_err();
+        assert_eq!(err, ClientError::Stop(StopReason::RepeatedRateLimited));
+    }
+
+    #[test]
+    fn successful_requests_allow_bounded_recovery() {
+        let mut limiter = RateLimiter::new(5.0, 2, 5);
+        limiter.note_throttle();
+        assert!((limiter.effective_rps() - 2.5).abs() < 1e-9);
+        for _ in 0..RECOVERY_SUCCESS_WINDOW {
+            limiter.note_success();
+        }
+        assert!(
+            (limiter.effective_rps() - 5.0).abs() < 1e-9,
+            "recovered to the configured ceiling"
+        );
+        assert_eq!(limiter.rate_recoveries, 1);
+        for _ in 0..RECOVERY_SUCCESS_WINDOW * 3 {
+            limiter.note_success();
+        }
+        assert!(
+            (limiter.effective_rps() - 5.0).abs() < 1e-9,
+            "never exceeds the configured ceiling"
+        );
+    }
+
+    #[test]
+    fn request_budget_remains_enforced() {
+        let server = MockServer::start(vec![
+            (200, vec![], "{}".to_string()),
+            (200, vec![], "{}".to_string()),
+        ]);
+        let policy = AccessPolicy {
+            requests_per_second: 1000.0,
+            max_requests: 1,
+            ..AccessPolicy::conservative()
+        };
+        let mut client = PoliteClient::new(policy).unwrap();
+        client.set_budget(1);
+        assert!(client.fetch(&server.url("/t"), None, None).is_ok());
+        let err = client.fetch(&server.url("/t"), None, None).unwrap_err();
+        assert_eq!(err, ClientError::Stop(StopReason::BudgetExhausted));
     }
 }

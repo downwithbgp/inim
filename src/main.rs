@@ -473,8 +473,8 @@ enum SyncSource {
         /// Request budget for this sync (default 100; never unbounded).
         #[arg(long, value_name = "N")]
         max_requests: Option<usize>,
-        /// Sustained request rate (default 0.25; values above 1.0
-        /// require --allow-higher-rate).
+        /// Sustained request rate (reviewed default 5.0; values above
+        /// 5.0 require --allow-higher-rate).
         #[arg(long, value_name = "RPS")]
         requests_per_second: Option<f64>,
         /// Explicitly allow a substantially higher request rate.
@@ -1275,7 +1275,12 @@ fn cmd_catalog(stdout: &mut dyn Write, command: &CatalogCommands) -> i32 {
                         policy.requests_per_second,
                         1.0 / policy.requests_per_second
                     );
-                    let _ = writeln!(stdout, "  burst:              {}", policy.burst);
+                    let _ = writeln!(
+                        stdout,
+                        "  burst:              {} (then paced)",
+                        policy.burst
+                    );
+                    let _ = writeln!(stdout, "  adaptive:           429/Retry-After halves the effective rate; repeated throttling stops; sustained success recovers up to the ceiling");
                     let _ = writeln!(
                         stdout,
                         "  request budget:     {} per sync",
@@ -1985,10 +1990,10 @@ fn cmd_grnoc_sync_live(
     // ── Access policy ──────────────────────────────────────────────
     let mut policy = AccessPolicy::conservative();
     if let Some(rps) = requests_per_second {
-        if rps > 1.0 && !allow_higher_rate {
+        if rps > 5.0 && !allow_higher_rate {
             let _ = writeln!(
                 stdout,
-                "error: {rps} requests/second is substantially higher than the default 0.25; pass --allow-higher-rate to confirm"
+                "error: {rps} requests/second exceeds the reviewed ceiling of 5.0; pass --allow-higher-rate to confirm"
             );
             return EXIT_INVALID_INPUT;
         }
@@ -2846,8 +2851,9 @@ mod session33_cli_tests {
     }
 
     #[test]
-    fn higher_rate_requires_explicit_flag() {
+    fn rate_above_five_requires_explicit_override() {
         let (_dir, db) = temp_db();
+        // 6.0 requests/second requires the flag.
         let mut out = Cursor::new(Vec::new());
         let code = cmd_grnoc_sync_live(
             &mut out,
@@ -2856,7 +2862,7 @@ mod session33_cli_tests {
             &[],
             false,
             None,
-            Some(2.0),
+            Some(6.0),
             false,
             None,
             true,
@@ -2864,6 +2870,22 @@ mod session33_cli_tests {
         assert_eq!(code, EXIT_INVALID_INPUT);
         let text = String::from_utf8(out.into_inner()).unwrap();
         assert!(text.contains("--allow-higher-rate"), "{text}");
+        // With the flag the same rate is accepted (and the sync proceeds
+        // to the frontier check — still no network because it is dry-run).
+        let mut out2 = Cursor::new(Vec::new());
+        let code2 = cmd_grnoc_sync_live(
+            &mut out2,
+            &db,
+            &["INC0040257".to_string()],
+            &[],
+            false,
+            None,
+            Some(6.0),
+            true,
+            None,
+            true,
+        );
+        assert_ne!(code2, EXIT_INVALID_INPUT, "flag must permit the rate");
     }
 
     #[test]

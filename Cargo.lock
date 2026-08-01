@@ -1096,6 +1096,7 @@ dependencies = [
  "chrono",
  "clap",
  "flate2",
+ "http",
  "regex",
  "reqwest 0.12.28",
  "rusqlite",
