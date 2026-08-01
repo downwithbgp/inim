@@ -89,3 +89,15 @@ pilot predicate is reviewed-by-observation rather than assumed. A
 NotDirectlyVisible condition stays NotDirectlyObservable even when a pilot
 run exists; a narrow pilot's absence of observations never refutes
 non-BGP-visible conditions, and never extends beyond its own window.
+
+## Pilot timing interpretation (Session 32)
+
+Temporal relations preserve event order: for point action anchors the
+relation is Before/After based on the earliest observed route-state
+activity relative to the point, and the comparison row exposes the exact
+times and delta ("order is explicit, no causal attribution"). A BGP
+observation that precedes the reported interface action is never rendered
+as a consequence of that action; restoration before a reported re-enable
+is exposed. Broad instability intervals may legitimately overlap BGP
+activity. Public BGP absence at one selected collector is a temporary
+observer-stream observation, never proof of traffic loss.

@@ -76,3 +76,15 @@ cargo clippy --all-targets --all-features -- -D warnings
 2. Decide the `publish` policy explicitly (currently unset — crates.io
    publication is enabled by default).
 3. Create and push the git tag `v0.1.0` only when explicitly requested.
+
+## Screenshot review workflow (Session 32)
+
+- Run `scripts/screenshot-review.sh` (requires an installed Playwright
+  chromium; loopback only; deterministic demo catalog at
+  `data/inim.sqlite`). Output: `tmp/ui-review/*.png` — gitignored and
+  excluded from `cargo package`; do not commit screenshots.
+- Screenshots are for EXTERNAL computer-vision review; do not self-certify
+  visual quality in this repository.
+- Release checklist: verify `tmp/` stays out of the package
+  (`cargo package --list`), and that no browser dependency enters the Rust
+  runtime graph.

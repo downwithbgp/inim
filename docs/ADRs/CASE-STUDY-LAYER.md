@@ -97,3 +97,15 @@ Key decisions:
   fabricate a negative for a claim window it never covered.
 - Pilot findings are labeled "Historical pilot — <target>" and never
   broadened into a complete-incident conclusion.
+
+### Update (Session 32)
+
+- Pilot comparisons preserve event order: point anchors yield
+  Before/After with explicit deltas; observations preceding a reported
+  action are never attributed to it; the two-second absence audit
+  confirmed temporary observer-stream absence at one collector (native
+  precision, single peer, no ordering artifact), which is not proof of
+  traffic loss.
+- Historical analysis parallelism is archive-level with a bounded
+  download→parse pipeline; reconstruction stays sequential and
+  deterministic; performance.json is separate from substantive output.

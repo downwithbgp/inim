@@ -152,3 +152,14 @@ parallel runs produce identical artifacts).
   `run_transitions` remains a compact index rebuilt from `transitions.json`.
 - The pilot result is one target, one collector, one window; it never
   becomes a complete-incident verdict in any artifact or UI text.
+
+## Performance metadata vs substantive output (Session 32)
+
+`performance.json` records stage wall-clock timings and per-archive parse
+metrics. It is volatile by design: timings depend on hardware, load, and
+cache state and are EXCLUDED from substantive artifact-equivalence checks.
+Substantive outputs (report, transitions, lifecycle, waves, evidence,
+withdrawal audit) never contain benchmark timing, and the routing verdict
+never depends on performance measurements. Acquisition (download) time is
+reported separately from parsing time; parser-scaling benchmarks run with
+all raw archives already local.

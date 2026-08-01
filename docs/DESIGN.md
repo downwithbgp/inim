@@ -286,3 +286,35 @@ derivation without misunderstanding this as a universal rule.
 - **Pilot results** are reviewed data (`pilot-result.json`) recorded on the
   plan record and rendered as "Historical pilot — <target>", explicitly
   narrower than the whole incident.
+
+## Concurrency, performance, and review (Session 32)
+
+- **Concurrency boundary**: one compressed archive → parse → normalize →
+  ObserverPrefixKey admission → deterministic per-archive chunk →
+  per-archive derived cache may run concurrently. Route-state
+  reconstruction, tokenization, lifecycle classification, and wave
+  derivation run SEQUENTIALLY afterwards on the merged observation stream.
+- **Pipeline**: `run_bounded_pipeline` — `download_jobs` workers (default 2,
+  conservative) feed a bounded parse channel (capacity = `parse_jobs`);
+  downloads and parses overlap. `archive_order` is pre-assigned from
+  discovery order before any download; results merge in that order and
+  observation ids are assigned after the global deterministic sort, so
+  worker completion order never changes artifacts. Each worker owns its
+  parser/decompression state. Memory is bounded by
+  `(download_jobs + parse_jobs)` in-flight archives plus the merged
+  observation vector; no unversioned temporary evidence is ever written.
+- **Worker selection**: the default parse count is chosen from the local
+  raw-cache benchmark (best safe throughput), not from the host CPU count.
+  `--parse-jobs` and `--download-jobs` override; `--jobs 0` is rejected
+  (previously "auto").
+- **Performance metadata**: `performance.json` (schema v1) carries stage
+  timings and per-archive metrics (identity URL+SHA, compressed bytes,
+  parse time, elements, admitted observations, cache-write time, cache
+  hit). It is a SEPARATE artifact: volatile timings never participate in
+  substantive artifact-equivalence checks and never influence the verdict.
+- **Screenshot review**: `scripts/screenshot-review.sh` builds the
+  deterministic demo catalog state, serves inim on loopback, captures
+  fixed-viewport full-page screenshots via an already-installed Playwright
+  chromium, shuts the server down (trap on failure), and writes
+  `tmp/ui-review/*.png` (gitignored, excluded from the package). Visual
+  quality is reviewed externally, never self-certified.
