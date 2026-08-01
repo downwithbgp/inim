@@ -16,10 +16,27 @@ for N in 1 "$DEFAULT_JOBS" 24; do
     --jobs 1 --parse-jobs "$N" --download-jobs 1 --rebuild-update-caches \
     > "$D/stdout.json" 2> "$D/time.log"
 done
+# Canonical hash: report.json is hashed with the volatile generated_at
+# timestamp blanked; performance.json is excluded entirely.
 HASHES=""
 for N in 1 "$DEFAULT_JOBS" 24; do
   D=tmp/rerun/jobs$N
-  H=$(cd "$D" && cat $SUBSTANTIVE | sha256sum | cut -d' ' -f1)
+  H=$(python3 - "$D" <<'PYEOF2'
+import json, re, sys, hashlib, pathlib
+d = sys.argv[1]
+h = hashlib.sha256()
+for f in ["report.json","report.txt","transitions.json","lifecycle.json",
+          "semantic_waves.json","withdrawal_audit.json",
+          "evidence_appendix.jsonl","archive_manifest.json"]:
+    p = pathlib.Path(d) / f
+    if not p.exists(): continue
+    b = p.read_bytes()
+    if f == "report.json":
+        b = re.sub(r'"generated_at": "[^"]+"', '"generated_at": ""', b.decode()).encode()
+    h.update(b)
+print(h.hexdigest())
+PYEOF2
+)
   echo "jobs=$N substantive_hash=$H"
   HASHES="$HASHES $H"
 done
