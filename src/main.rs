@@ -638,17 +638,22 @@ fn cmd_catalog(stdout: &mut dyn Write, command: &CatalogCommands) -> i32 {
                     for c in &plan.collectors {
                         let _ = writeln!(
                             stdout,
-                            "  {}: {} RIBs + {} updates (availability: {})",
+                            "  {}: baseline RIB {} + validation RIB {} + {} updates (availability: {})",
                             c.collector,
-                            c.ribs.len(),
+                            c.baseline_rib.url.rsplit('/').next().unwrap_or_default(),
+                            c.validation_rib
+                                .as_ref()
+                                .map(|r| r.url.rsplit('/').next().unwrap_or_default().to_string())
+                                .unwrap_or_else(|| "none".to_string()),
                             c.updates.len(),
                             c.availability
                         );
                     }
                     let _ = writeln!(
                         stdout,
-                        "  estimated total download: ~{:.1} MiB (estimate)",
-                        plan.estimated_total_bytes as f64 / (1024.0 * 1024.0)
+                        "  estimated total download: ~{:.1} MiB compressed / ~{:.1} GiB uncompressed (estimates)",
+                        plan.estimated_total_bytes as f64 / (1024.0 * 1024.0),
+                        plan.estimated_total_uncompressed_bytes as f64 / (1024.0 * 1024.0 * 1024.0)
                     );
                     for b in &plan.blocked_targets {
                         let _ = writeln!(stdout, "  blocked: {} — {}", b.source_label, b.reason);

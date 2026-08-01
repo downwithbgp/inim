@@ -1238,6 +1238,7 @@ pub fn load_case_study(
                 blocked_targets: Vec::new(),
                 skipped_targets: Vec::new(),
                 estimated_total_bytes: 0,
+                estimated_total_uncompressed_bytes: 0,
                 estimated_total_is_estimate: true,
                 notes: Vec::new(),
             });
@@ -1252,9 +1253,13 @@ pub fn load_case_study(
                 .iter()
                 .map(|c| {
                     format!(
-                        "{} ({} RIBs, {} updates)",
+                        "{} (baseline {} + validation {}; {} updates)",
                         c.collector,
-                        c.ribs.len(),
+                        c.baseline_rib.url.rsplit('/').next().unwrap_or_default(),
+                        c.validation_rib
+                            .as_ref()
+                            .map(|r| r.url.rsplit('/').next().unwrap_or_default().to_string())
+                            .unwrap_or_else(|| "none".to_string()),
                         c.updates.len()
                     )
                 })

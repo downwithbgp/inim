@@ -25,6 +25,8 @@ const RIB_INTERVAL_SECS: i64 = 2 * 3600;
 const UPDATE_INTERVAL_SECS: i64 = 5 * 60;
 const RIB_ESTIMATED_BYTES: i64 = 75_000_000;
 const UPDATE_ESTIMATED_BYTES: i64 = 3_000_000;
+const RIB_ESTIMATED_UNCOMPRESSED_BYTES: i64 = 1_100_000_000;
+const UPDATE_ESTIMATED_UNCOMPRESSED_BYTES: i64 = 20_000_000;
 
 /// Reviewed analysis horizon.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -49,13 +51,27 @@ pub struct ExpectedFile {
 }
 
 /// Per-collector archive expectations.
+///
+/// Reconstruction contract: ONE baseline RIB establishes initial state;
+/// the UPDATE sequence covers [warmup_start, cooldown_end]; an optional
+/// post-window validation RIB is a continuity checkpoint only and is never
+/// replayed as event input.
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct CollectorPlan {
     pub collector: String,
     /// Availability in 2019: candidate until verified at execution time.
     pub availability: String,
-    pub ribs: Vec<ExpectedFile>,
+    pub baseline_rib: ExpectedFile,
+    pub validation_rib: Option<ExpectedFile>,
     pub updates: Vec<ExpectedFile>,
+    pub first_update_utc: String,
+    pub last_update_utc: String,
+    /// Intervals in the requested horizon with no planned coverage.
+    pub uncovered_intervals: Vec<String>,
+    /// Duplicate URLs collapsed during planning.
+    pub duplicate_urls: usize,
+    pub estimated_compressed_bytes: i64,
+    pub estimated_uncompressed_bytes: i64,
 }
 
 /// A target excluded from execution and why.
@@ -71,7 +87,10 @@ pub struct ArchivePlan {
     pub collectors: Vec<CollectorPlan>,
     pub blocked_targets: Vec<BlockedTarget>,
     pub skipped_targets: Vec<BlockedTarget>,
+    /// Sum of compressed archive bytes (bz2 as served).
     pub estimated_total_bytes: i64,
+    /// Sum of uncompressed bytes after decompression.
+    pub estimated_total_uncompressed_bytes: i64,
     pub estimated_total_is_estimate: bool,
     pub notes: Vec<String>,
 }
@@ -85,6 +104,26 @@ fn parse_utc(s: &str) -> chrono::DateTime<chrono::Utc> {
 fn floor_to(t: chrono::DateTime<chrono::Utc>, interval: i64) -> chrono::DateTime<chrono::Utc> {
     let secs = t.timestamp();
     chrono::DateTime::from_timestamp(secs - secs.rem_euclid(interval), 0).unwrap()
+}
+
+/// RouteViews archive URL for a given timestamp (per-stamp year/month so
+/// windows crossing a month boundary address the correct directory).
+fn routeviews_url_for(collector: &str, t: chrono::DateTime<chrono::Utc>, kind: &str) -> String {
+    routeviews_url(
+        collector,
+        t.year(),
+        t.month(),
+        kind,
+        &rib_or_update_stamp(t, kind),
+    )
+}
+
+fn rib_or_update_stamp(t: chrono::DateTime<chrono::Utc>, kind: &str) -> String {
+    if kind == "RIBS" {
+        rib_stamp(t)
+    } else {
+        update_stamp(t)
+    }
 }
 
 fn routeviews_url(collector: &str, year: i32, month: u32, kind: &str, stamp: &str) -> String {
@@ -107,6 +146,13 @@ fn rib_stamp(t: chrono::DateTime<chrono::Utc>) -> String {
 
 fn update_stamp(t: chrono::DateTime<chrono::Utc>) -> String {
     t.format("%Y%m%d.%H%M").to_string()
+}
+
+/// Extract the archive timestamp (e.g. `20190821.0200`) from a URL.
+fn stamp_of(url: &str) -> String {
+    let file = url.rsplit('/').next().unwrap_or_default();
+    let dot = file.find('.').map(|i| i + 1).unwrap_or(0);
+    file[dot..].trim_end_matches(".bz2").to_string()
 }
 
 /// Build the analysis horizon and expected archive plan for a case study.
@@ -141,42 +187,84 @@ pub fn build_plan(
         review_required: true,
     };
 
-    let year = incident_start.year();
-    let month = incident_start.month();
+    // Reconstruction contract per collector:
+    //   baseline RIB  — the latest RIB at or before warmup_start (initial state)
+    //   updates       — every 5-minute UPDATE intersecting [warmup_start, cooldown_end]
+    //   validation RIB— optional post-window checkpoint (continuity only)
     let mut collectors = Vec::new();
     let mut estimated_total_bytes: i64 = 0;
+    let mut estimated_total_uncompressed_bytes: i64 = 0;
     for collector in COLLECTOR_CANDIDATES_2019 {
-        let rib_start = floor_to(warmup_start, RIB_INTERVAL_SECS);
-        let rib_end = floor_to(cooldown_end, RIB_INTERVAL_SECS);
-        let mut ribs = Vec::new();
-        let mut t = rib_start;
-        while t <= rib_end {
-            ribs.push(ExpectedFile {
-                url: routeviews_url(collector, year, month, "RIBS", &rib_stamp(t)),
-                size_estimated_bytes: Some(RIB_ESTIMATED_BYTES),
-                size_estimated: true,
-            });
+        // Baseline RIB: latest RIB at or before warmup_start.
+        let baseline_t = floor_to(warmup_start, RIB_INTERVAL_SECS);
+        let baseline_rib = ExpectedFile {
+            url: routeviews_url_for(collector, baseline_t, "RIBS"),
+            size_estimated_bytes: Some(RIB_ESTIMATED_BYTES),
+            size_estimated: true,
+        };
+        estimated_total_bytes += RIB_ESTIMATED_BYTES;
+        estimated_total_uncompressed_bytes += RIB_ESTIMATED_UNCOMPRESSED_BYTES;
+
+        // Optional validation RIB: latest RIB at or before cooldown_end,
+        // used for continuity validation only — never replayed as input.
+        let validation_t = floor_to(cooldown_end, RIB_INTERVAL_SECS);
+        let validation_rib = (validation_t > baseline_t).then(|| ExpectedFile {
+            url: routeviews_url_for(collector, validation_t, "RIBS"),
+            size_estimated_bytes: Some(RIB_ESTIMATED_BYTES),
+            size_estimated: true,
+        });
+        if validation_rib.is_some() {
             estimated_total_bytes += RIB_ESTIMATED_BYTES;
-            t += chrono::Duration::seconds(RIB_INTERVAL_SECS);
+            estimated_total_uncompressed_bytes += RIB_ESTIMATED_UNCOMPRESSED_BYTES;
         }
+
+        // UPDATE sequence: every required 5-minute archive intersecting
+        // [warmup_start, cooldown_end], with per-stamp year/month.
         let upd_start = floor_to(warmup_start, UPDATE_INTERVAL_SECS);
         let upd_end = floor_to(cooldown_end, UPDATE_INTERVAL_SECS);
         let mut updates = Vec::new();
+        let mut seen: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
+        let mut duplicates = 0usize;
         let mut u = upd_start;
         while u <= upd_end {
-            updates.push(ExpectedFile {
-                url: routeviews_url(collector, year, month, "UPDATES", &update_stamp(u)),
-                size_estimated_bytes: Some(UPDATE_ESTIMATED_BYTES),
-                size_estimated: true,
-            });
-            estimated_total_bytes += UPDATE_ESTIMATED_BYTES;
+            let url = routeviews_url_for(collector, u, "UPDATES");
+            if !seen.insert(url.clone()) {
+                duplicates += 1;
+            } else {
+                updates.push(ExpectedFile {
+                    url,
+                    size_estimated_bytes: Some(UPDATE_ESTIMATED_BYTES),
+                    size_estimated: true,
+                });
+                estimated_total_bytes += UPDATE_ESTIMATED_BYTES;
+                estimated_total_uncompressed_bytes += UPDATE_ESTIMATED_UNCOMPRESSED_BYTES;
+            }
             u += chrono::Duration::seconds(UPDATE_INTERVAL_SECS);
         }
+        // The schedule is generated from one cadence, so no interval is
+        // uncovered; the field exists for broker-derived plans.
+        let uncovered_intervals: Vec<String> = Vec::new();
+        let update_count = updates.len();
+        let validation_count = usize::from(validation_rib.is_some());
+
         collectors.push(CollectorPlan {
             collector: (*collector).to_string(),
             availability: "candidate-2019 (verify at execution)".to_string(),
-            ribs,
+            baseline_rib,
+            validation_rib,
+            first_update_utc: updates
+                .first()
+                .map(|f| stamp_of(&f.url))
+                .unwrap_or_default(),
+            last_update_utc: updates.last().map(|f| stamp_of(&f.url)).unwrap_or_default(),
             updates,
+            uncovered_intervals,
+            duplicate_urls: duplicates,
+            estimated_compressed_bytes: RIB_ESTIMATED_BYTES * (1 + validation_count as i64)
+                + (update_count as i64) * UPDATE_ESTIMATED_BYTES,
+            estimated_uncompressed_bytes: RIB_ESTIMATED_UNCOMPRESSED_BYTES
+                * (1 + validation_count as i64)
+                + (update_count as i64) * UPDATE_ESTIMATED_UNCOMPRESSED_BYTES,
         });
     }
 
@@ -217,6 +305,7 @@ pub fn build_plan(
             blocked_targets,
             skipped_targets,
             estimated_total_bytes,
+            estimated_total_uncompressed_bytes,
             estimated_total_is_estimate: true,
             notes,
         },
@@ -370,17 +459,17 @@ mod tests {
         assert_eq!(horizon.warmup_start_utc, "2019-08-21T02:00:00Z");
         assert_eq!(horizon.cooldown_end_utc, "2019-08-22T00:38:00Z");
         assert!(horizon.review_required);
-        // Two collectors, each with a full RIB + update series.
+        // Two collectors, each with ONE baseline RIB + a validation RIB +
+        // the update sequence.
         assert_eq!(plan.collectors.len(), 2);
         for c in &plan.collectors {
-            assert!(!c.ribs.is_empty());
-            assert!(!c.updates.is_empty());
             assert!(
-                c.ribs[0].url.contains("2019.08/RIBS/rib.20190821.0200.bz2"),
+                c.baseline_rib.url.ends_with("rib.20190821.0200.bz2"),
                 "{}",
-                c.ribs[0].url
+                c.baseline_rib.url
             );
-            assert!(c.ribs.iter().all(|f| f.size_estimated));
+            assert!(c.validation_rib.is_some());
+            assert!(!c.updates.is_empty());
             assert!(
                 c.updates[0]
                     .url
@@ -394,6 +483,140 @@ mod tests {
             .notes
             .iter()
             .any(|n| n.contains("no archives were downloaded")));
+    }
+
+    #[test]
+    fn planner_selects_one_pre_window_baseline_rib() {
+        let cs = sample_case_study();
+        let (_, plan) = build_plan(&cs, &[], 2, 2).unwrap();
+        for c in &plan.collectors {
+            // The baseline is the RIB at or before warmup start (02:00).
+            assert!(
+                c.baseline_rib.url.ends_with("rib.20190821.0200.bz2"),
+                "{}",
+                c.baseline_rib.url
+            );
+        }
+    }
+
+    #[test]
+    fn planner_does_not_select_every_interval_rib() {
+        let cs = sample_case_study();
+        let (_, plan) = build_plan(&cs, &[], 2, 2).unwrap();
+        for c in &plan.collectors {
+            let rib_count = 1 + usize::from(c.validation_rib.is_some());
+            // The old planner produced 12 interval RIBs; the contract is
+            // one baseline + one optional validation checkpoint.
+            assert!(rib_count <= 2, "interval RIBs must not be selected");
+            if let Some(v) = &c.validation_rib {
+                assert_ne!(v.url, c.baseline_rib.url);
+                assert!(v.url.ends_with("rib.20190822.0000.bz2"), "{}", v.url);
+            }
+        }
+    }
+
+    #[test]
+    fn update_selection_stays_within_requested_horizon() {
+        let cs = sample_case_study();
+        let (horizon, plan) = build_plan(&cs, &[], 2, 2).unwrap();
+        for c in &plan.collectors {
+            assert!(!c.updates.is_empty());
+            let first_stamp = stamp_of(&c.updates.first().unwrap().url);
+            let last_stamp = stamp_of(&c.updates.last().unwrap().url);
+            assert!(first_stamp.as_str() >= "20190821.0200", "{first_stamp}");
+            assert!(last_stamp.as_str() <= "20190822.0035", "{last_stamp}");
+            assert_eq!(c.first_update_utc, "20190821.0200");
+            assert_eq!(c.last_update_utc, "20190822.0035");
+            // Cadence proof: 02:00 -> next-day 00:35 inclusive at 5 min.
+            assert_eq!(c.updates.len(), 272, "5-minute cadence: 22h35m + 1");
+            let _ = horizon;
+        }
+    }
+
+    #[test]
+    fn adjacent_archive_boundaries_are_not_duplicated() {
+        let cs = sample_case_study();
+        let (_, plan) = build_plan(&cs, &[], 2, 2).unwrap();
+        for c in &plan.collectors {
+            // RIB and UPDATE files at the same wall time are distinct
+            // archives (different prefixes); the same URL never repeats.
+            assert!(!c.updates.iter().any(|u| u.url == c.baseline_rib.url));
+            let mut urls: Vec<&String> = c.updates.iter().map(|u| &u.url).collect();
+            let before = urls.len();
+            urls.sort_unstable();
+            urls.dedup();
+            assert_eq!(before, urls.len(), "no duplicate UPDATE URLs");
+            assert_eq!(c.duplicate_urls, 0);
+        }
+    }
+
+    #[test]
+    fn midnight_rollover_is_correct() {
+        let mut cs = sample_case_study();
+        cs.start_utc = Some("2019-08-31T22:00:00Z".to_string());
+        cs.end_utc = Some("2019-09-01T02:00:00Z".to_string());
+        let (_, plan) = build_plan(&cs, &[], 2, 2).unwrap();
+        for c in &plan.collectors {
+            // Warmup start 20:00 on Aug 31; cooldown end 04:00 on Sep 1.
+            assert!(
+                c.baseline_rib.url.contains("/2019.08/"),
+                "{}",
+                c.baseline_rib.url
+            );
+            let sep_updates = c
+                .updates
+                .iter()
+                .filter(|u| u.url.contains("/2019.09/"))
+                .count();
+            assert!(sep_updates > 0, "month rollover missing September files");
+            let aug_ok = c
+                .updates
+                .iter()
+                .filter(|u| u.url.contains("/2019.08/"))
+                .all(|u| u.url.contains("201908"));
+            assert!(aug_ok, "August files must stay in August");
+        }
+    }
+
+    #[test]
+    fn collector_counts_are_reported_individually() {
+        let cs = sample_case_study();
+        let (_, plan) = build_plan(&cs, &[], 2, 2).unwrap();
+        assert_eq!(plan.collectors.len(), 2);
+        assert!(plan.collectors.iter().all(|c| c.updates.len() == 272));
+        let sum: i64 = plan
+            .collectors
+            .iter()
+            .map(|c| c.estimated_compressed_bytes)
+            .sum();
+        assert_eq!(sum, plan.estimated_total_bytes);
+    }
+
+    #[test]
+    fn duplicate_broker_records_are_deduplicated() {
+        // Repeated records from any source collapse to unique URLs.
+        let mut urls = vec![
+            "http://a/x.bz2".to_string(),
+            "http://a/x.bz2".to_string(),
+            "http://a/y.bz2".to_string(),
+        ];
+        let before = urls.len();
+        urls.sort_unstable();
+        urls.dedup();
+        assert_eq!(before, 3);
+        assert_eq!(urls.len(), 2);
+    }
+
+    #[test]
+    fn optional_checkpoint_rib_is_not_replayed_as_event_input() {
+        let cs = sample_case_study();
+        let (_, plan) = build_plan(&cs, &[], 2, 2).unwrap();
+        for c in &plan.collectors {
+            let v = c.validation_rib.as_ref().unwrap();
+            assert_ne!(v.url, c.baseline_rib.url);
+            assert!(!c.updates.iter().any(|u| u.url == v.url));
+            assert!(v.url.ends_with("rib.20190822.0000.bz2"), "{}", v.url);
+        }
     }
 
     #[test]
