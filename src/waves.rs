@@ -236,9 +236,12 @@ fn motif_structure<T: std::fmt::Display + Clone + Eq + std::hash::Hash + std::fm
     // Start rule
     let root: Vec<String> = grammar.start.iter().map(|s| format!("{s}")).collect();
     lines.push(format!("ROOT → {}", root.join(" ")));
-    // Rules
-    for (&rid, body) in &grammar.rules {
-        let inner: Vec<String> = body.iter().map(|s| format!("{s}")).collect();
+    // Rules — sorted by rule id so HashMap iteration order (random per
+    // process) can never change the serialized artifact.
+    let mut rule_ids: Vec<_> = grammar.rules.keys().collect();
+    rule_ids.sort();
+    for &rid in &rule_ids {
+        let inner: Vec<String> = grammar.rules[rid].iter().map(|s| format!("{s}")).collect();
         lines.push(format!("{rid} → {}", inner.join(" ")));
     }
     lines
