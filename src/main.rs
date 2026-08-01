@@ -186,8 +186,9 @@ enum Commands {
         #[arg(long, default_value_t = false)]
         rebuild_derived_cache: bool,
 
-        /// Number of parallel parsing jobs (1=serial, 0=auto, default: 1).
-        #[arg(short = 'j', long, default_value_t = 1)]
+        /// Number of parallel parsing jobs (1=serial; default from the
+        /// local raw-cache benchmark; 0 rejected — use --parse-jobs).
+        #[arg(short = 'j', long, default_value_t = 8)]
         jobs: usize,
     },
 }
