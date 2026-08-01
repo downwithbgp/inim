@@ -400,6 +400,34 @@ fn run_inner(
             "No selected {} observer had a pre-event route matching the reviewed Internet2 path predicate.",
             family.label()
         );
+        // A preflight probe must still emit its JSON: zero retained
+        // collectors is a valid (negative) preflight result, not a
+        // missing one.
+        if preflight_only {
+            let per_collector: Vec<serde_json::Value> = per_collector_counts
+                .iter()
+                .map(|(c, parsed, origin, transit, streams)| {
+                    serde_json::json!({
+                        "collector": c,
+                        "rib_records_parsed": parsed,
+                        "origin_matching_routes": origin,
+                        "transit_matching_routes": transit,
+                        "frozen_streams": streams,
+                    })
+                })
+                .collect();
+            let out = serde_json::json!({
+                "status": "preflight-only",
+                "event_id": manifest.event_id,
+                "collectors": manifest.collectors,
+                "per_collector": per_collector,
+                "qualifying_frozen_streams": 0,
+                "qualifying_prefixes": 0,
+                "stopped": "no updates acquired; no analysis executed",
+                "insufficient_visibility": visibility_msg,
+            });
+            println!("{}", serde_json::to_string_pretty(&out).unwrap_or_default());
+        }
         return Ok(AnalysisOutcome::insufficient_visibility(&visibility_msg));
     }
     limitations.push(format!(
