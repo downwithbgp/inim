@@ -72,6 +72,12 @@ declare -a PAGES=(
   "blocked:/events/INC0301970"
   "manlan:/case-studies/manlan-2019"
   "streams:/analyses/$RUN_UVA/streams"
+  "corpus:/corpus"
+  "corpus-sync-runs:/corpus/sync-runs"
+  "relationships:/events/CHG0038258/relationships"
+  "analysis-queue:/analysis-queue"
+  "incident-candidates:/incident-candidates"
+  "archive-batches:/archive-batches"
 )
 declare -a VIEWPORTS=("1440,900" "1280,800" "390,844")
 
