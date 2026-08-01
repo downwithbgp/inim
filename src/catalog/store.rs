@@ -869,3 +869,21 @@ pub fn list_snapshot_fetches(
     }
     Ok(out)
 }
+
+/// Advance every discovery row of one ticket (that is still Pending) to
+/// the given status — used when a ticket is fetched, not found, or
+/// unsupported.
+pub fn update_discovery_status_rows(
+    conn: &Connection,
+    source_kind: &str,
+    external_id: &str,
+    status: &str,
+) -> Result<(), String> {
+    conn.execute(
+        "UPDATE ticket_discoveries SET status = ?1
+         WHERE source_kind = ?2 AND external_id = ?3 AND status = ?4",
+        params![status, source_kind, external_id, DISCOVERY_STATUS_PENDING],
+    )
+    .map_err(|e| format!("catalog write failed: {e}"))?;
+    Ok(())
+}

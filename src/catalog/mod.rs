@@ -12,8 +12,11 @@ pub mod discovery;
 pub mod document;
 pub mod domain;
 pub mod grnoc;
+pub mod grnoc_viewer;
 pub mod import;
 pub mod migrations;
+#[cfg(test)]
+pub mod mock_server;
 pub mod phase_summary;
 pub mod status;
 pub mod store;

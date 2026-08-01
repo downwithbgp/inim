@@ -236,6 +236,8 @@ pub struct PoliteClient {
     /// Remaining per-sync budget.
     budget_remaining: usize,
     last_request_at: Option<Instant>,
+    /// Retries consumed by the most recent completed fetch.
+    last_retries: u32,
 }
 
 impl PoliteClient {
@@ -257,6 +259,7 @@ impl PoliteClient {
             requests_made: 0,
             budget_remaining: usize::MAX,
             last_request_at: None,
+            last_retries: 0,
         })
     }
 
@@ -270,6 +273,11 @@ impl PoliteClient {
 
     pub fn budget_remaining(&self) -> usize {
         self.budget_remaining
+    }
+
+    /// Retries consumed by the most recently completed fetch.
+    pub fn last_retries(&self) -> u32 {
+        self.last_retries
     }
 
     /// Set the per-sync request budget for this client instance.
@@ -288,9 +296,8 @@ impl PoliteClient {
         }
     }
 
-    /// One HTTP request against the source. Assumes the caller checked
-    /// the budget; consumes one budget unit and one rate slot.
-    fn send(
+    /// One paced, budgeted GET request against the source.
+    fn send_get(
         &mut self,
         url: &str,
         etag: Option<&str>,
@@ -311,7 +318,34 @@ impl PoliteClient {
             .map_err(|e| ClientError::Transport(e.to_string()))
     }
 
-    /// Parse a `Retry-After` header (seconds or HTTP-date). Returns None
+    /// One paced, budgeted JSON POST request against the source.
+    fn send_post(
+        &mut self,
+        url: &str,
+        json_body: &str,
+        etag: Option<&str>,
+        last_modified: Option<&str>,
+    ) -> Result<reqwest::blocking::Response, ClientError> {
+        self.pace();
+        self.last_request_at = Some(Instant::now());
+        self.requests_made += 1;
+        self.budget_remaining = self.budget_remaining.saturating_sub(1);
+        let mut req = self
+            .http
+            .post(url)
+            .header(reqwest::header::CONTENT_TYPE, "application/json")
+            .body(json_body.to_string());
+        if let Some(e) = etag {
+            req = req.header(reqwest::header::IF_NONE_MATCH, e);
+        }
+        if let Some(im) = last_modified {
+            req = req.header(reqwest::header::IF_MODIFIED_SINCE, im);
+        }
+        req.send()
+            .map_err(|e| ClientError::Transport(e.to_string()))
+    }
+
+    /// Parse a `Retry-After` header    /// Parse a `Retry-After` header (seconds or HTTP-date). Returns None
     /// when absent or unparseable — the caller falls back to backoff.
     fn retry_after(response: &reqwest::blocking::Response) -> Option<Duration> {
         let value = response.headers().get(reqwest::header::RETRY_AFTER)?;
@@ -374,17 +408,55 @@ impl PoliteClient {
         etag: Option<&str>,
         last_modified: Option<&str>,
     ) -> Result<FetchOutcome, ClientError> {
+        let request = |client: &mut Self, etag: Option<&str>, last_modified: Option<&str>| {
+            client.send_get(url, etag, last_modified)
+        };
+        self.fetch_with(request, etag, last_modified)
+    }
+
+    /// POST a JSON body to one URL with the same retry/stop machinery as
+    /// `fetch` (used by the GRNOC viewer API, which is POST-based).
+    pub fn fetch_post(
+        &mut self,
+        url: &str,
+        json_body: &str,
+        etag: Option<&str>,
+        last_modified: Option<&str>,
+    ) -> Result<FetchOutcome, ClientError> {
+        let request = |client: &mut Self, etag: Option<&str>, last_modified: Option<&str>| {
+            client.send_post(url, json_body, etag, last_modified)
+        };
+        self.fetch_with(request, etag, last_modified)
+    }
+
+    /// Shared retry/stop loop over a request-builder closure.
+    fn fetch_with(
+        &mut self,
+        mut request: impl FnMut(
+            &mut Self,
+            Option<&str>,
+            Option<&str>,
+        ) -> Result<reqwest::blocking::Response, ClientError>,
+        etag: Option<&str>,
+        last_modified: Option<&str>,
+    ) -> Result<FetchOutcome, ClientError> {
         let mut attempt: u32 = 0;
         loop {
             if self.budget_remaining == 0 {
                 return Err(ClientError::Stop(StopReason::BudgetExhausted));
             }
-            let response = self.send(url, etag, last_modified)?;
+            let response = request(self, etag, last_modified)?;
             let status = response.status().as_u16();
             match status {
                 200 => return Ok(FetchOutcome::Ok(Self::body_of(response)?)),
-                304 => return Ok(FetchOutcome::NotModified),
-                404 => return Ok(FetchOutcome::NotFound),
+                304 => {
+                    self.last_retries = attempt;
+                    return Ok(FetchOutcome::NotModified);
+                }
+                404 => {
+                    self.last_retries = attempt;
+                    return Ok(FetchOutcome::NotFound);
+                }
                 401 => return Err(ClientError::Stop(StopReason::AuthenticationRequired)),
                 403 => return Err(ClientError::Stop(StopReason::Forbidden)),
                 429 => {
