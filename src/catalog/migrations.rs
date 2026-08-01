@@ -5,10 +5,10 @@
 //! reopened database at the current version is a no-op.
 
 /// Current catalog schema version.
-pub const CATALOG_SCHEMA_VERSION: u32 = 1;
+pub const CATALOG_SCHEMA_VERSION: u32 = 2;
 
 /// Ordered migrations. Index i migrates user_version i -> i+1.
-pub const MIGRATIONS: &[&str] = &[V1];
+pub const MIGRATIONS: &[&str] = &[V1, V2];
 
 const V1: &str = r#"
 CREATE TABLE catalog_events (
@@ -136,4 +136,166 @@ CREATE INDEX idx_runs_plan ON analysis_runs(plan_id, started_at);
 CREATE INDEX idx_artifacts_run ON analysis_artifacts(run_id);
 CREATE INDEX idx_streams_run ON stream_lifecycle_summaries(run_id);
 CREATE INDEX idx_waves_run ON semantic_wave_summaries(run_id);
+"#;
+
+/// V2: multi-ticket incident case-study layer (Session 30).
+///
+/// Case studies group reviewed operator-reported sources and link them to
+/// immutable AnalysisRuns. Evidence stays owned by AnalysisRuns; these tables
+/// never carry RouteObservation/RouteTransition/EvidenceRef case-study ids.
+const V2: &str = r#"
+CREATE TABLE case_studies (
+    id            INTEGER PRIMARY KEY,
+    slug          TEXT NOT NULL UNIQUE,
+    title         TEXT NOT NULL,
+    summary       TEXT NOT NULL,
+    start_utc     TEXT,
+    end_utc       TEXT,
+    status        TEXT NOT NULL,
+    content_sha256 TEXT NOT NULL,
+    created_utc   TEXT NOT NULL,
+    updated_utc   TEXT NOT NULL
+);
+
+CREATE TABLE reference_documents (
+    id                   INTEGER PRIMARY KEY,
+    title                TEXT NOT NULL,
+    source_url           TEXT,
+    doc_type             TEXT NOT NULL,
+    redistribution_status TEXT NOT NULL,
+    publication_date     TEXT,
+    provenance           TEXT NOT NULL,
+    imported_utc         TEXT NOT NULL
+);
+
+CREATE TABLE document_revisions (
+    id           INTEGER PRIMARY KEY,
+    document_id  INTEGER NOT NULL REFERENCES reference_documents(id),
+    revision     INTEGER NOT NULL,
+    sha256       TEXT NOT NULL UNIQUE,
+    media_type   TEXT NOT NULL,
+    page_count   INTEGER,
+    local_path   TEXT,
+    metadata_json TEXT,
+    imported_utc TEXT NOT NULL,
+    UNIQUE (document_id, revision)
+);
+
+CREATE TABLE case_study_event_links (
+    id                 INTEGER PRIMARY KEY,
+    case_study_id      INTEGER NOT NULL REFERENCES case_studies(id),
+    catalog_event_id   INTEGER REFERENCES catalog_events(id),
+    external_identifier TEXT NOT NULL,
+    relationship       TEXT NOT NULL,
+    reviewed_note      TEXT,
+    sort_order         INTEGER NOT NULL DEFAULT 0,
+    source_document_id INTEGER REFERENCES reference_documents(id),
+    UNIQUE (case_study_id, external_identifier)
+);
+
+CREATE TABLE case_study_document_links (
+    id             INTEGER PRIMARY KEY,
+    case_study_id  INTEGER NOT NULL REFERENCES case_studies(id),
+    document_id    INTEGER NOT NULL REFERENCES reference_documents(id),
+    relationship   TEXT NOT NULL,
+    reviewed_note  TEXT,
+    UNIQUE (case_study_id, document_id, relationship)
+);
+
+CREATE TABLE case_study_phases (
+    id                   INTEGER PRIMARY KEY,
+    case_study_id        INTEGER NOT NULL REFERENCES case_studies(id),
+    label                TEXT NOT NULL,
+    start_utc            TEXT NOT NULL,
+    end_utc              TEXT NOT NULL,
+    start_precision      TEXT NOT NULL,
+    end_precision        TEXT NOT NULL,
+    description          TEXT NOT NULL,
+    source_document_id   INTEGER NOT NULL REFERENCES reference_documents(id),
+    source_page_or_section TEXT NOT NULL,
+    review_status        TEXT NOT NULL,
+    sort_order           INTEGER NOT NULL DEFAULT 0,
+    UNIQUE (case_study_id, sort_order)
+);
+
+CREATE TABLE case_study_analysis_links (
+    id            INTEGER PRIMARY KEY,
+    case_study_id INTEGER NOT NULL REFERENCES case_studies(id),
+    run_id        INTEGER NOT NULL REFERENCES analysis_runs(id),
+    role          TEXT NOT NULL,
+    reviewed_note TEXT,
+    UNIQUE (case_study_id, run_id, role)
+);
+
+CREATE TABLE case_study_claims (
+    id                    INTEGER PRIMARY KEY,
+    case_study_id         INTEGER NOT NULL REFERENCES case_studies(id),
+    claim_type            TEXT NOT NULL,
+    claim_text            TEXT NOT NULL,
+    qualification         TEXT,
+    source_document_id    INTEGER NOT NULL REFERENCES reference_documents(id),
+    source_page_or_section TEXT NOT NULL,
+    review_status         TEXT NOT NULL,
+    time_or_phase         TEXT,
+    observability         TEXT NOT NULL,
+    observability_rationale TEXT NOT NULL,
+    sort_order            INTEGER NOT NULL DEFAULT 0,
+    UNIQUE (case_study_id, sort_order)
+);
+
+CREATE TABLE case_study_targets (
+    id                        INTEGER PRIMARY KEY,
+    case_study_id             INTEGER NOT NULL REFERENCES case_studies(id),
+    source_label              TEXT NOT NULL,
+    role_in_report            TEXT NOT NULL,
+    candidate_org_identity    TEXT,
+    candidate_origin_asns_json TEXT,
+    candidate_predicate       TEXT,
+    historical_validity_status TEXT NOT NULL,
+    provenance                TEXT,
+    research_status           TEXT NOT NULL,
+    reviewed_note             TEXT,
+    sort_order                INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE case_study_analysis_plans (
+    id             INTEGER PRIMARY KEY,
+    case_study_id  INTEGER NOT NULL REFERENCES case_studies(id),
+    horizon_json   TEXT NOT NULL,
+    plan_json      TEXT NOT NULL,
+    status         TEXT NOT NULL,
+    created_utc    TEXT NOT NULL,
+    UNIQUE (case_study_id)
+);
+
+CREATE TABLE run_transitions (
+    id                    INTEGER PRIMARY KEY,
+    run_id                INTEGER NOT NULL REFERENCES analysis_runs(id),
+    seq                   INTEGER NOT NULL,
+    kind                  TEXT NOT NULL,
+    occurred_utc          TEXT NOT NULL,
+    run_phase             TEXT NOT NULL,
+    collector             TEXT NOT NULL,
+    peer_ip               TEXT NOT NULL,
+    prefix                TEXT NOT NULL,
+    path_id               INTEGER,
+    material_path_changed INTEGER NOT NULL DEFAULT 0,
+    communities_changed   INTEGER NOT NULL DEFAULT 0,
+    announced             INTEGER NOT NULL DEFAULT 0,
+    withdrawn             INTEGER NOT NULL DEFAULT 0,
+    observation_id        INTEGER,
+    archive_sha256        TEXT,
+    UNIQUE (run_id, seq)
+);
+
+CREATE INDEX idx_cs_links_event ON case_study_event_links(case_study_id, sort_order);
+CREATE INDEX idx_cs_links_event_lookup ON case_study_event_links(catalog_event_id);
+CREATE INDEX idx_cs_docs_case ON case_study_document_links(case_study_id);
+CREATE INDEX idx_cs_phases_case ON case_study_phases(case_study_id, sort_order);
+CREATE INDEX idx_cs_links_run ON case_study_analysis_links(case_study_id);
+CREATE INDEX idx_cs_links_run_lookup ON case_study_analysis_links(run_id);
+CREATE INDEX idx_cs_claims_case ON case_study_claims(case_study_id, sort_order);
+CREATE INDEX idx_cs_targets_case ON case_study_targets(case_study_id, sort_order);
+CREATE INDEX idx_doc_revisions_doc ON document_revisions(document_id, revision);
+CREATE INDEX idx_run_transitions_run ON run_transitions(run_id, occurred_utc);
 "#;

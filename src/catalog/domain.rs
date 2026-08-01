@@ -157,3 +157,214 @@ pub struct CatalogSourceItem {
     /// Normalized event fields as JSON.
     pub normalized_json: String,
 }
+
+// ── Case-study layer (Session 30) ──────────────────────────────────
+//
+// A CaseStudy is a reviewed grouping and interpretation of several sources
+// and analysis runs. It never owns observations: evidence continues to
+// belong to immutable AnalysisRuns (CaseStudy → AnalysisRun → stream
+// lifecycle → route-instance evidence).
+
+/// Generic relationship vocabulary between a case study and a ticket.
+pub const RELATIONSHIP_PRIMARY_CHANGE: &str = "PrimaryChange";
+pub const RELATIONSHIP_PRIMARY_INCIDENT: &str = "PrimaryIncident";
+pub const RELATIONSHIP_ROLLBACK_CHANGE: &str = "RollbackChange";
+pub const RELATIONSHIP_PARTICIPANT_INCIDENT: &str = "ParticipantIncident";
+pub const RELATIONSHIP_ALARM: &str = "Alarm";
+pub const RELATIONSHIP_OPERATIONAL_TASK: &str = "OperationalTask";
+pub const RELATIONSHIP_COMMUNICATION: &str = "Communication";
+pub const RELATIONSHIP_RELATED: &str = "Related";
+
+pub const CLAIM_TYPE_REPORTED_IMPACT: &str = "ReportedImpact";
+pub const CLAIM_TYPE_REPORTED_MECHANISM: &str = "ReportedMechanism";
+pub const CLAIM_TYPE_REPORTED_TIMELINE: &str = "ReportedTimeline";
+pub const CLAIM_TYPE_REPORTED_RECOVERY: &str = "ReportedRecovery";
+pub const CLAIM_TYPE_REPORTED_LIMITATION: &str = "ReportedLimitation";
+pub const CLAIM_TYPE_PROCESS_FINDING: &str = "ProcessFinding";
+
+pub const OBSERVABILITY_POTENTIALLY_VISIBLE: &str = "PotentiallyVisibleInPublicBgp";
+pub const OBSERVABILITY_INDIRECTLY_VISIBLE: &str = "IndirectlyVisible";
+pub const OBSERVABILITY_NOT_DIRECTLY_VISIBLE: &str = "NotDirectlyVisible";
+pub const OBSERVABILITY_UNKNOWN: &str = "Unknown";
+
+pub const TARGET_STATUS_UNRESEARCHED: &str = "Unresearched";
+pub const TARGET_STATUS_CANDIDATE: &str = "Candidate";
+pub const TARGET_STATUS_HISTORICALLY_REVIEWED: &str = "HistoricallyReviewed";
+pub const TARGET_STATUS_UNRESOLVED: &str = "Unresolved";
+pub const TARGET_STATUS_NOT_APPLICABLE: &str = "NotApplicableToPublicBgp";
+
+pub const PHASE_PRECISION_EXACT: &str = "exact";
+pub const PHASE_PRECISION_SUMMARIZED: &str = "summarized";
+
+pub const PLAN_STATUS_DRAFT: &str = "Draft";
+pub const PLAN_STATUS_REVIEWED: &str = "Reviewed";
+
+/// A reviewed multi-source incident case study.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CaseStudy {
+    pub id: i64,
+    pub slug: String,
+    pub title: String,
+    pub summary: String,
+    pub start_utc: Option<String>,
+    pub end_utc: Option<String>,
+    pub status: String,
+    pub content_sha256: String,
+    pub created_utc: String,
+    pub updated_utc: String,
+}
+
+/// Link between a case study and a related ticket.
+///
+/// `catalog_event_id` is NULL when the ticket is only referenced by a source
+/// document and no independent source snapshot exists in the catalog — the
+/// external identifier is preserved as an unresolved document reference.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CaseStudyEventLink {
+    pub id: i64,
+    pub case_study_id: i64,
+    pub catalog_event_id: Option<i64>,
+    pub external_identifier: String,
+    pub relationship: String,
+    pub reviewed_note: Option<String>,
+    pub sort_order: i64,
+    pub source_document_id: Option<i64>,
+}
+
+/// An immutable external reference document (e.g. an after-action report).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ReferenceDocument {
+    pub id: i64,
+    pub title: String,
+    pub source_url: Option<String>,
+    pub doc_type: String,
+    pub redistribution_status: String,
+    pub publication_date: Option<String>,
+    pub provenance: String,
+    pub imported_utc: String,
+}
+
+/// One content revision of a reference document (deduplicated by SHA-256).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DocumentRevision {
+    pub id: i64,
+    pub document_id: i64,
+    pub revision: i64,
+    pub sha256: String,
+    pub media_type: String,
+    pub page_count: Option<i64>,
+    /// Catalog-relative local path; NULL when the file is not available locally.
+    pub local_path: Option<String>,
+    pub metadata_json: Option<String>,
+    pub imported_utc: String,
+}
+
+/// Link between a case study and one of its source documents.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CaseStudyDocumentLink {
+    pub id: i64,
+    pub case_study_id: i64,
+    pub document_id: i64,
+    pub relationship: String,
+    pub reviewed_note: Option<String>,
+}
+
+/// A reviewed phase of the incident timeline.
+///
+/// `start_precision`/`end_precision` are `exact` (stated in the detailed
+/// timeline) or `summarized` (broad boundary summarized by the source);
+/// retrospective belief is never rendered as measured fact.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CaseStudyPhase {
+    pub id: i64,
+    pub case_study_id: i64,
+    pub label: String,
+    pub start_utc: String,
+    pub end_utc: String,
+    pub start_precision: String,
+    pub end_precision: String,
+    pub description: String,
+    pub source_document_id: i64,
+    pub source_page_or_section: String,
+    pub review_status: String,
+    pub sort_order: i64,
+}
+
+/// Link between a case study and one event-conditioned analysis run.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CaseStudyAnalysisLink {
+    pub id: i64,
+    pub case_study_id: i64,
+    pub run_id: i64,
+    pub role: String,
+    pub reviewed_note: Option<String>,
+}
+
+/// A reviewed operator-reported claim with its observability classification.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CaseStudyClaim {
+    pub id: i64,
+    pub case_study_id: i64,
+    pub claim_type: String,
+    pub claim_text: String,
+    pub qualification: Option<String>,
+    pub source_document_id: i64,
+    pub source_page_or_section: String,
+    pub review_status: String,
+    pub time_or_phase: Option<String>,
+    pub observability: String,
+    pub observability_rationale: String,
+    pub sort_order: i64,
+}
+
+/// A candidate BGP-analysis target derived from the source document.
+///
+/// Research status is reviewed data; `Unresearched` and
+/// `NotApplicableToPublicBgp` are valid states, never guesses.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CaseStudyTarget {
+    pub id: i64,
+    pub case_study_id: i64,
+    pub source_label: String,
+    pub role_in_report: String,
+    pub candidate_org_identity: Option<String>,
+    pub candidate_origin_asns_json: Option<String>,
+    pub candidate_predicate: Option<String>,
+    pub historical_validity_status: String,
+    pub provenance: Option<String>,
+    pub research_status: String,
+    pub reviewed_note: Option<String>,
+    pub sort_order: i64,
+}
+
+/// A recorded historical-analysis plan (Draft until reviewed).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CaseStudyAnalysisPlan {
+    pub id: i64,
+    pub case_study_id: i64,
+    pub horizon_json: String,
+    pub plan_json: String,
+    pub status: String,
+    pub created_utc: String,
+}
+
+/// One route transition of a run, imported from the transitions artifact.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RunTransitionRecord {
+    pub id: i64,
+    pub run_id: i64,
+    pub seq: i64,
+    pub kind: String,
+    pub occurred_utc: String,
+    pub run_phase: String,
+    pub collector: String,
+    pub peer_ip: String,
+    pub prefix: String,
+    pub path_id: Option<i64>,
+    pub material_path_changed: bool,
+    pub communities_changed: bool,
+    pub announced: bool,
+    pub withdrawn: bool,
+    pub observation_id: Option<i64>,
+    pub archive_sha256: Option<String>,
+}

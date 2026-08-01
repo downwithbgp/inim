@@ -285,3 +285,384 @@ pub fn insert_sync_run(conn: &Connection, sync: &CatalogSyncRun) -> Result<i64, 
     .map_err(|e| format!("catalog write failed: {e}"))?;
     Ok(conn.last_insert_rowid())
 }
+
+// ── Case-study layer (Session 30) ──────────────────────────────────
+
+/// Insert a case study; idempotent for (slug, content_sha256), rejecting a
+/// conflicting immutable revision for an existing slug.
+pub fn insert_case_study(conn: &Connection, cs: &CaseStudy) -> Result<i64, String> {
+    let existing: Option<(i64, String)> = conn
+        .query_row(
+            "SELECT id, content_sha256 FROM case_studies WHERE slug = ?1",
+            params![cs.slug],
+            |r| Ok((r.get(0)?, r.get(1)?)),
+        )
+        .ok();
+    if let Some((id, sha)) = existing {
+        if sha == cs.content_sha256 {
+            return Ok(id);
+        }
+        return Err(format!(
+            "conflicting immutable case study revision for slug '{}'",
+            cs.slug
+        ));
+    }
+    conn.execute(
+        "INSERT INTO case_studies
+           (slug, title, summary, start_utc, end_utc, status, content_sha256, created_utc, updated_utc)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+        params![
+            cs.slug,
+            cs.title,
+            cs.summary,
+            cs.start_utc,
+            cs.end_utc,
+            cs.status,
+            cs.content_sha256,
+            cs.created_utc,
+            cs.updated_utc
+        ],
+    )
+    .map_err(|e| format!("catalog write failed: {e}"))?;
+    Ok(conn.last_insert_rowid())
+}
+
+/// Insert a reference document; reuses the existing row for
+/// (title, source_url). Returns the document id.
+pub fn insert_reference_document(
+    conn: &Connection,
+    doc: &ReferenceDocument,
+) -> Result<i64, String> {
+    let existing: Option<i64> = conn
+        .query_row(
+            "SELECT id FROM reference_documents WHERE title = ?1 AND source_url IS ?2",
+            params![doc.title, doc.source_url],
+            |r| r.get(0),
+        )
+        .ok();
+    if let Some(id) = existing {
+        return Ok(id);
+    }
+    conn.execute(
+        "INSERT INTO reference_documents
+           (title, source_url, doc_type, redistribution_status, publication_date, provenance, imported_utc)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+        params![
+            doc.title,
+            doc.source_url,
+            doc.doc_type,
+            doc.redistribution_status,
+            doc.publication_date,
+            doc.provenance,
+            doc.imported_utc
+        ],
+    )
+    .map_err(|e| format!("catalog write failed: {e}"))?;
+    Ok(conn.last_insert_rowid())
+}
+
+/// Insert a document revision; deduplicates identical content by SHA-256.
+/// Returns the revision id (existing when the content is already present).
+pub fn insert_document_revision(conn: &Connection, rev: &DocumentRevision) -> Result<i64, String> {
+    let existing: Option<i64> = conn
+        .query_row(
+            "SELECT id FROM document_revisions WHERE sha256 = ?1",
+            params![rev.sha256],
+            |r| r.get(0),
+        )
+        .ok();
+    if let Some(id) = existing {
+        return Ok(id);
+    }
+    conn.execute(
+        "INSERT INTO document_revisions
+           (document_id, revision, sha256, media_type, page_count, local_path, metadata_json, imported_utc)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8)",
+        params![
+            rev.document_id,
+            rev.revision,
+            rev.sha256,
+            rev.media_type,
+            rev.page_count,
+            rev.local_path,
+            rev.metadata_json,
+            rev.imported_utc
+        ],
+    )
+    .map_err(|e| format!("catalog write failed: {e}"))?;
+    Ok(conn.last_insert_rowid())
+}
+
+/// Insert a case-study event link; idempotent per (case_study, external id).
+pub fn insert_case_study_event_link(
+    conn: &Connection,
+    link: &CaseStudyEventLink,
+) -> Result<i64, String> {
+    let existing: Option<i64> = conn
+        .query_row(
+            "SELECT id FROM case_study_event_links
+             WHERE case_study_id = ?1 AND external_identifier = ?2",
+            params![link.case_study_id, link.external_identifier],
+            |r| r.get(0),
+        )
+        .ok();
+    if let Some(id) = existing {
+        return Ok(id);
+    }
+    conn.execute(
+        "INSERT INTO case_study_event_links
+           (case_study_id, catalog_event_id, external_identifier, relationship, reviewed_note, sort_order, source_document_id)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)",
+        params![
+            link.case_study_id,
+            link.catalog_event_id,
+            link.external_identifier,
+            link.relationship,
+            link.reviewed_note,
+            link.sort_order,
+            link.source_document_id
+        ],
+    )
+    .map_err(|e| format!("catalog write failed: {e}"))?;
+    Ok(conn.last_insert_rowid())
+}
+
+/// Insert a case-study document link; idempotent per
+/// (case_study, document, relationship).
+pub fn insert_case_study_document_link(
+    conn: &Connection,
+    link: &CaseStudyDocumentLink,
+) -> Result<i64, String> {
+    let existing: Option<i64> = conn
+        .query_row(
+            "SELECT id FROM case_study_document_links
+             WHERE case_study_id = ?1 AND document_id = ?2 AND relationship = ?3",
+            params![link.case_study_id, link.document_id, link.relationship],
+            |r| r.get(0),
+        )
+        .ok();
+    if let Some(id) = existing {
+        return Ok(id);
+    }
+    conn.execute(
+        "INSERT INTO case_study_document_links
+           (case_study_id, document_id, relationship, reviewed_note)
+         VALUES (?1, ?2, ?3, ?4)",
+        params![
+            link.case_study_id,
+            link.document_id,
+            link.relationship,
+            link.reviewed_note
+        ],
+    )
+    .map_err(|e| format!("catalog write failed: {e}"))?;
+    Ok(conn.last_insert_rowid())
+}
+
+/// Insert a reviewed phase; idempotent per (case_study, sort_order).
+pub fn insert_case_study_phase(conn: &Connection, phase: &CaseStudyPhase) -> Result<i64, String> {
+    let existing: Option<i64> = conn
+        .query_row(
+            "SELECT id FROM case_study_phases WHERE case_study_id = ?1 AND sort_order = ?2",
+            params![phase.case_study_id, phase.sort_order],
+            |r| r.get(0),
+        )
+        .ok();
+    if let Some(id) = existing {
+        return Ok(id);
+    }
+    conn.execute(
+        "INSERT INTO case_study_phases
+           (case_study_id, label, start_utc, end_utc, start_precision, end_precision,
+            description, source_document_id, source_page_or_section, review_status, sort_order)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
+        params![
+            phase.case_study_id,
+            phase.label,
+            phase.start_utc,
+            phase.end_utc,
+            phase.start_precision,
+            phase.end_precision,
+            phase.description,
+            phase.source_document_id,
+            phase.source_page_or_section,
+            phase.review_status,
+            phase.sort_order
+        ],
+    )
+    .map_err(|e| format!("catalog write failed: {e}"))?;
+    Ok(conn.last_insert_rowid())
+}
+
+/// Insert a case-study ↔ analysis-run link; idempotent per
+/// (case_study, run, role).
+pub fn insert_case_study_analysis_link(
+    conn: &Connection,
+    link: &CaseStudyAnalysisLink,
+) -> Result<i64, String> {
+    let existing: Option<i64> = conn
+        .query_row(
+            "SELECT id FROM case_study_analysis_links
+             WHERE case_study_id = ?1 AND run_id = ?2 AND role = ?3",
+            params![link.case_study_id, link.run_id, link.role],
+            |r| r.get(0),
+        )
+        .ok();
+    if let Some(id) = existing {
+        return Ok(id);
+    }
+    conn.execute(
+        "INSERT INTO case_study_analysis_links
+           (case_study_id, run_id, role, reviewed_note)
+         VALUES (?1, ?2, ?3, ?4)",
+        params![
+            link.case_study_id,
+            link.run_id,
+            link.role,
+            link.reviewed_note
+        ],
+    )
+    .map_err(|e| format!("catalog write failed: {e}"))?;
+    Ok(conn.last_insert_rowid())
+}
+
+/// Insert a reviewed claim; idempotent per (case_study, sort_order).
+pub fn insert_case_study_claim(conn: &Connection, claim: &CaseStudyClaim) -> Result<i64, String> {
+    let existing: Option<i64> = conn
+        .query_row(
+            "SELECT id FROM case_study_claims WHERE case_study_id = ?1 AND sort_order = ?2",
+            params![claim.case_study_id, claim.sort_order],
+            |r| r.get(0),
+        )
+        .ok();
+    if let Some(id) = existing {
+        return Ok(id);
+    }
+    conn.execute(
+        "INSERT INTO case_study_claims
+           (case_study_id, claim_type, claim_text, qualification, source_document_id,
+            source_page_or_section, review_status, time_or_phase, observability,
+            observability_rationale, sort_order)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
+        params![
+            claim.case_study_id,
+            claim.claim_type,
+            claim.claim_text,
+            claim.qualification,
+            claim.source_document_id,
+            claim.source_page_or_section,
+            claim.review_status,
+            claim.time_or_phase,
+            claim.observability,
+            claim.observability_rationale,
+            claim.sort_order
+        ],
+    )
+    .map_err(|e| format!("catalog write failed: {e}"))?;
+    Ok(conn.last_insert_rowid())
+}
+
+/// Insert a reviewed analysis target; idempotent per (case_study, sort_order).
+pub fn insert_case_study_target(
+    conn: &Connection,
+    target: &CaseStudyTarget,
+) -> Result<i64, String> {
+    let existing: Option<i64> = conn
+        .query_row(
+            "SELECT id FROM case_study_targets WHERE case_study_id = ?1 AND sort_order = ?2",
+            params![target.case_study_id, target.sort_order],
+            |r| r.get(0),
+        )
+        .ok();
+    if let Some(id) = existing {
+        return Ok(id);
+    }
+    conn.execute(
+        "INSERT INTO case_study_targets
+           (case_study_id, source_label, role_in_report, candidate_org_identity,
+            candidate_origin_asns_json, candidate_predicate, historical_validity_status,
+            provenance, research_status, reviewed_note, sort_order)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11)",
+        params![
+            target.case_study_id,
+            target.source_label,
+            target.role_in_report,
+            target.candidate_org_identity,
+            target.candidate_origin_asns_json,
+            target.candidate_predicate,
+            target.historical_validity_status,
+            target.provenance,
+            target.research_status,
+            target.reviewed_note,
+            target.sort_order
+        ],
+    )
+    .map_err(|e| format!("catalog write failed: {e}"))?;
+    Ok(conn.last_insert_rowid())
+}
+
+/// Insert (or replace) the analysis plan for a case study (one per case).
+pub fn upsert_case_study_analysis_plan(
+    conn: &Connection,
+    plan: &CaseStudyAnalysisPlan,
+) -> Result<i64, String> {
+    conn.execute(
+        "INSERT INTO case_study_analysis_plans
+           (case_study_id, horizon_json, plan_json, status, created_utc)
+         VALUES (?1, ?2, ?3, ?4, ?5)
+         ON CONFLICT(case_study_id) DO UPDATE SET
+           horizon_json = excluded.horizon_json,
+           plan_json = excluded.plan_json,
+           status = excluded.status,
+           created_utc = excluded.created_utc",
+        params![
+            plan.case_study_id,
+            plan.horizon_json,
+            plan.plan_json,
+            plan.status,
+            plan.created_utc
+        ],
+    )
+    .map_err(|e| format!("catalog write failed: {e}"))?;
+    Ok(conn.last_insert_rowid())
+}
+
+/// Insert a run transition; idempotent per (run_id, seq).
+pub fn insert_run_transition(conn: &Connection, t: &RunTransitionRecord) -> Result<i64, String> {
+    let existing: Option<i64> = conn
+        .query_row(
+            "SELECT id FROM run_transitions WHERE run_id = ?1 AND seq = ?2",
+            params![t.run_id, t.seq],
+            |r| r.get(0),
+        )
+        .ok();
+    if let Some(id) = existing {
+        return Ok(id);
+    }
+    conn.execute(
+        "INSERT INTO run_transitions
+           (run_id, seq, kind, occurred_utc, run_phase, collector, peer_ip, prefix,
+            path_id, material_path_changed, communities_changed, announced, withdrawn,
+            observation_id, archive_sha256)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?13, ?14, ?15)",
+        params![
+            t.run_id,
+            t.seq,
+            t.kind,
+            t.occurred_utc,
+            t.run_phase,
+            t.collector,
+            t.peer_ip,
+            t.prefix,
+            t.path_id,
+            t.material_path_changed,
+            t.communities_changed,
+            t.announced,
+            t.withdrawn,
+            t.observation_id,
+            t.archive_sha256
+        ],
+    )
+    .map_err(|e| format!("catalog write failed: {e}"))?;
+    Ok(conn.last_insert_rowid())
+}
