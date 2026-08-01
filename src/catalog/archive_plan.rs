@@ -20,8 +20,58 @@ pub const DEFAULT_COOLDOWN_HOURS: i64 = 2;
 /// RouteViews collector candidates that existed in 2019.
 pub const COLLECTOR_CANDIDATES_2019: &[&str] = &["route-views2", "route-views6"];
 
-/// 2019-era RIB interval (seconds) and estimated sizes.
+fn default_family() -> String {
+    SourceFamily::RouteViews.as_str().to_string()
+}
+
+/// RIPE RIS collector candidates (route collectors) that existed in 2019.
+pub const RIS_COLLECTOR_CANDIDATES_2019: &[&str] = &["rrc00", "rrc01"];
+
+/// BGP archive source family (Session 33, Part 10).
+///
+/// RouteViews and RIPE RIS are distinct observer sources: distinct
+/// archive bases, file conventions, RIB cadences, and compression. A
+/// collector identifier is only meaningful together with its family
+/// (`rrc00` exists only in RIPE RIS; `route-views2` only in RouteViews).
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize,
+)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum SourceFamily {
+    RouteViews,
+    RipeRis,
+}
+
+impl SourceFamily {
+    /// Stable string form.
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            SourceFamily::RouteViews => "RouteViews",
+            SourceFamily::RipeRis => "RipeRis",
+        }
+    }
+
+    /// Human label.
+    pub fn label(&self) -> &'static str {
+        match self {
+            SourceFamily::RouteViews => "RouteViews",
+            SourceFamily::RipeRis => "RIPE RIS",
+        }
+    }
+
+    /// bgpkit-broker project name for discovery.
+    pub fn broker_project(&self) -> &'static str {
+        match self {
+            SourceFamily::RouteViews => "routeviews",
+            SourceFamily::RipeRis => "riperis",
+        }
+    }
+}
+
+/// 2019-era RouteViews RIB interval (seconds) and estimated sizes.
 const RIB_INTERVAL_SECS: i64 = 2 * 3600;
+/// RIPE RIS bview interval: every 8 hours on the 00/08/16 grid.
+const RIS_BVIEW_INTERVAL_SECS: i64 = 8 * 3600;
 const UPDATE_INTERVAL_SECS: i64 = 5 * 60;
 const RIB_ESTIMATED_BYTES: i64 = 75_000_000;
 const UPDATE_ESTIMATED_BYTES: i64 = 3_000_000;
@@ -42,7 +92,7 @@ pub struct AnalysisHorizon {
 }
 
 /// An expected archive file (URL + estimated size).
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct ExpectedFile {
     pub url: String,
     /// Estimated size in bytes; `size_estimated` marks it as an estimate.
@@ -56,9 +106,13 @@ pub struct ExpectedFile {
 /// the UPDATE sequence covers [warmup_start, cooldown_end]; an optional
 /// post-window validation RIB is a continuity checkpoint only and is never
 /// replayed as event input.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct CollectorPlan {
     pub collector: String,
+    /// Source family this collector belongs to (RouteViews | RipeRis).
+    /// Defaults to RouteViews so plans stored before Session 33 parse.
+    #[serde(default = "default_family")]
+    pub source_family: String,
     /// Availability in 2019: candidate until verified at execution time.
     pub availability: String,
     pub baseline_rib: ExpectedFile,
@@ -75,7 +129,7 @@ pub struct CollectorPlan {
 }
 
 /// A target excluded from execution and why.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct BlockedTarget {
     pub source_label: String,
     pub reason: String,
@@ -85,7 +139,7 @@ pub struct BlockedTarget {
 ///
 /// A pilot is ONE target, ONE collector, ONE bounded window — never a
 /// whole-incident conclusion.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct PilotRecord {
     pub status: String,
     pub target: String,
@@ -103,7 +157,7 @@ pub struct PilotRecord {
 }
 
 /// The complete archive plan.
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub struct ArchivePlan {
     pub collectors: Vec<CollectorPlan>,
     pub blocked_targets: Vec<BlockedTarget>,
@@ -176,10 +230,60 @@ fn update_stamp(t: chrono::DateTime<chrono::Utc>) -> String {
 fn stamp_of(url: &str) -> String {
     let file = url.rsplit('/').next().unwrap_or_default();
     let dot = file.find('.').map(|i| i + 1).unwrap_or(0);
-    file[dot..].trim_end_matches(".bz2").to_string()
+    file[dot..]
+        .trim_end_matches(".bz2")
+        .trim_end_matches(".gz")
+        .to_string()
 }
 
-/// Build the analysis horizon and expected archive plan for a case study.
+/// Family-aware archive URL for a timestamp.
+fn archive_url_for(
+    family: SourceFamily,
+    collector: &str,
+    t: chrono::DateTime<chrono::Utc>,
+    kind: &str,
+) -> String {
+    match family {
+        SourceFamily::RouteViews => routeviews_url_for(collector, t, kind),
+        SourceFamily::RipeRis => ris_url_for(collector, t, kind),
+    }
+}
+
+/// RIPE RIS archive URL: `https://data.ris.ripe.net/{collector}/{YYYY.MM}/`
+/// with `bview.{stamp}.gz` (8-hourly RIB snapshots) and
+/// `updates.{stamp}.gz` (5-minute UPDATE archives).
+fn ris_url_for(collector: &str, t: chrono::DateTime<chrono::Utc>, kind: &str) -> String {
+    let stamp = rib_or_update_stamp(t, kind);
+    let file = if kind == "RIBS" {
+        format!("bview.{stamp}.gz")
+    } else {
+        format!("updates.{stamp}.gz")
+    };
+    format!(
+        "https://data.ris.ripe.net/{collector}/{year:04}.{month:02}/{file}",
+        year = t.year(),
+        month = t.month()
+    )
+}
+
+/// RIB snapshot cadence per family (RouteViews: 2h; RIPE RIS bview: 8h).
+fn rib_interval_secs(family: SourceFamily) -> i64 {
+    match family {
+        SourceFamily::RouteViews => RIB_INTERVAL_SECS,
+        SourceFamily::RipeRis => RIS_BVIEW_INTERVAL_SECS,
+    }
+}
+
+/// Collectors to plan for a family (2019-era candidates).
+fn family_collectors(family: SourceFamily) -> &'static [&'static str] {
+    match family {
+        SourceFamily::RouteViews => COLLECTOR_CANDIDATES_2019,
+        SourceFamily::RipeRis => RIS_COLLECTOR_CANDIDATES_2019,
+    }
+}
+
+/// Build the analysis horizon and expected archive plan for a case study
+/// over RouteViews collectors.
 ///
 /// Pure computation — never performs network I/O or downloads.
 pub fn build_plan(
@@ -187,6 +291,25 @@ pub fn build_plan(
     targets: &[CaseStudyTarget],
     warmup_hours: i64,
     cooldown_hours: i64,
+) -> Result<(AnalysisHorizon, ArchivePlan), String> {
+    build_plan_for_families(
+        cs,
+        targets,
+        warmup_hours,
+        cooldown_hours,
+        &[SourceFamily::RouteViews],
+    )
+}
+
+/// Family-aware plan builder. The horizon is shared; each family's
+/// collectors get family-correct URLs, RIB cadence, and compression.
+/// Collector identity is (family, collector) — never a bare id.
+pub fn build_plan_for_families(
+    cs: &CaseStudy,
+    targets: &[CaseStudyTarget],
+    warmup_hours: i64,
+    cooldown_hours: i64,
+    families: &[SourceFamily],
 ) -> Result<(AnalysisHorizon, ArchivePlan), String> {
     let incident_start = cs.start_utc.as_deref().map(parse_utc).ok_or_else(|| {
         "case study has no start time; cannot plan an analysis window".to_string()
@@ -218,78 +341,84 @@ pub fn build_plan(
     let mut collectors = Vec::new();
     let mut estimated_total_bytes: i64 = 0;
     let mut estimated_total_uncompressed_bytes: i64 = 0;
-    for collector in COLLECTOR_CANDIDATES_2019 {
-        // Baseline RIB: latest RIB at or before warmup_start.
-        let baseline_t = floor_to(warmup_start, RIB_INTERVAL_SECS);
-        let baseline_rib = ExpectedFile {
-            url: routeviews_url_for(collector, baseline_t, "RIBS"),
-            size_estimated_bytes: Some(RIB_ESTIMATED_BYTES),
-            size_estimated: true,
-        };
-        estimated_total_bytes += RIB_ESTIMATED_BYTES;
-        estimated_total_uncompressed_bytes += RIB_ESTIMATED_UNCOMPRESSED_BYTES;
-
-        // Optional validation RIB: latest RIB at or before cooldown_end,
-        // used for continuity validation only — never replayed as input.
-        let validation_t = floor_to(cooldown_end, RIB_INTERVAL_SECS);
-        let validation_rib = (validation_t > baseline_t).then(|| ExpectedFile {
-            url: routeviews_url_for(collector, validation_t, "RIBS"),
-            size_estimated_bytes: Some(RIB_ESTIMATED_BYTES),
-            size_estimated: true,
-        });
-        if validation_rib.is_some() {
+    for family in families {
+        for collector in family_collectors(*family) {
+            let rib_interval = rib_interval_secs(*family);
+            // Baseline RIB: latest RIB at or before warmup_start.
+            let baseline_t = floor_to(warmup_start, rib_interval);
+            let baseline_rib = ExpectedFile {
+                url: archive_url_for(*family, collector, baseline_t, "RIBS"),
+                size_estimated_bytes: Some(RIB_ESTIMATED_BYTES),
+                size_estimated: true,
+            };
             estimated_total_bytes += RIB_ESTIMATED_BYTES;
             estimated_total_uncompressed_bytes += RIB_ESTIMATED_UNCOMPRESSED_BYTES;
-        }
 
-        // UPDATE sequence: every required 5-minute archive intersecting
-        // [warmup_start, cooldown_end], with per-stamp year/month.
-        let upd_start = floor_to(warmup_start, UPDATE_INTERVAL_SECS);
-        let upd_end = floor_to(cooldown_end, UPDATE_INTERVAL_SECS);
-        let mut updates = Vec::new();
-        let mut seen: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
-        let mut duplicates = 0usize;
-        let mut u = upd_start;
-        while u <= upd_end {
-            let url = routeviews_url_for(collector, u, "UPDATES");
-            if !seen.insert(url.clone()) {
-                duplicates += 1;
-            } else {
-                updates.push(ExpectedFile {
-                    url,
-                    size_estimated_bytes: Some(UPDATE_ESTIMATED_BYTES),
-                    size_estimated: true,
-                });
-                estimated_total_bytes += UPDATE_ESTIMATED_BYTES;
-                estimated_total_uncompressed_bytes += UPDATE_ESTIMATED_UNCOMPRESSED_BYTES;
+            // Optional validation RIB: latest RIB at or before
+            // cooldown_end, used for continuity validation only — never
+            // replayed as input.
+            let validation_t = floor_to(cooldown_end, rib_interval);
+            let validation_rib = (validation_t > baseline_t).then(|| ExpectedFile {
+                url: archive_url_for(*family, collector, validation_t, "RIBS"),
+                size_estimated_bytes: Some(RIB_ESTIMATED_BYTES),
+                size_estimated: true,
+            });
+            if validation_rib.is_some() {
+                estimated_total_bytes += RIB_ESTIMATED_BYTES;
+                estimated_total_uncompressed_bytes += RIB_ESTIMATED_UNCOMPRESSED_BYTES;
             }
-            u += chrono::Duration::seconds(UPDATE_INTERVAL_SECS);
-        }
-        // The schedule is generated from one cadence, so no interval is
-        // uncovered; the field exists for broker-derived plans.
-        let uncovered_intervals: Vec<String> = Vec::new();
-        let update_count = updates.len();
-        let validation_count = usize::from(validation_rib.is_some());
 
-        collectors.push(CollectorPlan {
-            collector: (*collector).to_string(),
-            availability: "candidate-2019 (verify at execution)".to_string(),
-            baseline_rib,
-            validation_rib,
-            first_update_utc: updates
-                .first()
-                .map(|f| stamp_of(&f.url))
-                .unwrap_or_default(),
-            last_update_utc: updates.last().map(|f| stamp_of(&f.url)).unwrap_or_default(),
-            updates,
-            uncovered_intervals,
-            duplicate_urls: duplicates,
-            estimated_compressed_bytes: RIB_ESTIMATED_BYTES * (1 + validation_count as i64)
-                + (update_count as i64) * UPDATE_ESTIMATED_BYTES,
-            estimated_uncompressed_bytes: RIB_ESTIMATED_UNCOMPRESSED_BYTES
-                * (1 + validation_count as i64)
-                + (update_count as i64) * UPDATE_ESTIMATED_UNCOMPRESSED_BYTES,
-        });
+            // UPDATE sequence: every required 5-minute archive
+            // intersecting [warmup_start, cooldown_end], per-stamp
+            // year/month.
+            let upd_start = floor_to(warmup_start, UPDATE_INTERVAL_SECS);
+            let upd_end = floor_to(cooldown_end, UPDATE_INTERVAL_SECS);
+            let mut updates = Vec::new();
+            let mut seen: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
+            let mut duplicates = 0usize;
+            let mut u = upd_start;
+            while u <= upd_end {
+                let url = archive_url_for(*family, collector, u, "UPDATES");
+                if !seen.insert(url.clone()) {
+                    duplicates += 1;
+                } else {
+                    updates.push(ExpectedFile {
+                        url,
+                        size_estimated_bytes: Some(UPDATE_ESTIMATED_BYTES),
+                        size_estimated: true,
+                    });
+                    estimated_total_bytes += UPDATE_ESTIMATED_BYTES;
+                    estimated_total_uncompressed_bytes += UPDATE_ESTIMATED_UNCOMPRESSED_BYTES;
+                }
+                u += chrono::Duration::seconds(UPDATE_INTERVAL_SECS);
+            }
+            // The schedule is generated from one cadence, so no interval
+            // is uncovered; the field exists for broker-derived plans.
+            let uncovered_intervals: Vec<String> = Vec::new();
+            let update_count = updates.len();
+            let validation_count = usize::from(validation_rib.is_some());
+
+            collectors.push(CollectorPlan {
+                collector: (*collector).to_string(),
+                source_family: family.as_str().to_string(),
+                availability: "candidate-2019 (verify at execution)".to_string(),
+                baseline_rib,
+                validation_rib,
+                first_update_utc: updates
+                    .first()
+                    .map(|f| stamp_of(&f.url))
+                    .unwrap_or_default(),
+                last_update_utc: updates.last().map(|f| stamp_of(&f.url)).unwrap_or_default(),
+                updates,
+                uncovered_intervals,
+                duplicate_urls: duplicates,
+                estimated_compressed_bytes: RIB_ESTIMATED_BYTES * (1 + validation_count as i64)
+                    + (update_count as i64) * UPDATE_ESTIMATED_BYTES,
+                estimated_uncompressed_bytes: RIB_ESTIMATED_UNCOMPRESSED_BYTES
+                    * (1 + validation_count as i64)
+                    + (update_count as i64) * UPDATE_ESTIMATED_UNCOMPRESSED_BYTES,
+            });
+        }
     }
 
     // Target coverage: only historically reviewed mappings may enter the
@@ -781,5 +910,166 @@ mod tests {
         assert_eq!(stored.status, crate::catalog::domain::PLAN_STATUS_DRAFT);
         let p: ArchivePlan = serde_json::from_str(&stored.plan_json).unwrap();
         assert_eq!(p.collectors.len(), 2);
+    }
+
+    // ── Session 33 Part 10: RouteViews/RIS source-family inventory ──
+
+    #[test]
+    fn routeviews_and_ris_collectors_have_distinct_identity() {
+        let cs = sample_case_study();
+        let (_, plan) = build_plan_for_families(
+            &cs,
+            &[],
+            DEFAULT_WARMUP_HOURS,
+            DEFAULT_COOLDOWN_HOURS,
+            &[SourceFamily::RouteViews, SourceFamily::RipeRis],
+        )
+        .unwrap();
+        assert_eq!(plan.collectors.len(), 4);
+        let rv: Vec<_> = plan
+            .collectors
+            .iter()
+            .filter(|c| c.source_family == SourceFamily::RouteViews.as_str())
+            .collect();
+        let ris: Vec<_> = plan
+            .collectors
+            .iter()
+            .filter(|c| c.source_family == SourceFamily::RipeRis.as_str())
+            .collect();
+        assert_eq!(rv.len(), 2);
+        assert_eq!(ris.len(), 2);
+        // The same collector id never appears in the other family, and
+        // identity is (family, collector) — rrc00 is RIPE RIS only.
+        assert!(ris.iter().all(|c| c.collector.starts_with("rrc")));
+        assert!(rv.iter().all(|c| c.collector.starts_with("route-views")));
+        assert_eq!(SourceFamily::RouteViews.broker_project(), "routeviews");
+        assert_eq!(SourceFamily::RipeRis.broker_project(), "riperis");
+    }
+
+    #[test]
+    fn ris_archive_plan_uses_correct_cadence() {
+        let cs = sample_case_study();
+        let (_, plan) = build_plan_for_families(
+            &cs,
+            &[],
+            DEFAULT_WARMUP_HOURS,
+            DEFAULT_COOLDOWN_HOURS,
+            &[SourceFamily::RipeRis],
+        )
+        .unwrap();
+        assert_eq!(plan.collectors.len(), 2);
+        for c in &plan.collectors {
+            // RIS URLs live under data.ris.ripe.net with .gz archives.
+            assert!(
+                c.baseline_rib.url.starts_with("https://data.ris.ripe.net/"),
+                "{}",
+                c.baseline_rib.url
+            );
+            assert!(
+                c.baseline_rib.url.contains("/bview."),
+                "{}",
+                c.baseline_rib.url
+            );
+            assert!(
+                c.baseline_rib.url.ends_with(".gz"),
+                "{}",
+                c.baseline_rib.url
+            );
+            // 8-hour bview grid: warmup 02:00 floors to 00:00.
+            assert!(
+                c.baseline_rib.url.ends_with("bview.20190821.0000.gz"),
+                "{}",
+                c.baseline_rib.url
+            );
+            // Validation bview at cooldown end 00:38 -> 00:00 next day.
+            assert!(c
+                .validation_rib
+                .as_ref()
+                .unwrap()
+                .url
+                .ends_with("bview.20190822.0000.gz"));
+            // Updates at the 5-minute cadence.
+            assert!(
+                c.updates[0].url.ends_with("updates.20190821.0200.gz"),
+                "{}",
+                c.updates[0].url
+            );
+            assert!(c.updates.iter().all(|u| u.url.ends_with(".gz")));
+            assert_eq!(
+                c.updates.len(),
+                272,
+                "5-minute cadence identical to RouteViews"
+            );
+            assert_eq!(c.first_update_utc, "20190821.0200");
+        }
+    }
+
+    #[test]
+    fn source_family_appears_in_observer_scope() {
+        let cs = sample_case_study();
+        let (_, plan) = build_plan_for_families(
+            &cs,
+            &[],
+            DEFAULT_WARMUP_HOURS,
+            DEFAULT_COOLDOWN_HOURS,
+            &[SourceFamily::RouteViews, SourceFamily::RipeRis],
+        )
+        .unwrap();
+        // The plan's observer scope (its collector list) carries the
+        // source family explicitly; serialization preserves it.
+        let json = serde_json::to_string(&plan).unwrap();
+        assert!(json.contains("\"source_family\":\"RouteViews\""), "{json}");
+        assert!(json.contains("\"source_family\":\"RipeRis\""), "{json}");
+        for c in &plan.collectors {
+            assert!(c.source_family == "RouteViews" || c.source_family == "RipeRis");
+        }
+    }
+
+    #[test]
+    fn report_does_not_call_ris_observer_routeviews() {
+        // The analyst-facing report renders observers as collector:peer
+        // strings (source-neutral); a RIPE RIS observer is never labeled
+        // RouteViews.
+        use crate::domain::assessment::{Evidence, Verdict};
+        use crate::domain::event::EventId;
+        use crate::domain::expectation::{ExpectationKind, ImpactExpectation};
+        use chrono::TimeZone;
+        let assessment = crate::domain::assessment::EventAssessment {
+            event_id: EventId("INC-TEST".to_string()),
+            expectation: ImpactExpectation {
+                kind: ExpectationKind::NonRedundant,
+                description: "test".to_string(),
+                provenance: "reviewed".to_string(),
+            },
+            verdict: Verdict::NoObservableBgpImpact,
+            evidence: vec![Evidence {
+                description: "1 transition".to_string(),
+                source_records: vec!["rrc00:195.66.224.1".to_string()],
+            }],
+            waves: Vec::new(),
+            generated_at: chrono::Utc.with_ymd_and_hms(2026, 8, 1, 0, 0, 0).unwrap(),
+        };
+        let text = crate::report::render_terminal(&assessment, "RIPE RIS rrc00");
+        assert!(text.contains("rrc00"), "{text}");
+        assert!(
+            !text.contains("RouteViews"),
+            "a RIS observer must not be called RouteViews: {text}"
+        );
+    }
+
+    #[test]
+    fn mixed_source_plan_is_deterministic() {
+        let cs = sample_case_study();
+        let families = [SourceFamily::RouteViews, SourceFamily::RipeRis];
+        let (h1, p1) = build_plan_for_families(&cs, &[], 2, 2, &families).unwrap();
+        let (h2, p2) = build_plan_for_families(&cs, &[], 2, 2, &families).unwrap();
+        assert_eq!(
+            serde_json::to_string(&p1).unwrap(),
+            serde_json::to_string(&p2).unwrap()
+        );
+        assert_eq!(
+            serde_json::to_string(&h1).unwrap(),
+            serde_json::to_string(&h2).unwrap()
+        );
     }
 }

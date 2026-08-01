@@ -90,6 +90,16 @@ All synthetic observation data used in unit tests is generated in code
 - **Packaging:** **include** — required for the viewer-response parsing
   tests to run from a packaged crate.
 
+### 3c. RIS format-compatibility note
+
+No separate RIS MRT fixture is committed: RIPE RIS publishes the same
+BGP4MP MRT format as RouteViews, so `mrt/update-example.gz` (section 2)
+is upstream-format-compatible with RIS `updates.*.gz` archives. RIS
+archive-SELECTION behavior (URLs, cadence, bview naming, gzip
+compression) is exercised in `src/catalog/archive_plan.rs` against the
+planner's family-aware URL builder; see
+`docs/ADRs/RIPE-RIS-SUPPORT.md`.
+
 ### 4. Generated expected-output fixtures (none committed)
 
 Expected outputs are asserted in code (report wording, exit codes,
