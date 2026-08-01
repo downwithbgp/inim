@@ -12,7 +12,8 @@
 //! the audit, the origin-only inventory, and every plane-specific run.
 
 use crate::catalog::netprofile::{
-    audit_sessions, CollectorLocationRegistry, PathEvidence, ServicePlaneProfile, SessionAuditRow,
+    audit_sessions, CollectorLocationRegistry, PathEvidence, PeerInventoryAccumulator,
+    PeerInventoryRow, ServicePlaneProfile, SessionAuditRow,
 };
 use crate::domain::observation::IngestRole;
 use crate::ingest::IngestContext;
@@ -258,9 +259,165 @@ pub(crate) fn load_origin_routes(
             address_family: af.to_string(),
             prefix: o.prefix.0.clone(),
             as_path: attrs.as_path.clone(),
+            origin_asns: attrs.origin_asns.iter().map(|a| a.0).collect(),
         });
     }
     Ok((sha, routes))
+}
+
+/// Parse one RIB WITHOUT any origin filter and return ALL path evidence.
+///
+/// Used by the full peer inventory: every session present in the baseline
+/// is reported, including sessions that carried no target-origin routes.
+/// The parse is deliberately NOT written to the origin-scoped extraction
+/// cache (an empty-origin key would pollute the cache namespace); the
+/// inventory aggregates in memory and caches nothing.
+/// Stream one RIB into a peer-inventory accumulator WITHOUT materializing
+/// all routes. Memory is bounded by the session count, not the route count
+/// (a full RIS bview has ~1M routes but only a few hundred sessions).
+/// The parse is deliberately NOT written to the origin-scoped extraction
+/// cache (an empty-origin key would pollute the cache namespace).
+fn stream_full_inventory(
+    acc: &mut PeerInventoryAccumulator<'_>,
+    rib: &RibSource,
+) -> Result<(), String> {
+    use crate::domain::observation::{CollectorId, ObservationKind};
+    let ctx = IngestContext {
+        role: IngestRole::Rib,
+        collector: CollectorId(rib.collector.clone()),
+        input_path: rib.local_path.clone(),
+        source_url: None,
+        source_sha: None,
+        origin_asn_filters: vec![],
+        archive_order: 0,
+    };
+    let stream = ObservationStream::from_local_file(rib.local_path.clone(), ctx)
+        .map_err(|e| format!("failed to open RIB {}: {e}", rib.local_path.display()))?;
+    for result in stream {
+        match result {
+            Ok(o) => {
+                if o.kind != ObservationKind::RibEntry {
+                    continue;
+                }
+                let attrs = match &o.attributes {
+                    Some(a) => a,
+                    None => continue,
+                };
+                let af = if o.prefix.0.contains(':') {
+                    "ipv6"
+                } else {
+                    "ipv4"
+                };
+                acc.observe(&PathEvidence {
+                    peer_ip: o.peer_ip.to_string(),
+                    peer_asn: o.peer_asn.0,
+                    address_family: af.to_string(),
+                    prefix: o.prefix.0.clone(),
+                    as_path: attrs.as_path.clone(),
+                    origin_asns: attrs.origin_asns.iter().map(|a| a.0).collect(),
+                });
+            }
+            Err(e) => {
+                eprintln!(
+                    "  [{} {}] RIB parse error (skipping): {e}",
+                    rib.family, rib.collector
+                );
+            }
+        }
+    }
+    Ok(())
+}
+
+/// Run the FULL peer inventory over all discovered baseline RIBs.
+///
+/// Rows are deterministic: sorted by (family, collector, peer IP, address
+/// family, peer ASN) before returning.
+pub fn run_peer_inventory(opts: &SessionAuditOptions) -> Result<Vec<PeerInventoryRow>, String> {
+    use crate::catalog::netprofile::PeerInventoryAccumulator;
+    let ribs = discover_ribs(opts)?;
+    if ribs.is_empty() {
+        return Err("no baseline RIBs found under the given cache directories".to_string());
+    }
+    eprintln!(
+        "peer inventory: {} baseline RIB(s), jobs={}",
+        ribs.len(),
+        opts.jobs
+    );
+
+    // Each RIB is aggregated independently (one accumulator per RIB); the
+    // accumulators run on the worker threads and are merged afterwards.
+    type LoadResult = Result<(String, Vec<PeerInventoryRow>), String>;
+    let results: Mutex<Vec<(usize, LoadResult)>> = Mutex::new(Vec::new());
+    let queue: Mutex<VecDeque<usize>> = Mutex::new((0..ribs.len()).collect());
+    let jobs = opts.jobs.max(1);
+
+    std::thread::scope(|scope| {
+        for _ in 0..jobs {
+            let queue = &queue;
+            let results = &results;
+            let ribs = &ribs;
+            let opts = &opts;
+            scope.spawn(move || loop {
+                let idx = queue.lock().unwrap().pop_front();
+                let Some(idx) = idx else { break };
+                let rib = &ribs[idx];
+                eprintln!(
+                    "  [{} {}] loading RIB {} (full parse)",
+                    rib.family,
+                    rib.collector,
+                    rib.local_path.display()
+                );
+                let sha = match source_sha(&rib.local_path) {
+                    Ok(s) => s,
+                    Err(e) => {
+                        results.lock().unwrap().push((idx, Err(e)));
+                        continue;
+                    }
+                };
+                let mut acc = PeerInventoryAccumulator::new(
+                    &opts.profile,
+                    &opts.registry,
+                    &rib.family,
+                    &rib.collector,
+                    &rib.rib_timestamp_utc,
+                    &sha,
+                    opts.origin_asns.clone(),
+                );
+                let res = match stream_full_inventory(&mut acc, rib) {
+                    Ok(()) => Ok((sha, acc.finish())),
+                    Err(e) => Err(e),
+                };
+                results.lock().unwrap().push((idx, res));
+            });
+        }
+    });
+
+    let mut ordered: Vec<(usize, LoadResult)> = results.into_inner().unwrap();
+    ordered.sort_by_key(|(idx, _)| *idx);
+
+    let mut rows: Vec<PeerInventoryRow> = Vec::new();
+    for (rib, (_, res)) in ribs.iter().zip(ordered) {
+        let (_, mut collector_rows) = res.map_err(|e| format!("{}: {e}", rib.collector))?;
+        rows.append(&mut collector_rows);
+    }
+
+    rows.sort_by(|a, b| {
+        (
+            a.source_family.clone(),
+            a.collector.clone(),
+            a.peer_ip.clone(),
+            a.address_family.clone(),
+            a.peer_asn,
+        )
+            .cmp(&(
+                b.source_family.clone(),
+                b.collector.clone(),
+                b.peer_ip.clone(),
+                b.address_family.clone(),
+                b.peer_asn,
+            ))
+    });
+    Ok(rows)
 }
 
 /// Run the full session audit over all discovered baseline RIBs.

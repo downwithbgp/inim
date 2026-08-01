@@ -207,7 +207,8 @@ mod counting_tests {
             peer_asn: 64600,
             address_family: "ipv4".to_string(),
             prefix: "198.51.100.0/24".to_string(),
-            as_path: path,
+            as_path: path.clone(),
+            origin_asns: path.last().copied().map(|a| vec![a]).unwrap_or_default(),
         }
     }
 

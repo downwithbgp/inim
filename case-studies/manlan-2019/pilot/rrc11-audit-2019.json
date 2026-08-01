@@ -1,0 +1,888 @@
+{
+ "schema_version": 1,
+ "scope": "selected-observer audit (RRC11 baseline bview, 2019-08-21T00:00:00Z)",
+ "scope_note": "This is a SELECTED observer audit of one baseline RIB. It is not an all-RIS audit and must not be rendered as one.",
+ "evidence_source": {
+  "family": "RipeRis",
+  "collector": "rrc11",
+  "rib_filename": "bview.20190821.0000.gz",
+  "rib_timestamp_utc": "2019-08-21T00:00:00Z",
+  "rib_source_sha256": "37e0f94d60b4b8bd52a9d66c590994d6b2541ae74ec860bb0ee7f38a8fdcd791"
+ },
+ "current_peer_list": {
+  "status": "supporting context only",
+  "note": "The current RIPE RIS peer list identifies RRC11 (NYIIX, New York) with a direct peer AS11164 (Internet2 I2PX). That list is CONTEXT, not historical evidence; the 2019 bview peer table above is the source of truth for the 2019-08-21 session set."
+ },
+ "selected_observers": [
+  "rrc11"
+ ],
+ "sessions": [
+  {
+   "peer_ip": "198.32.160.100",
+   "peer_asn": 27257,
+   "address_family": "ipv4",
+   "total_route_count": 126,
+   "origin_route_count": 0,
+   "distinct_origin_prefixes": 0,
+   "path_class": {
+    "per_plane_contains": [],
+    "neither_plane": 126,
+    "total": 126
+   },
+   "origin_path_class": {
+    "per_plane_contains": [],
+    "neither_plane": 0,
+    "total": 0
+   }
+  },
+  {
+   "peer_ip": "198.32.160.103",
+   "peer_asn": 13030,
+   "address_family": "ipv4",
+   "total_route_count": 730824,
+   "origin_route_count": 12,
+   "distinct_origin_prefixes": 12,
+   "path_class": {
+    "per_plane_contains": [
+     [
+      "internet2-re",
+      15
+     ],
+     [
+      "internet2-i2px",
+      1
+     ]
+    ],
+    "neither_plane": 730808,
+    "total": 730824
+   },
+   "origin_path_class": {
+    "per_plane_contains": [],
+    "neither_plane": 12,
+    "total": 12
+   }
+  },
+  {
+   "peer_ip": "198.32.160.107",
+   "peer_asn": 29838,
+   "address_family": "ipv4",
+   "total_route_count": 139,
+   "origin_route_count": 0,
+   "distinct_origin_prefixes": 0,
+   "path_class": {
+    "per_plane_contains": [],
+    "neither_plane": 139,
+    "total": 139
+   },
+   "origin_path_class": {
+    "per_plane_contains": [],
+    "neither_plane": 0,
+    "total": 0
+   }
+  },
+  {
+   "peer_ip": "198.32.160.108",
+   "peer_asn": 10848,
+   "address_family": "ipv4",
+   "total_route_count": 4,
+   "origin_route_count": 0,
+   "distinct_origin_prefixes": 0,
+   "path_class": {
+    "per_plane_contains": [],
+    "neither_plane": 4,
+    "total": 4
+   },
+   "origin_path_class": {
+    "per_plane_contains": [],
+    "neither_plane": 0,
+    "total": 0
+   }
+  },
+  {
+   "peer_ip": "198.32.160.113",
+   "peer_asn": 15547,
+   "address_family": "ipv4",
+   "total_route_count": 773333,
+   "origin_route_count": 12,
+   "distinct_origin_prefixes": 12,
+   "path_class": {
+    "per_plane_contains": [
+     [
+      "internet2-re",
+      11
+     ]
+    ],
+    "neither_plane": 773322,
+    "total": 773333
+   },
+   "origin_path_class": {
+    "per_plane_contains": [],
+    "neither_plane": 12,
+    "total": 12
+   }
+  },
+  {
+   "peer_ip": "198.32.160.121",
+   "peer_asn": 10310,
+   "address_family": "ipv4",
+   "total_route_count": 195,
+   "origin_route_count": 0,
+   "distinct_origin_prefixes": 0,
+   "path_class": {
+    "per_plane_contains": [],
+    "neither_plane": 195,
+    "total": 195
+   },
+   "origin_path_class": {
+    "per_plane_contains": [],
+    "neither_plane": 0,
+    "total": 0
+   }
+  },
+  {
+   "peer_ip": "198.32.160.124",
+   "peer_asn": 46450,
+   "address_family": "ipv4",
+   "total_route_count": 99,
+   "origin_route_count": 0,
+   "distinct_origin_prefixes": 0,
+   "path_class": {
+    "per_plane_contains": [],
+    "neither_plane": 99,
+    "total": 99
+   },
+   "origin_path_class": {
+    "per_plane_contains": [],
+    "neither_plane": 0,
+    "total": 0
+   }
+  },
+  {
+   "peer_ip": "198.32.160.137",
+   "peer_asn": 19151,
+   "address_family": "ipv4",
+   "total_route_count": 761674,
+   "origin_route_count": 12,
+   "distinct_origin_prefixes": 12,
+   "path_class": {
+    "per_plane_contains": [
+     [
+      "internet2-i2px",
+      2519
+     ],
+     [
+      "internet2-re",
+      11
+     ]
+    ],
+    "neither_plane": 759145,
+    "total": 761674
+   },
+   "origin_path_class": {
+    "per_plane_contains": [],
+    "neither_plane": 12,
+    "total": 12
+   }
+  },
+  {
+   "peer_ip": "198.32.160.15",
+   "peer_asn": 22691,
+   "address_family": "ipv4",
+   "total_route_count": 73,
+   "origin_route_count": 0,
+   "distinct_origin_prefixes": 0,
+   "path_class": {
+    "per_plane_contains": [],
+    "neither_plane": 73,
+    "total": 73
+   },
+   "origin_path_class": {
+    "per_plane_contains": [],
+    "neither_plane": 0,
+    "total": 0
+   }
+  },
+  {
+   "peer_ip": "198.32.160.168",
+   "peer_asn": 51185,
+   "address_family": "ipv4",
+   "total_route_count": 770009,
+   "origin_route_count": 12,
+   "distinct_origin_prefixes": 12,
+   "path_class": {
+    "per_plane_contains": [
+     [
+      "internet2-re",
+      11
+     ]
+    ],
+    "neither_plane": 769998,
+    "total": 770009
+   },
+   "origin_path_class": {
+    "per_plane_contains": [],
+    "neither_plane": 12,
+    "total": 12
+   }
+  },
+  {
+   "peer_ip": "198.32.160.175",
+   "peer_asn": 15695,
+   "address_family": "ipv4",
+   "total_route_count": 17,
+   "origin_route_count": 0,
+   "distinct_origin_prefixes": 0,
+   "path_class": {
+    "per_plane_contains": [],
+    "neither_plane": 17,
+    "total": 17
+   },
+   "origin_path_class": {
+    "per_plane_contains": [],
+    "neither_plane": 0,
+    "total": 0
+   }
+  },
+  {
+   "peer_ip": "198.32.160.182",
+   "peer_asn": 9002,
+   "address_family": "ipv4",
+   "total_route_count": 765356,
+   "origin_route_count": 12,
+   "distinct_origin_prefixes": 12,
+   "path_class": {
+    "per_plane_contains": [
+     [
+      "internet2-re",
+      11
+     ]
+    ],
+    "neither_plane": 765345,
+    "total": 765356
+   },
+   "origin_path_class": {
+    "per_plane_contains": [],
+    "neither_plane": 12,
+    "total": 12
+   }
+  },
+  {
+   "peer_ip": "198.32.160.187",
+   "peer_asn": 6233,
+   "address_family": "ipv4",
+   "total_route_count": 152645,
+   "origin_route_count": 0,
+   "distinct_origin_prefixes": 0,
+   "path_class": {
+    "per_plane_contains": [],
+    "neither_plane": 152645,
+    "total": 152645
+   },
+   "origin_path_class": {
+    "per_plane_contains": [],
+    "neither_plane": 0,
+    "total": 0
+   }
+  },
+  {
+   "peer_ip": "198.32.160.242",
+   "peer_asn": 24482,
+   "address_family": "ipv4",
+   "total_route_count": 767029,
+   "origin_route_count": 12,
+   "distinct_origin_prefixes": 12,
+   "path_class": {
+    "per_plane_contains": [
+     [
+      "internet2-i2px",
+      551
+     ],
+     [
+      "internet2-re",
+      12
+     ]
+    ],
+    "neither_plane": 766466,
+    "total": 767029
+   },
+   "origin_path_class": {
+    "per_plane_contains": [],
+    "neither_plane": 12,
+    "total": 12
+   }
+  },
+  {
+   "peer_ip": "198.32.160.25",
+   "peer_asn": 2516,
+   "address_family": "ipv4",
+   "total_route_count": 6050,
+   "origin_route_count": 0,
+   "distinct_origin_prefixes": 0,
+   "path_class": {
+    "per_plane_contains": [],
+    "neither_plane": 6050,
+    "total": 6050
+   },
+   "origin_path_class": {
+    "per_plane_contains": [],
+    "neither_plane": 0,
+    "total": 0
+   }
+  },
+  {
+   "peer_ip": "198.32.160.39",
+   "peer_asn": 9304,
+   "address_family": "ipv4",
+   "total_route_count": 760312,
+   "origin_route_count": 12,
+   "distinct_origin_prefixes": 12,
+   "path_class": {
+    "per_plane_contains": [
+     [
+      "internet2-re",
+      11
+     ]
+    ],
+    "neither_plane": 760301,
+    "total": 760312
+   },
+   "origin_path_class": {
+    "per_plane_contains": [],
+    "neither_plane": 12,
+    "total": 12
+   }
+  },
+  {
+   "peer_ip": "198.32.160.40",
+   "peer_asn": 16570,
+   "address_family": "ipv4",
+   "total_route_count": 11,
+   "origin_route_count": 0,
+   "distinct_origin_prefixes": 0,
+   "path_class": {
+    "per_plane_contains": [],
+    "neither_plane": 11,
+    "total": 11
+   },
+   "origin_path_class": {
+    "per_plane_contains": [],
+    "neither_plane": 0,
+    "total": 0
+   }
+  },
+  {
+   "peer_ip": "198.32.160.42",
+   "peer_asn": 2497,
+   "address_family": "ipv4",
+   "total_route_count": 762582,
+   "origin_route_count": 12,
+   "distinct_origin_prefixes": 12,
+   "path_class": {
+    "per_plane_contains": [
+     [
+      "internet2-i2px",
+      2678
+     ],
+     [
+      "internet2-re",
+      10
+     ]
+    ],
+    "neither_plane": 759895,
+    "total": 762582
+   },
+   "origin_path_class": {
+    "per_plane_contains": [],
+    "neither_plane": 12,
+    "total": 12
+   }
+  },
+  {
+   "peer_ip": "198.32.160.45",
+   "peer_asn": 8966,
+   "address_family": "ipv4",
+   "total_route_count": 3360,
+   "origin_route_count": 0,
+   "distinct_origin_prefixes": 0,
+   "path_class": {
+    "per_plane_contains": [],
+    "neither_plane": 3360,
+    "total": 3360
+   },
+   "origin_path_class": {
+    "per_plane_contains": [],
+    "neither_plane": 0,
+    "total": 0
+   }
+  },
+  {
+   "peer_ip": "198.32.160.47",
+   "peer_asn": 20940,
+   "address_family": "ipv4",
+   "total_route_count": 27,
+   "origin_route_count": 0,
+   "distinct_origin_prefixes": 0,
+   "path_class": {
+    "per_plane_contains": [],
+    "neither_plane": 27,
+    "total": 27
+   },
+   "origin_path_class": {
+    "per_plane_contains": [],
+    "neither_plane": 0,
+    "total": 0
+   }
+  },
+  {
+   "peer_ip": "198.32.160.58",
+   "peer_asn": 397143,
+   "address_family": "ipv4",
+   "total_route_count": 162825,
+   "origin_route_count": 0,
+   "distinct_origin_prefixes": 0,
+   "path_class": {
+    "per_plane_contains": [],
+    "neither_plane": 162825,
+    "total": 162825
+   },
+   "origin_path_class": {
+    "per_plane_contains": [],
+    "neither_plane": 0,
+    "total": 0
+   }
+  },
+  {
+   "peer_ip": "198.32.160.60",
+   "peer_asn": 22691,
+   "address_family": "ipv4",
+   "total_route_count": 74,
+   "origin_route_count": 0,
+   "distinct_origin_prefixes": 0,
+   "path_class": {
+    "per_plane_contains": [],
+    "neither_plane": 74,
+    "total": 74
+   },
+   "origin_path_class": {
+    "per_plane_contains": [],
+    "neither_plane": 0,
+    "total": 0
+   }
+  },
+  {
+   "peer_ip": "198.32.160.61",
+   "peer_asn": 6939,
+   "address_family": "ipv4",
+   "total_route_count": 131357,
+   "origin_route_count": 0,
+   "distinct_origin_prefixes": 0,
+   "path_class": {
+    "per_plane_contains": [],
+    "neither_plane": 131357,
+    "total": 131357
+   },
+   "origin_path_class": {
+    "per_plane_contains": [],
+    "neither_plane": 0,
+    "total": 0
+   }
+  },
+  {
+   "peer_ip": "198.32.160.87",
+   "peer_asn": 11403,
+   "address_family": "ipv4",
+   "total_route_count": 79,
+   "origin_route_count": 0,
+   "distinct_origin_prefixes": 0,
+   "path_class": {
+    "per_plane_contains": [],
+    "neither_plane": 79,
+    "total": 79
+   },
+   "origin_path_class": {
+    "per_plane_contains": [],
+    "neither_plane": 0,
+    "total": 0
+   }
+  },
+  {
+   "peer_ip": "2001:504:1::a500:2497:1",
+   "peer_asn": 2497,
+   "address_family": "ipv6",
+   "total_route_count": 70709,
+   "origin_route_count": 1,
+   "distinct_origin_prefixes": 1,
+   "path_class": {
+    "per_plane_contains": [
+     [
+      "internet2-i2px",
+      123
+     ],
+     [
+      "internet2-re",
+      11
+     ]
+    ],
+    "neither_plane": 70575,
+    "total": 70709
+   },
+   "origin_path_class": {
+    "per_plane_contains": [],
+    "neither_plane": 1,
+    "total": 1
+   }
+  },
+  {
+   "peer_ip": "2001:504:1::a500:6233:1",
+   "peer_asn": 6233,
+   "address_family": "ipv6",
+   "total_route_count": 71580,
+   "origin_route_count": 1,
+   "distinct_origin_prefixes": 1,
+   "path_class": {
+    "per_plane_contains": [
+     [
+      "internet2-re",
+      10
+     ],
+     [
+      "internet2-i2px",
+      4
+     ]
+    ],
+    "neither_plane": 71566,
+    "total": 71580
+   },
+   "origin_path_class": {
+    "per_plane_contains": [],
+    "neither_plane": 1,
+    "total": 1
+   }
+  },
+  {
+   "peer_ip": "2001:504:1::a500:6939:1",
+   "peer_asn": 6939,
+   "address_family": "ipv6",
+   "total_route_count": 71583,
+   "origin_route_count": 1,
+   "distinct_origin_prefixes": 1,
+   "path_class": {
+    "per_plane_contains": [
+     [
+      "internet2-re",
+      10
+     ],
+     [
+      "internet2-i2px",
+      4
+     ]
+    ],
+    "neither_plane": 71569,
+    "total": 71583
+   },
+   "origin_path_class": {
+    "per_plane_contains": [],
+    "neither_plane": 1,
+    "total": 1
+   }
+  },
+  {
+   "peer_ip": "2001:504:1::a500:9002:1",
+   "peer_asn": 9002,
+   "address_family": "ipv6",
+   "total_route_count": 71184,
+   "origin_route_count": 1,
+   "distinct_origin_prefixes": 1,
+   "path_class": {
+    "per_plane_contains": [
+     [
+      "internet2-re",
+      10
+     ]
+    ],
+    "neither_plane": 71174,
+    "total": 71184
+   },
+   "origin_path_class": {
+    "per_plane_contains": [],
+    "neither_plane": 1,
+    "total": 1
+   }
+  },
+  {
+   "peer_ip": "2001:504:1::a500:9304:1",
+   "peer_asn": 9304,
+   "address_family": "ipv6",
+   "total_route_count": 73008,
+   "origin_route_count": 1,
+   "distinct_origin_prefixes": 1,
+   "path_class": {
+    "per_plane_contains": [
+     [
+      "internet2-re",
+      10
+     ],
+     [
+      "internet2-i2px",
+      4
+     ]
+    ],
+    "neither_plane": 72994,
+    "total": 73008
+   },
+   "origin_path_class": {
+    "per_plane_contains": [],
+    "neither_plane": 1,
+    "total": 1
+   }
+  },
+  {
+   "peer_ip": "2001:504:1::a501:3030:1",
+   "peer_asn": 13030,
+   "address_family": "ipv6",
+   "total_route_count": 58581,
+   "origin_route_count": 1,
+   "distinct_origin_prefixes": 1,
+   "path_class": {
+    "per_plane_contains": [
+     [
+      "internet2-re",
+      1
+     ]
+    ],
+    "neither_plane": 58580,
+    "total": 58581
+   },
+   "origin_path_class": {
+    "per_plane_contains": [],
+    "neither_plane": 1,
+    "total": 1
+   }
+  },
+  {
+   "peer_ip": "2001:504:1::a501:310:1",
+   "peer_asn": 10310,
+   "address_family": "ipv6",
+   "total_route_count": 104,
+   "origin_route_count": 0,
+   "distinct_origin_prefixes": 0,
+   "path_class": {
+    "per_plane_contains": [],
+    "neither_plane": 104,
+    "total": 104
+   },
+   "origin_path_class": {
+    "per_plane_contains": [],
+    "neither_plane": 0,
+    "total": 0
+   }
+  },
+  {
+   "peer_ip": "2001:504:1::a501:5547:1",
+   "peer_asn": 15547,
+   "address_family": "ipv6",
+   "total_route_count": 73329,
+   "origin_route_count": 1,
+   "distinct_origin_prefixes": 1,
+   "path_class": {
+    "per_plane_contains": [
+     [
+      "internet2-re",
+      10
+     ],
+     [
+      "internet2-i2px",
+      4
+     ]
+    ],
+    "neither_plane": 73315,
+    "total": 73329
+   },
+   "origin_path_class": {
+    "per_plane_contains": [],
+    "neither_plane": 1,
+    "total": 1
+   }
+  },
+  {
+   "peer_ip": "2001:504:1::a501:5695:1",
+   "peer_asn": 15695,
+   "address_family": "ipv6",
+   "total_route_count": 2,
+   "origin_route_count": 0,
+   "distinct_origin_prefixes": 0,
+   "path_class": {
+    "per_plane_contains": [],
+    "neither_plane": 2,
+    "total": 2
+   },
+   "origin_path_class": {
+    "per_plane_contains": [],
+    "neither_plane": 0,
+    "total": 0
+   }
+  },
+  {
+   "peer_ip": "2001:504:1::a501:848:1",
+   "peer_asn": 10848,
+   "address_family": "ipv6",
+   "total_route_count": 1,
+   "origin_route_count": 0,
+   "distinct_origin_prefixes": 0,
+   "path_class": {
+    "per_plane_contains": [],
+    "neither_plane": 1,
+    "total": 1
+   },
+   "origin_path_class": {
+    "per_plane_contains": [],
+    "neither_plane": 0,
+    "total": 0
+   }
+  },
+  {
+   "peer_ip": "2001:504:1::a501:9151:1",
+   "peer_asn": 19151,
+   "address_family": "ipv6",
+   "total_route_count": 74491,
+   "origin_route_count": 1,
+   "distinct_origin_prefixes": 1,
+   "path_class": {
+    "per_plane_contains": [
+     [
+      "internet2-i2px",
+      168
+     ],
+     [
+      "internet2-re",
+      10
+     ]
+    ],
+    "neither_plane": 74313,
+    "total": 74491
+   },
+   "origin_path_class": {
+    "per_plane_contains": [],
+    "neither_plane": 1,
+    "total": 1
+   }
+  },
+  {
+   "peer_ip": "2001:504:1::a502:4482:1",
+   "peer_asn": 24482,
+   "address_family": "ipv6",
+   "total_route_count": 73279,
+   "origin_route_count": 1,
+   "distinct_origin_prefixes": 1,
+   "path_class": {
+    "per_plane_contains": [
+     [
+      "internet2-i2px",
+      45
+     ],
+     [
+      "internet2-re",
+      10
+     ]
+    ],
+    "neither_plane": 73224,
+    "total": 73279
+   },
+   "origin_path_class": {
+    "per_plane_contains": [],
+    "neither_plane": 1,
+    "total": 1
+   }
+  },
+  {
+   "peer_ip": "2001:504:1::a502:940:1",
+   "peer_asn": 20940,
+   "address_family": "ipv6",
+   "total_route_count": 5,
+   "origin_route_count": 0,
+   "distinct_origin_prefixes": 0,
+   "path_class": {
+    "per_plane_contains": [],
+    "neither_plane": 5,
+    "total": 5
+   },
+   "origin_path_class": {
+    "per_plane_contains": [],
+    "neither_plane": 0,
+    "total": 0
+   }
+  },
+  {
+   "peer_ip": "2001:504:1::a504:6450:1",
+   "peer_asn": 46450,
+   "address_family": "ipv6",
+   "total_route_count": 18,
+   "origin_route_count": 0,
+   "distinct_origin_prefixes": 0,
+   "path_class": {
+    "per_plane_contains": [],
+    "neither_plane": 18,
+    "total": 18
+   },
+   "origin_path_class": {
+    "per_plane_contains": [],
+    "neither_plane": 0,
+    "total": 0
+   }
+  },
+  {
+   "peer_ip": "2001:504:1::a539:7143:1",
+   "peer_asn": 397143,
+   "address_family": "ipv6",
+   "total_route_count": 71601,
+   "origin_route_count": 1,
+   "distinct_origin_prefixes": 1,
+   "path_class": {
+    "per_plane_contains": [
+     [
+      "internet2-re",
+      10
+     ],
+     [
+      "internet2-i2px",
+      4
+     ]
+    ],
+    "neither_plane": 71587,
+    "total": 71601
+   },
+   "origin_path_class": {
+    "per_plane_contains": [],
+    "neither_plane": 1,
+    "total": 1
+   }
+  }
+ ],
+ "summary": {
+  "session_count": 39,
+  "ipv4_session_count": 24,
+  "ipv6_session_count": 15,
+  "total_route_count": 7257675,
+  "as2603_origin_route_count": 106,
+  "as2603_distinct_prefix_count": 106,
+  "sessions_with_as2603_routes": 18,
+  "direct_pex_session_present": false,
+  "direct_pex_peer_rows": [],
+  "pex_asn_in_any_path": true,
+  "pex_asn_in_origin_path": false,
+  "as2603_origin_path_distribution": {
+   "per_plane": [
+    [
+     "internet2-i2px",
+     0
+    ],
+    [
+     "internet2-re",
+     0
+    ]
+   ],
+   "neither_plane": 106,
+   "total": 106
+  }
+ }
+}

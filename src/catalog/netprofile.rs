@@ -145,6 +145,9 @@ pub struct PathEvidence {
     pub address_family: String,
     pub prefix: String,
     pub as_path: Vec<u32>,
+    /// Authoritative origin ASNs reported by the parser for this route
+    /// (set for non-empty paths; empty when attributes are absent).
+    pub origin_asns: Vec<u32>,
 }
 
 /// Classify one route against the profile.
@@ -391,6 +394,7 @@ mod tests {
             address_family: "ipv4".to_string(),
             prefix: "198.51.100.0/24".to_string(),
             as_path: vec![64599, 64500],
+            origin_asns: vec![64500],
         }];
         let ra = session_roles_at(&p, &key_a, &routes, "2026-08-02T00:00:00Z");
         let rb = session_roles_at(&p, &key_b, &routes, "2026-08-02T00:00:00Z");
@@ -415,6 +419,7 @@ mod tests {
             address_family: "ipv4".to_string(),
             prefix: "198.51.100.0/24".to_string(),
             as_path: vec![64500],
+            origin_asns: vec![64500],
         }];
         let indirect = vec![PathEvidence {
             peer_ip: "192.0.2.2".to_string(),
@@ -422,6 +427,7 @@ mod tests {
             address_family: "ipv4".to_string(),
             prefix: "198.51.100.0/24".to_string(),
             as_path: vec![64599, 64500],
+            origin_asns: vec![64500],
         }];
         let other = vec![PathEvidence {
             peer_ip: "192.0.2.3".to_string(),
@@ -429,6 +435,7 @@ mod tests {
             address_family: "ipv4".to_string(),
             prefix: "198.51.100.0/24".to_string(),
             as_path: vec![64600, 64601, 64000],
+            origin_asns: vec![64000],
         }];
         let k2 = ObserverSessionKey {
             peer_ip: "192.0.2.2".to_string(),
@@ -467,6 +474,7 @@ mod tests {
             address_family: "ipv4".to_string(),
             prefix: "198.51.100.0/24".to_string(),
             as_path: vec![64500],
+            origin_asns: vec![64500],
         }];
         let routes_t2 = vec![PathEvidence {
             peer_ip: "192.0.2.1".to_string(),
@@ -474,6 +482,7 @@ mod tests {
             address_family: "ipv4".to_string(),
             prefix: "198.51.100.0/24".to_string(),
             as_path: vec![64599, 64500],
+            origin_asns: vec![64500],
         }];
         let key = ObserverSessionKey {
             source_family: "ris".to_string(),
@@ -531,6 +540,7 @@ mod tests {
             address_family: "ipv4".to_string(),
             prefix: "198.51.100.0/24".to_string(),
             as_path: vec![64501],
+            origin_asns: vec![64501],
         }];
         let r1 = session_roles_at(&p, &key, &routes, "T");
         let key2 = ObserverSessionKey {
@@ -567,6 +577,7 @@ mod tests {
             address_family: "ipv4".to_string(),
             prefix: "198.51.100.0/24".to_string(),
             as_path: path.clone(),
+            origin_asns: path.last().copied().map(|a| vec![a]).unwrap_or_default(),
         };
         let roles = session_roles_at(&p, &key, &[ev], "T");
         assert_eq!(roles.len(), 1);
@@ -741,6 +752,290 @@ pub fn audit_sessions(
     rows
 }
 
+/// One session in a FULL peer inventory of a baseline RIB.
+///
+/// Unlike the origin-scoped audit, the inventory reports EVERY session
+/// present in the MRT peer table (all peers, all route counts), which is
+/// what answers "did a direct session with peer ASN X exist at all" even
+/// when that session carried no target-origin routes. `origin_route_count`
+/// and `distinct_origin_prefixes` are the target-origin subset.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PeerInventoryRow {
+    pub source_family: String,
+    pub collector: String,
+    /// Reviewed collector location (registry data, for display only).
+    pub location: String,
+    pub rib_timestamp_utc: String,
+    pub rib_source_sha: String,
+    pub peer_ip: String,
+    pub peer_asn: u32,
+    pub address_family: String,
+    /// All routes received from this peer (any origin).
+    pub total_route_count: usize,
+    /// Target-origin route count received from this peer.
+    pub origin_route_count: usize,
+    /// Distinct target-origin prefixes received from this peer.
+    pub distinct_origin_prefixes: usize,
+    /// Path-class membership over ALL routes of this session.
+    pub path_class: PathClassCounts,
+    /// Path-class membership over the TARGET-ORIGIN routes only. This is
+    /// the answer to "did the target's qualifying baseline exist via this
+    /// session": an origin route whose path contains a plane ASN is a
+    /// qualifying observer-prefix stream for that plane.
+    pub origin_path_class: PathClassCounts,
+}
+
+/// Streaming accumulator for a full peer inventory.
+///
+/// Memory is bounded by the number of SESSIONS (not routes): a full RIS
+/// bview holds ~1M routes but only a few hundred sessions, so a full parse
+/// aggregates in place instead of materializing every route. This is what
+/// keeps a full-RIB inventory feasible on modest machines.
+pub struct PeerInventoryAccumulator<'a> {
+    profile: &'a ServicePlaneProfile,
+    registry: &'a CollectorLocationRegistry,
+    source_family: String,
+    collector: String,
+    evidence_at: String,
+    source_sha: String,
+    origin_asns: Vec<u32>,
+    rows: Vec<MutableInventoryRow>,
+}
+
+/// Mutable per-session aggregate while the stream is consumed.
+#[derive(Debug, Clone)]
+struct MutableInventoryRow {
+    peer_ip: String,
+    peer_asn: u32,
+    address_family: String,
+    total_route_count: usize,
+    origin_route_count: usize,
+    origin_prefixes: Vec<String>,
+    path_class: PathClassCounts,
+    origin_path_class: PathClassCounts,
+}
+
+impl<'a> PeerInventoryAccumulator<'a> {
+    pub fn new(
+        profile: &'a ServicePlaneProfile,
+        registry: &'a CollectorLocationRegistry,
+        source_family: &str,
+        collector: &str,
+        evidence_at: &str,
+        source_sha: &str,
+        origin_asns: Vec<u32>,
+    ) -> Self {
+        PeerInventoryAccumulator {
+            profile,
+            registry,
+            source_family: source_family.to_string(),
+            collector: collector.to_string(),
+            evidence_at: evidence_at.to_string(),
+            source_sha: source_sha.to_string(),
+            origin_asns,
+            rows: Vec::new(),
+        }
+    }
+
+    /// Consume one route into the session aggregate.
+    pub fn observe(&mut self, route: &PathEvidence) {
+        let is_origin = !route.origin_asns.is_empty()
+            && route
+                .origin_asns
+                .iter()
+                .any(|a| self.origin_asns.contains(a));
+        let row = self.rows.iter_mut().find(|r| {
+            r.peer_ip == route.peer_ip
+                && r.peer_asn == route.peer_asn
+                && r.address_family == route.address_family
+        });
+        match row {
+            Some(row) => {
+                row.total_route_count += 1;
+                row.path_class.observe(self.profile, &route.as_path);
+                if is_origin {
+                    row.origin_route_count += 1;
+                    row.origin_path_class.observe(self.profile, &route.as_path);
+                    if !row.origin_prefixes.contains(&route.prefix) {
+                        row.origin_prefixes.push(route.prefix.clone());
+                    }
+                }
+            }
+            None => {
+                let mut pc = PathClassCounts::default();
+                pc.observe(self.profile, &route.as_path);
+                let mut opc = PathClassCounts::default();
+                if is_origin {
+                    opc.observe(self.profile, &route.as_path);
+                }
+                self.rows.push(MutableInventoryRow {
+                    peer_ip: route.peer_ip.clone(),
+                    peer_asn: route.peer_asn,
+                    address_family: route.address_family.clone(),
+                    total_route_count: 1,
+                    origin_route_count: if is_origin { 1 } else { 0 },
+                    origin_prefixes: if is_origin {
+                        vec![route.prefix.clone()]
+                    } else {
+                        Vec::new()
+                    },
+                    path_class: pc,
+                    origin_path_class: opc,
+                });
+            }
+        }
+    }
+
+    /// Finish and return deterministic rows sorted by
+    /// (peer IP, address family, peer ASN).
+    pub fn finish(self) -> Vec<PeerInventoryRow> {
+        let mut out: Vec<PeerInventoryRow> = self
+            .rows
+            .into_iter()
+            .map(|r| PeerInventoryRow {
+                source_family: self.source_family.clone(),
+                collector: self.collector.clone(),
+                location: self
+                    .registry
+                    .location(&self.source_family, &self.collector)
+                    .map(|c| c.location.clone())
+                    .unwrap_or_else(|| "unknown".to_string()),
+                rib_timestamp_utc: self.evidence_at.clone(),
+                rib_source_sha: self.source_sha.clone(),
+                peer_ip: r.peer_ip,
+                peer_asn: r.peer_asn,
+                address_family: r.address_family,
+                total_route_count: r.total_route_count,
+                origin_route_count: r.origin_route_count,
+                distinct_origin_prefixes: r.origin_prefixes.len(),
+                path_class: r.path_class,
+                origin_path_class: r.origin_path_class,
+            })
+            .collect();
+        out.sort_by(|a, b| {
+            (a.peer_ip.clone(), a.address_family.clone(), a.peer_asn).cmp(&(
+                b.peer_ip.clone(),
+                b.address_family.clone(),
+                b.peer_asn,
+            ))
+        });
+        out
+    }
+}
+
+/// Aggregate EVERY session observed in a RIB into inventory rows.
+///
+/// `routes` here is the full RIB (no origin filter): every peer session
+/// present in the baseline is reported, with total and target-origin
+/// counts. A session that never announced a target-origin prefix still
+/// appears — its presence/absence is itself the evidence for
+/// "direct session present or absent". Rows are deterministic: sorted by
+/// (peer IP, address family, peer ASN).
+#[allow(clippy::too_many_arguments)] // explicit data passthrough; each arg is one report field
+pub fn peer_inventory(
+    profile: &ServicePlaneProfile,
+    registry: &CollectorLocationRegistry,
+    source_family: &str,
+    collector: &str,
+    evidence_at: &str,
+    source_sha: &str,
+    routes: &[PathEvidence],
+    origin_asns: &[u32],
+) -> Vec<PeerInventoryRow> {
+    let mut acc = PeerInventoryAccumulator::new(
+        profile,
+        registry,
+        source_family,
+        collector,
+        evidence_at,
+        source_sha,
+        origin_asns.to_vec(),
+    );
+    for route in routes {
+        acc.observe(route);
+    }
+    acc.finish()
+}
+
+/// The direct-peer decision for one plane: is there a session whose peer
+/// ASN equals a reviewed plane ASN, and does that session carry
+/// target-origin routes?
+///
+/// The plane identity comes from the PROFILE (runtime data), never from a
+/// literal in code. A direct session with zero target-origin routes is
+/// "present but no qualifying baseline" — a different fact from "session
+/// absent", and both are different from "plane ASN appears in some other
+/// session's AS path".
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PlaneDirectSessionDecision {
+    pub plane_id: String,
+    pub plane_label: String,
+    /// Whether any session's peer ASN equals a plane ASN.
+    pub direct_session_present: bool,
+    /// Peer IP/ASN of the direct session, when present.
+    pub direct_peer_ip: Option<String>,
+    pub direct_peer_asn: Option<u32>,
+    /// Target-origin routes received from the direct session.
+    pub direct_origin_route_count: usize,
+    /// Whether any session's AS path contains a plane ASN (indirect
+    /// observation of the plane, distinct from a direct session).
+    pub plane_asn_in_path: bool,
+}
+
+/// Decide the direct-session facts for one plane from an inventory.
+pub fn direct_session_decision(
+    profile: &ServicePlaneProfile,
+    plane_id: &str,
+    inventory: &[PeerInventoryRow],
+    _origin_asns: &[u32],
+) -> Option<PlaneDirectSessionDecision> {
+    let plane = profile.service_planes.iter().find(|p| p.id == plane_id)?;
+    let mut out = PlaneDirectSessionDecision {
+        plane_id: plane.id.clone(),
+        plane_label: plane.display_label.clone(),
+        direct_session_present: false,
+        direct_peer_ip: None,
+        direct_peer_asn: None,
+        direct_origin_route_count: 0,
+        plane_asn_in_path: false,
+    };
+    for row in inventory {
+        if plane.asns.contains(&row.peer_asn) {
+            out.direct_session_present = true;
+            out.direct_peer_ip = Some(row.peer_ip.clone());
+            out.direct_peer_asn = Some(row.peer_asn);
+            break;
+        }
+    }
+    // Indirect path evidence is a SEPARATE fact: plane ASN inside some
+    // path (with a different peer ASN) never implies a direct session.
+    for row in inventory {
+        let contains_plane_in_path = row
+            .path_class
+            .per_plane_contains
+            .iter()
+            .any(|(id, count)| id == plane_id && *count > 0);
+        if contains_plane_in_path {
+            out.plane_asn_in_path = true;
+        }
+    }
+    // Avoid double-counting origins in the direct peer across AF rows.
+    let mut seen_peer_ips: Vec<String> = Vec::new();
+    let mut total_direct_origin = 0usize;
+    for row in inventory {
+        if row.peer_asn == out.direct_peer_asn.unwrap_or(u32::MAX)
+            && !seen_peer_ips.contains(&row.peer_ip)
+        {
+            seen_peer_ips.push(row.peer_ip.clone());
+            total_direct_origin += row.origin_route_count;
+        }
+    }
+    if out.direct_session_present {
+        out.direct_origin_route_count = total_direct_origin;
+    }
+    Some(out)
+}
+
 #[cfg(test)]
 mod session_audit_tests {
     use super::*;
@@ -796,6 +1091,7 @@ mod session_audit_tests {
                 address_family: af.to_string(),
                 prefix: p.to_string(),
                 as_path: vec![peer_asn, 64500],
+                origin_asns: vec![64500],
             })
             .collect()
     }
@@ -897,6 +1193,141 @@ mod session_audit_tests {
         assert_eq!(rows[1].address_family, "ipv6");
         assert_eq!(rows[0].distinct_prefixes, 1);
         assert_eq!(rows[1].distinct_prefixes, 1);
+    }
+
+    // ── Full peer inventory (Session 36, Part 1) ─────────────────────
+
+    #[test]
+    fn peer_inventory_reports_sessions_without_target_origin_routes() {
+        let p = profile_two_planes();
+        let reg = registry();
+        // One session carries target-origin routes; another session carries
+        // only other-origin routes and would be invisible to an
+        // origin-scoped audit.
+        let mut routes = routes_for("192.0.2.1", 64500, "ipv4", &["198.51.100.0/24"]);
+        routes.push(PathEvidence {
+            peer_ip: "192.0.2.2".to_string(),
+            peer_asn: 64600,
+            address_family: "ipv4".to_string(),
+            prefix: "203.0.113.0/24".to_string(),
+            as_path: vec![64600, 64601],
+            origin_asns: vec![64601],
+        });
+        let rows = peer_inventory(&p, &reg, "ris", "rrc06", "T", "sha", &routes, &[64500]);
+        assert_eq!(rows.len(), 2, "inventory reports every session");
+        let with_origin = rows.iter().find(|r| r.peer_asn == 64500).unwrap();
+        assert_eq!(with_origin.total_route_count, 1);
+        assert_eq!(with_origin.origin_route_count, 1);
+        let without_origin = rows.iter().find(|r| r.peer_asn == 64600).unwrap();
+        assert_eq!(without_origin.total_route_count, 1);
+        assert_eq!(
+            without_origin.origin_route_count, 0,
+            "session present with zero target-origin routes"
+        );
+        assert_eq!(without_origin.distinct_origin_prefixes, 0);
+    }
+
+    #[test]
+    fn peer_inventory_counts_total_and_origin_routes_separately() {
+        let p = profile_two_planes();
+        let reg = registry();
+        // Same peer announces 3 routes: 2 target-origin, 1 other-origin.
+        let mut routes = routes_for("192.0.2.1", 64500, "ipv4", &["198.51.100.0/24"]);
+        routes.push(PathEvidence {
+            peer_ip: "192.0.2.1".to_string(),
+            peer_asn: 64500,
+            address_family: "ipv4".to_string(),
+            prefix: "198.51.100.0/25".to_string(),
+            as_path: vec![64500],
+            origin_asns: vec![64500],
+        });
+        routes.push(PathEvidence {
+            peer_ip: "192.0.2.1".to_string(),
+            peer_asn: 64500,
+            address_family: "ipv4".to_string(),
+            prefix: "203.0.113.0/24".to_string(),
+            as_path: vec![64500, 64601],
+            origin_asns: vec![64601],
+        });
+        let rows = peer_inventory(&p, &reg, "ris", "rrc06", "T", "sha", &routes, &[64500]);
+        assert_eq!(rows.len(), 1);
+        assert_eq!(rows[0].total_route_count, 3);
+        assert_eq!(rows[0].origin_route_count, 2);
+        assert_eq!(rows[0].distinct_origin_prefixes, 2);
+    }
+
+    #[test]
+    fn direct_session_decision_uses_profile_plane_asns() {
+        let p = profile_two_planes();
+        let reg = registry();
+        // The PEX plane (64501) has a direct session with ZERO target-origin
+        // routes; the RE plane (64500) has no direct session but its ASN
+        // appears inside other paths.
+        let routes = vec![
+            PathEvidence {
+                peer_ip: "192.0.2.1".to_string(),
+                peer_asn: 64501,
+                address_family: "ipv4".to_string(),
+                prefix: "203.0.113.0/24".to_string(),
+                as_path: vec![64501, 64600],
+                origin_asns: vec![64600],
+            },
+            PathEvidence {
+                peer_ip: "192.0.2.2".to_string(),
+                peer_asn: 64600,
+                address_family: "ipv4".to_string(),
+                prefix: "198.51.100.0/24".to_string(),
+                as_path: vec![64600, 64500, 64000],
+                origin_asns: vec![64000],
+            },
+        ];
+        let inv = peer_inventory(&p, &reg, "ris", "rrc06", "T", "sha", &routes, &[64500]);
+        let pex = direct_session_decision(&p, "pex", &inv, &[64500]).unwrap();
+        assert!(pex.direct_session_present, "direct PEX session exists");
+        assert_eq!(pex.direct_peer_asn, Some(64501));
+        assert_eq!(
+            pex.direct_origin_route_count, 0,
+            "direct session present with zero qualifying routes"
+        );
+        let re = direct_session_decision(&p, "re", &inv, &[64500]).unwrap();
+        assert!(
+            !re.direct_session_present,
+            "no direct RE session: peer ASN never equals 64500"
+        );
+        assert!(
+            re.plane_asn_in_path,
+            "64500 in path is indirect evidence, not a direct session"
+        );
+        // Decision keys off the profile: swap plane ASNs and the decision
+        // follows the data, never a hard-coded identity.
+        let mut p2 = profile_two_planes();
+        p2.service_planes[1].asns = vec![64600];
+        let pex2 = direct_session_decision(&p2, "pex", &inv, &[64500]).unwrap();
+        assert!(
+            pex2.direct_session_present,
+            "direct session follows profile ASNs"
+        );
+        assert_eq!(pex2.direct_peer_asn, Some(64600));
+    }
+
+    #[test]
+    fn inventory_rows_are_deterministic() {
+        let p = profile_two_planes();
+        let reg = registry();
+        let mut routes = routes_for("192.0.2.3", 64600, "ipv4", &["198.51.100.0/24"]);
+        routes.extend(routes_for("192.0.2.1", 64500, "ipv4", &["198.51.100.0/24"]));
+        routes.extend(routes_for("192.0.2.2", 64599, "ipv6", &["2001:db8::/32"]));
+        let a = peer_inventory(&p, &reg, "ris", "rrc06", "T", "sha", &routes, &[64500]);
+        let b = peer_inventory(&p, &reg, "ris", "rrc06", "T", "sha", &routes, &[64500]);
+        assert_eq!(a, b);
+        assert_eq!(
+            a.iter().map(|r| r.peer_ip.clone()).collect::<Vec<_>>(),
+            vec![
+                "192.0.2.1".to_string(),
+                "192.0.2.2".to_string(),
+                "192.0.2.3".to_string()
+            ]
+        );
     }
 }
 

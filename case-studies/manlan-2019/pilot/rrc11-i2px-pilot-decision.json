@@ -1,0 +1,19 @@
+{
+ "schema_version": 1,
+ "scope": "selected-observer direct I2PX pilot decision (RRC11)",
+ "reviewed_target": "NORDUnet (AS2603)",
+ "observer_relationship": "direct AS11164/I2PX session at RRC11 (NYIIX, New York)",
+ "pilot_window_utc": "2019-08-21T16:00:00Z .. 2019-08-21T17:30:00Z",
+ "baseline_bview": {
+  "collector": "rrc11",
+  "filename": "bview.20190821.0000.gz",
+  "timestamp_utc": "2019-08-21T00:00:00Z",
+  "source_sha256": "37e0f94d60b4b8bd52a9d66c590994d6b2541ae74ec860bb0ee7f38a8fdcd791"
+ },
+ "direct_session_present": false,
+ "qualifying_origin_routes": 0,
+ "qualifying_via_direct_session": 0,
+ "decision": "blocked-no-direct-session",
+ "blocking_reason": "No direct AS11164/I2PX session exists in the historical RRC11 baseline (bview.20190821.0000.gz, 2019-08-21T00:00:00Z): zero of 39 peer rows carry peer ASN 11164. The current peer list (RRC11/NYIIX direct peer AS11164) is supporting context only and does not establish a 2019 session. The direct I2PX pilot was not executed.",
+ "note": "The direct I2PX pilot is a separate run from the R&E-plane runs; it is never merged with them. If a qualifying baseline had existed, the reviewed NORDUnet pilot window would have been run through the direct session without requiring AS11164 to appear again inside the exported AS path."
+}

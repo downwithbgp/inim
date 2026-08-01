@@ -294,6 +294,12 @@ enum CatalogCommands {
         /// Parallel parse workers.
         #[arg(long, value_name = "N", default_value = "4")]
         jobs: usize,
+        /// Full peer inventory: report EVERY session in the baseline RIBs
+        /// (all peers, all route counts) instead of only target-origin
+        /// sessions. Answer "was a direct session with peer ASN X present
+        /// at all" even when that session carried no target-origin routes.
+        #[arg(long)]
+        full_inventory: bool,
         /// Output JSON path.
         #[arg(long, value_name = "PATH", default_value = "session-audit.json")]
         out: PathBuf,
@@ -1340,6 +1346,7 @@ fn cmd_catalog(stdout: &mut dyn Write, command: &CatalogCommands) -> i32 {
             origin_asns,
             extraction_cache,
             jobs,
+            full_inventory,
             out,
         } => cmd_session_audit(
             stdout,
@@ -1351,6 +1358,7 @@ fn cmd_catalog(stdout: &mut dyn Write, command: &CatalogCommands) -> i32 {
             origin_asns,
             extraction_cache.as_deref(),
             *jobs,
+            *full_inventory,
             out,
         ),
         CatalogCommands::AnalysisQueue { db, state } => {
@@ -2490,10 +2498,13 @@ fn cmd_session_audit(
     origin_asns: &str,
     extraction_cache: Option<&std::path::Path>,
     jobs: usize,
+    full_inventory: bool,
     out: &std::path::Path,
 ) -> i32 {
     use inim::catalog::netprofile::{CollectorLocationRegistry, ServicePlaneProfile};
-    use inim::catalog::session_audit::{run_session_audit, SessionAuditOptions};
+    use inim::catalog::session_audit::{
+        run_peer_inventory, run_session_audit, SessionAuditOptions,
+    };
 
     let profile_path = profile
         .map(|p| p.to_path_buf())
@@ -2548,37 +2559,54 @@ fn cmd_session_audit(
         jobs,
         extraction_cache,
     };
-    match run_session_audit(&opts) {
-        Ok(rows) => {
-            let json = match serde_json::to_string_pretty(&rows) {
+    let json: String = if full_inventory {
+        match run_peer_inventory(&opts) {
+            Ok(rows) => match serde_json::to_string_pretty(&rows) {
                 Ok(j) => j,
                 Err(e) => {
-                    let _ = writeln!(stdout, "error: cannot serialize audit: {e}");
+                    let _ = writeln!(stdout, "error: cannot serialize peer inventory: {e}");
                     return EXIT_INVALID_INPUT;
                 }
-            };
-            if let Some(parent) = out.parent() {
-                if !parent.as_os_str().is_empty() {
-                    let _ = std::fs::create_dir_all(parent);
-                }
-            }
-            if let Err(e) = std::fs::write(out, json) {
-                let _ = writeln!(stdout, "error: cannot write {}: {e}", out.display());
+            },
+            Err(e) => {
+                let _ = writeln!(stdout, "error: {e}");
                 return EXIT_INVALID_INPUT;
             }
-            let _ = writeln!(
-                stdout,
-                "session audit: {} row(s) written to {}",
-                rows.len(),
-                out.display()
-            );
-            EXIT_SUCCESS
         }
-        Err(e) => {
-            let _ = writeln!(stdout, "error: {e}");
-            EXIT_INVALID_INPUT
+    } else {
+        match run_session_audit(&opts) {
+            Ok(rows) => {
+                let j = match serde_json::to_string_pretty(&rows) {
+                    Ok(j) => j,
+                    Err(e) => {
+                        let _ = writeln!(stdout, "error: cannot serialize audit: {e}");
+                        return EXIT_INVALID_INPUT;
+                    }
+                };
+                let _ = writeln!(
+                    stdout,
+                    "session audit: {} row(s) written to {}",
+                    rows.len(),
+                    out.display()
+                );
+                j
+            }
+            Err(e) => {
+                let _ = writeln!(stdout, "error: {e}");
+                return EXIT_INVALID_INPUT;
+            }
+        }
+    };
+    if let Some(parent) = out.parent() {
+        if !parent.as_os_str().is_empty() {
+            let _ = std::fs::create_dir_all(parent);
         }
     }
+    if let Err(e) = std::fs::write(out, json) {
+        let _ = writeln!(stdout, "error: cannot write {}: {e}", out.display());
+        return EXIT_INVALID_INPUT;
+    }
+    EXIT_SUCCESS
 }
 
 fn cmd_analysis_queue(
