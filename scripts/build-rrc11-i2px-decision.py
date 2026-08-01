@@ -92,7 +92,7 @@ def main() -> int:
         ),
     }
 
-    with open(f"{OUT_DIR}/rrc11-i2px-pilot-decision.json", "w") as f:
+    with open(f"{OUT_DIR}/rrc11-pex-pilot-decision.json", "w") as f:
         json.dump(artifact, f, indent=1)
         f.write("\n")
 
@@ -126,7 +126,7 @@ def main() -> int:
 
     print(f"decision: {decision}")
     print(f"blocking_reason: {blocking_reason}")
-    print(f"wrote {OUT_DIR}/rrc11-i2px-pilot-decision.json")
+    print(f"wrote {OUT_DIR}/rrc11-pex-pilot-decision.json")
     print(f"wrote {OUT_DIR}/rrc11-i2px-pilot-decision.md")
     return 0
 

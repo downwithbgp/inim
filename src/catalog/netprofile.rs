@@ -637,10 +637,27 @@ impl CollectorLocationRegistry {
             .find(|c| c.family.eq_ignore_ascii_case(family) && c.collector == collector)
     }
 
+    /// Look up a collector by name alone (family-agnostic).
+    ///
+    /// Some older manifests do not record the source family; the collector
+    /// name is a stable site identity, so a name-only lookup recovers the
+    /// reviewed site/region when the family is absent. A name that
+    /// matches no reviewed entry stays unresolvable (Unknown region).
+    pub fn location_by_collector(&self, collector: &str) -> Option<&CollectorLocation> {
+        self.collectors.iter().find(|c| c.collector == collector)
+    }
+
     /// Observer-site region for a collector, or "Unknown" when the
     /// collector has no reviewed metadata entry.
     pub fn region(&self, family: &str, collector: &str) -> String {
         self.location(family, collector)
+            .map(|c| c.region.clone())
+            .unwrap_or_else(default_unknown_region)
+    }
+
+    /// Observer-site region resolved by collector name alone.
+    pub fn region_by_collector(&self, collector: &str) -> String {
+        self.location_by_collector(collector)
             .map(|c| c.region.clone())
             .unwrap_or_else(default_unknown_region)
     }

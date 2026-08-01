@@ -2750,18 +2750,23 @@ pub fn load_archive_batches(conn: &rusqlite::Connection) -> Result<ArchiveBatche
 pub fn load_event_workbench(
     conn: &rusqlite::Connection,
     event_id: &str,
+    catalog_root: &std::path::Path,
 ) -> Result<Option<WorkbenchView>, String> {
     let event = db::get_event_by_external(conn, "local-repository", event_id)?.or(
         db::get_event_by_external(conn, "grnoc-public-task-viewer", event_id)?,
     );
     let Some(event) = event else { return Ok(None) };
     // Collector sites are stable reviewed facts; the pilot-scoped session
-    // audit and I2PX decision are NOT applied to unrelated events.
+    // audit and peering-plane decision are NOT applied to unrelated events.
     let context = crate::catalog::workbench::WorkbenchContext::load_registry_only(
         std::path::Path::new("case-studies/manlan-2019/pilot"),
     );
-    let Some(vm) =
-        crate::catalog::workbench::IncidentWorkbenchViewModel::for_event(conn, event_id, &context)?
+    let Some(vm) = crate::catalog::workbench::IncidentWorkbenchViewModel::for_event(
+        conn,
+        event_id,
+        &context,
+        catalog_root,
+    )?
     else {
         return Ok(None);
     };
@@ -2774,6 +2779,17 @@ pub fn load_event_workbench(
     if !title.is_empty() {
         vm.title = title;
     }
+    // Source task type from the immutable snapshot (e.g. INC/CHG/TASK);
+    // fixtures without a task_type field keep the source kind.
+    if let Some(s) = db::list_snapshots(conn, event.id)?.first() {
+        if let Ok(v) = serde_json::from_str::<serde_json::Value>(&s.normalized_json) {
+            if let Some(tt) = v.get("task_type").and_then(|x| x.as_str()) {
+                if !tt.is_empty() {
+                    vm.source_task_type = tt.to_string();
+                }
+            }
+        }
+    }
     Ok(Some(WorkbenchView::from_vm(vm)))
 }
 
@@ -2781,6 +2797,7 @@ pub fn load_event_workbench(
 pub fn load_case_study_workbench(
     conn: &rusqlite::Connection,
     slug: &str,
+    catalog_root: &std::path::Path,
 ) -> Result<Option<WorkbenchView>, String> {
     let Some(cs) = crate::catalog::archive_plan::find_case_study(conn, slug) else {
         return Ok(None);
@@ -2790,7 +2807,10 @@ pub fn load_case_study_workbench(
         .join("pilot");
     let context = crate::catalog::workbench::WorkbenchContext::load_from_pilot_dir(&pilot_dir);
     let Some(mut vm) = crate::catalog::workbench::IncidentWorkbenchViewModel::for_case_study(
-        conn, slug, &context,
+        conn,
+        slug,
+        &context,
+        catalog_root,
     )?
     else {
         return Ok(None);

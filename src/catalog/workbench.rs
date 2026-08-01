@@ -385,10 +385,10 @@ pub fn build_episodes(
             analysis_run: run_id,
             observer_session: format!("{family}/{collector} peer {peer_ip}"),
             observer_site: registry
-                .location(family, &collector)
+                .location_by_collector(&collector)
                 .map(|c| c.location.clone())
                 .unwrap_or_else(|| collector.clone()),
-            observer_region: registry.region(family, &collector),
+            observer_region: registry.region_by_collector(&collector),
             peer_asn,
             peer_label,
             peer_role,
@@ -2257,6 +2257,7 @@ impl IncidentWorkbenchViewModel {
         conn: &Connection,
         event_id: &str,
         context: &WorkbenchContext,
+        catalog_root: &std::path::Path,
     ) -> Result<Option<Self>, String> {
         let event = crate::catalog::db::get_event_by_external(conn, "local-repository", event_id)?
             .or(crate::catalog::db::get_event_by_external(
@@ -2269,7 +2270,15 @@ impl IncidentWorkbenchViewModel {
         let run_ids: Vec<i64> = runs.iter().map(|r| r.id).collect();
         let evidence = RunEvidence::load(conn, &run_ids)?;
         Self::assemble(
-            conn, event_id, "event", "", event_id, &runs, &evidence, context,
+            conn,
+            event_id,
+            "event",
+            "",
+            event_id,
+            &runs,
+            &evidence,
+            context,
+            catalog_root,
         )
         .map(Some)
     }
@@ -2279,6 +2288,7 @@ impl IncidentWorkbenchViewModel {
         conn: &Connection,
         slug: &str,
         context: &WorkbenchContext,
+        catalog_root: &std::path::Path,
     ) -> Result<Option<Self>, String> {
         let Some(cs) = crate::catalog::archive_plan::find_case_study(conn, slug) else {
             return Ok(None);
@@ -2295,6 +2305,7 @@ impl IncidentWorkbenchViewModel {
             &runs,
             &evidence,
             context,
+            catalog_root,
         )
         .map(Some)
     }
@@ -2309,6 +2320,7 @@ impl IncidentWorkbenchViewModel {
         runs: &[crate::catalog::domain::AnalysisRun],
         evidence: &RunEvidence,
         context: &WorkbenchContext,
+        catalog_root: &std::path::Path,
     ) -> Result<Self, String> {
         let registry = context.registry.clone().unwrap_or_default();
         let mut episodes = Vec::new();
@@ -2320,7 +2332,7 @@ impl IncidentWorkbenchViewModel {
         let mut named_planes: Vec<String> = Vec::new();
 
         for run in runs {
-            let (ws, we, plane, coverage, run_family) = run_meta(conn, run.id)?;
+            let (ws, we, plane, coverage, run_family) = run_meta(conn, run.id, catalog_root)?;
             if window_start.is_empty() {
                 window_start = ws.clone();
                 window_end = we.clone();
@@ -2421,7 +2433,7 @@ impl IncidentWorkbenchViewModel {
             .iter()
             .map(|(collector, label)| CoverageSessionView {
                 observer_session: label.clone(),
-                region: registry.region("", collector),
+                region: registry.region_by_collector(collector),
                 collector: collector.clone(),
                 coverage_status: CoverageStatus::NoBaselineVisibility,
                 note: "no qualifying baseline at this observer".to_string(),
@@ -2432,7 +2444,7 @@ impl IncidentWorkbenchViewModel {
             .iter()
             .map(|(collector, label)| CoverageSessionView {
                 observer_session: label.clone(),
-                region: registry.region("", collector),
+                region: registry.region_by_collector(collector),
                 collector: collector.clone(),
                 coverage_status: CoverageStatus::IncompleteCoverage,
                 note: "observation could not be completed".to_string(),
@@ -2517,6 +2529,7 @@ fn linked_runs(
 fn run_meta(
     conn: &Connection,
     run_id: i64,
+    catalog_root: &std::path::Path,
 ) -> Result<(String, String, String, String, String), String> {
     let mut window_start = String::new();
     let mut window_end = String::new();
@@ -2592,7 +2605,21 @@ fn run_meta(
             .map_err(|e| format!("catalog read failed: {e}"))?;
         for row in rows {
             let rel = row.map_err(|e| format!("catalog read failed: {e}"))?;
-            if let Ok(raw) = std::fs::read_to_string(rel) {
+            // Artifact relative paths are stored relative to the import
+            // out/ directory; resolve against the catalog root first,
+            // then the conventional out/ subdirectory, then the pilot
+            // case-study out/ tree (pilot runs are imported from
+            // case-studies/<slug>/pilot as their own root).
+            let mut full = catalog_root.join(&rel);
+            if !full.is_file() {
+                full = catalog_root.join("out").join(&rel);
+            }
+            if !full.is_file() {
+                full = catalog_root
+                    .join("case-studies/manlan-2019/pilot/out")
+                    .join(&rel);
+            }
+            if let Ok(raw) = std::fs::read_to_string(full) {
                 if let Ok(v) = serde_json::from_str::<serde_json::Value>(&raw) {
                     if let Some(cov) = v
                         .get("observed_event_signature")
@@ -2649,14 +2676,14 @@ mod workbench_view_tests {
 impl WorkbenchContext {
     /// Load reviewed context from a case study's pilot data directory
     /// (network profile, collector locations, session audit, reviewed
-    /// I2PX pilot decision). Returns an empty context when the directory
+    /// peering-plane pilot decision). Returns an empty context when the directory
     /// or its data files are absent (generic events).
     pub fn load_from_pilot_dir(pilot_dir: &std::path::Path) -> Self {
         let mut ctx = WorkbenchContext::default();
         let profile_path = pilot_dir.join("network-profile.json");
         let locations_path = pilot_dir.join("collector-locations.json");
         let audit_path = pilot_dir.join("session-audit-2019.json");
-        let i2px_decision_path = pilot_dir.join("rrc11-i2px-pilot-decision.json");
+        let pex_decision_path = pilot_dir.join("rrc11-pex-pilot-decision.json");
 
         if let Ok(profile) = ServicePlaneProfile::load(&profile_path) {
             if let Ok(registry) = CollectorLocationRegistry::load(&locations_path) {
@@ -2672,9 +2699,9 @@ impl WorkbenchContext {
             }
         }
 
-        // Reviewed direct-I2PX decision: a blocked pilot with no direct
-        // session means the observer has no qualifying I2PX baseline.
-        if let Ok(raw) = std::fs::read_to_string(&i2px_decision_path) {
+        // Reviewed direct-peering-plane decision: a blocked pilot with no direct
+        // session means the observer has no qualifying peering-plane baseline.
+        if let Ok(raw) = std::fs::read_to_string(&pex_decision_path) {
             if let Ok(v) = serde_json::from_str::<serde_json::Value>(&raw) {
                 if v.get("decision").and_then(|d| d.as_str()) == Some("blocked-no-direct-session") {
                     let collector = v
@@ -2685,7 +2712,7 @@ impl WorkbenchContext {
                         .to_string();
                     ctx.no_baseline_sessions.push((
                         collector.clone(),
-                        format!("{collector} (reviewed I2PX pilot decision)"),
+                        format!("{collector} (reviewed peering-plane pilot decision)"),
                     ));
                 }
             }
@@ -2696,7 +2723,7 @@ impl WorkbenchContext {
     /// Load ONLY the reviewed collector-site registry for a generic event
     /// workbench. Collector sites are stable reviewed facts (where the
     /// route reflector is hosted, time-scoped by `as_of`); the 2019
-    /// session audit and the I2PX pilot decision are NOT loaded here
+    /// session audit and the peering-plane pilot decision are NOT loaded here
     /// because they are pilot-scoped evidence and must not be attributed
     /// to unrelated events.
     pub fn load_registry_only(pilot_dir: &std::path::Path) -> Self {
@@ -2721,5 +2748,205 @@ mod context_tests {
         assert!(ctx.session_peers.is_empty());
         assert!(ctx.registry.is_none());
         assert!(ctx.no_baseline_sessions.is_empty());
+    }
+}
+
+impl IncidentWorkbenchViewModel {
+    /// Render the workbench as a plain-text NOC report. All text derives
+    /// from the SAME presentation model as the web workbench and the JSON
+    /// API — no counts are recalculated here.
+    pub fn render_text(&self) -> String {
+        let mut out = String::new();
+        out.push_str(&format!(
+            "Incident workbench: {} ({})\n{}\n",
+            self.subject_id, self.subject_kind, self.title
+        ));
+        out.push_str(&format!(
+            "  source task type: {}\n  lifecycle: {}\n  window: {} .. {}\n",
+            self.source_task_type, self.lifecycle, self.window_start, self.window_end
+        ));
+        out.push_str(&format!(
+            "  current observed result: {}\n  expectation: {}\n  archive coverage: {}\n",
+            self.current_result, self.expectation_assessment, self.archive_coverage
+        ));
+
+        out.push_str("\nObserved breadth by region\n");
+        if self.breadth.is_empty() {
+            out.push_str("  (none)\n");
+        }
+        for b in &self.breadth {
+            out.push_str(&format!(
+                "  {}: changed {}/{} eligible, {} unchanged, {} no-baseline, {} incomplete; {} changed streams / {} prefixes\n",
+                b.region,
+                b.changed_observer_sessions,
+                b.eligible_observer_sessions,
+                b.unchanged_observer_sessions,
+                b.sessions_without_baseline_visibility,
+                b.sessions_with_incomplete_coverage,
+                b.changed_streams,
+                b.changed_prefixes,
+            ));
+        }
+
+        out.push_str("\nObserver episodes\n");
+        if self.episodes.is_empty() {
+            out.push_str("  (none)\n");
+        }
+        for e in &self.episodes {
+            out.push_str(&format!(
+                "  [{}] {} | {} | {} | {} streams / {} prefixes | {}\n",
+                e.observer_region,
+                e.effect_kind.label(),
+                e.observer_site,
+                e.peer_asn
+                    .map(|a| format!("AS{a}"))
+                    .unwrap_or_else(|| "ASN unreviewed".into()),
+                e.changed_stream_count,
+                e.distinct_prefix_count,
+                e.first_change
+                    .clone()
+                    .unwrap_or_else(|| "no change".to_string()),
+            ));
+            if !e.representative_evidence.is_empty() {
+                out.push_str(&format!("      {}\n", e.representative_evidence));
+            }
+        }
+
+        out.push_str("\nCoverage-only sessions\n");
+        for s in self
+            .no_baseline_sessions
+            .iter()
+            .chain(self.incomplete_sessions.iter())
+        {
+            out.push_str(&format!(
+                "  {} | {} | {}\n",
+                s.observer_session,
+                s.coverage_status.label(),
+                s.note
+            ));
+        }
+        if self.no_baseline_sessions.is_empty() && self.incomplete_sessions.is_empty() {
+            out.push_str("  (none)\n");
+        }
+
+        out.push_str("\nTimeline (UTC)\n");
+        if self.timeline.is_empty() {
+            out.push_str("  (none)\n");
+        }
+        for lane in &self.timeline {
+            out.push_str(&format!(
+                "  {} | first {} | absence {} | path-change {} | restoration {} | {}\n",
+                lane.observer_session,
+                lane.first_route_change
+                    .as_ref()
+                    .map(|m| m.timestamp_utc.clone())
+                    .unwrap_or_else(|| "—".to_string()),
+                lane.absence_interval
+                    .as_ref()
+                    .map(|(a, b)| format!("{a}..{b}"))
+                    .unwrap_or_else(|| "—".to_string()),
+                lane.path_change_interval
+                    .as_ref()
+                    .map(|(a, b)| format!("{a}..{b}"))
+                    .unwrap_or_else(|| "—".to_string()),
+                lane.restoration_interval
+                    .as_ref()
+                    .map(|(a, b)| format!("{a}..{b}"))
+                    .unwrap_or_else(|| "—".to_string()),
+                if lane.unresolved_end_state {
+                    "unresolved end state"
+                } else {
+                    "observed"
+                },
+            ));
+        }
+
+        out.push_str("\nSuggested internal checks (investigation cues)\n");
+        if self.cues.is_empty() {
+            out.push_str("  (none)\n");
+        }
+        for cue in &self.cues {
+            out.push_str(&format!("  - {}\n", cue.text));
+        }
+
+        out.push_str("\nRuns\n");
+        for r in &self.runs {
+            out.push_str(&format!(
+                "  run {} | {} | {} | {}\n",
+                r.id, r.status, r.verdict, r.named_path_plane
+            ));
+        }
+        out
+    }
+}
+
+#[cfg(test)]
+mod text_report_tests {
+    use super::*;
+
+    #[test]
+    fn text_report_uses_same_model_counts() {
+        let vm = IncidentWorkbenchViewModel {
+            subject_id: "EV-1".to_string(),
+            subject_kind: "event".to_string(),
+            title: "Test".to_string(),
+            source_task_type: "incident".to_string(),
+            reviewed_incident_role: String::new(),
+            lifecycle: "Closed".to_string(),
+            window_start: "2019-08-21T16:00:00Z".to_string(),
+            window_end: "2019-08-21T17:30:00Z".to_string(),
+            current_result: "Partial".to_string(),
+            expectation_assessment: String::new(),
+            archive_coverage: "Complete".to_string(),
+            runs: vec![],
+            episodes: vec![ObserverEpisode {
+                analysis_run: 1,
+                observer_session: "ris/rrc06 peer 192.0.2.1".to_string(),
+                observer_site: "Otemachi, Tokyo, Japan".to_string(),
+                observer_region: "APAC".to_string(),
+                peer_asn: Some(64500),
+                peer_label: "AS64500".to_string(),
+                peer_role: "regional-re".to_string(),
+                relationship: RelationshipKind::Direct,
+                named_path_plane: "Plane A".to_string(),
+                effect_kind: EffectKind::TemporaryStreamAbsence,
+                first_change: Some("2019-08-21T16:45:25Z".to_string()),
+                peak_interval: None,
+                last_change: Some("2019-08-21T16:45:27Z".to_string()),
+                restoration_start: Some("2019-08-21T16:45:27Z".to_string()),
+                restoration_end: Some("2019-08-21T16:45:27Z".to_string()),
+                baseline_stream_count: 2,
+                changed_stream_count: 2,
+                distinct_prefix_count: 2,
+                route_instance_count: 2,
+                unresolved_count: 0,
+                coverage_status: CoverageStatus::NoChange,
+                representative_evidence: "evidence sentence".to_string(),
+                streams: vec![],
+            }],
+            breadth: vec![RegionObservationSummary {
+                region: "APAC".to_string(),
+                eligible_observer_sessions: 1,
+                changed_observer_sessions: 1,
+                unchanged_observer_sessions: 0,
+                sessions_without_baseline_visibility: 0,
+                sessions_with_incomplete_coverage: 0,
+                changed_streams: 2,
+                baseline_streams: 2,
+                changed_prefixes: 2,
+                first_change: Some("2019-08-21T16:45:25Z".to_string()),
+                last_restoration: Some("2019-08-21T16:45:27Z".to_string()),
+            }],
+            timeline: vec![],
+            operator_anchors: vec![],
+            cues: vec![],
+            no_baseline_sessions: vec![],
+            incomplete_sessions: vec![],
+        };
+        let text = vm.render_text();
+        assert!(text.contains("changed 1/1 eligible"));
+        assert!(text.contains("2 streams / 2 prefixes"));
+        assert!(text.contains("TemporaryStreamAbsence"));
+        assert!(text.contains("evidence sentence"));
     }
 }

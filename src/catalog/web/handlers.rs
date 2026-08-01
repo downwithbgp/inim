@@ -105,7 +105,7 @@ pub async fn event_workbench(
     AxumPath(event_id): AxumPath<String>,
 ) -> Response {
     let db = state.db.lock().unwrap();
-    match super::view::load_event_workbench(&db, &event_id) {
+    match super::view::load_event_workbench(&db, &event_id, &state.catalog_root) {
         Ok(Some(view)) => render(view),
         Ok(None) => not_found("event"),
         Err(e) => server_error(&e),
@@ -119,7 +119,7 @@ pub async fn case_study_workbench(
     AxumPath(slug): AxumPath<String>,
 ) -> Response {
     let db = state.db.lock().unwrap();
-    match super::view::load_case_study_workbench(&db, &slug) {
+    match super::view::load_case_study_workbench(&db, &slug, &state.catalog_root) {
         Ok(Some(view)) => render(view),
         Ok(None) => not_found("case study"),
         Err(e) => server_error(&e),

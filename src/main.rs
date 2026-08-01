@@ -221,6 +221,15 @@ enum CatalogCommands {
         #[arg(long, value_name = "DIR", default_value = ".")]
         root: PathBuf,
     },
+    /// Render the incident workbench as a text report (same shared
+    /// presentation model as the web workbench and the JSON API).
+    Workbench {
+        #[arg(long, value_name = "PATH")]
+        db: PathBuf,
+        /// Event id (e.g. INC0302574) or case-study slug (e.g. manlan-2019).
+        #[arg(long, value_name = "ID")]
+        subject: String,
+    },
     /// Manage incident case studies.
     #[command(subcommand)]
     CaseStudy(CaseStudyCommands),
@@ -1249,6 +1258,52 @@ fn cmd_catalog(stdout: &mut dyn Write, command: &CatalogCommands) -> i32 {
                 }
                 Err(e) => {
                     let _ = writeln!(stdout, "error: {e}");
+                    EXIT_INVALID_INPUT
+                }
+            }
+        }
+        CatalogCommands::Workbench { db, subject } => {
+            let conn = match inim::catalog::db::open_catalog(db) {
+                Ok(c) => c,
+                Err(e) => {
+                    let _ = writeln!(stdout, "error: {e}");
+                    return EXIT_INVALID_INPUT;
+                }
+            };
+            // Events get the reviewed collector-site registry only (the
+            // pilot-scoped session audit and peering-plane decision are case-study
+            // context). Case studies get the full pilot context.
+            let vm = match inim::catalog::web::view::load_event_workbench(
+                &conn,
+                subject,
+                std::path::Path::new("."),
+            ) {
+                Ok(Some(v)) => Some(v.vm),
+                Ok(None) => {
+                    match inim::catalog::web::view::load_case_study_workbench(
+                        &conn,
+                        subject,
+                        std::path::Path::new("."),
+                    ) {
+                        Ok(v) => v.map(|v| v.vm),
+                        Err(e) => {
+                            let _ = writeln!(stdout, "error: {e}");
+                            return EXIT_INVALID_INPUT;
+                        }
+                    }
+                }
+                Err(e) => {
+                    let _ = writeln!(stdout, "error: {e}");
+                    return EXIT_INVALID_INPUT;
+                }
+            };
+            match vm {
+                Some(v) => {
+                    let _ = write!(stdout, "{}", v.render_text());
+                    EXIT_SUCCESS
+                }
+                None => {
+                    let _ = writeln!(stdout, "error: no event or case study matches {subject}");
                     EXIT_INVALID_INPUT
                 }
             }
