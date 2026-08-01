@@ -1,0 +1,2370 @@
+{
+  "schema_version": 1,
+  "host": {
+    "logical_cpus": 12,
+    "available_parallelism": 12,
+    "jobs": 8,
+    "parse_jobs": 2,
+    "download_jobs": 2,
+    "cgroup_cpu_max": null,
+    "cpu_affinity": "Cpus_allowed_list:\t0-11"
+  },
+  "stages": [
+    {
+      "stage": "broker+cache",
+      "wall_secs": 0.310290541,
+      "input_bytes": 0,
+      "output_count": 0,
+      "workers": 0,
+      "cache_hits": 0,
+      "cache_misses": 0
+    },
+    {
+      "stage": "UPDATE cache+parse",
+      "wall_secs": 81.182329917,
+      "input_bytes": 0,
+      "output_count": 0,
+      "workers": 0,
+      "cache_hits": 0,
+      "cache_misses": 0
+    },
+    {
+      "stage": "reconstruction",
+      "wall_secs": 0.001464334,
+      "input_bytes": 0,
+      "output_count": 0,
+      "workers": 0,
+      "cache_hits": 0,
+      "cache_misses": 0
+    },
+    {
+      "stage": "tokenize",
+      "wall_secs": 0.000086974,
+      "input_bytes": 0,
+      "output_count": 0,
+      "workers": 0,
+      "cache_hits": 0,
+      "cache_misses": 0
+    },
+    {
+      "stage": "waves+motifs",
+      "wall_secs": 0.000641151,
+      "input_bytes": 0,
+      "output_count": 0,
+      "workers": 0,
+      "cache_hits": 0,
+      "cache_misses": 0
+    },
+    {
+      "stage": "assess",
+      "wall_secs": 0.001891568,
+      "input_bytes": 0,
+      "output_count": 0,
+      "workers": 0,
+      "cache_hits": 0,
+      "cache_misses": 0
+    },
+    {
+      "stage": "outputs",
+      "wall_secs": 0.035020716,
+      "input_bytes": 0,
+      "output_count": 0,
+      "workers": 0,
+      "cache_hits": 0,
+      "cache_misses": 0
+    }
+  ],
+  "archives": [
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190820.2330.gz",
+      "archive_sha256": "18287011ea7f7150c935e5595b69a1b03e8984331b0be9c24f802e49f4c8faef",
+      "compressed_bytes": 51105,
+      "parse_wall_secs": 0.389705246,
+      "parsed_elements": 6029,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.00076579,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190820.2335.gz",
+      "archive_sha256": "9b21eab354fe813559dd74106791e2fa2d18ae38c0403f6b2c06e53866132bf9",
+      "compressed_bytes": 58777,
+      "parse_wall_secs": 0.421025976,
+      "parsed_elements": 7431,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000534515,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190820.2340.gz",
+      "archive_sha256": "80746fe6b7af00aba3715198c8d6b0e5b026cd8f62dd64cf7540db26daa9cf91",
+      "compressed_bytes": 68122,
+      "parse_wall_secs": 0.475059613,
+      "parsed_elements": 10023,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000581273,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190820.2345.gz",
+      "archive_sha256": "5dd99c9a7480d0afdebeb914a3c932dfffba0248c1385a6359f9c30d104b9a24",
+      "compressed_bytes": 60408,
+      "parse_wall_secs": 0.452231991,
+      "parsed_elements": 7477,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000540769,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190820.2350.gz",
+      "archive_sha256": "5e7dbba42229e91e2a7200f5ba124e028563528837831192e5cde8a11422cac9",
+      "compressed_bytes": 48944,
+      "parse_wall_secs": 0.34780535,
+      "parsed_elements": 6226,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000540518,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190820.2355.gz",
+      "archive_sha256": "409c1168950dde99946000288b34d21ffdb398144a557e3cb0f87e81fd56237a",
+      "compressed_bytes": 58366,
+      "parse_wall_secs": 0.449806171,
+      "parsed_elements": 7570,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000471775,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0000.gz",
+      "archive_sha256": "c8fc1e248cac3cc47853cff839aece0137631a38add77af92acefddef497a948",
+      "compressed_bytes": 67105,
+      "parse_wall_secs": 0.453610907,
+      "parsed_elements": 9866,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000391482,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0005.gz",
+      "archive_sha256": "e3e1a0f180f9b352ab2bb76ec277a2afb578c430c1f9efb426fe4a9a489a6732",
+      "compressed_bytes": 53124,
+      "parse_wall_secs": 0.379469534,
+      "parsed_elements": 7497,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000506197,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0010.gz",
+      "archive_sha256": "73335ba802658e09b5f112ab8d5141ffb7901a54819ef00036c51ee0c2b74995",
+      "compressed_bytes": 53844,
+      "parse_wall_secs": 0.428726245,
+      "parsed_elements": 6538,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000393135,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0015.gz",
+      "archive_sha256": "847832b60d09ea3ec8111c4aed43bfc49fcf0bff08c8eca0879b286d83a2f216",
+      "compressed_bytes": 52225,
+      "parse_wall_secs": 0.396372511,
+      "parsed_elements": 6323,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000615972,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0020.gz",
+      "archive_sha256": "bf8f7d069147f7dee8ec2a6b59baa4280aadaf2aabbfc8990cd56c4effc9cf34",
+      "compressed_bytes": 65858,
+      "parse_wall_secs": 0.456341709,
+      "parsed_elements": 7988,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000579955,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0025.gz",
+      "archive_sha256": "fa2f5d0f09188179a538ca4ce1db1817a5bc2b51abdeb6e89fef904960e0e96b",
+      "compressed_bytes": 61458,
+      "parse_wall_secs": 0.4429953,
+      "parsed_elements": 7893,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000536702,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0030.gz",
+      "archive_sha256": "5c6068f1fda1303fcbd534d52fe057efbe7f2c1900a361eefbe71481bcc16de2",
+      "compressed_bytes": 47756,
+      "parse_wall_secs": 0.359978959,
+      "parsed_elements": 5695,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000601867,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0035.gz",
+      "archive_sha256": "8fbad2626e7183330f93aa58fc92410a8df5405f1901b0df7ad703d763cbc4a4",
+      "compressed_bytes": 52412,
+      "parse_wall_secs": 0.3829952,
+      "parsed_elements": 7044,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000416788,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0040.gz",
+      "archive_sha256": "99c3e97e1e38eef1330cc4ca1643b5d0be2e8f382fcc59da03c754a482a042b8",
+      "compressed_bytes": 45123,
+      "parse_wall_secs": 0.351190994,
+      "parsed_elements": 5249,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.00065901,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0045.gz",
+      "archive_sha256": "4c67c5be77d056a801039427d669f844168e4c973db56ebfd56078ab5f005b4d",
+      "compressed_bytes": 48969,
+      "parse_wall_secs": 0.381194636,
+      "parsed_elements": 5452,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.001425253,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0050.gz",
+      "archive_sha256": "9c5fc3197bf486df370bc3f111d1575000638663cdce11032271c4ddb18e5801",
+      "compressed_bytes": 40497,
+      "parse_wall_secs": 0.303938697,
+      "parsed_elements": 5031,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000530015,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0055.gz",
+      "archive_sha256": "c1a585cce73c684d3e474f8783c81a9be255be21cee5c6bc1b4a60ce7a28f6d5",
+      "compressed_bytes": 49642,
+      "parse_wall_secs": 0.358640657,
+      "parsed_elements": 5911,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000533036,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0100.gz",
+      "archive_sha256": "831b1cad13262fa3cd023897c84bafa147736a825fa87a1784cc537c8d73c108",
+      "compressed_bytes": 50419,
+      "parse_wall_secs": 0.414325547,
+      "parsed_elements": 6246,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000573421,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0105.gz",
+      "archive_sha256": "dfce56c02b27c707be4c8ac9df937d7904dbcce53c139a92b9fa7fd6295ee6ec",
+      "compressed_bytes": 44614,
+      "parse_wall_secs": 0.372315055,
+      "parsed_elements": 5590,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000363,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0110.gz",
+      "archive_sha256": "13ce889e71c5c8092c26f83692f90dcf128e879c2696b5b2814aef5fef8e8bb6",
+      "compressed_bytes": 47312,
+      "parse_wall_secs": 0.348796056,
+      "parsed_elements": 5846,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000586739,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0115.gz",
+      "archive_sha256": "4ee21248bf46a38852336bc9757917a8b92af9c311fe032af81e0060383c8e63",
+      "compressed_bytes": 44174,
+      "parse_wall_secs": 0.342729299,
+      "parsed_elements": 4966,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000502116,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0120.gz",
+      "archive_sha256": "442dd1b6535df8701ef6850df076190e2da0745feda78819efec4cbfc6b2a1e0",
+      "compressed_bytes": 49256,
+      "parse_wall_secs": 0.35237804,
+      "parsed_elements": 6344,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000508173,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0125.gz",
+      "archive_sha256": "a29a01df519b259d8746fddba703d317c48dea0ee8e2b87090b6c54f2425e37f",
+      "compressed_bytes": 47168,
+      "parse_wall_secs": 0.343430666,
+      "parsed_elements": 5673,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000477178,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0130.gz",
+      "archive_sha256": "eec714990d36cd11c97fc9ce23cdaedf47e77fcf8d3ce258806517e004fb76d7",
+      "compressed_bytes": 42763,
+      "parse_wall_secs": 0.336483266,
+      "parsed_elements": 5681,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.00057613,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0135.gz",
+      "archive_sha256": "eb6846782747a49af75532f83b914ce9a05a0af3919576ba45e7d8be3cc23f44",
+      "compressed_bytes": 42694,
+      "parse_wall_secs": 0.345506606,
+      "parsed_elements": 4905,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000419498,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0140.gz",
+      "archive_sha256": "349c2c88e23f4f33eb624891fe095e8da76b3ae46897a7c630a14145d4789119",
+      "compressed_bytes": 40951,
+      "parse_wall_secs": 0.316228772,
+      "parsed_elements": 4552,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000606545,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0145.gz",
+      "archive_sha256": "300c39f588d9d6b7b3205d1fd02458bff8d7d29dc815ade6b6159581b190096d",
+      "compressed_bytes": 54414,
+      "parse_wall_secs": 0.406544076,
+      "parsed_elements": 6515,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000681549,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0150.gz",
+      "archive_sha256": "dff661dae4d78202ce312f0b6f768adcf610d2eb73ad9875b8af1579f5696182",
+      "compressed_bytes": 51898,
+      "parse_wall_secs": 0.375227667,
+      "parsed_elements": 6037,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000523684,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0155.gz",
+      "archive_sha256": "8b209b3311fca7dcbcfb00254d59d01bd0c0a1d4e331c4ee2fec6582dddb2f9d",
+      "compressed_bytes": 41614,
+      "parse_wall_secs": 0.314143461,
+      "parsed_elements": 4866,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000489061,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0200.gz",
+      "archive_sha256": "93cee304ff2658885698d084e61194e720e6f6fbeb6236421eaa7b70ce6452b8",
+      "compressed_bytes": 54190,
+      "parse_wall_secs": 0.379537832,
+      "parsed_elements": 6361,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.00057981,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0205.gz",
+      "archive_sha256": "0e3ffa3b367a23c841c23c89d4de0f520d18c51be3df6b84a79fee6bb2e66e30",
+      "compressed_bytes": 46586,
+      "parse_wall_secs": 0.326361635,
+      "parsed_elements": 5489,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000406128,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0210.gz",
+      "archive_sha256": "c948a6cb2d766910b7638e886fb87e2ba53526ee9fd0c1b27059601b06819504",
+      "compressed_bytes": 52072,
+      "parse_wall_secs": 0.402755405,
+      "parsed_elements": 8428,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000584676,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0215.gz",
+      "archive_sha256": "00d8bcf0acff20dd422e66b25bfd2ce4bd4366d4ff8fda6fcdbfb79374a013f5",
+      "compressed_bytes": 52831,
+      "parse_wall_secs": 0.38618618,
+      "parsed_elements": 7551,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000674228,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0220.gz",
+      "archive_sha256": "6f3e569453febd1526f6891a19c2364810d8e2020cedeabbf4d8f7128e4941d4",
+      "compressed_bytes": 44180,
+      "parse_wall_secs": 0.334907368,
+      "parsed_elements": 5062,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000617845,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0225.gz",
+      "archive_sha256": "67cc5ded79818d255b73e7ac496ef6fdb81f6401576b66294c0b7056eac6923c",
+      "compressed_bytes": 88333,
+      "parse_wall_secs": 0.610604638,
+      "parsed_elements": 15115,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000522981,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0230.gz",
+      "archive_sha256": "6ee6bdb80c1b8b83679808b9a3a53ed9e169b8fe09d8e8d520924b378be57213",
+      "compressed_bytes": 45283,
+      "parse_wall_secs": 0.329123285,
+      "parsed_elements": 5873,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000546088,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0235.gz",
+      "archive_sha256": "ca20ad9ce1ebbc7d9599840e71bd40dbc5fdaefc7f7ef745133d2662a0e8f186",
+      "compressed_bytes": 47191,
+      "parse_wall_secs": 0.34095669,
+      "parsed_elements": 5337,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000564769,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0240.gz",
+      "archive_sha256": "c0164a6b6ee20687040ca1efd658c8c09b3a9228f7909860d57496e595a383dc",
+      "compressed_bytes": 43319,
+      "parse_wall_secs": 0.329291442,
+      "parsed_elements": 5276,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000511445,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0245.gz",
+      "archive_sha256": "0cd6b8ec519aeceec54b3564ed565d321bb90e3df99d117b792d29eeec5f65d4",
+      "compressed_bytes": 50018,
+      "parse_wall_secs": 0.366881524,
+      "parsed_elements": 5840,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000595044,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0250.gz",
+      "archive_sha256": "9b8deef06de761e02dab2a56e2649c98b0e1befa21dc74449b5d32c8eae23470",
+      "compressed_bytes": 45201,
+      "parse_wall_secs": 0.333702715,
+      "parsed_elements": 5998,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000592198,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0255.gz",
+      "archive_sha256": "c0000c5699b19bc60fd89c96925fa7df8acbb12dd665b30a26a0f7cd7a54b181",
+      "compressed_bytes": 46749,
+      "parse_wall_secs": 0.357509555,
+      "parsed_elements": 5902,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.00065615,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0300.gz",
+      "archive_sha256": "1fd5340331b38d134aaa5426cbc76c1f39cabf4d21156dc6b081ab0d0ef08927",
+      "compressed_bytes": 42235,
+      "parse_wall_secs": 0.32326318,
+      "parsed_elements": 4844,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000516206,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0305.gz",
+      "archive_sha256": "eefb32e631176c947eb85ddf94d89391fee449c907ae7d99cfe47dd56de9fd3c",
+      "compressed_bytes": 50925,
+      "parse_wall_secs": 0.367915842,
+      "parsed_elements": 6015,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000702345,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0310.gz",
+      "archive_sha256": "d683f34dc3f9745b87af1bf366a4f172eeea8a61dfecf62a0c761a19e5ff01a2",
+      "compressed_bytes": 42160,
+      "parse_wall_secs": 0.343038129,
+      "parsed_elements": 4718,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.00055858,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0315.gz",
+      "archive_sha256": "0e06f749b71f88a1bb2e7bc4d3d87af024f5bf140086d7af0f0a98383be55f92",
+      "compressed_bytes": 47588,
+      "parse_wall_secs": 0.339521049,
+      "parsed_elements": 5258,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000538899,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0320.gz",
+      "archive_sha256": "fbcb20b412d1891118331117caaf0719e12aa049c9ad683d7da13a83549d20b3",
+      "compressed_bytes": 48037,
+      "parse_wall_secs": 0.349264403,
+      "parsed_elements": 5519,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000564945,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0325.gz",
+      "archive_sha256": "0d97fbea3a1fd22a2a7121b6051a0cd5a834960a115602fa9e8bace8f74ab59f",
+      "compressed_bytes": 50185,
+      "parse_wall_secs": 0.366615637,
+      "parsed_elements": 7155,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000618301,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0330.gz",
+      "archive_sha256": "0efb8b8b49034c564a30a74b6698e358e4a70a6d6b69f148f968c24cb955c1d1",
+      "compressed_bytes": 39374,
+      "parse_wall_secs": 0.303451978,
+      "parsed_elements": 4472,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000535247,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0335.gz",
+      "archive_sha256": "0d7ecc560ca5a65682ae06de998450f56f6e1ef80f4ece8309bfa26605033d18",
+      "compressed_bytes": 56411,
+      "parse_wall_secs": 0.429096099,
+      "parsed_elements": 7249,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000501577,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0340.gz",
+      "archive_sha256": "ea07359be311fe4c6031af813a668c493112e05ea09eabadda6c7554e512fa0f",
+      "compressed_bytes": 46782,
+      "parse_wall_secs": 0.351134293,
+      "parsed_elements": 5372,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000663115,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0345.gz",
+      "archive_sha256": "d66bc8b579cf82d1ea6a4939f8ed736b0a68469bb6d7e81ed62fbba8f0834fe6",
+      "compressed_bytes": 36770,
+      "parse_wall_secs": 0.286772061,
+      "parsed_elements": 4074,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000515347,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0350.gz",
+      "archive_sha256": "dbd774b33c8468df3081b0c149e311f2b243226cdca80b7a50c6a8e047eb74c7",
+      "compressed_bytes": 52511,
+      "parse_wall_secs": 0.381374499,
+      "parsed_elements": 7230,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000550445,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0355.gz",
+      "archive_sha256": "fdcb8c0a54b9998e41808e1c2ca9d4329b4633c50811acb6a57d2c46c76aef22",
+      "compressed_bytes": 49642,
+      "parse_wall_secs": 0.361851608,
+      "parsed_elements": 6083,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000631721,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0400.gz",
+      "archive_sha256": "1968ffa47b149f1044c158e18c094c48c062cd929d64ddbbf1998571ebcd7e1d",
+      "compressed_bytes": 58455,
+      "parse_wall_secs": 0.422907597,
+      "parsed_elements": 6763,
+      "admitted_observations": 11,
+      "derived_cache_write_secs": 0.003881261,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0405.gz",
+      "archive_sha256": "2aee863cfa3ff0f6aa745dbeb59d556fcbc990e2ee630d0a663c93420e7d8a4e",
+      "compressed_bytes": 73296,
+      "parse_wall_secs": 0.508933211,
+      "parsed_elements": 11141,
+      "admitted_observations": 12,
+      "derived_cache_write_secs": 0.004310619,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0410.gz",
+      "archive_sha256": "addf0ebbf81d0c55f287b181a4786e915f07e5251edf6eca901f6ee3d645adf4",
+      "compressed_bytes": 46261,
+      "parse_wall_secs": 0.358285026,
+      "parsed_elements": 5483,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000643476,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0415.gz",
+      "archive_sha256": "a84d93b4f6a96fbf840937a2d3ae350cd6f8bcc6718cfcd5a15c78e2e1c26eb6",
+      "compressed_bytes": 46400,
+      "parse_wall_secs": 0.357336033,
+      "parsed_elements": 5086,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000692231,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0420.gz",
+      "archive_sha256": "809ccbc015e01c0e8a78ca671e7f538a11ea0f569b5f3a03273bb3c94264c209",
+      "compressed_bytes": 49277,
+      "parse_wall_secs": 0.363274378,
+      "parsed_elements": 6381,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000688049,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0425.gz",
+      "archive_sha256": "75e69bf996d1519a9056d34f90eed215885e1044abbbdd0f26a3b1f1e1f18ac8",
+      "compressed_bytes": 62799,
+      "parse_wall_secs": 0.476880153,
+      "parsed_elements": 7644,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000615547,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0430.gz",
+      "archive_sha256": "e09e7d435ea3d1cb102c322162ca7a7e5b95c789ef5b1c44bc3979ad9500fa0f",
+      "compressed_bytes": 57334,
+      "parse_wall_secs": 0.42358783,
+      "parsed_elements": 7436,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000751906,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0435.gz",
+      "archive_sha256": "86d394730f12ddafda183895fdb002a9a617035d92b2cf630be55bff80094c45",
+      "compressed_bytes": 55512,
+      "parse_wall_secs": 0.390983132,
+      "parsed_elements": 6680,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000662298,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0440.gz",
+      "archive_sha256": "071adbf14b6537b9c26aba450a36137d94c844ca45947fefd75ce89696a50338",
+      "compressed_bytes": 61494,
+      "parse_wall_secs": 0.458312079,
+      "parsed_elements": 8054,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000669635,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0445.gz",
+      "archive_sha256": "003c72c3a788b12e313bba986dd65aa95c28c1d6bfb653bc54283ec3a16a6fa7",
+      "compressed_bytes": 45170,
+      "parse_wall_secs": 0.379050478,
+      "parsed_elements": 5575,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000632054,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0450.gz",
+      "archive_sha256": "9b1831bed32a123bcfdcfcc038324ba61fc1859291939a2eedcf2b4c7b21c3e3",
+      "compressed_bytes": 63886,
+      "parse_wall_secs": 0.590000267,
+      "parsed_elements": 8550,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000672854,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0455.gz",
+      "archive_sha256": "66c5ab9bbfaffebe420f7f6019c26273e0771d1f3e14e7c84b1f6a6ddd77301b",
+      "compressed_bytes": 64820,
+      "parse_wall_secs": 0.554346499,
+      "parsed_elements": 8630,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000762063,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0500.gz",
+      "archive_sha256": "7cd5e3d8174e9d7a9c30d7151ca88bf23a9cb582655c1f254596c0a164927888",
+      "compressed_bytes": 55918,
+      "parse_wall_secs": 0.454354612,
+      "parsed_elements": 6672,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000757915,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0505.gz",
+      "archive_sha256": "5552ddedeab6ff4f52e9b508b6aee1b0aa6cc3eb0275a3d51040e3061eb7c496",
+      "compressed_bytes": 49479,
+      "parse_wall_secs": 0.418573584,
+      "parsed_elements": 6113,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000600287,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0510.gz",
+      "archive_sha256": "98c9b35e5cb6de91224aab5d4bbb0ffdd6e0010511e631155cc4f596dd54e1aa",
+      "compressed_bytes": 53450,
+      "parse_wall_secs": 0.475452319,
+      "parsed_elements": 7284,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000717418,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0515.gz",
+      "archive_sha256": "3adf5b04c2dccbf2cb5d41a54436331ede73dcb856861a2145e298f7993bd6cd",
+      "compressed_bytes": 66367,
+      "parse_wall_secs": 0.519550436,
+      "parsed_elements": 8445,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000589687,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0520.gz",
+      "archive_sha256": "1f09abbbd04d92f825e3fbac7df74129bdb4e9441d0433d624f0144130ff4147",
+      "compressed_bytes": 49934,
+      "parse_wall_secs": 0.46911573,
+      "parsed_elements": 5690,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000773693,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0525.gz",
+      "archive_sha256": "55d60f44e0e7cd4a45bbef21128637d2883187aa57de77bcfe91b38a442d562c",
+      "compressed_bytes": 47810,
+      "parse_wall_secs": 0.392904509,
+      "parsed_elements": 5560,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000619119,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0530.gz",
+      "archive_sha256": "02883b7c447f2d86dcfc4427731364b7f9f04cb5e87951ff45ea8067a56f8fd2",
+      "compressed_bytes": 75820,
+      "parse_wall_secs": 0.558041927,
+      "parsed_elements": 10376,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000606973,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0535.gz",
+      "archive_sha256": "2ae6adfcb41d93044064b034c0c1abaea623546d737c271265af2aafee00737b",
+      "compressed_bytes": 47814,
+      "parse_wall_secs": 0.364599644,
+      "parsed_elements": 5565,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000559855,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0540.gz",
+      "archive_sha256": "3d127100ffd55d4305a040982d2f7d52ed88a7a5e1342349bd3a1dba78e14a58",
+      "compressed_bytes": 55299,
+      "parse_wall_secs": 0.399966056,
+      "parsed_elements": 7430,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000565605,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0545.gz",
+      "archive_sha256": "4cc77ba79132c12f22e4f9b17bf468e3c0a885b0297a316561c9affbf06694f5",
+      "compressed_bytes": 41870,
+      "parse_wall_secs": 0.334154704,
+      "parsed_elements": 5558,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000637862,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0550.gz",
+      "archive_sha256": "c54f5303c8df4acd60bfb4b8a5cf5e381f57370ab5e757ee441667222ed30cc4",
+      "compressed_bytes": 49071,
+      "parse_wall_secs": 0.356204414,
+      "parsed_elements": 5467,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000599643,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0555.gz",
+      "archive_sha256": "928dd58cddf1a8a107611b28708779bb555cf1a3bff95564c98779742dce01c7",
+      "compressed_bytes": 46741,
+      "parse_wall_secs": 0.39312752,
+      "parsed_elements": 5427,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000627818,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0600.gz",
+      "archive_sha256": "3c1ae7d2fb52b623b9b3dd1a99c63f75ea00530c19c2b65fe2abc6aa1d8bab8f",
+      "compressed_bytes": 52242,
+      "parse_wall_secs": 0.383963515,
+      "parsed_elements": 6187,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000531832,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0605.gz",
+      "archive_sha256": "85cd388960523be69017bfd4345ee21e1ddf613cfa6d5bf0a0245a413ce38899",
+      "compressed_bytes": 50089,
+      "parse_wall_secs": 0.380744142,
+      "parsed_elements": 5838,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000648513,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0610.gz",
+      "archive_sha256": "ce70957e4642f0d3fa24b5bf0846c5302cf2bd80ccf5fa3f3513d1b7b7cc5b76",
+      "compressed_bytes": 54817,
+      "parse_wall_secs": 0.402698488,
+      "parsed_elements": 5800,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000643092,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0615.gz",
+      "archive_sha256": "da06a8cbe4acd30ea77965c66fa4c6645a400ad18efbf48c4f4a9bec4c1d8c68",
+      "compressed_bytes": 75620,
+      "parse_wall_secs": 0.54488124,
+      "parsed_elements": 11678,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000628445,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0620.gz",
+      "archive_sha256": "3b13ee273db44bcf71e2754b3fa42634dd2faa2d4d9261c8e527a1b9497642ad",
+      "compressed_bytes": 59688,
+      "parse_wall_secs": 0.434959026,
+      "parsed_elements": 6834,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000583888,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0625.gz",
+      "archive_sha256": "49619b51414980bc26516bfe81a87eb2779ffc79d10ae1c97bdeafa556fa8afe",
+      "compressed_bytes": 73800,
+      "parse_wall_secs": 0.533667554,
+      "parsed_elements": 10125,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000540012,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0630.gz",
+      "archive_sha256": "dc99648676be800c91ae1055b16b80758f8d53f77a4b7d952cc5d5671879f3f3",
+      "compressed_bytes": 63045,
+      "parse_wall_secs": 0.456308375,
+      "parsed_elements": 9264,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000608534,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0635.gz",
+      "archive_sha256": "a6cabe6b3d3c2553304491a99f7473c0fad1cabe1295328366064d175c53d2be",
+      "compressed_bytes": 121646,
+      "parse_wall_secs": 0.855763986,
+      "parsed_elements": 20539,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000747824,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0640.gz",
+      "archive_sha256": "de4f4a5abdf30a0bfa9e26ea4a98d72ae903c85c5c847d7359ea9b6ebe032120",
+      "compressed_bytes": 96909,
+      "parse_wall_secs": 0.692133367,
+      "parsed_elements": 15836,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000506111,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0645.gz",
+      "archive_sha256": "83eb92b0ec879ef897fe281371b7cae636f02e4b2b182cb4c25bdff9cd38d3a4",
+      "compressed_bytes": 67768,
+      "parse_wall_secs": 0.462233947,
+      "parsed_elements": 9384,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000631661,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0650.gz",
+      "archive_sha256": "df02d243cd3b7aa6d0f5f28566b36cdc1b847a8da7e5241b6715710f193a79df",
+      "compressed_bytes": 67279,
+      "parse_wall_secs": 0.488870036,
+      "parsed_elements": 9541,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.00057159,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0655.gz",
+      "archive_sha256": "be9080a7ea29fb4c73575d9d02579f8ce362cd20bbee77f515bbdc41b775dc8f",
+      "compressed_bytes": 55998,
+      "parse_wall_secs": 0.425021334,
+      "parsed_elements": 7586,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000591198,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0700.gz",
+      "archive_sha256": "3a805db746ade44b1e725a97b9cd983c2817f9b0801f3122c0866955569c4e16",
+      "compressed_bytes": 111049,
+      "parse_wall_secs": 0.714941853,
+      "parsed_elements": 17630,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000516896,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0705.gz",
+      "archive_sha256": "e1bb66a12c837acee1adf558dcbcf509f301df67566f1c72a2bed4392101c57a",
+      "compressed_bytes": 61967,
+      "parse_wall_secs": 0.43842081,
+      "parsed_elements": 6836,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000645445,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0710.gz",
+      "archive_sha256": "ca432cc0fef176f5be69d37f6508593865e37d7fb4cc836b8fa2bf2752b4348a",
+      "compressed_bytes": 54563,
+      "parse_wall_secs": 0.414008298,
+      "parsed_elements": 7084,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000637514,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0715.gz",
+      "archive_sha256": "f33d41d3ffc1a99f2a594658e73485c1ea1c660d29e2051f5cca3a6ff0d997dc",
+      "compressed_bytes": 59180,
+      "parse_wall_secs": 0.531662828,
+      "parsed_elements": 7784,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000797173,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0720.gz",
+      "archive_sha256": "1e2a28e9c7b5b63e8a0c829f441ae471b58ce1ace0e1857f71659211e814f62f",
+      "compressed_bytes": 92790,
+      "parse_wall_secs": 0.644955189,
+      "parsed_elements": 14745,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000643403,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0725.gz",
+      "archive_sha256": "5ac74db7ccd7ca8adeca2f3d1f3ffa738fe7ac4577274131a68a046a180b6166",
+      "compressed_bytes": 79014,
+      "parse_wall_secs": 0.570442892,
+      "parsed_elements": 12015,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000656645,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0730.gz",
+      "archive_sha256": "c794f8dc91c8f19e22ebd36352084a165837f8c666986034241da20f2ef937e3",
+      "compressed_bytes": 69755,
+      "parse_wall_secs": 0.569355875,
+      "parsed_elements": 9603,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000813652,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0735.gz",
+      "archive_sha256": "ce58cb969721f1a344a227c88015ceca2ab19ec05fd97c2757502bbb95806087",
+      "compressed_bytes": 77049,
+      "parse_wall_secs": 0.658388655,
+      "parsed_elements": 11417,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000672853,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0740.gz",
+      "archive_sha256": "92a2d3039405f06a4bed578f5dceb280ac61aa7d1574a638e67f504fbf3fc605",
+      "compressed_bytes": 56284,
+      "parse_wall_secs": 0.459639543,
+      "parsed_elements": 8062,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.001636354,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0745.gz",
+      "archive_sha256": "ccbab43ae32b58fd8f31f6557da220c146c09fef4f9bf7508e038106292599d2",
+      "compressed_bytes": 54926,
+      "parse_wall_secs": 0.481844357,
+      "parsed_elements": 6401,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000713563,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0750.gz",
+      "archive_sha256": "4ace3314369ee484ebb6ea5f2e7ddfe20cd7c64cec821e353edf92eb4c74e098",
+      "compressed_bytes": 48667,
+      "parse_wall_secs": 0.387068637,
+      "parsed_elements": 5816,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000810732,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0755.gz",
+      "archive_sha256": "bfc7a0ddc472e894904e6d0dad19a820d366c0dd8a1bab0de83cc3fa4661d150",
+      "compressed_bytes": 49289,
+      "parse_wall_secs": 0.390127302,
+      "parsed_elements": 5698,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000619344,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0800.gz",
+      "archive_sha256": "bc90d3894b74c96b4a130430581de931a23abd1e47db74e53c20def357cf0166",
+      "compressed_bytes": 204241,
+      "parse_wall_secs": 1.555006356,
+      "parsed_elements": 27486,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000556033,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0805.gz",
+      "archive_sha256": "8c6911c51c7e7a2ca4cf78eacdf58cb1bf4247ed25ef40767efb8c4460b5be18",
+      "compressed_bytes": 60445,
+      "parse_wall_secs": 0.446643012,
+      "parsed_elements": 7890,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000414718,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0810.gz",
+      "archive_sha256": "a4eab069f897fee4db172ed908c21d52587152c4ba228f190036f875788f3bd1",
+      "compressed_bytes": 59380,
+      "parse_wall_secs": 0.438303451,
+      "parsed_elements": 7158,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000705799,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0815.gz",
+      "archive_sha256": "0c8a6548281990b93e3515367c22c379d2f0b8f91e35a7d52ad03b0ed0c34f81",
+      "compressed_bytes": 74860,
+      "parse_wall_secs": 0.510069199,
+      "parsed_elements": 11765,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000528865,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0820.gz",
+      "archive_sha256": "e79bf5116b06338e6ff537554dd2bc7819094c00fb552d38a38e408aeb0a0bfc",
+      "compressed_bytes": 48775,
+      "parse_wall_secs": 0.360472847,
+      "parsed_elements": 5314,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.00056886,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0825.gz",
+      "archive_sha256": "a61797cdfa8a347db3594d689f836b638a0bd896a6dab72da37acadd53b06e70",
+      "compressed_bytes": 204161,
+      "parse_wall_secs": 1.5313045920000001,
+      "parsed_elements": 25784,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000677015,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0830.gz",
+      "archive_sha256": "436385bd373186dbeda0ddaff346973f3344263f442589e942f63cf8cb7b86ca",
+      "compressed_bytes": 63067,
+      "parse_wall_secs": 0.447001236,
+      "parsed_elements": 8428,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000621439,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0835.gz",
+      "archive_sha256": "4d0292c1122584f38c9da9590412180294b65c0e55dd04b63528beb8f467c380",
+      "compressed_bytes": 61934,
+      "parse_wall_secs": 0.440448883,
+      "parsed_elements": 8623,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000658225,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0840.gz",
+      "archive_sha256": "f02ad56b8b51cbb7d04714403532065c16263f1706f764c76e1cb1f484135ab7",
+      "compressed_bytes": 51842,
+      "parse_wall_secs": 0.383484745,
+      "parsed_elements": 6216,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000715738,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0845.gz",
+      "archive_sha256": "aec5e68bf2885a96bd6ed74c9f71faef7abfdf0e1050bf489526ba46fb79ab44",
+      "compressed_bytes": 56468,
+      "parse_wall_secs": 0.412334823,
+      "parsed_elements": 6886,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000666845,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0850.gz",
+      "archive_sha256": "93d4db1b969c8f46571d833f8a67d26f6fa38f049631be367d50c3c637948346",
+      "compressed_bytes": 47088,
+      "parse_wall_secs": 0.394223021,
+      "parsed_elements": 6364,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000724555,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0855.gz",
+      "archive_sha256": "29e37f01c96304ca7c4048169f02e3c6d0a6bff7bfcf2a49c0a221375a91db02",
+      "compressed_bytes": 47183,
+      "parse_wall_secs": 0.376162476,
+      "parsed_elements": 5272,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000651786,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0900.gz",
+      "archive_sha256": "0c688c06424f70b0abe44f722397990f32a114c9729e9006bdaa062c9863b67b",
+      "compressed_bytes": 47559,
+      "parse_wall_secs": 0.33499104,
+      "parsed_elements": 5360,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000780079,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0905.gz",
+      "archive_sha256": "37904d8f1e21a286ee9ac3984fded19f2296bb6b97784b46264ccaf37b75c555",
+      "compressed_bytes": 59240,
+      "parse_wall_secs": 0.449033323,
+      "parsed_elements": 8639,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000509583,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0910.gz",
+      "archive_sha256": "211ea9676ffaa4914522670e3233768a97805ab9dddfa4bff771fe232e579569",
+      "compressed_bytes": 56632,
+      "parse_wall_secs": 0.397029982,
+      "parsed_elements": 6794,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000690205,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0915.gz",
+      "archive_sha256": "e793033a286baf83c0993e64ff78f733dabe205f7f916f0e51e28cecabb27b68",
+      "compressed_bytes": 64440,
+      "parse_wall_secs": 0.463228003,
+      "parsed_elements": 8834,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000580199,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0920.gz",
+      "archive_sha256": "ce45c92f307f962d24d087931a2ba425d96ef51866c540f713b7df4a91178c91",
+      "compressed_bytes": 49547,
+      "parse_wall_secs": 0.400390602,
+      "parsed_elements": 6534,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000607745,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0925.gz",
+      "archive_sha256": "19028d16a7bd3dd71702afb80f8222febb342cd2f11b0e73a8fcd78c9a5e8a7b",
+      "compressed_bytes": 51559,
+      "parse_wall_secs": 0.395617854,
+      "parsed_elements": 6963,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000623928,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0930.gz",
+      "archive_sha256": "ba5a63dcba5b9a43d1aec6d2db15a9bd32e075cbf1c38baa89884ab3dee3c5cb",
+      "compressed_bytes": 63595,
+      "parse_wall_secs": 0.449105389,
+      "parsed_elements": 8632,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000630166,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0935.gz",
+      "archive_sha256": "ed78c5dcc035b47443bdfed1546d088f493a566578987f69eadf902a7366c42f",
+      "compressed_bytes": 58353,
+      "parse_wall_secs": 0.43921487,
+      "parsed_elements": 8077,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000476444,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0940.gz",
+      "archive_sha256": "430cddb3e6322b4287a108f28faf5e981c2ee2c17655278ba3a22926bdb7cced",
+      "compressed_bytes": 92378,
+      "parse_wall_secs": 0.636954778,
+      "parsed_elements": 13890,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000643271,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0945.gz",
+      "archive_sha256": "0c295bbd624f038b4019a5943d14115946aa437d258f6f8ba3e7a03d5727646c",
+      "compressed_bytes": 49692,
+      "parse_wall_secs": 0.356237211,
+      "parsed_elements": 5790,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000665846,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0950.gz",
+      "archive_sha256": "00435d7bb01b1a0748fc73c9818c4fb80b5a52563134e40be29fb6d9e007b2ea",
+      "compressed_bytes": 57790,
+      "parse_wall_secs": 0.408295384,
+      "parsed_elements": 7003,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000504995,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.0955.gz",
+      "archive_sha256": "41f045dab6c56eb7a48be0e540ba8ac5ce3e85937823c954e2aa801fd3048976",
+      "compressed_bytes": 64660,
+      "parse_wall_secs": 0.467535646,
+      "parsed_elements": 7731,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.001516995,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1000.gz",
+      "archive_sha256": "62ef67f7567ef1c0e2114bbfdfdc12d4008f4b893ef831a0711feafe1dfc17db",
+      "compressed_bytes": 60548,
+      "parse_wall_secs": 0.41938448,
+      "parsed_elements": 7339,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000600991,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1005.gz",
+      "archive_sha256": "0151d768a1f2348c548dcccdc0098c0d9b7b7904319efd6908999822aaea5f23",
+      "compressed_bytes": 53767,
+      "parse_wall_secs": 0.416768032,
+      "parsed_elements": 6658,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000990555,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1010.gz",
+      "archive_sha256": "d840efb6dc4af37c520cbe390e833bd37190e6a3da6caebe6bfaa55dcf0926ad",
+      "compressed_bytes": 43492,
+      "parse_wall_secs": 0.355740348,
+      "parsed_elements": 4999,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000491449,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1015.gz",
+      "archive_sha256": "596c09326e8242f6e806c18b2835926a9a45431bfdb75a8c0fa920f53f47266b",
+      "compressed_bytes": 70148,
+      "parse_wall_secs": 0.551603614,
+      "parsed_elements": 9105,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000839126,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1020.gz",
+      "archive_sha256": "cf65932948fb2d90115622ae8e2c9770bce0dbe982f6c445e03f5ab40f7af4b8",
+      "compressed_bytes": 66142,
+      "parse_wall_secs": 0.483590351,
+      "parsed_elements": 8923,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000778049,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1025.gz",
+      "archive_sha256": "2285b4e5db13ac82075dbf6f5758259cbaaa1c6f9508526ad0a18337744171f7",
+      "compressed_bytes": 50388,
+      "parse_wall_secs": 0.41086182,
+      "parsed_elements": 6119,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000566246,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1030.gz",
+      "archive_sha256": "9eff766020d099e4e9cf59d2da294a6f2d2121dc8a8b46f7ce377d666bba2709",
+      "compressed_bytes": 47143,
+      "parse_wall_secs": 0.369172066,
+      "parsed_elements": 5932,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000496275,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1035.gz",
+      "archive_sha256": "6bfdb7312865a76b4881404b115a396f6e94bbe0c4ac1140847648975aa4cc1d",
+      "compressed_bytes": 47589,
+      "parse_wall_secs": 0.341368987,
+      "parsed_elements": 5381,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000578401,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1040.gz",
+      "archive_sha256": "7a839f04f327fcd05068eae6bfbf3a909b4059d94c181393c60afb3c98a12476",
+      "compressed_bytes": 62656,
+      "parse_wall_secs": 0.458181921,
+      "parsed_elements": 8168,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000459883,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1045.gz",
+      "archive_sha256": "b1fa0b146a57339db088525aa6129b20e24eefcbe16f6b76f150467d7bf3e79a",
+      "compressed_bytes": 50720,
+      "parse_wall_secs": 0.355384181,
+      "parsed_elements": 5937,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000453152,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1050.gz",
+      "archive_sha256": "2861a56fc4155e19d230a769a1ef45937fb8f73cfaaec728441971b05ce227da",
+      "compressed_bytes": 68993,
+      "parse_wall_secs": 0.507408779,
+      "parsed_elements": 11192,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000569066,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1055.gz",
+      "archive_sha256": "120b90339ca2e4d0e21dd1e497aa41baa5d4e376a0cc43e09f0c759b56151ee1",
+      "compressed_bytes": 56578,
+      "parse_wall_secs": 0.426347597,
+      "parsed_elements": 6949,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000574352,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1100.gz",
+      "archive_sha256": "bb6a76765f37bc5a1d1775415b5b1cc82b5804d357f999905f27fb2ba7aa35f9",
+      "compressed_bytes": 51814,
+      "parse_wall_secs": 0.393477389,
+      "parsed_elements": 6025,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000601555,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1105.gz",
+      "archive_sha256": "a2d711a8cf7d2f62b57bd064374329f30cc7cb5abd0f529795719471fe905d23",
+      "compressed_bytes": 53708,
+      "parse_wall_secs": 0.400707708,
+      "parsed_elements": 6443,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000686322,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1110.gz",
+      "archive_sha256": "0a73831c20b01a9bf7a1e9ee0acf3fd6db0a5e7a5c84d5aa5f98dac468ec8ceb",
+      "compressed_bytes": 52990,
+      "parse_wall_secs": 0.397354565,
+      "parsed_elements": 6391,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000479471,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1115.gz",
+      "archive_sha256": "25a214ffc5abdf80e4ec76b19a2eaaf2986a3d0a5fd965b012757d8bae9f06b2",
+      "compressed_bytes": 56865,
+      "parse_wall_secs": 0.408857208,
+      "parsed_elements": 7301,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000567116,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1120.gz",
+      "archive_sha256": "d8f9fd401bb5cc9d72f23335f44cc232ef400d3c7dae0a8dcf1f72db25c10366",
+      "compressed_bytes": 55225,
+      "parse_wall_secs": 0.396059308,
+      "parsed_elements": 6411,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000519781,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1125.gz",
+      "archive_sha256": "99f3ff180ead81e4e55ed93fde78e495d637c6ad2ccc4441eabb46e972c7cf22",
+      "compressed_bytes": 88025,
+      "parse_wall_secs": 0.594591689,
+      "parsed_elements": 11544,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000528079,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1130.gz",
+      "archive_sha256": "70727a98763c6fb552e90cc58946daee0927c415c81b96537083a841e230120a",
+      "compressed_bytes": 75533,
+      "parse_wall_secs": 0.521139573,
+      "parsed_elements": 10981,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000563328,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1135.gz",
+      "archive_sha256": "4406b98dabf23c3097261da65e9108f5909893f18f9a4bb1f8d6033e8d3aeb45",
+      "compressed_bytes": 50053,
+      "parse_wall_secs": 0.358923583,
+      "parsed_elements": 6084,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000664881,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1140.gz",
+      "archive_sha256": "50ca68408230778d51dc7110a1e6530a3026a82e68ddaa975f95ae71d796691c",
+      "compressed_bytes": 55094,
+      "parse_wall_secs": 0.386415744,
+      "parsed_elements": 6046,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000516008,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1145.gz",
+      "archive_sha256": "73b8352e42e105201c7f6099cc037b92e3752691fc28844267dc7363f1a1a278",
+      "compressed_bytes": 52362,
+      "parse_wall_secs": 0.365079463,
+      "parsed_elements": 5555,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.00055624,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1150.gz",
+      "archive_sha256": "e8718f5510e5bbc7ac8e220baa2cc080018059a7b7e603bca68e5ca69de4fd1f",
+      "compressed_bytes": 52449,
+      "parse_wall_secs": 0.393172425,
+      "parsed_elements": 6095,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000505362,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1155.gz",
+      "archive_sha256": "5011b8b0fbf9d0adcc54e6a8b1fd53be16b3ac78715bd0ad828cbc105c61d4cb",
+      "compressed_bytes": 60607,
+      "parse_wall_secs": 0.421087886,
+      "parsed_elements": 7627,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.00070054,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1200.gz",
+      "archive_sha256": "31bfed65f417eea4a2fb30746a7673899179920796007e6f76cdaf8dfd8b697a",
+      "compressed_bytes": 60041,
+      "parse_wall_secs": 0.432130938,
+      "parsed_elements": 7354,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000683121,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1205.gz",
+      "archive_sha256": "3efe49dbc79d0d64467abf4950da9de49404db20c22c35b33810dc58d51ba94f",
+      "compressed_bytes": 66997,
+      "parse_wall_secs": 0.498423664,
+      "parsed_elements": 11110,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000624459,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1210.gz",
+      "archive_sha256": "2bcee9ccd18ff68f2ef811633d045c7aba2d9cf131973d33c2ed20b95dea4592",
+      "compressed_bytes": 55800,
+      "parse_wall_secs": 0.452091253,
+      "parsed_elements": 6428,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000591883,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1215.gz",
+      "archive_sha256": "84df4147613a07207ee758711ad212d369289202d42fee4d6b80204cb3286e02",
+      "compressed_bytes": 52290,
+      "parse_wall_secs": 0.36607522,
+      "parsed_elements": 6472,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.0004511,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1220.gz",
+      "archive_sha256": "740e677f07937570a0982938645e694f6aab95d81e4f463fc936bc956b44e84a",
+      "compressed_bytes": 62060,
+      "parse_wall_secs": 0.492414314,
+      "parsed_elements": 8356,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000588064,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1225.gz",
+      "archive_sha256": "f3273eff43f3fe05503b238c02f22ee2a74978329c2e020cd0b8d3b2515d21a5",
+      "compressed_bytes": 56957,
+      "parse_wall_secs": 0.402099919,
+      "parsed_elements": 7164,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000523503,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1230.gz",
+      "archive_sha256": "feee9f51e563cda99f57e40773e7371147c1742549cc87fee31d5fbd00076d8d",
+      "compressed_bytes": 53806,
+      "parse_wall_secs": 0.423781568,
+      "parsed_elements": 6757,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.001521492,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1235.gz",
+      "archive_sha256": "ece859100a3d03cffc7c049f6f80013d8283713294242b202d00b328b904863a",
+      "compressed_bytes": 51164,
+      "parse_wall_secs": 0.415532692,
+      "parsed_elements": 6924,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000677965,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1240.gz",
+      "archive_sha256": "34c90788d3ba6915664f08923c5722609715b32fee3a9fb5b8d8e5d394f7a1f9",
+      "compressed_bytes": 54003,
+      "parse_wall_secs": 0.460561465,
+      "parsed_elements": 6402,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.00055816,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1245.gz",
+      "archive_sha256": "a4a09d33b0e0b8860d1e8a83830594cbacfdf4d651fbeec7282de6d38bcee284",
+      "compressed_bytes": 61382,
+      "parse_wall_secs": 0.493286973,
+      "parsed_elements": 6643,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000848204,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1250.gz",
+      "archive_sha256": "10b9989d28dacb35a6c85dcfa8b93da40b863794535025bc08f58c4e7ae11b21",
+      "compressed_bytes": 58873,
+      "parse_wall_secs": 0.467302322,
+      "parsed_elements": 7743,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000515488,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1255.gz",
+      "archive_sha256": "704872de954ccbe08a0213fcf1742e94d214eea89ea145a27049f04fabf42f89",
+      "compressed_bytes": 55433,
+      "parse_wall_secs": 0.418033432,
+      "parsed_elements": 6559,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000599604,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1300.gz",
+      "archive_sha256": "388be80f6c2d6dfb0f8c36af3c9316694edd818677264c8e2bf02dabc94fb971",
+      "compressed_bytes": 48132,
+      "parse_wall_secs": 0.36516429,
+      "parsed_elements": 5035,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000596038,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1305.gz",
+      "archive_sha256": "302e86e43b29143056b8147eb565be9169c1d92aa36909536fdea431f5b80550",
+      "compressed_bytes": 57781,
+      "parse_wall_secs": 0.441522038,
+      "parsed_elements": 6717,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000593623,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1310.gz",
+      "archive_sha256": "445d5324df4b27d4668bde0319b4c3a7df724f45212ecbe1b71ca45cd140e128",
+      "compressed_bytes": 59899,
+      "parse_wall_secs": 0.451623746,
+      "parsed_elements": 6902,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000592603,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1315.gz",
+      "archive_sha256": "64be6c1cbc523c53bef7c7efa81d4c98fdf118ef92e6a409ecc3a5b653bc0df9",
+      "compressed_bytes": 49249,
+      "parse_wall_secs": 0.375943423,
+      "parsed_elements": 5697,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000586129,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1320.gz",
+      "archive_sha256": "e57404072df7f0b104214652c81536e985f1c2c1aee5139604ad45eee5cdc60c",
+      "compressed_bytes": 82756,
+      "parse_wall_secs": 0.622624691,
+      "parsed_elements": 13162,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000557107,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1325.gz",
+      "archive_sha256": "a39c4c81ff2572d19fcceefdfd5eca2b5e35c6146d04a3657f523d5866cca968",
+      "compressed_bytes": 56330,
+      "parse_wall_secs": 0.404293355,
+      "parsed_elements": 6917,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000540467,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1330.gz",
+      "archive_sha256": "e60b226df0f904f3d59e8d9eaa6dd2514b2e2c8bb8a3966aaf6c1d626831f421",
+      "compressed_bytes": 52020,
+      "parse_wall_secs": 0.421182935,
+      "parsed_elements": 6337,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000587706,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1335.gz",
+      "archive_sha256": "e9592f6808bb1917857d8ebcb04aae3a30b22b57aa7c4be2fc2c74340322cceb",
+      "compressed_bytes": 67061,
+      "parse_wall_secs": 0.510671035,
+      "parsed_elements": 9142,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000603345,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1340.gz",
+      "archive_sha256": "04fff07ffc81d040ef11687382e071bc0a6289c4c39414816941a5141034e2d5",
+      "compressed_bytes": 56052,
+      "parse_wall_secs": 0.397677724,
+      "parsed_elements": 6949,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000543214,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1345.gz",
+      "archive_sha256": "12735eb8d56960693ab91d17d3a21fb1b3c29eb609b1a27ea7addfef0a93b25b",
+      "compressed_bytes": 53910,
+      "parse_wall_secs": 0.379938041,
+      "parsed_elements": 6314,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000571398,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1350.gz",
+      "archive_sha256": "6dde5726266ad6638e7b8f3e4f36cb7bd233d0fe566ed12024d83dd222dc8216",
+      "compressed_bytes": 44092,
+      "parse_wall_secs": 0.336999102,
+      "parsed_elements": 5401,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000513215,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1355.gz",
+      "archive_sha256": "a13d3211e2d27eeffc7e588e8e70cc93f487a878d4e9982816c712ed98cfec62",
+      "compressed_bytes": 46802,
+      "parse_wall_secs": 0.347850773,
+      "parsed_elements": 5516,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.00062211,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1400.gz",
+      "archive_sha256": "0f2fa9e7cefac487b812a42530cf16019aa3519c0bede7552ed2d8249eacf530",
+      "compressed_bytes": 63184,
+      "parse_wall_secs": 0.471535564,
+      "parsed_elements": 7160,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000590885,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1405.gz",
+      "archive_sha256": "a5200fef3de5f01cb5b6bbbf9889306338342b5e5c1ee25b5b1fe8447c3f0a5b",
+      "compressed_bytes": 66351,
+      "parse_wall_secs": 0.520805072,
+      "parsed_elements": 8263,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000419983,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1410.gz",
+      "archive_sha256": "20fe35e3efd3a990ccb1b149db281d838844453f60d43b5416ce91bbbbc2a510",
+      "compressed_bytes": 64461,
+      "parse_wall_secs": 0.453908965,
+      "parsed_elements": 7410,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000618791,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1415.gz",
+      "archive_sha256": "dc75d1e8f8c1f3aedfc137e6f82ced91fccd1af2cb5f82fd4bd7af4618b62477",
+      "compressed_bytes": 72902,
+      "parse_wall_secs": 0.573762295,
+      "parsed_elements": 9633,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000638964,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1420.gz",
+      "archive_sha256": "6563de18d2aeb774e0dab2eda5726ca731b4e775044cb9c1519442982ac87c94",
+      "compressed_bytes": 57143,
+      "parse_wall_secs": 0.444077301,
+      "parsed_elements": 6566,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000574384,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1425.gz",
+      "archive_sha256": "a79cb27ee243ab2948cdddb9c733a843248cbdffd078fce0032b75d75af17f6f",
+      "compressed_bytes": 51633,
+      "parse_wall_secs": 0.402218234,
+      "parsed_elements": 6149,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000822361,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1430.gz",
+      "archive_sha256": "d2d4201e498801fc22414a14646f12df80fe9dce5aa3d19df24a514e828d951c",
+      "compressed_bytes": 78428,
+      "parse_wall_secs": 0.599983601,
+      "parsed_elements": 10752,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000568313,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1435.gz",
+      "archive_sha256": "11494e201ee488211028c5b8bff39c75177f8bf5f681ce0e378b3f27a0b7b324",
+      "compressed_bytes": 52042,
+      "parse_wall_secs": 0.420482272,
+      "parsed_elements": 6347,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000637471,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1440.gz",
+      "archive_sha256": "02cd39d9e2ae6a4839eb4c9bdcfd87fab2a4679bb17e895e66a831cedc85a733",
+      "compressed_bytes": 62280,
+      "parse_wall_secs": 0.535600942,
+      "parsed_elements": 8206,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000654735,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1445.gz",
+      "archive_sha256": "d1041f899d1e38745fd5feaa89ed230dc1792507b7c08c3a1a84c8c10bf9088f",
+      "compressed_bytes": 59983,
+      "parse_wall_secs": 0.472821037,
+      "parsed_elements": 8217,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000610103,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1450.gz",
+      "archive_sha256": "b8a5f6e5091950976f1650576356e4963fe08c9a01269ab028603447b443e26b",
+      "compressed_bytes": 57142,
+      "parse_wall_secs": 0.41192396,
+      "parsed_elements": 6712,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000694707,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1455.gz",
+      "archive_sha256": "4a5168ee973860808834f1534c25ce4b73cf8b191874af5e7f1b83246ece58d9",
+      "compressed_bytes": 58260,
+      "parse_wall_secs": 0.471427455,
+      "parsed_elements": 6717,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000585253,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1500.gz",
+      "archive_sha256": "bd17596521948234f802378028a02bb7b9afeefaabaddfaa4155ec523a4d324c",
+      "compressed_bytes": 96193,
+      "parse_wall_secs": 0.729214815,
+      "parsed_elements": 13256,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000592515,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1505.gz",
+      "archive_sha256": "47d4a3af88c5c9823bc2bb29e02658358f3661a5bb45d3141a733b0727280d0e",
+      "compressed_bytes": 90906,
+      "parse_wall_secs": 0.688056274,
+      "parsed_elements": 12390,
+      "admitted_observations": 12,
+      "derived_cache_write_secs": 0.004242738,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1510.gz",
+      "archive_sha256": "df4ef5e249a5c6966390b31c89ebf615cfbdd753f3b11a69eaae6b001f5fc377",
+      "compressed_bytes": 54564,
+      "parse_wall_secs": 0.404685196,
+      "parsed_elements": 6570,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000624621,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1515.gz",
+      "archive_sha256": "7a1e929915771fb4238534c097f3ae2e7412b5a7c582695b9252ff5dbd4181f9",
+      "compressed_bytes": 99910,
+      "parse_wall_secs": 0.757938162,
+      "parsed_elements": 14967,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000612073,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1520.gz",
+      "archive_sha256": "d393aa99c7ea6b1c612dfd9670fab405828213d83f519c249d5fddd615810ed0",
+      "compressed_bytes": 107627,
+      "parse_wall_secs": 0.92343255,
+      "parsed_elements": 14618,
+      "admitted_observations": 12,
+      "derived_cache_write_secs": 0.004339725,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1525.gz",
+      "archive_sha256": "a5aab75f017c29369b13c7a56a96760c5b9788bb62c7ddb31037b62f874ad3b6",
+      "compressed_bytes": 66701,
+      "parse_wall_secs": 0.577094572,
+      "parsed_elements": 8276,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000616406,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1530.gz",
+      "archive_sha256": "ca9c1f8cbb2a5fe10273ebee2a2d3889acaf73bda829b415c080a96ae2d90e60",
+      "compressed_bytes": 80151,
+      "parse_wall_secs": 0.544214798,
+      "parsed_elements": 11837,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000440796,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1535.gz",
+      "archive_sha256": "c75d845177729cd036dcaa2665a5509014a31f08bd63bdeb006a5f8f03ce9c3a",
+      "compressed_bytes": 72015,
+      "parse_wall_secs": 0.52445507,
+      "parsed_elements": 10421,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000737399,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1540.gz",
+      "archive_sha256": "cfc3554b6730b85d03b07df1be4c641af1b44da2463d02d4c795495888beddd0",
+      "compressed_bytes": 75641,
+      "parse_wall_secs": 0.528843957,
+      "parsed_elements": 10672,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000513024,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1545.gz",
+      "archive_sha256": "9da975baf579d43f3f6e6352129f5d6a67f99bde5d9012b3866cab1490d368e4",
+      "compressed_bytes": 62986,
+      "parse_wall_secs": 0.53558329,
+      "parsed_elements": 7706,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000657463,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1550.gz",
+      "archive_sha256": "8ee01aa9b020f43a2cd5cb7c764fba466ea0cfebf8cfcfc8dc0dccecec46a9dc",
+      "compressed_bytes": 63753,
+      "parse_wall_secs": 0.466675583,
+      "parsed_elements": 7642,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000486721,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1555.gz",
+      "archive_sha256": "b6d4c3c759cdfe03f60c66dee914b71a96994ef7cc8c9dea37e26e32c31fa84b",
+      "compressed_bytes": 59011,
+      "parse_wall_secs": 0.464184763,
+      "parsed_elements": 7741,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000440261,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1600.gz",
+      "archive_sha256": "40b31245ea301fe4f39d7a7d9130a5ac57170a0ff898cc7c6098a0c5d54bd80d",
+      "compressed_bytes": 61313,
+      "parse_wall_secs": 0.427478032,
+      "parsed_elements": 7569,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000561636,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1605.gz",
+      "archive_sha256": "835160c816f5a2bb547f8ba54ad6d18872df018509f257a7a529d098898e1528",
+      "compressed_bytes": 69405,
+      "parse_wall_secs": 0.505633326,
+      "parsed_elements": 9285,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000513607,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1610.gz",
+      "archive_sha256": "034f788474697afbdfa123546f86b33af199e1d405d282c8a796d1f3d20880fa",
+      "compressed_bytes": 78887,
+      "parse_wall_secs": 0.570603366,
+      "parsed_elements": 11760,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000649396,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1615.gz",
+      "archive_sha256": "edd7d102c926ac2f2f777eb4b8a2f57f22005fb59f85d0500ce2b992b2c12514",
+      "compressed_bytes": 64834,
+      "parse_wall_secs": 0.465938609,
+      "parsed_elements": 8541,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000494577,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1620.gz",
+      "archive_sha256": "949dc208757bde6672c165696626fc6b1b22dfbe11cbec40bd17567babd8141e",
+      "compressed_bytes": 53633,
+      "parse_wall_secs": 0.382422521,
+      "parsed_elements": 6220,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000495915,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1625.gz",
+      "archive_sha256": "3fb837484adaac010cd82dc339e529567df080da1c75692103f06a2da53c9454",
+      "compressed_bytes": 76424,
+      "parse_wall_secs": 0.576217484,
+      "parsed_elements": 9839,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000635788,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1630.gz",
+      "archive_sha256": "b8353a0857c3699c535e802337fa38e5d35f5bbca3825fdf88d351edb928acb3",
+      "compressed_bytes": 50693,
+      "parse_wall_secs": 0.392203931,
+      "parsed_elements": 5668,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000603113,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1635.gz",
+      "archive_sha256": "1ef29a7c0b96411bb262a3291d7da24051dcf54ed33994ef66a4fa0e6d2fc909",
+      "compressed_bytes": 65957,
+      "parse_wall_secs": 0.556760252,
+      "parsed_elements": 8353,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.00042659,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1640.gz",
+      "archive_sha256": "f547814499f03b64ea8c66d536ed06a0793436ae2e7699e1544323a009e64ae7",
+      "compressed_bytes": 71155,
+      "parse_wall_secs": 0.536087606,
+      "parsed_elements": 8946,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000653705,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1645.gz",
+      "archive_sha256": "5b11f1529a03e3e02ddcf5e4e9ac51ddae98eab297c72529dc585435e0cd7765",
+      "compressed_bytes": 83389,
+      "parse_wall_secs": 0.592899633,
+      "parsed_elements": 9922,
+      "admitted_observations": 12,
+      "derived_cache_write_secs": 0.004446894,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1650.gz",
+      "archive_sha256": "a5615452a25db324d02b0af467b34b680c1b59c091c3fa135b50a28ba2fdc7f0",
+      "compressed_bytes": 60935,
+      "parse_wall_secs": 0.424336025,
+      "parsed_elements": 6903,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000544446,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1655.gz",
+      "archive_sha256": "187e0cb5e89a99292f9e5093b2f5b04650e9e4e778489bbae0d39b69978671da",
+      "compressed_bytes": 67798,
+      "parse_wall_secs": 0.487954255,
+      "parsed_elements": 8743,
+      "admitted_observations": 3,
+      "derived_cache_write_secs": 0.001547044,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1700.gz",
+      "archive_sha256": "8e83dba80e79ec8193b0abc9afd2a887c49ba8578558e6cb5ac30652a8aad211",
+      "compressed_bytes": 95918,
+      "parse_wall_secs": 0.725213104,
+      "parsed_elements": 12768,
+      "admitted_observations": 11,
+      "derived_cache_write_secs": 0.004193691,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1705.gz",
+      "archive_sha256": "750b853cf11d29a3926ab41ae93e0d71567b983b7126a90063767da744ecf0f1",
+      "compressed_bytes": 85746,
+      "parse_wall_secs": 0.64815481,
+      "parsed_elements": 12560,
+      "admitted_observations": 11,
+      "derived_cache_write_secs": 0.004305777,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1710.gz",
+      "archive_sha256": "b5bcde5437c616c8cb90622c23ed841fdedd37a25250f66f2bbfbdc2fc157996",
+      "compressed_bytes": 69994,
+      "parse_wall_secs": 0.47469242,
+      "parsed_elements": 8217,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000595107,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1715.gz",
+      "archive_sha256": "55d4f2cde738b80789d7264f6753766b682bde594eccbd889b3b07fb3c27d312",
+      "compressed_bytes": 54700,
+      "parse_wall_secs": 0.393810656,
+      "parsed_elements": 6370,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000543377,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1720.gz",
+      "archive_sha256": "b54a641d9efce20739a0942bfd39b9b66f3f2149ea960ef9d9b4caca1524b717",
+      "compressed_bytes": 51715,
+      "parse_wall_secs": 0.361389428,
+      "parsed_elements": 5679,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000692758,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1725.gz",
+      "archive_sha256": "66c5308f1570ab9a4a40c25e4f5cb548a1dd251258aa204ab056c8485fb55076",
+      "compressed_bytes": 69587,
+      "parse_wall_secs": 0.525891838,
+      "parsed_elements": 9625,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000657056,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1730.gz",
+      "archive_sha256": "8097384fa60a5dcc729ae04da7039a2a5d55fc875255435f982aa0475b3ba047",
+      "compressed_bytes": 60452,
+      "parse_wall_secs": 0.484498189,
+      "parsed_elements": 9104,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000603469,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1735.gz",
+      "archive_sha256": "96a10ce7216a3d9fe75504b9b3e7083161f0da8f3a08b1c9bd63e1d41488fbca",
+      "compressed_bytes": 69963,
+      "parse_wall_secs": 0.595500768,
+      "parsed_elements": 9616,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000401152,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1740.gz",
+      "archive_sha256": "9104d76082714bd552455e3b935cc98d47030a7b656ec6028b818493ff196e9c",
+      "compressed_bytes": 62071,
+      "parse_wall_secs": 0.462809419,
+      "parsed_elements": 7653,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000649911,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1745.gz",
+      "archive_sha256": "8388528acf9144e067cba6656f9463b988ba88d21fcdfa04540f83b3ac400594",
+      "compressed_bytes": 66378,
+      "parse_wall_secs": 0.498203344,
+      "parsed_elements": 7488,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000622791,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1750.gz",
+      "archive_sha256": "b00b51d3066c21631425c3d316d45ba98e6e5aa9d3a61d76c176586801948a29",
+      "compressed_bytes": 52498,
+      "parse_wall_secs": 0.375067774,
+      "parsed_elements": 6401,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000593965,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1755.gz",
+      "archive_sha256": "300a7b1a1558a0b11a00166d777234dcccad8158e243cb41eeeaf6944e80cda5",
+      "compressed_bytes": 43933,
+      "parse_wall_secs": 0.323024947,
+      "parsed_elements": 5122,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000597239,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1800.gz",
+      "archive_sha256": "9537d1535c0728fb9317428268b731f1bb3b17e3324b323ecb48ea14f0d63c64",
+      "compressed_bytes": 72651,
+      "parse_wall_secs": 0.537554256,
+      "parsed_elements": 8482,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.00067607,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1805.gz",
+      "archive_sha256": "539fe310620469b6f0eb47e9023241751831ef0d7e5a199b606ccb2db9be65fb",
+      "compressed_bytes": 52544,
+      "parse_wall_secs": 0.371767602,
+      "parsed_elements": 7334,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000630378,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1810.gz",
+      "archive_sha256": "da3b24e1e2f211f078c0306c154fe07e145718c5f097657527ab1fc8d9da270f",
+      "compressed_bytes": 49317,
+      "parse_wall_secs": 0.384573705,
+      "parsed_elements": 5779,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000643788,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1815.gz",
+      "archive_sha256": "8c365cf6008121cc1e59fd216f2b8a2ccc63a30f5f81a96a9630dac2a5aeea23",
+      "compressed_bytes": 51746,
+      "parse_wall_secs": 0.386583781,
+      "parsed_elements": 6247,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000656278,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1820.gz",
+      "archive_sha256": "cf842bf6b6712387a3aff4acda0530d99fe27b32f1b2f1d681940ebd1f00e4e5",
+      "compressed_bytes": 48214,
+      "parse_wall_secs": 0.355452737,
+      "parsed_elements": 5351,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.001389565,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1825.gz",
+      "archive_sha256": "71917a0c7c231dea839118266a618ebce795503867af09fc087f8e1c375555b3",
+      "compressed_bytes": 45800,
+      "parse_wall_secs": 0.371655233,
+      "parsed_elements": 5359,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.00051973,
+      "cache_hit": false
+    },
+    {
+      "archive_url": "https://data.ris.ripe.net/rrc06/2019.08/updates.20190821.1830.gz",
+      "archive_sha256": "3821c3446473f27c47174433e584bd688b398ca915b5dac9048ab71ff9e3e588",
+      "compressed_bytes": 52258,
+      "parse_wall_secs": 0.404818692,
+      "parsed_elements": 6406,
+      "admitted_observations": 0,
+      "derived_cache_write_secs": 0.000611143,
+      "cache_hit": false
+    }
+  ],
+  "total_wall_secs": 0.035020716
+}

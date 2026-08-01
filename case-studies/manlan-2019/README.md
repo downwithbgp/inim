@@ -60,6 +60,27 @@ inim catalog document import --db data/inim.sqlite \
 - **Full incident-wide BGP analysis**: **not executed**. No whole-incident
   public-BGP conclusion exists.
 
+- **RIS collector selection (Session 34)**: metadata + RIB preflight of
+  18 historically available collectors; only rrc00, rrc06, rrc15 had
+  AS2603-origin routes with AS11537 in path at the pre-window baseline.
+  Rejected collectors recorded with reasons in
+  `pilot/ris-collector-selection.md`.
+- **RIS pilots (Session 34, Complete)**: three independent runs, same
+  reviewed target and window as the RouteViews pilot — rrc00 (11/11
+  streams unchanged), rrc06 (12/12 departed AS11537 transit via path
+  replacement 16:45:44Z, returned to baseline by 17:02:38Z, no absence),
+  rrc15 (13/24 departed transit 16:35:38–16:45:20Z and returned; 11/24
+  unchanged). Each run keeps its own evidence; no merged verdict.
+  Per-collector records: `pilot/ris-pilot-rrc00.json`,
+  `pilot/ris-pilot-rrc06.json`, `pilot/ris-pilot-rrc15.json`.
+- **Reviewed interpretations**: `pilot/ticket-reviews.json` (ten
+  tickets, reviewed roles + AAR-cited provenance, 13 reviewed edges).
+- **Cross-observer comparison**: the RouteViews pilot and the three RIS
+  pilots are compared per prefix per collector without merging evidence
+  (`observer_compare`); multiple observer agreement is not global proof.
+- **Full incident-wide BGP analysis**: **not executed**. No whole-incident
+  public-BGP conclusion exists.
+
 The AAR lists multiple contributors; this data file does not reproduce
 contributor names in the primary UI.
 

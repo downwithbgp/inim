@@ -356,3 +356,33 @@ completeness is never assumed; source snapshots are immutable; explicit
 and inferred relationships stay distinct; reviewed mappings remain
 human-controlled; RouteViews/RIS are observer sources, not ground
 truth; temporal correlation is not causal attribution.
+
+## Reviewed multi-observer analysis (Session 34)
+
+- **Reviewed interpretation layer** (`ticket_reviews`, V7): analyst
+  review is a separate stage over immutable snapshots. Roles, entity
+  labels, linked changes, applicability, and per-field provenance
+  (snapshot field or cited AAR). Import: `inim catalog corpus-review`.
+  Graph audit: `inim catalog relationships audit` + `/corpus/relationships`.
+- **Candidate noise reduction**: per-pair candidates with union
+  evidence; temporal overlap alone is `TemporalCoincidence`, hidden from
+  the default queue but queryable; rejected fingerprints stay
+  suppressed; superseded Unreviewed rows are merged (provenance
+  preserved in the merged row).
+- **RIPE RIS execution**: manifests carry `source_family`
+  (default RouteViews); the orchestrator discovers through the family's
+  broker project; derived caches are keyed on (family, collector);
+  reports name the family; mixed-source archive ordering is a total
+  order (ts_start, url). One real 2019 RIS fixture exercises the shared
+  ingestion path.
+- **RIS collector selection**: metadata probe + RIB preflight per
+  candidate (`bview` on the 8-hour grid); selection requires qualifying
+  visibility, peer/geographic diversity, manageable volume, complete
+  coverage; rejected collectors are recorded with reasons.
+- **Independent per-collector pilots**: each selected collector runs its
+  own AnalysisRun with its own evidence; no merged verdict.
+- **Cross-observer comparison** (`observer_compare`): per-prefix ×
+  collector rows over linked runs; bounded statement vocabulary;
+  timing differences preserved; no global-confirmation phrasing.
+- **Analyst queue**: rows show reviewed role, archive-plan status, run
+  count, and a derived next action; nothing executes from an HTTP GET.

@@ -1,0 +1,668 @@
+{
+  "schema_version": 2,
+  "event_id": "MANLAN-2019-NORDUNET-PILOT-RIS-RRC06",
+  "result": {
+    "finding": "The event produced partial and heterogeneous external routing impact. Among the remaining 12 streams, 12 remained visible after departing that transit.",
+    "verdict": "LessImpactThanExpected",
+    "verdict_label": "Less impact than expected"
+  },
+  "assessment": {
+    "provisional": false,
+    "statement": "Inconsistent with the loss-of-reachability expectation.",
+    "verdict": "LessImpactThanExpected"
+  },
+  "observed_event_signature": {
+    "analysis_window_utc": "2019-08-21 16:00:00 UTC – 2019-08-21 17:30:00 UTC",
+    "final_impact_assessment": {
+      "assessment": {
+        "event_id": "MANLAN-2019-NORDUNET-PILOT-RIS-RRC06",
+        "evidence": [
+          {
+            "description": "Total route transitions observed: 26",
+            "source_records": []
+          },
+          {
+            "description": "Withdrawal transitions: 0",
+            "source_records": []
+          },
+          {
+            "description": "Path-replacement transitions: 14",
+            "source_records": [
+              "rrc06:2001:200:0:fe00::12a9:0 2001:948::/32 at 2019-08-21 16:45:44 UTC (4777 2500 7660 22388 11537 20965 2603 → 4777 2500 7660 24287 24490 20965 2603)",
+              "rrc06:202.249.2.20 194.68.13.0/24 at 2019-08-21 16:45:45 UTC (4777 2500 2500 2500 7660 22388 11537 20965 2603 → 4777 2500 2500 2500 7660 24287 24490 20965 2603)",
+              "rrc06:202.249.2.20 109.105.112.0/21 at 2019-08-21 16:45:45 UTC (4777 2500 2500 2500 7660 22388 11537 20965 2603 → 4777 2500 2500 2500 7660 24287 24490 20965 2603)",
+              "rrc06:202.249.2.20 109.105.120.0/22 at 2019-08-21 16:45:45 UTC (4777 2500 2500 2500 7660 22388 11537 20965 2603 → 4777 2500 2500 2500 7660 24287 24490 20965 2603)",
+              "rrc06:202.249.2.20 193.10.68.0/24 at 2019-08-21 16:45:45 UTC (4777 2500 2500 2500 7660 22388 11537 20965 2603 → 4777 2500 2500 2500 7660 24287 24490 20965 2603)",
+              "rrc06:202.249.2.20 193.10.252.0/24 at 2019-08-21 16:45:45 UTC (4777 2500 2500 2500 7660 22388 11537 20965 2603 → 4777 2500 2500 2500 7660 24287 24490 20965 2603)",
+              "rrc06:202.249.2.20 193.10.254.0/24 at 2019-08-21 16:45:45 UTC (4777 2500 2500 2500 7660 22388 11537 20965 2603 → 4777 2500 2500 2500 7660 24287 24490 20965 2603)",
+              "rrc06:202.249.2.20 185.174.116.0/22 at 2019-08-21 16:45:45 UTC (4777 2500 2500 2500 7660 22388 11537 20965 2603 → 4777 2500 2500 2500 7660 24287 24490 20965 2603)",
+              "rrc06:202.249.2.20 193.10.95.0/24 at 2019-08-21 16:45:45 UTC (4777 2500 2500 2500 7660 22388 11537 20965 2603 → 4777 2500 2500 2500 7660 24287 24490 20965 2603)",
+              "rrc06:202.249.2.20 193.11.3.0/24 at 2019-08-21 16:45:45 UTC (4777 2500 2500 2500 7660 22388 11537 20965 2603 → 4777 2500 2500 2500 7660 24287 24490 20965 2603)",
+              "rrc06:202.249.2.20 109.105.96.0/20 at 2019-08-21 16:45:45 UTC (4777 2500 2500 2500 7660 22388 11537 20965 2603 → 4777 2500 2500 2500 7660 24287 24490 20965 2603)",
+              "rrc06:202.249.2.20 192.36.171.0/24 at 2019-08-21 16:45:45 UTC (4777 2500 2500 2500 7660 22388 11537 20965 2603 → 4777 2500 2500 2500 7660 24287 24490 20965 2603)",
+              "rrc06:202.249.2.20 194.68.13.0/24 at 2019-08-21 17:00:35 UTC (4777 2500 2500 2500 7660 24287 24490 20965 2603 → 4777 2500 2500 2500 7660 11537 20965 2603)",
+              "rrc06:202.249.2.20 185.174.116.0/22 at 2019-08-21 17:02:07 UTC (4777 2500 2500 2500 7660 24287 24490 20965 2603 → 4777 2500 2500 2500 7660 11537 20965 2603)"
+            ]
+          },
+          {
+            "description": "Restorations to baseline (transitions): 12",
+            "source_records": [
+              "rrc06:202.249.2.20 109.105.96.0/20 at 2019-08-21 16:59:34 UTC",
+              "rrc06:202.249.2.20 109.105.112.0/21 at 2019-08-21 16:59:34 UTC",
+              "rrc06:202.249.2.20 109.105.120.0/22 at 2019-08-21 16:59:34 UTC",
+              "rrc06:2001:200:0:fe00::12a9:0 2001:948::/32 at 2019-08-21 17:00:04 UTC",
+              "rrc06:202.249.2.20 192.36.171.0/24 at 2019-08-21 17:00:35 UTC",
+              "rrc06:202.249.2.20 193.10.68.0/24 at 2019-08-21 17:00:35 UTC",
+              "rrc06:202.249.2.20 193.10.95.0/24 at 2019-08-21 17:00:35 UTC",
+              "rrc06:202.249.2.20 193.11.3.0/24 at 2019-08-21 17:00:35 UTC",
+              "rrc06:202.249.2.20 193.10.252.0/24 at 2019-08-21 17:00:35 UTC",
+              "rrc06:202.249.2.20 193.10.254.0/24 at 2019-08-21 17:00:35 UTC",
+              "rrc06:202.249.2.20 194.68.13.0/24 at 2019-08-21 17:01:06 UTC",
+              "rrc06:202.249.2.20 185.174.116.0/22 at 2019-08-21 17:02:38 UTC"
+            ]
+          },
+          {
+            "description": "Stream lifecycle: total=12 unchanged=0 prepend-only=0 withdrawn=0 departed-transit=12 restored=0 not-restored=0 add-path-ambiguous=0",
+            "source_records": []
+          }
+        ],
+        "expectation": {
+          "description": "No parenthesized site code — loss of reachability may be expected",
+          "kind": "NonRedundant",
+          "provenance": "Internet2 title convention: parenthesized site code indicates expected redundancy"
+        },
+        "generated_at": "2026-08-01T17:20:58.705874185Z",
+        "verdict": "LessImpactThanExpected",
+        "waves": [
+          {
+            "affected_peers": [
+              "rrc06:2001:200:0:fe00::12a9:0",
+              "rrc06:202.249.2.20"
+            ],
+            "affected_prefixes": [
+              "109.105.112.0/21",
+              "109.105.120.0/22",
+              "109.105.96.0/20",
+              "185.174.116.0/22",
+              "192.36.171.0/24",
+              "193.10.252.0/24",
+              "193.10.254.0/24",
+              "193.10.68.0/24",
+              "193.10.95.0/24",
+              "193.11.3.0/24",
+              "194.68.13.0/24",
+              "2001:948::/32"
+            ],
+            "end": "2019-08-21T16:45:45Z",
+            "id": 1,
+            "label": "Wave 1 — path replacement (1.0s, 12 prefixes, 2 peers)",
+            "motif": {
+              "covered_terminals": 12,
+              "evidence_ranges": [
+                {
+                  "observer": "rrc06:2001:200:0:fe00::12a9:0",
+                  "prefix": "2001:948::/32",
+                  "time_end": "2019-08-21T16:45:44Z",
+                  "time_start": "2019-08-21T16:45:44Z",
+                  "transition_end": 0,
+                  "transition_start": 0
+                },
+                {
+                  "observer": "rrc06:202.249.2.20",
+                  "prefix": "109.105.112.0/21",
+                  "time_end": "2019-08-21T16:45:45Z",
+                  "time_start": "2019-08-21T16:45:45Z",
+                  "transition_end": 0,
+                  "transition_start": 0
+                },
+                {
+                  "observer": "rrc06:202.249.2.20",
+                  "prefix": "109.105.120.0/22",
+                  "time_end": "2019-08-21T16:45:45Z",
+                  "time_start": "2019-08-21T16:45:45Z",
+                  "transition_end": 0,
+                  "transition_start": 0
+                }
+              ],
+              "expanded": "PATH_REPLACEMENT",
+              "id": "12f3f9d9387b082d",
+              "occurrences": 12,
+              "scopes": [
+                "rrc06:2001:200:0:fe00::12a9:0 2001:948::/32",
+                "rrc06:202.249.2.20 109.105.112.0/21",
+                "rrc06:202.249.2.20 109.105.120.0/22",
+                "rrc06:202.249.2.20 109.105.96.0/20",
+                "rrc06:202.249.2.20 185.174.116.0/22",
+                "rrc06:202.249.2.20 192.36.171.0/24",
+                "rrc06:202.249.2.20 193.10.252.0/24",
+                "rrc06:202.249.2.20 193.10.254.0/24",
+                "rrc06:202.249.2.20 193.10.68.0/24",
+                "rrc06:202.249.2.20 193.10.95.0/24",
+                "rrc06:202.249.2.20 193.11.3.0/24",
+                "rrc06:202.249.2.20 194.68.13.0/24"
+              ],
+              "structure": [
+                "ROOT → PATH_REPLACEMENT"
+              ],
+              "total_terminals": 12
+            },
+            "peak": "2019-08-21T16:45:45Z",
+            "start": "2019-08-21T16:45:44Z"
+          },
+          {
+            "affected_peers": [
+              "rrc06:2001:200:0:fe00::12a9:0",
+              "rrc06:202.249.2.20"
+            ],
+            "affected_prefixes": [
+              "109.105.112.0/21",
+              "109.105.120.0/22",
+              "109.105.96.0/20",
+              "185.174.116.0/22",
+              "192.36.171.0/24",
+              "193.10.252.0/24",
+              "193.10.254.0/24",
+              "193.10.68.0/24",
+              "193.10.95.0/24",
+              "193.11.3.0/24",
+              "194.68.13.0/24",
+              "2001:948::/32"
+            ],
+            "end": "2019-08-21T17:02:38Z",
+            "id": 2,
+            "label": "Wave 2 — restoration (184.0s, 12 prefixes, 2 peers)",
+            "motif": {
+              "covered_terminals": 10,
+              "evidence_ranges": [
+                {
+                  "observer": "rrc06:2001:200:0:fe00::12a9:0",
+                  "prefix": "2001:948::/32",
+                  "time_end": "2019-08-21T17:00:04Z",
+                  "time_start": "2019-08-21T17:00:04Z",
+                  "transition_end": 0,
+                  "transition_start": 0
+                },
+                {
+                  "observer": "rrc06:202.249.2.20",
+                  "prefix": "109.105.112.0/21",
+                  "time_end": "2019-08-21T16:59:34Z",
+                  "time_start": "2019-08-21T16:59:34Z",
+                  "transition_end": 0,
+                  "transition_start": 0
+                },
+                {
+                  "observer": "rrc06:202.249.2.20",
+                  "prefix": "109.105.120.0/22",
+                  "time_end": "2019-08-21T16:59:34Z",
+                  "time_start": "2019-08-21T16:59:34Z",
+                  "transition_end": 0,
+                  "transition_start": 0
+                }
+              ],
+              "expanded": "RETURN_TO_BASELINE",
+              "id": "40d21da87f78da7d",
+              "occurrences": 10,
+              "scopes": [
+                "rrc06:2001:200:0:fe00::12a9:0 2001:948::/32",
+                "rrc06:202.249.2.20 109.105.112.0/21",
+                "rrc06:202.249.2.20 109.105.120.0/22",
+                "rrc06:202.249.2.20 109.105.96.0/20",
+                "rrc06:202.249.2.20 192.36.171.0/24",
+                "rrc06:202.249.2.20 193.10.252.0/24",
+                "rrc06:202.249.2.20 193.10.254.0/24",
+                "rrc06:202.249.2.20 193.10.68.0/24",
+                "rrc06:202.249.2.20 193.10.95.0/24",
+                "rrc06:202.249.2.20 193.11.3.0/24"
+              ],
+              "structure": [
+                "ROOT → RETURN_TO_BASELINE"
+              ],
+              "total_terminals": 14
+            },
+            "peak": "2019-08-21T17:00:35Z",
+            "start": "2019-08-21T16:59:34Z"
+          }
+        ]
+      },
+      "status": "completed"
+    },
+    "observer_scope": {
+      "archive_coverage": "Complete for the selected analysis plan (selected collectors, planned interval, verified archives).",
+      "baseline_observer_prefix_streams": 12,
+      "baseline_qualification": "at least one route path traversed AS11537",
+      "baseline_route_instances": 12,
+      "collectors": [
+        "rrc06"
+      ],
+      "exact_transit_predicate": "ContainsAny { 11537 }",
+      "multiple_instance_streams": 0
+    },
+    "semantic_waves": [
+      {
+        "end": "2019-08-21T16:45:45Z",
+        "event_relative": {
+          "transit_departed": 12,
+          "transit_retained": 0,
+          "transit_returned": 0
+        },
+        "evidence_refs": [
+          59,
+          60,
+          61,
+          62,
+          63,
+          64,
+          65,
+          66,
+          67,
+          68,
+          69,
+          70
+        ],
+        "facets": {
+          "communities_changed": 0,
+          "graceful_shutdown_added": 0,
+          "graceful_shutdown_removed": 0,
+          "local_pref_changed": 0,
+          "material_path_changed": 12,
+          "med_changed": 0,
+          "next_hop_changed": 0,
+          "origin_changed": 0,
+          "prepend_increased": 0,
+          "prepend_reduced": 0
+        },
+        "id": "wave-1",
+        "label": "TransitDeparture",
+        "peak_end": "2019-08-21T16:45:45Z",
+        "peak_start": "2019-08-21T16:45:44Z",
+        "peers": [
+          "2001:200:0:fe00::12a9:0",
+          "202.249.2.20"
+        ],
+        "prefixes": [
+          "109.105.112.0/21",
+          "109.105.120.0/22",
+          "109.105.96.0/20",
+          "185.174.116.0/22",
+          "192.36.171.0/24",
+          "193.10.252.0/24",
+          "193.10.254.0/24",
+          "193.10.68.0/24",
+          "193.10.95.0/24",
+          "193.11.3.0/24",
+          "194.68.13.0/24",
+          "2001:948::/32"
+        ],
+        "representative_after": [
+          4777,
+          2500,
+          7660,
+          24287,
+          24490,
+          20965,
+          2603
+        ],
+        "representative_before": [
+          4777,
+          2500,
+          7660,
+          22388,
+          11537,
+          20965,
+          2603
+        ],
+        "route_instance_count": 12,
+        "start": "2019-08-21T16:45:44Z",
+        "stream_count": 12
+      },
+      {
+        "end": "2019-08-21T17:02:38Z",
+        "event_relative": {
+          "transit_departed": 0,
+          "transit_retained": 2,
+          "transit_returned": 12
+        },
+        "evidence_refs": [
+          71,
+          72,
+          73,
+          74,
+          75,
+          76,
+          77,
+          78,
+          79,
+          80,
+          81,
+          82,
+          83,
+          84
+        ],
+        "facets": {
+          "communities_changed": 0,
+          "graceful_shutdown_added": 0,
+          "graceful_shutdown_removed": 0,
+          "local_pref_changed": 0,
+          "material_path_changed": 14,
+          "med_changed": 0,
+          "next_hop_changed": 0,
+          "origin_changed": 0,
+          "prepend_increased": 0,
+          "prepend_reduced": 0
+        },
+        "id": "wave-2",
+        "label": "MixedRouteChange",
+        "peak_end": "2019-08-21T17:00:35Z",
+        "peak_start": "2019-08-21T17:00:04Z",
+        "peers": [
+          "2001:200:0:fe00::12a9:0",
+          "202.249.2.20"
+        ],
+        "prefixes": [
+          "109.105.112.0/21",
+          "109.105.120.0/22",
+          "109.105.96.0/20",
+          "185.174.116.0/22",
+          "192.36.171.0/24",
+          "193.10.252.0/24",
+          "193.10.254.0/24",
+          "193.10.68.0/24",
+          "193.10.95.0/24",
+          "193.11.3.0/24",
+          "194.68.13.0/24",
+          "2001:948::/32"
+        ],
+        "representative_after": [
+          4777,
+          2500,
+          2500,
+          2500,
+          7660,
+          22388,
+          11537,
+          20965,
+          2603
+        ],
+        "representative_before": [
+          4777,
+          2500,
+          2500,
+          2500,
+          7660,
+          24287,
+          24490,
+          20965,
+          2603
+        ],
+        "route_instance_count": 12,
+        "start": "2019-08-21T16:59:34Z",
+        "stream_count": 12
+      }
+    ],
+    "stream_lifecycle": {
+      "add_path_ambiguous_streams": 0,
+      "material_path_changes": 26,
+      "prepend_only": 0,
+      "restored_streams": 0,
+      "streams_departing_transit": 12,
+      "streams_retaining_transit": 0,
+      "unchanged": 0,
+      "unresolved_streams": 0,
+      "withdrawn_streams": 0
+    },
+    "ticket_expectation": "NonRedundant: No parenthesized site code — loss of reachability may be expected",
+    "ticket_lifecycle": "Closed",
+    "transit_predicate": "ContainsAny[11537]"
+  },
+  "observable_mechanism_hints": {
+    "community_only_changes": 0,
+    "graceful_restart": "negotiated session capability/state not directly observable from this dataset",
+    "mechanism_hints_do_not_change_impact_assessment": true,
+    "rfc8326": {
+      "gshut_streams": 0,
+      "gshut_timing": [],
+      "statement": "No RFC 8326 GRACEFUL_SHUTDOWN community reached the selected observers. Its absence does not establish that graceful shutdown was not used."
+    },
+    "rfc8327": "operational intent not directly observable",
+    "rfc9003": "administrative-shutdown message not observable from these remote collector sessions"
+  },
+  "limitations": [
+    "1 of 1 requested collectors retained after RIB preflight (rrc06)"
+  ],
+  "outcome": {
+    "assessment": {
+      "event_id": "MANLAN-2019-NORDUNET-PILOT-RIS-RRC06",
+      "evidence": [
+        {
+          "description": "Total route transitions observed: 26",
+          "source_records": []
+        },
+        {
+          "description": "Withdrawal transitions: 0",
+          "source_records": []
+        },
+        {
+          "description": "Path-replacement transitions: 14",
+          "source_records": [
+            "rrc06:2001:200:0:fe00::12a9:0 2001:948::/32 at 2019-08-21 16:45:44 UTC (4777 2500 7660 22388 11537 20965 2603 → 4777 2500 7660 24287 24490 20965 2603)",
+            "rrc06:202.249.2.20 194.68.13.0/24 at 2019-08-21 16:45:45 UTC (4777 2500 2500 2500 7660 22388 11537 20965 2603 → 4777 2500 2500 2500 7660 24287 24490 20965 2603)",
+            "rrc06:202.249.2.20 109.105.112.0/21 at 2019-08-21 16:45:45 UTC (4777 2500 2500 2500 7660 22388 11537 20965 2603 → 4777 2500 2500 2500 7660 24287 24490 20965 2603)",
+            "rrc06:202.249.2.20 109.105.120.0/22 at 2019-08-21 16:45:45 UTC (4777 2500 2500 2500 7660 22388 11537 20965 2603 → 4777 2500 2500 2500 7660 24287 24490 20965 2603)",
+            "rrc06:202.249.2.20 193.10.68.0/24 at 2019-08-21 16:45:45 UTC (4777 2500 2500 2500 7660 22388 11537 20965 2603 → 4777 2500 2500 2500 7660 24287 24490 20965 2603)",
+            "rrc06:202.249.2.20 193.10.252.0/24 at 2019-08-21 16:45:45 UTC (4777 2500 2500 2500 7660 22388 11537 20965 2603 → 4777 2500 2500 2500 7660 24287 24490 20965 2603)",
+            "rrc06:202.249.2.20 193.10.254.0/24 at 2019-08-21 16:45:45 UTC (4777 2500 2500 2500 7660 22388 11537 20965 2603 → 4777 2500 2500 2500 7660 24287 24490 20965 2603)",
+            "rrc06:202.249.2.20 185.174.116.0/22 at 2019-08-21 16:45:45 UTC (4777 2500 2500 2500 7660 22388 11537 20965 2603 → 4777 2500 2500 2500 7660 24287 24490 20965 2603)",
+            "rrc06:202.249.2.20 193.10.95.0/24 at 2019-08-21 16:45:45 UTC (4777 2500 2500 2500 7660 22388 11537 20965 2603 → 4777 2500 2500 2500 7660 24287 24490 20965 2603)",
+            "rrc06:202.249.2.20 193.11.3.0/24 at 2019-08-21 16:45:45 UTC (4777 2500 2500 2500 7660 22388 11537 20965 2603 → 4777 2500 2500 2500 7660 24287 24490 20965 2603)",
+            "rrc06:202.249.2.20 109.105.96.0/20 at 2019-08-21 16:45:45 UTC (4777 2500 2500 2500 7660 22388 11537 20965 2603 → 4777 2500 2500 2500 7660 24287 24490 20965 2603)",
+            "rrc06:202.249.2.20 192.36.171.0/24 at 2019-08-21 16:45:45 UTC (4777 2500 2500 2500 7660 22388 11537 20965 2603 → 4777 2500 2500 2500 7660 24287 24490 20965 2603)",
+            "rrc06:202.249.2.20 194.68.13.0/24 at 2019-08-21 17:00:35 UTC (4777 2500 2500 2500 7660 24287 24490 20965 2603 → 4777 2500 2500 2500 7660 11537 20965 2603)",
+            "rrc06:202.249.2.20 185.174.116.0/22 at 2019-08-21 17:02:07 UTC (4777 2500 2500 2500 7660 24287 24490 20965 2603 → 4777 2500 2500 2500 7660 11537 20965 2603)"
+          ]
+        },
+        {
+          "description": "Restorations to baseline (transitions): 12",
+          "source_records": [
+            "rrc06:202.249.2.20 109.105.96.0/20 at 2019-08-21 16:59:34 UTC",
+            "rrc06:202.249.2.20 109.105.112.0/21 at 2019-08-21 16:59:34 UTC",
+            "rrc06:202.249.2.20 109.105.120.0/22 at 2019-08-21 16:59:34 UTC",
+            "rrc06:2001:200:0:fe00::12a9:0 2001:948::/32 at 2019-08-21 17:00:04 UTC",
+            "rrc06:202.249.2.20 192.36.171.0/24 at 2019-08-21 17:00:35 UTC",
+            "rrc06:202.249.2.20 193.10.68.0/24 at 2019-08-21 17:00:35 UTC",
+            "rrc06:202.249.2.20 193.10.95.0/24 at 2019-08-21 17:00:35 UTC",
+            "rrc06:202.249.2.20 193.11.3.0/24 at 2019-08-21 17:00:35 UTC",
+            "rrc06:202.249.2.20 193.10.252.0/24 at 2019-08-21 17:00:35 UTC",
+            "rrc06:202.249.2.20 193.10.254.0/24 at 2019-08-21 17:00:35 UTC",
+            "rrc06:202.249.2.20 194.68.13.0/24 at 2019-08-21 17:01:06 UTC",
+            "rrc06:202.249.2.20 185.174.116.0/22 at 2019-08-21 17:02:38 UTC"
+          ]
+        },
+        {
+          "description": "Stream lifecycle: total=12 unchanged=0 prepend-only=0 withdrawn=0 departed-transit=12 restored=0 not-restored=0 add-path-ambiguous=0",
+          "source_records": []
+        }
+      ],
+      "expectation": {
+        "description": "No parenthesized site code — loss of reachability may be expected",
+        "kind": "NonRedundant",
+        "provenance": "Internet2 title convention: parenthesized site code indicates expected redundancy"
+      },
+      "generated_at": "2026-08-01T17:20:58.705874185Z",
+      "verdict": "LessImpactThanExpected",
+      "waves": [
+        {
+          "affected_peers": [
+            "rrc06:2001:200:0:fe00::12a9:0",
+            "rrc06:202.249.2.20"
+          ],
+          "affected_prefixes": [
+            "109.105.112.0/21",
+            "109.105.120.0/22",
+            "109.105.96.0/20",
+            "185.174.116.0/22",
+            "192.36.171.0/24",
+            "193.10.252.0/24",
+            "193.10.254.0/24",
+            "193.10.68.0/24",
+            "193.10.95.0/24",
+            "193.11.3.0/24",
+            "194.68.13.0/24",
+            "2001:948::/32"
+          ],
+          "end": "2019-08-21T16:45:45Z",
+          "id": 1,
+          "label": "Wave 1 — path replacement (1.0s, 12 prefixes, 2 peers)",
+          "motif": {
+            "covered_terminals": 12,
+            "evidence_ranges": [
+              {
+                "observer": "rrc06:2001:200:0:fe00::12a9:0",
+                "prefix": "2001:948::/32",
+                "time_end": "2019-08-21T16:45:44Z",
+                "time_start": "2019-08-21T16:45:44Z",
+                "transition_end": 0,
+                "transition_start": 0
+              },
+              {
+                "observer": "rrc06:202.249.2.20",
+                "prefix": "109.105.112.0/21",
+                "time_end": "2019-08-21T16:45:45Z",
+                "time_start": "2019-08-21T16:45:45Z",
+                "transition_end": 0,
+                "transition_start": 0
+              },
+              {
+                "observer": "rrc06:202.249.2.20",
+                "prefix": "109.105.120.0/22",
+                "time_end": "2019-08-21T16:45:45Z",
+                "time_start": "2019-08-21T16:45:45Z",
+                "transition_end": 0,
+                "transition_start": 0
+              }
+            ],
+            "expanded": "PATH_REPLACEMENT",
+            "id": "12f3f9d9387b082d",
+            "occurrences": 12,
+            "scopes": [
+              "rrc06:2001:200:0:fe00::12a9:0 2001:948::/32",
+              "rrc06:202.249.2.20 109.105.112.0/21",
+              "rrc06:202.249.2.20 109.105.120.0/22",
+              "rrc06:202.249.2.20 109.105.96.0/20",
+              "rrc06:202.249.2.20 185.174.116.0/22",
+              "rrc06:202.249.2.20 192.36.171.0/24",
+              "rrc06:202.249.2.20 193.10.252.0/24",
+              "rrc06:202.249.2.20 193.10.254.0/24",
+              "rrc06:202.249.2.20 193.10.68.0/24",
+              "rrc06:202.249.2.20 193.10.95.0/24",
+              "rrc06:202.249.2.20 193.11.3.0/24",
+              "rrc06:202.249.2.20 194.68.13.0/24"
+            ],
+            "structure": [
+              "ROOT → PATH_REPLACEMENT"
+            ],
+            "total_terminals": 12
+          },
+          "peak": "2019-08-21T16:45:45Z",
+          "start": "2019-08-21T16:45:44Z"
+        },
+        {
+          "affected_peers": [
+            "rrc06:2001:200:0:fe00::12a9:0",
+            "rrc06:202.249.2.20"
+          ],
+          "affected_prefixes": [
+            "109.105.112.0/21",
+            "109.105.120.0/22",
+            "109.105.96.0/20",
+            "185.174.116.0/22",
+            "192.36.171.0/24",
+            "193.10.252.0/24",
+            "193.10.254.0/24",
+            "193.10.68.0/24",
+            "193.10.95.0/24",
+            "193.11.3.0/24",
+            "194.68.13.0/24",
+            "2001:948::/32"
+          ],
+          "end": "2019-08-21T17:02:38Z",
+          "id": 2,
+          "label": "Wave 2 — restoration (184.0s, 12 prefixes, 2 peers)",
+          "motif": {
+            "covered_terminals": 10,
+            "evidence_ranges": [
+              {
+                "observer": "rrc06:2001:200:0:fe00::12a9:0",
+                "prefix": "2001:948::/32",
+                "time_end": "2019-08-21T17:00:04Z",
+                "time_start": "2019-08-21T17:00:04Z",
+                "transition_end": 0,
+                "transition_start": 0
+              },
+              {
+                "observer": "rrc06:202.249.2.20",
+                "prefix": "109.105.112.0/21",
+                "time_end": "2019-08-21T16:59:34Z",
+                "time_start": "2019-08-21T16:59:34Z",
+                "transition_end": 0,
+                "transition_start": 0
+              },
+              {
+                "observer": "rrc06:202.249.2.20",
+                "prefix": "109.105.120.0/22",
+                "time_end": "2019-08-21T16:59:34Z",
+                "time_start": "2019-08-21T16:59:34Z",
+                "transition_end": 0,
+                "transition_start": 0
+              }
+            ],
+            "expanded": "RETURN_TO_BASELINE",
+            "id": "40d21da87f78da7d",
+            "occurrences": 10,
+            "scopes": [
+              "rrc06:2001:200:0:fe00::12a9:0 2001:948::/32",
+              "rrc06:202.249.2.20 109.105.112.0/21",
+              "rrc06:202.249.2.20 109.105.120.0/22",
+              "rrc06:202.249.2.20 109.105.96.0/20",
+              "rrc06:202.249.2.20 192.36.171.0/24",
+              "rrc06:202.249.2.20 193.10.252.0/24",
+              "rrc06:202.249.2.20 193.10.254.0/24",
+              "rrc06:202.249.2.20 193.10.68.0/24",
+              "rrc06:202.249.2.20 193.10.95.0/24",
+              "rrc06:202.249.2.20 193.11.3.0/24"
+            ],
+            "structure": [
+              "ROOT → RETURN_TO_BASELINE"
+            ],
+            "total_terminals": 14
+          },
+          "peak": "2019-08-21T17:00:35Z",
+          "start": "2019-08-21T16:59:34Z"
+        }
+      ]
+    },
+    "status": "completed"
+  },
+  "transitions": {
+    "total": 26,
+    "event_window": 26,
+    "cooldown": 0
+  },
+  "waves": [
+    {
+      "id": 1,
+      "label": "Wave 1 — path replacement (1.0s, 12 prefixes, 2 peers)",
+      "start": "2019-08-21 16:45:44 UTC",
+      "end": "2019-08-21 16:45:45 UTC",
+      "affected_prefix_count": 12,
+      "motif_id": "12f3f9d9387b082d"
+    },
+    {
+      "id": 2,
+      "label": "Wave 2 — restoration (184.0s, 12 prefixes, 2 peers)",
+      "start": "2019-08-21 16:59:34 UTC",
+      "end": "2019-08-21 17:02:38 UTC",
+      "affected_prefix_count": 12,
+      "motif_id": "40d21da87f78da7d"
+    }
+  ]
+}

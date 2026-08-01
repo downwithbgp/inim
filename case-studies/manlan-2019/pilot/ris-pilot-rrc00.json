@@ -1,0 +1,21 @@
+{
+  "collector": "rrc00",
+  "verdict": "LessImpactThanExpected",
+  "finding": "Across 11 selected observer-prefix streams at rrc00, inim observed no announcements, withdrawals, path changes, or community changes during the event analysis window.",
+  "assessment": "Inconsistent with the loss-of-reachability expectation.",
+  "baseline_streams": 11,
+  "baseline_route_instances": 11,
+  "peer_count": 1,
+  "peers": [
+    "203.119.104.1"
+  ],
+  "transition_kinds": {},
+  "event_timestamps": [],
+  "temporary_absence": false,
+  "withdrawals": 0,
+  "restorations": 0,
+  "path_replacements": 0,
+  "transit_departures": 0,
+  "add_path_ambiguous": 0,
+  "admitted_observations": 1
+}

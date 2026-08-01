@@ -1,0 +1,964 @@
+{
+  "schema_version": 1,
+  "event_id": "MANLAN-2019-NORDUNET-PILOT-RIS-RRC15",
+  "waves": [
+    {
+      "id": "wave-1",
+      "label": "MixedRouteChange",
+      "start": "2019-08-21T16:35:38Z",
+      "peak_start": "2019-08-21T16:35:38Z",
+      "peak_end": "2019-08-21T16:35:38Z",
+      "end": "2019-08-21T16:35:38Z",
+      "stream_count": 11,
+      "route_instance_count": 11,
+      "prefixes": [
+        "109.105.112.0/21",
+        "109.105.120.0/22",
+        "109.105.96.0/20",
+        "185.174.116.0/22",
+        "192.36.171.0/24",
+        "193.10.252.0/24",
+        "193.10.254.0/24",
+        "193.10.68.0/24",
+        "193.10.95.0/24",
+        "193.11.3.0/24",
+        "194.68.13.0/24"
+      ],
+      "peers": [
+        "187.16.216.4"
+      ],
+      "facets": {
+        "communities_changed": 11,
+        "graceful_shutdown_added": 0,
+        "graceful_shutdown_removed": 0,
+        "prepend_reduced": 0,
+        "prepend_increased": 0,
+        "material_path_changed": 11,
+        "origin_changed": 0,
+        "next_hop_changed": 0,
+        "med_changed": 0,
+        "local_pref_changed": 0
+      },
+      "event_relative": {
+        "transit_retained": 11,
+        "transit_departed": 0,
+        "transit_returned": 0
+      },
+      "representative_before": [
+        1916,
+        11537,
+        20965,
+        2603
+      ],
+      "representative_after": [
+        1916,
+        20080,
+        11537,
+        20965,
+        2603
+      ],
+      "evidence_refs": [
+        {
+          "observation_id": 112,
+          "source_url": "https://data.ris.ripe.net/rrc15/2019.08/updates.20190821.1635.gz",
+          "archive_sha256": "9da551192f8de89502a7938e8bfc68ed345f282874d694601eff2742ffff9835",
+          "collector": "rrc15",
+          "peer_ip": "187.16.216.4",
+          "peer_asn": 1916,
+          "prefix": "109.105.96.0/20",
+          "timestamp": "2019-08-21T16:35:38Z",
+          "element_seq": 47755,
+          "path_id": null
+        },
+        {
+          "observation_id": 113,
+          "source_url": "https://data.ris.ripe.net/rrc15/2019.08/updates.20190821.1635.gz",
+          "archive_sha256": "9da551192f8de89502a7938e8bfc68ed345f282874d694601eff2742ffff9835",
+          "collector": "rrc15",
+          "peer_ip": "187.16.216.4",
+          "peer_asn": 1916,
+          "prefix": "109.105.112.0/21",
+          "timestamp": "2019-08-21T16:35:38Z",
+          "element_seq": 47756,
+          "path_id": null
+        },
+        {
+          "observation_id": 114,
+          "source_url": "https://data.ris.ripe.net/rrc15/2019.08/updates.20190821.1635.gz",
+          "archive_sha256": "9da551192f8de89502a7938e8bfc68ed345f282874d694601eff2742ffff9835",
+          "collector": "rrc15",
+          "peer_ip": "187.16.216.4",
+          "peer_asn": 1916,
+          "prefix": "109.105.120.0/22",
+          "timestamp": "2019-08-21T16:35:38Z",
+          "element_seq": 47757,
+          "path_id": null
+        },
+        {
+          "observation_id": 115,
+          "source_url": "https://data.ris.ripe.net/rrc15/2019.08/updates.20190821.1635.gz",
+          "archive_sha256": "9da551192f8de89502a7938e8bfc68ed345f282874d694601eff2742ffff9835",
+          "collector": "rrc15",
+          "peer_ip": "187.16.216.4",
+          "peer_asn": 1916,
+          "prefix": "185.174.116.0/22",
+          "timestamp": "2019-08-21T16:35:38Z",
+          "element_seq": 47758,
+          "path_id": null
+        },
+        {
+          "observation_id": 116,
+          "source_url": "https://data.ris.ripe.net/rrc15/2019.08/updates.20190821.1635.gz",
+          "archive_sha256": "9da551192f8de89502a7938e8bfc68ed345f282874d694601eff2742ffff9835",
+          "collector": "rrc15",
+          "peer_ip": "187.16.216.4",
+          "peer_asn": 1916,
+          "prefix": "192.36.171.0/24",
+          "timestamp": "2019-08-21T16:35:38Z",
+          "element_seq": 47759,
+          "path_id": null
+        },
+        {
+          "observation_id": 117,
+          "source_url": "https://data.ris.ripe.net/rrc15/2019.08/updates.20190821.1635.gz",
+          "archive_sha256": "9da551192f8de89502a7938e8bfc68ed345f282874d694601eff2742ffff9835",
+          "collector": "rrc15",
+          "peer_ip": "187.16.216.4",
+          "peer_asn": 1916,
+          "prefix": "193.10.68.0/24",
+          "timestamp": "2019-08-21T16:35:38Z",
+          "element_seq": 47760,
+          "path_id": null
+        },
+        {
+          "observation_id": 118,
+          "source_url": "https://data.ris.ripe.net/rrc15/2019.08/updates.20190821.1635.gz",
+          "archive_sha256": "9da551192f8de89502a7938e8bfc68ed345f282874d694601eff2742ffff9835",
+          "collector": "rrc15",
+          "peer_ip": "187.16.216.4",
+          "peer_asn": 1916,
+          "prefix": "193.10.95.0/24",
+          "timestamp": "2019-08-21T16:35:38Z",
+          "element_seq": 47761,
+          "path_id": null
+        },
+        {
+          "observation_id": 119,
+          "source_url": "https://data.ris.ripe.net/rrc15/2019.08/updates.20190821.1635.gz",
+          "archive_sha256": "9da551192f8de89502a7938e8bfc68ed345f282874d694601eff2742ffff9835",
+          "collector": "rrc15",
+          "peer_ip": "187.16.216.4",
+          "peer_asn": 1916,
+          "prefix": "193.10.252.0/24",
+          "timestamp": "2019-08-21T16:35:38Z",
+          "element_seq": 47762,
+          "path_id": null
+        },
+        {
+          "observation_id": 120,
+          "source_url": "https://data.ris.ripe.net/rrc15/2019.08/updates.20190821.1635.gz",
+          "archive_sha256": "9da551192f8de89502a7938e8bfc68ed345f282874d694601eff2742ffff9835",
+          "collector": "rrc15",
+          "peer_ip": "187.16.216.4",
+          "peer_asn": 1916,
+          "prefix": "193.10.254.0/24",
+          "timestamp": "2019-08-21T16:35:38Z",
+          "element_seq": 47763,
+          "path_id": null
+        },
+        {
+          "observation_id": 121,
+          "source_url": "https://data.ris.ripe.net/rrc15/2019.08/updates.20190821.1635.gz",
+          "archive_sha256": "9da551192f8de89502a7938e8bfc68ed345f282874d694601eff2742ffff9835",
+          "collector": "rrc15",
+          "peer_ip": "187.16.216.4",
+          "peer_asn": 1916,
+          "prefix": "193.11.3.0/24",
+          "timestamp": "2019-08-21T16:35:38Z",
+          "element_seq": 47764,
+          "path_id": null
+        },
+        {
+          "observation_id": 122,
+          "source_url": "https://data.ris.ripe.net/rrc15/2019.08/updates.20190821.1635.gz",
+          "archive_sha256": "9da551192f8de89502a7938e8bfc68ed345f282874d694601eff2742ffff9835",
+          "collector": "rrc15",
+          "peer_ip": "187.16.216.4",
+          "peer_asn": 1916,
+          "prefix": "194.68.13.0/24",
+          "timestamp": "2019-08-21T16:35:38Z",
+          "element_seq": 47765,
+          "path_id": null
+        }
+      ],
+      "duration_secs": 0.0
+    },
+    {
+      "id": "wave-2",
+      "label": "BaselinePolicyRestoration",
+      "start": "2019-08-21T16:42:50Z",
+      "peak_start": "2019-08-21T16:42:50Z",
+      "peak_end": "2019-08-21T16:43:04Z",
+      "end": "2019-08-21T16:43:04Z",
+      "stream_count": 11,
+      "route_instance_count": 11,
+      "prefixes": [
+        "109.105.112.0/21",
+        "109.105.120.0/22",
+        "109.105.96.0/20",
+        "185.174.116.0/22",
+        "192.36.171.0/24",
+        "193.10.252.0/24",
+        "193.10.254.0/24",
+        "193.10.68.0/24",
+        "193.10.95.0/24",
+        "193.11.3.0/24",
+        "194.68.13.0/24"
+      ],
+      "peers": [
+        "187.16.216.4"
+      ],
+      "facets": {
+        "communities_changed": 11,
+        "graceful_shutdown_added": 0,
+        "graceful_shutdown_removed": 0,
+        "prepend_reduced": 0,
+        "prepend_increased": 0,
+        "material_path_changed": 11,
+        "origin_changed": 0,
+        "next_hop_changed": 0,
+        "med_changed": 0,
+        "local_pref_changed": 0
+      },
+      "event_relative": {
+        "transit_retained": 11,
+        "transit_departed": 0,
+        "transit_returned": 0
+      },
+      "representative_before": [
+        1916,
+        20080,
+        11537,
+        20965,
+        2603
+      ],
+      "representative_after": [
+        1916,
+        11537,
+        20965,
+        2603
+      ],
+      "evidence_refs": [
+        {
+          "observation_id": 123,
+          "source_url": "https://data.ris.ripe.net/rrc15/2019.08/updates.20190821.1640.gz",
+          "archive_sha256": "e8ae913166bb22b0f278a86ef26695b613015a9fc7745864b3fd274ab83fe2c2",
+          "collector": "rrc15",
+          "peer_ip": "187.16.216.4",
+          "peer_asn": 1916,
+          "prefix": "109.105.120.0/22",
+          "timestamp": "2019-08-21T16:42:50Z",
+          "element_seq": 253267,
+          "path_id": null
+        },
+        {
+          "observation_id": 124,
+          "source_url": "https://data.ris.ripe.net/rrc15/2019.08/updates.20190821.1640.gz",
+          "archive_sha256": "e8ae913166bb22b0f278a86ef26695b613015a9fc7745864b3fd274ab83fe2c2",
+          "collector": "rrc15",
+          "peer_ip": "187.16.216.4",
+          "peer_asn": 1916,
+          "prefix": "109.105.112.0/21",
+          "timestamp": "2019-08-21T16:42:50Z",
+          "element_seq": 253268,
+          "path_id": null
+        },
+        {
+          "observation_id": 125,
+          "source_url": "https://data.ris.ripe.net/rrc15/2019.08/updates.20190821.1640.gz",
+          "archive_sha256": "e8ae913166bb22b0f278a86ef26695b613015a9fc7745864b3fd274ab83fe2c2",
+          "collector": "rrc15",
+          "peer_ip": "187.16.216.4",
+          "peer_asn": 1916,
+          "prefix": "109.105.96.0/20",
+          "timestamp": "2019-08-21T16:42:50Z",
+          "element_seq": 253269,
+          "path_id": null
+        },
+        {
+          "observation_id": 126,
+          "source_url": "https://data.ris.ripe.net/rrc15/2019.08/updates.20190821.1640.gz",
+          "archive_sha256": "e8ae913166bb22b0f278a86ef26695b613015a9fc7745864b3fd274ab83fe2c2",
+          "collector": "rrc15",
+          "peer_ip": "187.16.216.4",
+          "peer_asn": 1916,
+          "prefix": "193.10.252.0/24",
+          "timestamp": "2019-08-21T16:43:04Z",
+          "element_seq": 276668,
+          "path_id": null
+        },
+        {
+          "observation_id": 127,
+          "source_url": "https://data.ris.ripe.net/rrc15/2019.08/updates.20190821.1640.gz",
+          "archive_sha256": "e8ae913166bb22b0f278a86ef26695b613015a9fc7745864b3fd274ab83fe2c2",
+          "collector": "rrc15",
+          "peer_ip": "187.16.216.4",
+          "peer_asn": 1916,
+          "prefix": "193.10.254.0/24",
+          "timestamp": "2019-08-21T16:43:04Z",
+          "element_seq": 276669,
+          "path_id": null
+        },
+        {
+          "observation_id": 128,
+          "source_url": "https://data.ris.ripe.net/rrc15/2019.08/updates.20190821.1640.gz",
+          "archive_sha256": "e8ae913166bb22b0f278a86ef26695b613015a9fc7745864b3fd274ab83fe2c2",
+          "collector": "rrc15",
+          "peer_ip": "187.16.216.4",
+          "peer_asn": 1916,
+          "prefix": "192.36.171.0/24",
+          "timestamp": "2019-08-21T16:43:04Z",
+          "element_seq": 276670,
+          "path_id": null
+        },
+        {
+          "observation_id": 129,
+          "source_url": "https://data.ris.ripe.net/rrc15/2019.08/updates.20190821.1640.gz",
+          "archive_sha256": "e8ae913166bb22b0f278a86ef26695b613015a9fc7745864b3fd274ab83fe2c2",
+          "collector": "rrc15",
+          "peer_ip": "187.16.216.4",
+          "peer_asn": 1916,
+          "prefix": "185.174.116.0/22",
+          "timestamp": "2019-08-21T16:43:04Z",
+          "element_seq": 276671,
+          "path_id": null
+        },
+        {
+          "observation_id": 130,
+          "source_url": "https://data.ris.ripe.net/rrc15/2019.08/updates.20190821.1640.gz",
+          "archive_sha256": "e8ae913166bb22b0f278a86ef26695b613015a9fc7745864b3fd274ab83fe2c2",
+          "collector": "rrc15",
+          "peer_ip": "187.16.216.4",
+          "peer_asn": 1916,
+          "prefix": "194.68.13.0/24",
+          "timestamp": "2019-08-21T16:43:04Z",
+          "element_seq": 276672,
+          "path_id": null
+        },
+        {
+          "observation_id": 131,
+          "source_url": "https://data.ris.ripe.net/rrc15/2019.08/updates.20190821.1640.gz",
+          "archive_sha256": "e8ae913166bb22b0f278a86ef26695b613015a9fc7745864b3fd274ab83fe2c2",
+          "collector": "rrc15",
+          "peer_ip": "187.16.216.4",
+          "peer_asn": 1916,
+          "prefix": "193.11.3.0/24",
+          "timestamp": "2019-08-21T16:43:04Z",
+          "element_seq": 276673,
+          "path_id": null
+        },
+        {
+          "observation_id": 132,
+          "source_url": "https://data.ris.ripe.net/rrc15/2019.08/updates.20190821.1640.gz",
+          "archive_sha256": "e8ae913166bb22b0f278a86ef26695b613015a9fc7745864b3fd274ab83fe2c2",
+          "collector": "rrc15",
+          "peer_ip": "187.16.216.4",
+          "peer_asn": 1916,
+          "prefix": "193.10.95.0/24",
+          "timestamp": "2019-08-21T16:43:04Z",
+          "element_seq": 276674,
+          "path_id": null
+        },
+        {
+          "observation_id": 133,
+          "source_url": "https://data.ris.ripe.net/rrc15/2019.08/updates.20190821.1640.gz",
+          "archive_sha256": "e8ae913166bb22b0f278a86ef26695b613015a9fc7745864b3fd274ab83fe2c2",
+          "collector": "rrc15",
+          "peer_ip": "187.16.216.4",
+          "peer_asn": 1916,
+          "prefix": "193.10.68.0/24",
+          "timestamp": "2019-08-21T16:43:04Z",
+          "element_seq": 276675,
+          "path_id": null
+        }
+      ],
+      "duration_secs": 14.0
+    },
+    {
+      "id": "wave-3",
+      "label": "TransitDeparture",
+      "start": "2019-08-21T16:45:16Z",
+      "peak_start": "2019-08-21T16:45:16Z",
+      "peak_end": "2019-08-21T16:45:20Z",
+      "end": "2019-08-21T16:45:20Z",
+      "stream_count": 2,
+      "route_instance_count": 2,
+      "prefixes": [
+        "2001:948::/32"
+      ],
+      "peers": [
+        "2001:12f8::20",
+        "2001:12f8::218:21"
+      ],
+      "facets": {
+        "communities_changed": 1,
+        "graceful_shutdown_added": 0,
+        "graceful_shutdown_removed": 0,
+        "prepend_reduced": 0,
+        "prepend_increased": 0,
+        "material_path_changed": 2,
+        "origin_changed": 0,
+        "next_hop_changed": 0,
+        "med_changed": 0,
+        "local_pref_changed": 0
+      },
+      "event_relative": {
+        "transit_retained": 0,
+        "transit_departed": 2,
+        "transit_returned": 0
+      },
+      "representative_before": [
+        28571,
+        1251,
+        20080,
+        11537,
+        20965,
+        2603
+      ],
+      "representative_after": [
+        28571,
+        1916,
+        6939,
+        1299,
+        2603,
+        2603,
+        2603
+      ],
+      "evidence_refs": [
+        {
+          "observation_id": 134,
+          "source_url": "https://data.ris.ripe.net/rrc15/2019.08/updates.20190821.1645.gz",
+          "archive_sha256": "8dd39aaea74b286a595271f49b43cffb5a49d1110da8f04eb45f735ca70856b1",
+          "collector": "rrc15",
+          "peer_ip": "2001:12f8::20",
+          "peer_asn": 28571,
+          "prefix": "2001:948::/32",
+          "timestamp": "2019-08-21T16:45:16Z",
+          "element_seq": 17255,
+          "path_id": null
+        },
+        {
+          "observation_id": 135,
+          "source_url": "https://data.ris.ripe.net/rrc15/2019.08/updates.20190821.1645.gz",
+          "archive_sha256": "8dd39aaea74b286a595271f49b43cffb5a49d1110da8f04eb45f735ca70856b1",
+          "collector": "rrc15",
+          "peer_ip": "2001:12f8::218:21",
+          "peer_asn": 52888,
+          "prefix": "2001:948::/32",
+          "timestamp": "2019-08-21T16:45:20Z",
+          "element_seq": 20676,
+          "path_id": null
+        }
+      ],
+      "duration_secs": 4.0
+    },
+    {
+      "id": "wave-4",
+      "label": "MixedRouteChange",
+      "start": "2019-08-21T16:50:16Z",
+      "peak_start": "2019-08-21T16:50:16Z",
+      "peak_end": "2019-08-21T16:50:16Z",
+      "end": "2019-08-21T16:52:15Z",
+      "stream_count": 1,
+      "route_instance_count": 1,
+      "prefixes": [
+        "2001:948::/32"
+      ],
+      "peers": [
+        "2001:12f8::20"
+      ],
+      "facets": {
+        "communities_changed": 0,
+        "graceful_shutdown_added": 0,
+        "graceful_shutdown_removed": 0,
+        "prepend_reduced": 0,
+        "prepend_increased": 0,
+        "material_path_changed": 2,
+        "origin_changed": 0,
+        "next_hop_changed": 0,
+        "med_changed": 0,
+        "local_pref_changed": 0
+      },
+      "event_relative": {
+        "transit_retained": 0,
+        "transit_departed": 0,
+        "transit_returned": 0
+      },
+      "representative_before": [
+        28571,
+        1916,
+        6939,
+        1299,
+        2603,
+        2603,
+        2603
+      ],
+      "representative_after": [
+        28571,
+        1916,
+        20080,
+        6939,
+        1299,
+        2603,
+        2603,
+        2603
+      ],
+      "evidence_refs": [
+        {
+          "observation_id": 136,
+          "source_url": "https://data.ris.ripe.net/rrc15/2019.08/updates.20190821.1650.gz",
+          "archive_sha256": "43a063b506cf7cde1229c795888f1b87519ad3cfbb7a2effa6c0accc3b0ec829",
+          "collector": "rrc15",
+          "peer_ip": "2001:12f8::20",
+          "peer_asn": 28571,
+          "prefix": "2001:948::/32",
+          "timestamp": "2019-08-21T16:50:16Z",
+          "element_seq": 49392,
+          "path_id": null
+        },
+        {
+          "observation_id": 137,
+          "source_url": "https://data.ris.ripe.net/rrc15/2019.08/updates.20190821.1650.gz",
+          "archive_sha256": "43a063b506cf7cde1229c795888f1b87519ad3cfbb7a2effa6c0accc3b0ec829",
+          "collector": "rrc15",
+          "peer_ip": "2001:12f8::20",
+          "peer_asn": 28571,
+          "prefix": "2001:948::/32",
+          "timestamp": "2019-08-21T16:52:15Z",
+          "element_seq": 302024,
+          "path_id": null
+        }
+      ],
+      "duration_secs": 119.0
+    },
+    {
+      "id": "wave-5",
+      "label": "MixedRouteChange",
+      "start": "2019-08-21T16:58:30Z",
+      "peak_start": "2019-08-21T16:58:30Z",
+      "peak_end": "2019-08-21T16:58:35Z",
+      "end": "2019-08-21T16:59:40Z",
+      "stream_count": 13,
+      "route_instance_count": 13,
+      "prefixes": [
+        "109.105.112.0/21",
+        "109.105.120.0/22",
+        "109.105.96.0/20",
+        "185.174.116.0/22",
+        "192.36.171.0/24",
+        "193.10.252.0/24",
+        "193.10.254.0/24",
+        "193.10.68.0/24",
+        "193.10.95.0/24",
+        "193.11.3.0/24",
+        "194.68.13.0/24",
+        "2001:948::/32"
+      ],
+      "peers": [
+        "187.16.216.4",
+        "2001:12f8::20",
+        "2001:12f8::218:21"
+      ],
+      "facets": {
+        "communities_changed": 1,
+        "graceful_shutdown_added": 0,
+        "graceful_shutdown_removed": 0,
+        "prepend_reduced": 0,
+        "prepend_increased": 0,
+        "material_path_changed": 13,
+        "origin_changed": 0,
+        "next_hop_changed": 0,
+        "med_changed": 0,
+        "local_pref_changed": 0
+      },
+      "event_relative": {
+        "transit_retained": 11,
+        "transit_departed": 0,
+        "transit_returned": 2
+      },
+      "representative_before": [
+        1916,
+        11537,
+        20965,
+        2603
+      ],
+      "representative_after": [
+        1916,
+        11537,
+        22388,
+        24489,
+        24489,
+        24489,
+        24489,
+        24490,
+        20965,
+        2603
+      ],
+      "evidence_refs": [
+        {
+          "observation_id": 138,
+          "source_url": "https://data.ris.ripe.net/rrc15/2019.08/updates.20190821.1655.gz",
+          "archive_sha256": "a347ee9599e97d3bb9798ccf612818a24e566585197564edb04325ac3b4ea0a6",
+          "collector": "rrc15",
+          "peer_ip": "187.16.216.4",
+          "peer_asn": 1916,
+          "prefix": "109.105.112.0/21",
+          "timestamp": "2019-08-21T16:58:30Z",
+          "element_seq": 190205,
+          "path_id": null
+        },
+        {
+          "observation_id": 139,
+          "source_url": "https://data.ris.ripe.net/rrc15/2019.08/updates.20190821.1655.gz",
+          "archive_sha256": "a347ee9599e97d3bb9798ccf612818a24e566585197564edb04325ac3b4ea0a6",
+          "collector": "rrc15",
+          "peer_ip": "187.16.216.4",
+          "peer_asn": 1916,
+          "prefix": "109.105.96.0/20",
+          "timestamp": "2019-08-21T16:58:30Z",
+          "element_seq": 190206,
+          "path_id": null
+        },
+        {
+          "observation_id": 140,
+          "source_url": "https://data.ris.ripe.net/rrc15/2019.08/updates.20190821.1655.gz",
+          "archive_sha256": "a347ee9599e97d3bb9798ccf612818a24e566585197564edb04325ac3b4ea0a6",
+          "collector": "rrc15",
+          "peer_ip": "187.16.216.4",
+          "peer_asn": 1916,
+          "prefix": "109.105.120.0/22",
+          "timestamp": "2019-08-21T16:58:30Z",
+          "element_seq": 190207,
+          "path_id": null
+        },
+        {
+          "observation_id": 141,
+          "source_url": "https://data.ris.ripe.net/rrc15/2019.08/updates.20190821.1655.gz",
+          "archive_sha256": "a347ee9599e97d3bb9798ccf612818a24e566585197564edb04325ac3b4ea0a6",
+          "collector": "rrc15",
+          "peer_ip": "187.16.216.4",
+          "peer_asn": 1916,
+          "prefix": "193.10.95.0/24",
+          "timestamp": "2019-08-21T16:58:35Z",
+          "element_seq": 196210,
+          "path_id": null
+        },
+        {
+          "observation_id": 142,
+          "source_url": "https://data.ris.ripe.net/rrc15/2019.08/updates.20190821.1655.gz",
+          "archive_sha256": "a347ee9599e97d3bb9798ccf612818a24e566585197564edb04325ac3b4ea0a6",
+          "collector": "rrc15",
+          "peer_ip": "187.16.216.4",
+          "peer_asn": 1916,
+          "prefix": "193.11.3.0/24",
+          "timestamp": "2019-08-21T16:58:35Z",
+          "element_seq": 196211,
+          "path_id": null
+        },
+        {
+          "observation_id": 143,
+          "source_url": "https://data.ris.ripe.net/rrc15/2019.08/updates.20190821.1655.gz",
+          "archive_sha256": "a347ee9599e97d3bb9798ccf612818a24e566585197564edb04325ac3b4ea0a6",
+          "collector": "rrc15",
+          "peer_ip": "187.16.216.4",
+          "peer_asn": 1916,
+          "prefix": "193.10.252.0/24",
+          "timestamp": "2019-08-21T16:58:35Z",
+          "element_seq": 196212,
+          "path_id": null
+        },
+        {
+          "observation_id": 144,
+          "source_url": "https://data.ris.ripe.net/rrc15/2019.08/updates.20190821.1655.gz",
+          "archive_sha256": "a347ee9599e97d3bb9798ccf612818a24e566585197564edb04325ac3b4ea0a6",
+          "collector": "rrc15",
+          "peer_ip": "187.16.216.4",
+          "peer_asn": 1916,
+          "prefix": "193.10.68.0/24",
+          "timestamp": "2019-08-21T16:58:35Z",
+          "element_seq": 196213,
+          "path_id": null
+        },
+        {
+          "observation_id": 145,
+          "source_url": "https://data.ris.ripe.net/rrc15/2019.08/updates.20190821.1655.gz",
+          "archive_sha256": "a347ee9599e97d3bb9798ccf612818a24e566585197564edb04325ac3b4ea0a6",
+          "collector": "rrc15",
+          "peer_ip": "187.16.216.4",
+          "peer_asn": 1916,
+          "prefix": "193.10.254.0/24",
+          "timestamp": "2019-08-21T16:58:35Z",
+          "element_seq": 196214,
+          "path_id": null
+        },
+        {
+          "observation_id": 146,
+          "source_url": "https://data.ris.ripe.net/rrc15/2019.08/updates.20190821.1655.gz",
+          "archive_sha256": "a347ee9599e97d3bb9798ccf612818a24e566585197564edb04325ac3b4ea0a6",
+          "collector": "rrc15",
+          "peer_ip": "187.16.216.4",
+          "peer_asn": 1916,
+          "prefix": "192.36.171.0/24",
+          "timestamp": "2019-08-21T16:58:35Z",
+          "element_seq": 196215,
+          "path_id": null
+        },
+        {
+          "observation_id": 147,
+          "source_url": "https://data.ris.ripe.net/rrc15/2019.08/updates.20190821.1655.gz",
+          "archive_sha256": "a347ee9599e97d3bb9798ccf612818a24e566585197564edb04325ac3b4ea0a6",
+          "collector": "rrc15",
+          "peer_ip": "187.16.216.4",
+          "peer_asn": 1916,
+          "prefix": "185.174.116.0/22",
+          "timestamp": "2019-08-21T16:58:35Z",
+          "element_seq": 196216,
+          "path_id": null
+        },
+        {
+          "observation_id": 148,
+          "source_url": "https://data.ris.ripe.net/rrc15/2019.08/updates.20190821.1655.gz",
+          "archive_sha256": "a347ee9599e97d3bb9798ccf612818a24e566585197564edb04325ac3b4ea0a6",
+          "collector": "rrc15",
+          "peer_ip": "187.16.216.4",
+          "peer_asn": 1916,
+          "prefix": "194.68.13.0/24",
+          "timestamp": "2019-08-21T16:58:35Z",
+          "element_seq": 196217,
+          "path_id": null
+        },
+        {
+          "observation_id": 149,
+          "source_url": "https://data.ris.ripe.net/rrc15/2019.08/updates.20190821.1655.gz",
+          "archive_sha256": "a347ee9599e97d3bb9798ccf612818a24e566585197564edb04325ac3b4ea0a6",
+          "collector": "rrc15",
+          "peer_ip": "2001:12f8::218:21",
+          "peer_asn": 52888,
+          "prefix": "2001:948::/32",
+          "timestamp": "2019-08-21T16:59:40Z",
+          "element_seq": 308403,
+          "path_id": null
+        },
+        {
+          "observation_id": 150,
+          "source_url": "https://data.ris.ripe.net/rrc15/2019.08/updates.20190821.1655.gz",
+          "archive_sha256": "a347ee9599e97d3bb9798ccf612818a24e566585197564edb04325ac3b4ea0a6",
+          "collector": "rrc15",
+          "peer_ip": "2001:12f8::20",
+          "peer_asn": 28571,
+          "prefix": "2001:948::/32",
+          "timestamp": "2019-08-21T16:59:40Z",
+          "element_seq": 308823,
+          "path_id": null
+        }
+      ],
+      "duration_secs": 70.0
+    },
+    {
+      "id": "wave-6",
+      "label": "BaselinePolicyRestoration",
+      "start": "2019-08-21T17:03:32Z",
+      "peak_start": "2019-08-21T17:03:32Z",
+      "peak_end": "2019-08-21T17:03:35Z",
+      "end": "2019-08-21T17:03:35Z",
+      "stream_count": 11,
+      "route_instance_count": 11,
+      "prefixes": [
+        "109.105.112.0/21",
+        "109.105.120.0/22",
+        "109.105.96.0/20",
+        "185.174.116.0/22",
+        "192.36.171.0/24",
+        "193.10.252.0/24",
+        "193.10.254.0/24",
+        "193.10.68.0/24",
+        "193.10.95.0/24",
+        "193.11.3.0/24",
+        "194.68.13.0/24"
+      ],
+      "peers": [
+        "187.16.216.4"
+      ],
+      "facets": {
+        "communities_changed": 0,
+        "graceful_shutdown_added": 0,
+        "graceful_shutdown_removed": 0,
+        "prepend_reduced": 0,
+        "prepend_increased": 0,
+        "material_path_changed": 11,
+        "origin_changed": 0,
+        "next_hop_changed": 0,
+        "med_changed": 0,
+        "local_pref_changed": 0
+      },
+      "event_relative": {
+        "transit_retained": 11,
+        "transit_departed": 0,
+        "transit_returned": 0
+      },
+      "representative_before": [
+        1916,
+        11537,
+        22388,
+        24489,
+        24489,
+        24489,
+        24489,
+        24490,
+        20965,
+        2603
+      ],
+      "representative_after": [
+        1916,
+        11537,
+        20965,
+        2603
+      ],
+      "evidence_refs": [
+        {
+          "observation_id": 151,
+          "source_url": "https://data.ris.ripe.net/rrc15/2019.08/updates.20190821.1700.gz",
+          "archive_sha256": "cf77221a4c8b73a8dc96ac78c2f9fa084de5bb41fd83c4baa71c1ba6bd8a059f",
+          "collector": "rrc15",
+          "peer_ip": "187.16.216.4",
+          "peer_asn": 1916,
+          "prefix": "109.105.112.0/21",
+          "timestamp": "2019-08-21T17:03:32Z",
+          "element_seq": 204255,
+          "path_id": null
+        },
+        {
+          "observation_id": 152,
+          "source_url": "https://data.ris.ripe.net/rrc15/2019.08/updates.20190821.1700.gz",
+          "archive_sha256": "cf77221a4c8b73a8dc96ac78c2f9fa084de5bb41fd83c4baa71c1ba6bd8a059f",
+          "collector": "rrc15",
+          "peer_ip": "187.16.216.4",
+          "peer_asn": 1916,
+          "prefix": "109.105.96.0/20",
+          "timestamp": "2019-08-21T17:03:32Z",
+          "element_seq": 204256,
+          "path_id": null
+        },
+        {
+          "observation_id": 153,
+          "source_url": "https://data.ris.ripe.net/rrc15/2019.08/updates.20190821.1700.gz",
+          "archive_sha256": "cf77221a4c8b73a8dc96ac78c2f9fa084de5bb41fd83c4baa71c1ba6bd8a059f",
+          "collector": "rrc15",
+          "peer_ip": "187.16.216.4",
+          "peer_asn": 1916,
+          "prefix": "109.105.120.0/22",
+          "timestamp": "2019-08-21T17:03:32Z",
+          "element_seq": 204257,
+          "path_id": null
+        },
+        {
+          "observation_id": 154,
+          "source_url": "https://data.ris.ripe.net/rrc15/2019.08/updates.20190821.1700.gz",
+          "archive_sha256": "cf77221a4c8b73a8dc96ac78c2f9fa084de5bb41fd83c4baa71c1ba6bd8a059f",
+          "collector": "rrc15",
+          "peer_ip": "187.16.216.4",
+          "peer_asn": 1916,
+          "prefix": "192.36.171.0/24",
+          "timestamp": "2019-08-21T17:03:33Z",
+          "element_seq": 206563,
+          "path_id": null
+        },
+        {
+          "observation_id": 155,
+          "source_url": "https://data.ris.ripe.net/rrc15/2019.08/updates.20190821.1700.gz",
+          "archive_sha256": "cf77221a4c8b73a8dc96ac78c2f9fa084de5bb41fd83c4baa71c1ba6bd8a059f",
+          "collector": "rrc15",
+          "peer_ip": "187.16.216.4",
+          "peer_asn": 1916,
+          "prefix": "193.10.95.0/24",
+          "timestamp": "2019-08-21T17:03:33Z",
+          "element_seq": 207024,
+          "path_id": null
+        },
+        {
+          "observation_id": 156,
+          "source_url": "https://data.ris.ripe.net/rrc15/2019.08/updates.20190821.1700.gz",
+          "archive_sha256": "cf77221a4c8b73a8dc96ac78c2f9fa084de5bb41fd83c4baa71c1ba6bd8a059f",
+          "collector": "rrc15",
+          "peer_ip": "187.16.216.4",
+          "peer_asn": 1916,
+          "prefix": "193.11.3.0/24",
+          "timestamp": "2019-08-21T17:03:33Z",
+          "element_seq": 207025,
+          "path_id": null
+        },
+        {
+          "observation_id": 157,
+          "source_url": "https://data.ris.ripe.net/rrc15/2019.08/updates.20190821.1700.gz",
+          "archive_sha256": "cf77221a4c8b73a8dc96ac78c2f9fa084de5bb41fd83c4baa71c1ba6bd8a059f",
+          "collector": "rrc15",
+          "peer_ip": "187.16.216.4",
+          "peer_asn": 1916,
+          "prefix": "193.10.252.0/24",
+          "timestamp": "2019-08-21T17:03:33Z",
+          "element_seq": 207026,
+          "path_id": null
+        },
+        {
+          "observation_id": 158,
+          "source_url": "https://data.ris.ripe.net/rrc15/2019.08/updates.20190821.1700.gz",
+          "archive_sha256": "cf77221a4c8b73a8dc96ac78c2f9fa084de5bb41fd83c4baa71c1ba6bd8a059f",
+          "collector": "rrc15",
+          "peer_ip": "187.16.216.4",
+          "peer_asn": 1916,
+          "prefix": "193.10.68.0/24",
+          "timestamp": "2019-08-21T17:03:33Z",
+          "element_seq": 207027,
+          "path_id": null
+        },
+        {
+          "observation_id": 159,
+          "source_url": "https://data.ris.ripe.net/rrc15/2019.08/updates.20190821.1700.gz",
+          "archive_sha256": "cf77221a4c8b73a8dc96ac78c2f9fa084de5bb41fd83c4baa71c1ba6bd8a059f",
+          "collector": "rrc15",
+          "peer_ip": "187.16.216.4",
+          "peer_asn": 1916,
+          "prefix": "193.10.254.0/24",
+          "timestamp": "2019-08-21T17:03:33Z",
+          "element_seq": 207028,
+          "path_id": null
+        },
+        {
+          "observation_id": 160,
+          "source_url": "https://data.ris.ripe.net/rrc15/2019.08/updates.20190821.1700.gz",
+          "archive_sha256": "cf77221a4c8b73a8dc96ac78c2f9fa084de5bb41fd83c4baa71c1ba6bd8a059f",
+          "collector": "rrc15",
+          "peer_ip": "187.16.216.4",
+          "peer_asn": 1916,
+          "prefix": "194.68.13.0/24",
+          "timestamp": "2019-08-21T17:03:34Z",
+          "element_seq": 208592,
+          "path_id": null
+        },
+        {
+          "observation_id": 161,
+          "source_url": "https://data.ris.ripe.net/rrc15/2019.08/updates.20190821.1700.gz",
+          "archive_sha256": "cf77221a4c8b73a8dc96ac78c2f9fa084de5bb41fd83c4baa71c1ba6bd8a059f",
+          "collector": "rrc15",
+          "peer_ip": "187.16.216.4",
+          "peer_asn": 1916,
+          "prefix": "185.174.116.0/22",
+          "timestamp": "2019-08-21T17:03:35Z",
+          "element_seq": 209819,
+          "path_id": null
+        }
+      ],
+      "duration_secs": 3.0
+    }
+  ]
+}

@@ -257,3 +257,55 @@ completeness is never assumed. Acquisition and redistribution policy:
 see `docs/DATA_PROVENANCE.md` (metadata-only export default; raw
 payloads excluded from the crate and from exports until separately
 reviewed).
+
+## Reviewed multi-observer analysis (Session 34)
+
+The acquired corpus is now **reviewed operational data**, and the
+NORDUnet pilot runs against **two independent public observer families**
+(RouteViews and RIPE RIS) that are compared without merging evidence:
+
+- **Reviewed interpretations** — every acquired ticket has a reviewed
+  case-study role (ChangeWindow / PrimaryIncident / ParticipantImpact /
+  AlarmOrTelemetry / RollbackOrRecovery / OperationalTask / Other),
+  entity labels, linked maintenance/change identifiers, analysis
+  applicability, and per-field provenance (snapshot field or the cited
+  AAR). Source snapshots stay immutable; reviewed roles never replace
+  source task types. Import: `inim catalog corpus-review`; graph audit:
+  `inim catalog relationships audit` and `/corpus/relationships`.
+- **Explainable candidate grouping** — one candidate per ticket pair
+  with every supporting signal listed; temporal overlap alone is
+  `TemporalCoincidence` — stored and queryable
+  (`/incident-candidates?include=temporal`) but hidden from the default
+  analyst queue. Rejected candidates stay suppressed until the evidence
+  changes.
+- **RIPE RIS execution** — RIS archives pass through the same
+  evidence-bearing engine as RouteViews (manifest `source_family`;
+  family-scoped cache identity; family-labeled reports). RIS and
+  RouteViews are peer observer families; collector identity is
+  `(family, collector)`.
+- **RIS collector selection** — metadata + RIB preflight per candidate;
+  only collectors with qualifying visibility (AS2603-origin routes with
+  AS11537 in path at the pre-window baseline) are selected, with
+  rejected collectors and reasons recorded
+  (`case-studies/manlan-2019/pilot/ris-collector-selection.md`).
+- **Independent per-collector runs** — the NORDUnet pilot now has one
+  RouteViews run (route-views2) and one run per selected RIS collector
+  (rrc00, rrc06, rrc15), each with its own evidence and verdict. No
+  merged verdict exists.
+- **Cross-observer comparison** — per-prefix × collector rows and a
+  bounded statement vocabulary ("Observed at multiple independent
+  public collectors", "Observed only at one selected collector",
+  "Similar route-state change with different timing", "No counterpart
+  at this observer", "Insufficient baseline visibility"). Multiple
+  observer agreement is never "global confirmation"; absence of
+  baseline visibility is never counted as absence of impact.
+- **Analyst queue** — rows show the reviewed role, archive-plan status,
+  existing runs, and a derived next analyst action (Review entity
+  mapping / Review transit predicate / Run RIB preflight / Review
+  archive volume / Analyze / No public-BGP target / Inspect stale run);
+  nothing executes from an HTTP GET.
+
+The case-study page (`/case-studies/manlan-2019`) shows related public
+tickets with their reviewed roles and the RouteViews/RIS observer
+comparison. The bulk-access request to GlobalNOC remains a **draft**
+(`docs/sources/GRNOC_BULK_ACCESS_REQUEST.md`) — reviewed but not sent.

@@ -1,0 +1,128 @@
+[
+  {
+    "collector": "rrc00",
+    "origin_routes": 619,
+    "transit_routes": 11,
+    "frozen_streams": 11,
+    "parsed": 0
+  },
+  {
+    "collector": "rrc01",
+    "origin_routes": 279,
+    "transit_routes": 0,
+    "frozen_streams": 0,
+    "parsed": 0
+  },
+  {
+    "collector": "rrc03",
+    "origin_routes": 254,
+    "transit_routes": 0,
+    "frozen_streams": 0,
+    "parsed": 0
+  },
+  {
+    "collector": "rrc04",
+    "origin_routes": 75,
+    "transit_routes": 0,
+    "frozen_streams": 0,
+    "parsed": 0
+  },
+  {
+    "collector": "rrc05",
+    "origin_routes": 66,
+    "transit_routes": 0,
+    "frozen_streams": 0,
+    "parsed": 0
+  },
+  {
+    "collector": "rrc06",
+    "origin_routes": 39,
+    "transit_routes": 12,
+    "frozen_streams": 12,
+    "parsed": 0
+  },
+  {
+    "collector": "rrc07",
+    "origin_routes": 90,
+    "transit_routes": 0,
+    "frozen_streams": 0,
+    "parsed": 0
+  },
+  {
+    "collector": "rrc10",
+    "origin_routes": 193,
+    "transit_routes": 0,
+    "frozen_streams": 0,
+    "parsed": 0
+  },
+  {
+    "collector": "rrc11",
+    "origin_routes": 106,
+    "transit_routes": 0,
+    "frozen_streams": 0,
+    "parsed": 0
+  },
+  {
+    "collector": "rrc12",
+    "origin_routes": 239,
+    "transit_routes": 0,
+    "frozen_streams": 0,
+    "parsed": 0
+  },
+  {
+    "collector": "rrc13",
+    "origin_routes": 150,
+    "transit_routes": 0,
+    "frozen_streams": 0,
+    "parsed": 0
+  },
+  {
+    "collector": "rrc14",
+    "origin_routes": 104,
+    "transit_routes": 0,
+    "frozen_streams": 0,
+    "parsed": 0
+  },
+  {
+    "collector": "rrc15",
+    "origin_routes": 247,
+    "transit_routes": 24,
+    "frozen_streams": 24,
+    "parsed": 247
+  },
+  {
+    "collector": "rrc16",
+    "origin_routes": 64,
+    "transit_routes": 0,
+    "frozen_streams": 0,
+    "parsed": 0
+  },
+  {
+    "collector": "rrc20",
+    "origin_routes": 289,
+    "transit_routes": 0,
+    "frozen_streams": 0,
+    "parsed": 0
+  },
+  {
+    "collector": "rrc21",
+    "origin_routes": 229,
+    "transit_routes": 0,
+    "frozen_streams": 0,
+    "parsed": 0
+  },
+  {
+    "collector": "rrc23",
+    "origin_routes": 52,
+    "transit_routes": 0,
+    "frozen_streams": 0,
+    "parsed": 0
+  },
+  {
+    "collector": "rrc24",
+    "origin_routes": 14,
+    "transit_routes": 0,
+    "frozen_streams": 0,
+    "parsed": 0
+  }
+]

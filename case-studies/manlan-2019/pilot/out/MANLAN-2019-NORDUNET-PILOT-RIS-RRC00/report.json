@@ -1,0 +1,136 @@
+{
+  "schema_version": 2,
+  "event_id": "MANLAN-2019-NORDUNET-PILOT-RIS-RRC00",
+  "result": {
+    "finding": "Across 11 selected observer-prefix streams at rrc00, inim observed no announcements, withdrawals, path changes, or community changes during the event analysis window.",
+    "verdict": "LessImpactThanExpected",
+    "verdict_label": "Less impact than expected"
+  },
+  "assessment": {
+    "provisional": false,
+    "statement": "Inconsistent with the loss-of-reachability expectation.",
+    "verdict": "LessImpactThanExpected"
+  },
+  "observed_event_signature": {
+    "analysis_window_utc": "2019-08-21 16:00:00 UTC – 2019-08-21 17:30:00 UTC",
+    "final_impact_assessment": {
+      "assessment": {
+        "event_id": "MANLAN-2019-NORDUNET-PILOT-RIS-RRC00",
+        "evidence": [
+          {
+            "description": "Total route transitions observed: 0",
+            "source_records": []
+          },
+          {
+            "description": "Withdrawal transitions: 0",
+            "source_records": []
+          },
+          {
+            "description": "Path-replacement transitions: 0",
+            "source_records": []
+          },
+          {
+            "description": "Restorations to baseline (transitions): 0",
+            "source_records": []
+          },
+          {
+            "description": "Stream lifecycle: total=11 unchanged=11 prepend-only=0 withdrawn=0 departed-transit=0 restored=0 not-restored=0 add-path-ambiguous=0",
+            "source_records": []
+          }
+        ],
+        "expectation": {
+          "description": "No parenthesized site code — loss of reachability may be expected",
+          "kind": "NonRedundant",
+          "provenance": "Internet2 title convention: parenthesized site code indicates expected redundancy"
+        },
+        "generated_at": "2026-08-01T17:42:44.461109229Z",
+        "verdict": "LessImpactThanExpected",
+        "waves": []
+      },
+      "status": "completed"
+    },
+    "observer_scope": {
+      "archive_coverage": "Complete for the selected analysis plan (selected collectors, planned interval, verified archives).",
+      "baseline_observer_prefix_streams": 11,
+      "baseline_qualification": "at least one route path traversed AS11537",
+      "baseline_route_instances": 11,
+      "collectors": [
+        "rrc00"
+      ],
+      "exact_transit_predicate": "ContainsAny { 11537 }",
+      "multiple_instance_streams": 0
+    },
+    "semantic_waves": [],
+    "stream_lifecycle": {
+      "add_path_ambiguous_streams": 0,
+      "material_path_changes": 0,
+      "prepend_only": 0,
+      "restored_streams": 0,
+      "streams_departing_transit": 0,
+      "streams_retaining_transit": 11,
+      "unchanged": 11,
+      "unresolved_streams": 0,
+      "withdrawn_streams": 0
+    },
+    "ticket_expectation": "NonRedundant: No parenthesized site code — loss of reachability may be expected",
+    "ticket_lifecycle": "Closed",
+    "transit_predicate": "ContainsAny[11537]"
+  },
+  "observable_mechanism_hints": {
+    "community_only_changes": 0,
+    "graceful_restart": "negotiated session capability/state not directly observable from this dataset",
+    "mechanism_hints_do_not_change_impact_assessment": true,
+    "rfc8326": {
+      "gshut_streams": 0,
+      "gshut_timing": [],
+      "statement": "No RFC 8326 GRACEFUL_SHUTDOWN community reached the selected observers. Its absence does not establish that graceful shutdown was not used."
+    },
+    "rfc8327": "operational intent not directly observable",
+    "rfc9003": "administrative-shutdown message not observable from these remote collector sessions"
+  },
+  "limitations": [
+    "1 of 1 requested collectors retained after RIB preflight (rrc00)"
+  ],
+  "outcome": {
+    "assessment": {
+      "event_id": "MANLAN-2019-NORDUNET-PILOT-RIS-RRC00",
+      "evidence": [
+        {
+          "description": "Total route transitions observed: 0",
+          "source_records": []
+        },
+        {
+          "description": "Withdrawal transitions: 0",
+          "source_records": []
+        },
+        {
+          "description": "Path-replacement transitions: 0",
+          "source_records": []
+        },
+        {
+          "description": "Restorations to baseline (transitions): 0",
+          "source_records": []
+        },
+        {
+          "description": "Stream lifecycle: total=11 unchanged=11 prepend-only=0 withdrawn=0 departed-transit=0 restored=0 not-restored=0 add-path-ambiguous=0",
+          "source_records": []
+        }
+      ],
+      "expectation": {
+        "description": "No parenthesized site code — loss of reachability may be expected",
+        "kind": "NonRedundant",
+        "provenance": "Internet2 title convention: parenthesized site code indicates expected redundancy"
+      },
+      "generated_at": "2026-08-01T17:42:44.461109229Z",
+      "verdict": "LessImpactThanExpected",
+      "waves": []
+    },
+    "status": "completed"
+  },
+  "transitions": {
+    "total": 0,
+    "event_window": 0,
+    "cooldown": 0
+  },
+  "waves": []
+}

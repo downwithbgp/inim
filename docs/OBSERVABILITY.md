@@ -113,3 +113,26 @@ analyst-facing report never labels a RIS observer as RouteViews.
 Observability classifications and verdicts are conditioned on the
 frozen observer cohort of each AnalysisRun — never on ticket text
 alone.
+
+## Multi-observer agreement is not global proof (Session 34)
+
+- **RIS and RouteViews are peer observer families.** Each selected
+  collector is an independent vantage with its own baseline cohort,
+  peer set, and archive coverage; runs are never merged into a combined
+  verdict.
+- **Different observers may legitimately disagree** — a prefix may be
+  withdrawn at one collector while another observes only a path
+  replacement, or a change may occur at different times. The
+  comparison layer preserves per-observer rows and timing differences.
+- **Bounded cross-observer vocabulary** — permitted statements:
+  "Observed at multiple independent public collectors", "Observed only
+  at one selected collector", "Similar route-state change with
+  different timing", "No counterpart at this observer", "Insufficient
+  baseline visibility". Forbidden: "globally confirmed", "complete
+  outage", "traffic loss confirmed", "operator action confirmed".
+- **Absence of baseline visibility is not absence of impact.** A
+  prefix with no baseline stream at an observer is reported as
+  insufficient visibility — never as "no change".
+- **Batch reuse does not change evidence.** Sharing raw archives or
+  derived caches across runs never merges event assessments; evidence
+  ids do not depend on batch membership.

@@ -1,0 +1,34 @@
+{
+  "collector": "rrc06",
+  "verdict": "LessImpactThanExpected",
+  "finding": "The event produced partial and heterogeneous external routing impact. Among the remaining 12 streams, 12 remained visible after departing that transit.",
+  "assessment": "Inconsistent with the loss-of-reachability expectation.",
+  "baseline_streams": 12,
+  "baseline_route_instances": 12,
+  "peer_count": 2,
+  "peers": [
+    "2001:200:0:fe00::12a9:0",
+    "202.249.2.20"
+  ],
+  "transition_kinds": {
+    "PathReplacement": 14,
+    "ReturnToBaseline": 12
+  },
+  "event_timestamps": [
+    "2019-08-21T16:45:44+00:00",
+    "2019-08-21T16:45:45+00:00",
+    "2019-08-21T16:59:34+00:00",
+    "2019-08-21T17:00:04+00:00",
+    "2019-08-21T17:00:35+00:00",
+    "2019-08-21T17:01:06+00:00",
+    "2019-08-21T17:02:07+00:00",
+    "2019-08-21T17:02:38+00:00"
+  ],
+  "temporary_absence": false,
+  "withdrawals": 0,
+  "restorations": 12,
+  "path_replacements": 14,
+  "transit_departures": 12,
+  "add_path_ambiguous": 0,
+  "admitted_observations": 26
+}

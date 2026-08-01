@@ -1,0 +1,23 @@
+{
+  "observer": [
+    "Analysis uses selected RIPE RIS collectors only. Selected collectors do not provide global visibility.",
+    "BGP route state is not traffic measurement."
+  ],
+  "continuity_gaps": [],
+  "add_path": [
+    "ADD-PATH identity is preserved per route instance. Streams with mixed keyed/unkeyed encoding are flagged add-path ambiguous and excluded from strong stream-level assessment."
+  ],
+  "manual_mappings": [
+    "Participant-to-ASN mapping is manually supplied in the reviewed manifest. It is not derived automatically from ticket text."
+  ],
+  "archive_parser": [
+    "Parsed via bgpkit-parser. Parser limitations apply."
+  ],
+  "unsupported_conclusions": [
+    "Local session state is not observed.",
+    "Physical-link state is not observed.",
+    "Absent communities do not prove a mechanism was unused.",
+    "Event declarations and BGP changes establish temporal association, not automatic causation.",
+    "Global reachability cannot be asserted from a limited set of observer streams."
+  ]
+}

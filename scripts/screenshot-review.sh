@@ -78,6 +78,8 @@ declare -a PAGES=(
   "analysis-queue:/analysis-queue"
   "incident-candidates:/incident-candidates"
   "archive-batches:/archive-batches"
+  "corpus-relationships:/corpus/relationships"
+  "incident-candidates-temporal:/incident-candidates?include=temporal"
 )
 declare -a VIEWPORTS=("1440,900" "1280,800" "390,844")
 

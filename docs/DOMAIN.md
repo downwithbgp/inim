@@ -252,3 +252,56 @@ complete.
   identity independent of batch membership.
 - **SourceFamily** — RouteViews | RipeRis; part of collector identity
   in archive plans.
+
+## Reviewed interpretation layer (Session 34, Part 1)
+
+- **TicketReview** — analyst-reviewed case-study interpretation for one
+  catalog ticket, stored separately from its immutable snapshot:
+  reviewed roles, entity/asset labels, linked maintenance/change
+  identifiers, analysis applicability, relationship to the case study,
+  per-field provenance, reviewer, reviewed-at.
+- **Reviewed roles** (vocabulary): ChangeWindow, PrimaryIncident,
+  ParticipantImpact, AlarmOrTelemetry, RollbackOrRecovery,
+  OperationalTask, Other. Distinct from the source `task_type`
+  (Incident / Change Request / Task).
+- **Analysis applicability** (reviewed): PotentiallyVisibleInPublicBgp,
+  NotApplicableToPublicBgp, ApplicableTargetNotYetMapped.
+- **ReviewProvenance** — per-field citation: `SnapshotField:<field>` or
+  a reference document (AAR) with `source_document_id`. Missing source
+  fields are never backfilled without a cited document.
+- **Reviewed relationship kinds** (Session 34): RollbackFor,
+  ParticipantImpactDuring, AlarmDuring, OperationalTaskDuring — plus
+  the Session 33 kinds (TracksRemainingImpactIn, RelatedChange,
+  RelatedIncident, References, SupersededBy, RelatedTask,
+  UnknownReference) and derived overlap kinds (TemporalOverlap,
+  EntityOverlap).
+
+## Candidate grouping (Session 34, Part 3)
+
+- **Confidence categories**: ExplicitlyLinked (source-asserted),
+  StrongCandidate (reviewed case-study membership), WeakCandidate
+  (temporal overlap plus a supporting signal: shared reviewed
+  entity/asset label, shared maintenance/change identifier, explicit
+  reference), TemporalCoincidence (temporal overlap alone — hidden from
+  the default queue, still queryable), Rejected (analyst).
+- **Evidence signals**: ExplicitTicketText, SharedCaseStudy,
+  DerivedTemporalOverlap, SharedReviewedEntity,
+  SharedMaintenanceChange. One candidate per pair, evidence = union of
+  all signals.
+
+## Multi-observer analysis (Session 34, Parts 4–7)
+
+- **SourceFamily** — RouteViews | RipeRis; part of collector identity;
+  drives broker project, archive URL conventions, RIB cadence, cache
+  key identity, and report labeling.
+- **ObserverComparisonRow** — per normalized prefix × collector: first
+  observed change, temporary absence, path replacement, transit
+  departure, restoration, baseline visibility, family.
+- **PrefixStatement** — bounded cross-observer vocabulary (multiple
+  independent collectors / one selected collector / similar change with
+  different timing / no counterpart / insufficient baseline visibility);
+  never global confirmation.
+- **Next analyst action** (queue): Review entity mapping · Review
+  transit predicate · Run RIB preflight · Review archive volume ·
+  Analyze · No public-BGP target · Inspect stale run. Derived from
+  readiness + reviewed applicability; never executed from a GET.

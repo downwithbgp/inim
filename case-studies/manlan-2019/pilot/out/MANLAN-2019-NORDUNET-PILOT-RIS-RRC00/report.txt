@@ -1,0 +1,94 @@
+══════════════════════════════════════════
+  EXTERNAL BGP EVENT ANALYSIS
+══════════════════════════════════════════
+
+MANLAN-2019-NORDUNET-PILOT-RIS-RRC00
+Historical pilot - NORDUnet during MAN LAN core node hardware upgrade
+
+Report schema: v2 (JSON schema v2)
+
+Result
+    Less impact than expected
+
+    Across 11 selected observer-prefix streams at rrc00, inim observed no
+    announcements, withdrawals, path changes, or community changes during
+    the event analysis window.
+
+Assessment against ticket expectation
+    Inconsistent with the loss-of-reachability expectation.
+
+Observation scope
+    Event window:      2019-08-21 16:00:00 UTC – 2019-08-21 17:30:00 UTC
+    Warmup:            2019-08-21 02:00:00 UTC – 2019-08-21 16:00:00 UTC
+    Cooldown:          2019-08-21 17:30:00 UTC – 2019-08-21 18:30:00 UTC
+    Collectors:        rrc00
+    Selected streams:  11 observer-prefix streams
+    Baseline routes:   11 route instances
+    Baseline qualification:
+        at least one route path traversed AS11537
+    Archive coverage:  Complete for the selected analysis plan (selected
+                       collectors, planned interval, verified archives).
+
+Important limitation
+    This finding is limited to externally exported BGP route state at the
+    selected public collectors. It does not measure traffic, circuit state,
+    or global reachability.
+
+Ticket interpretation
+    Ticket expectation: NonRedundant: No parenthesized site code — loss of
+                        reachability may be expected
+    Ticket lifecycle:   Closed
+    Target predicate:   origin AS2603 AND baseline AS path contains AS11537
+    TransitPredicate:   ContainsAny { 11537 }
+
+Evidence details
+    Route-instance transitions: 0
+      event-window: 0  cooldown: 0
+    Route-instance withdrawal transitions: 0
+    Material path changes (transitions): 0
+    Baseline route instances: 11
+    - Total route transitions observed: 0
+    - Withdrawal transitions: 0
+    - Path-replacement transitions: 0
+    - Restorations to baseline (transitions): 0
+
+Lifecycle counts (observer-prefix streams)
+    Total selected streams:      11
+    Unchanged streams:            11
+    Prepend-only streams:         0
+    Material change, still via reviewed transit: 0
+    Streams departing the reviewed transit: 0
+    Observer-prefix streams that became absent: 0
+    Streams restored after absence: Not applicable (no stream became absent
+                                    or departed)
+    Unresolved streams:            0
+    ADD-PATH ambiguous streams:    0
+
+Observable mechanism hints
+    No RFC 8326 GRACEFUL_SHUTDOWN community reached the selected observers.
+    Its absence does not establish that graceful shutdown was not used.
+    Community-only changes: 0 transition(s)
+
+    Not directly observable here:
+      RFC 9003 administrative-shutdown message
+      RFC 8327 operational intent
+      Graceful Restart negotiation state
+    Mechanism hints do not change the impact assessment by themselves.
+
+Method and limitations
+    Selected collectors do not provide global visibility.
+    BGP route state is not traffic measurement.
+    Local BGP session state is not directly observed.
+    Physical-link state is not observed.
+    Absent optional communities prove nothing about mechanism non-use.
+    Temporal association is not automatic causation.
+    • 1 of 1 requested collectors retained after RIB preflight (rrc00)
+
+Evidence artifact references
+    Full evidence with schema versions is written to this directory:
+      report.json        assessment, signature, mechanism hints, limitations
+      evidence_appendix.jsonl   per-transition evidence
+      archive_manifest.json     source archives with SHA-256
+      lifecycle.json           per-stream lifecycles
+      semantic_waves.json      wave boundaries and facets
+      withdrawal_audit.json    withdrawn-stream audit

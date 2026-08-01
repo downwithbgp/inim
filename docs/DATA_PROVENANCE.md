@@ -200,3 +200,64 @@ all raw archives already local.
   fields; no raw payload export. Raw-payload export requires a separate
   redistribution review before any future implementation.
 - Public corpus publication is not implemented in this session.
+
+## Reviewed ticket interpretation (Session 34, Part 1)
+
+- **Corpus acquisition and analysis review are separate stages.** The
+  acquisition stage produces immutable source snapshots with fetch
+  provenance; the review stage adds analyst interpretation on top.
+- **Source tickets remain immutable snapshots.** Reviewed
+  interpretations live in the `ticket_reviews` table, keyed to catalog
+  events, and never modify `event_snapshots` (raw or normalized).
+- **Reviewed roles do not overwrite source task types.** The source
+  `task_type` comes from the snapshot; the reviewed case-study role is a
+  separate vocabulary (ChangeWindow / PrimaryIncident /
+  ParticipantImpact / AlarmOrTelemetry / RollbackOrRecovery /
+  OperationalTask / Other).
+- **Per-field provenance is required.** Every interpretation field
+  cites either a snapshot field (`SnapshotField:<field>`) or a
+  reference document (the AAR, with `source_document_id`). A missing
+  source field is never backfilled without a cited document; AAR
+  enrichment without AAR provenance is rejected by the importer.
+- **Reviewed relationship edges** use specific kinds (RollbackFor,
+  ParticipantImpactDuring, AlarmDuring, OperationalTaskDuring,
+  RelatedChange, RelatedIncident, TracksRemainingImpactIn, References)
+  with evidence kinds (ExplicitTicketText, ReferenceDocument,
+  AnalystReviewed) and may carry ticket-text AND document support on
+  one edge. Derived edges (temporal overlap, shared reviewed entity)
+  remain visibly distinct (`Derived*` evidence, Unreviewed).
+- **Unavailable TASK records stay unresolved document references.** No
+  snapshot is manufactured; the graph audit lists them as unresolved.
+- **Candidate grouping is per pair and explainable.** One candidate per
+  ticket pair whose evidence lists every supporting signal; temporal
+  overlap alone is `TemporalCoincidence` (hidden from the default queue
+  but queryable). Rejected candidates stay suppressed until the
+  evidence fingerprint changes.
+
+## Multi-observer analysis (Session 34, Parts 4–7)
+
+- **RIS and RouteViews are peer observer families.** Each family has
+  its own archive base, filename conventions, RIB cadence, and
+  collector identity; a collector id is only meaningful with its family
+  (`(family, collector)` is the identity, and derived caches are keyed
+  on it).
+- **Different observers may legitimately disagree.** Each selected
+  collector produces its own independent AnalysisRun with its own
+  evidence; runs are never merged into a combined verdict.
+- **Multiple observer agreement is still not global proof.** The
+  cross-observer comparison vocabulary is bounded ("Observed at
+  multiple independent public collectors", "Observed only at one
+  selected collector", "Similar route-state change with different
+  timing", "No counterpart at this observer", "Insufficient baseline
+  visibility") and never writes "globally confirmed", "complete
+  outage", "traffic loss confirmed", or "operator action confirmed".
+- **Absence of baseline visibility is not absence of impact.** A prefix
+  may have different observer availability; the comparison states
+  "Insufficient baseline visibility" instead of "no change".
+- **Batch reuse does not merge event assessments.** Raw archives are
+  downloaded once per unique URL; derived caches are reused only when
+  cohort/cache identity permits; each AnalysisRun keeps its own
+  evidence and verdict regardless of batch membership.
+- **Weak temporal candidates are hidden by default.** Temporal-only
+  coincidences remain stored and queryable, but do not dominate the
+  analyst queue.
