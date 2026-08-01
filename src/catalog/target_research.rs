@@ -231,7 +231,6 @@ pub fn apply_target_research(
 mod tests {
     use super::*;
     use crate::catalog::db;
-    use crate::catalog::store;
 
     fn open_temp_db() -> (tempfile::TempDir, Connection) {
         let dir = tempfile::tempdir().unwrap();
