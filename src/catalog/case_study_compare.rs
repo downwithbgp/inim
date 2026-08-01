@@ -149,6 +149,35 @@ pub fn build_comparison(
         run_summaries.push(s);
     }
 
+    // Each run's event window (from its exact plan payload). A narrow pilot
+    // run must never fabricate observations for windows it did not cover.
+    let mut run_windows: std::collections::HashMap<i64, (String, String)> =
+        std::collections::HashMap::new();
+    for run_id in &runs {
+        let payload: Option<String> = conn
+            .query_row(
+                "SELECT p.payload FROM analysis_plans p
+                 JOIN analysis_runs r ON r.plan_id = p.id WHERE r.id = ?1",
+                [run_id],
+                |r| r.get(0),
+            )
+            .ok();
+        let window = payload.and_then(|p| {
+            serde_json::from_str::<serde_json::Value>(&p)
+                .ok()
+                .and_then(|v| v.get("analysis_window").cloned())
+                .and_then(|w| {
+                    Some((
+                        w.get("start")?.as_str()?.to_string(),
+                        w.get("end")?.as_str()?.to_string(),
+                    ))
+                })
+        });
+        if let Some(w) = window {
+            run_windows.insert(*run_id, w);
+        }
+    }
+
     // Aggregate per-phase across runs.
     let mut aggregated: Vec<AggregatedPhase> = Vec::new();
     for (pi, _phase) in phases.iter().enumerate() {
@@ -239,33 +268,56 @@ pub fn build_comparison(
         // BGP activity relative to the claim window.
         let (rel, bgp_text, contributing) = match &window {
             Some((ws, we)) => {
-                let mut in_window: Vec<String> = Vec::new();
-                let mut before_window: Vec<String> = Vec::new();
-                let mut after_window: Vec<String> = Vec::new();
-                let mut runs_with_evidence: Vec<i64> = Vec::new();
-                for (ri, rs) in run_summaries.iter().enumerate() {
-                    for p in &rs.phases {
-                        let phase_in_window = p.end_utc > *ws && p.start_utc <= *we;
-                        if phase_in_window && p.first_evidence_utc.is_some() {
-                            in_window.push(p.first_evidence_utc.as_deref().unwrap().to_string());
-                            if !runs_with_evidence.contains(&runs[ri]) {
-                                runs_with_evidence.push(runs[ri]);
+                // Only runs whose event window intersects the claim window
+                // may contribute an observation or a no-counterpart
+                // conclusion.
+                let covering: Vec<&RunPhaseSummaries> = run_summaries
+                    .iter()
+                    .filter(|rs| match run_windows.get(&rs.run_id) {
+                        // Half-open windows, consistent with phase
+                        // assignment: a run ending exactly at the claim
+                        // window start does not cover it.
+                        Some((s, e)) => e > ws && s <= we,
+                        None => true, // unknown window: conservative
+                    })
+                    .collect();
+                if covering.is_empty() {
+                    (
+                        RELATION_INDETERMINATE.to_string(),
+                        "no linked analysis run covers this window; no observation was attempted"
+                            .to_string(),
+                        Vec::new(),
+                    )
+                } else {
+                    let mut in_window: Vec<String> = Vec::new();
+                    let mut before_window: Vec<String> = Vec::new();
+                    let mut after_window: Vec<String> = Vec::new();
+                    let mut runs_with_evidence: Vec<i64> = Vec::new();
+                    for rs in &covering {
+                        for p in &rs.phases {
+                            let phase_in_window = p.end_utc > *ws && p.start_utc <= *we;
+                            if phase_in_window && p.first_evidence_utc.is_some() {
+                                in_window
+                                    .push(p.first_evidence_utc.as_deref().unwrap().to_string());
+                                if !runs_with_evidence.contains(&rs.run_id) {
+                                    runs_with_evidence.push(rs.run_id);
+                                }
+                            }
+                        }
+                        // Whole-run activity before/after the window.
+                        if let Some(first) =
+                            rs.phases.iter().find_map(|p| p.first_evidence_utc.clone())
+                        {
+                            if first < *ws {
+                                before_window.push(first);
+                            } else if first > *we {
+                                after_window.push(first);
                             }
                         }
                     }
-                    // Whole-run activity before/after the window.
-                    if let Some(first) = rs.phases.iter().find_map(|p| p.first_evidence_utc.clone())
-                    {
-                        if first < *ws {
-                            before_window.push(first);
-                        } else if first > *we {
-                            after_window.push(first);
-                        }
-                    }
-                }
-                if !in_window.is_empty() {
-                    in_window.sort();
-                    (
+                    if !in_window.is_empty() {
+                        in_window.sort();
+                        (
                             RELATION_OVERLAPPING.to_string(),
                             format!(
                                 "route-state transitions observed in the window; first at {} ({} transition series)",
@@ -273,32 +325,33 @@ pub fn build_comparison(
                             ),
                             runs_with_evidence,
                         )
-                } else if !before_window.is_empty() {
-                    before_window.sort();
-                    (
-                        RELATION_BEFORE.to_string(),
-                        format!(
-                            "earliest route-state transitions precede the window ({})",
-                            before_window[0]
-                        ),
-                        runs_with_evidence,
-                    )
-                } else if !after_window.is_empty() {
-                    after_window.sort();
-                    (
-                        RELATION_AFTER.to_string(),
-                        format!(
-                            "earliest route-state transitions follow the window ({})",
-                            after_window[0]
-                        ),
-                        runs_with_evidence,
-                    )
-                } else {
-                    (
-                        RELATION_NO_OBSERVED_COUNTERPART.to_string(),
-                        "no route-state transitions observed in any linked run".to_string(),
-                        runs_with_evidence,
-                    )
+                    } else if !before_window.is_empty() {
+                        before_window.sort();
+                        (
+                            RELATION_BEFORE.to_string(),
+                            format!(
+                                "earliest route-state transitions precede the window ({})",
+                                before_window[0]
+                            ),
+                            runs_with_evidence,
+                        )
+                    } else if !after_window.is_empty() {
+                        after_window.sort();
+                        (
+                            RELATION_AFTER.to_string(),
+                            format!(
+                                "earliest route-state transitions follow the window ({})",
+                                after_window[0]
+                            ),
+                            runs_with_evidence,
+                        )
+                    } else {
+                        (
+                            RELATION_NO_OBSERVED_COUNTERPART.to_string(),
+                            "no route-state transitions observed in any linked run".to_string(),
+                            runs_with_evidence,
+                        )
+                    }
                 }
             }
             None => {
@@ -326,7 +379,10 @@ pub fn build_comparison(
             rel.as_str(),
             RELATION_OVERLAPPING | RELATION_BEFORE | RELATION_AFTER | RELATION_DURING
         );
-        let limitation = if c.observability == OBSERVABILITY_INDIRECTLY_VISIBLE {
+        let limitation = if rel == RELATION_INDETERMINATE {
+            "the claim window is not covered by any linked run; no observation was attempted"
+                .to_string()
+        } else if c.observability == OBSERVABILITY_INDIRECTLY_VISIBLE {
             format!(
                 "indirect visibility only: the condition itself is not directly observable in public BGP; only exported route consequences may appear ({})",
                 c.observability_rationale
@@ -375,7 +431,7 @@ mod tests {
         let sid = crate::catalog::tests::sample_snapshot(e, r#"{"title":"t"}"#);
         let sid = store::insert_snapshot(conn, e, &sid).unwrap();
         let mid = store::insert_manifest_revision(
-            conn,
+            &conn,
             &crate::catalog::tests::sample_manifest_revision(e, sid, r#"{"o":1}"#),
         )
         .unwrap();
@@ -432,6 +488,26 @@ mod tests {
         observability: &str,
         time_or_phase: Option<&str>,
     ) -> i64 {
+        seed_claim_sort(
+            conn,
+            cs_id,
+            doc_id,
+            claim_type,
+            observability,
+            time_or_phase,
+            0,
+        )
+    }
+
+    fn seed_claim_sort(
+        conn: &Connection,
+        cs_id: i64,
+        doc_id: i64,
+        claim_type: &str,
+        observability: &str,
+        time_or_phase: Option<&str>,
+        sort_order: i64,
+    ) -> i64 {
         let claim = CaseStudyClaim {
             id: 0,
             case_study_id: cs_id,
@@ -444,7 +520,7 @@ mod tests {
             time_or_phase: time_or_phase.map(|s| s.to_string()),
             observability: observability.to_string(),
             observability_rationale: "reviewed classification".to_string(),
-            sort_order: 0,
+            sort_order,
         };
         store::insert_case_study_claim(conn, &claim).unwrap()
     }
@@ -739,6 +815,105 @@ mod tests {
         assert!(row
             .bgp_observation
             .contains("first at 2019-08-21T05:00:00Z"));
+    }
+
+    #[test]
+    fn pilot_scope_does_not_fabricate_observation_for_uncovered_phases() {
+        let (_dir, conn) = open_temp_db();
+        let (cs_id, doc_id) = base_cs(&conn);
+        // Run whose plan window covers only phase 1 (04:00-10:00).
+        let e = store::upsert_event(&conn, "grnoc", "T1", "2019-08-22T00:00:00Z").unwrap();
+        let sid = crate::catalog::tests::sample_snapshot(e, r#"{"title":"t"}"#);
+        let sid = store::insert_snapshot(&conn, e, &sid).unwrap();
+        let mid = store::insert_manifest_revision(
+            &conn,
+            &crate::catalog::tests::sample_manifest_revision(e, sid, r#"{"o":1}"#),
+        )
+        .unwrap();
+        let payload = serde_json::json!({
+            "schema_version": 1,
+            "analysis_window": {
+                "start": "2019-08-21T04:00:00Z",
+                "end": "2019-08-21T10:00:00Z"
+            }
+        });
+        let pid = store::insert_plan(
+            &conn,
+            &AnalysisPlanRecord {
+                id: 0,
+                manifest_revision_id: mid,
+                plan_schema: 1,
+                payload: payload.to_string(),
+                sha256: crate::catalog::sync::hex_sha256(&payload.to_string()),
+                status: "Ready".to_string(),
+                block_reason: None,
+                created_at: "2019-08-22T00:00:00Z".to_string(),
+            },
+        )
+        .unwrap();
+        let run_id = store::insert_run(
+            &conn,
+            &crate::catalog::tests::sample_run(pid, "2019-08-21T02:00:00Z"),
+        )
+        .unwrap();
+        seed_stream(&conn, run_id, "192.0.2.0/24");
+        insert_t(
+            &conn,
+            run_id,
+            0,
+            "Withdrawal",
+            "2019-08-21T05:00:00Z",
+            "192.0.2.0/24",
+            1,
+        );
+        store::insert_case_study_analysis_link(
+            &conn,
+            &CaseStudyAnalysisLink {
+                id: 0,
+                case_study_id: cs_id,
+                run_id,
+                role: "PilotObservation".to_string(),
+                reviewed_note: None,
+            },
+        )
+        .unwrap();
+        // Claim inside the covered phase -> Overlapping.
+        seed_claim(
+            &conn,
+            cs_id,
+            doc_id,
+            CLAIM_TYPE_REPORTED_TIMELINE,
+            OBSERVABILITY_POTENTIALLY_VISIBLE,
+            Some("phase:0"),
+        );
+        // Claim in the uncovered phase -> Indeterminate, never a fabricated
+        // NoObservedCounterpart from an out-of-scope run.
+        seed_claim_sort(
+            &conn,
+            cs_id,
+            doc_id,
+            CLAIM_TYPE_REPORTED_TIMELINE,
+            OBSERVABILITY_POTENTIALLY_VISIBLE,
+            Some("phase:1"),
+            1,
+        );
+        let rows = build_comparison(&conn, cs_id).unwrap();
+        let covered = rows
+            .iter()
+            .find(|r| r.operator_time.as_deref() == Some("phase:0"))
+            .unwrap();
+        assert_eq!(covered.interpretation, RELATION_OVERLAPPING);
+        let uncovered = rows
+            .iter()
+            .find(|r| r.operator_time.as_deref() == Some("phase:1"))
+            .unwrap();
+        assert_eq!(uncovered.interpretation, RELATION_INDETERMINATE);
+        assert!(uncovered
+            .bgp_observation
+            .contains("no linked analysis run covers this window"));
+        assert!(uncovered
+            .limitation
+            .contains("no observation was attempted"));
     }
 
     #[test]

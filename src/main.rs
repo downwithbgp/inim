@@ -216,6 +216,26 @@ enum CaseStudyCommands {
         #[arg(long, value_name = "PATH")]
         path: PathBuf,
     },
+    /// Link an existing analysis run to a case study.
+    ///
+    /// Uses the existing case_study_analysis_links association; the run and
+    /// its evidence stay owned by the run.
+    LinkRun {
+        #[arg(long, value_name = "PATH")]
+        db: PathBuf,
+        /// Case-study slug.
+        #[arg(long, value_name = "SLUG")]
+        slug: String,
+        /// Analysis run id.
+        #[arg(long, value_name = "ID")]
+        run: i64,
+        /// Role of the run for this case study (default PilotObservation).
+        #[arg(long, value_name = "ROLE", default_value = "PilotObservation")]
+        role: String,
+        /// Reviewed note.
+        #[arg(long, value_name = "TEXT")]
+        note: Option<String>,
+    },
     /// Apply a reviewed target-research record to a case study.
     ///
     /// Updates ONLY the research fields of matching target rows (mapped
@@ -619,6 +639,55 @@ fn cmd_catalog(stdout: &mut dyn Write, command: &CatalogCommands) -> i32 {
                 EXIT_INVALID_INPUT
             }
         },
+        CatalogCommands::CaseStudy(CaseStudyCommands::LinkRun {
+            db,
+            slug,
+            run,
+            role,
+            note,
+        }) => {
+            let conn = match inim::catalog::db::open_catalog(db) {
+                Ok(c) => c,
+                Err(e) => {
+                    let _ = writeln!(stdout, "error: {e}");
+                    return EXIT_INVALID_INPUT;
+                }
+            };
+            let Some(cs) = inim::catalog::archive_plan::find_case_study(&conn, slug) else {
+                let _ = writeln!(stdout, "error: no case study with slug '{slug}'");
+                return EXIT_INVALID_INPUT;
+            };
+            let run_exists: Option<i64> = conn
+                .query_row("SELECT id FROM analysis_runs WHERE id = ?1", [*run], |r| {
+                    r.get(0)
+                })
+                .ok();
+            let Some(_) = run_exists else {
+                let _ = writeln!(stdout, "error: no analysis run with id {run}");
+                return EXIT_INVALID_INPUT;
+            };
+            let link = inim::catalog::domain::CaseStudyAnalysisLink {
+                id: 0,
+                case_study_id: cs.id,
+                run_id: *run,
+                role: role.clone(),
+                reviewed_note: note.clone(),
+            };
+            match inim::catalog::store::insert_case_study_analysis_link(&conn, &link) {
+                Ok(id) => {
+                    let _ = writeln!(
+                        stdout,
+                        "run {run} linked to case study '{}' (role {role}, link id {id})",
+                        cs.slug
+                    );
+                }
+                Err(e) => {
+                    let _ = writeln!(stdout, "error: {e}");
+                    return EXIT_INVALID_INPUT;
+                }
+            }
+            EXIT_SUCCESS
+        }
         CatalogCommands::CaseStudy(CaseStudyCommands::ApplyResearch { db, path }) => {
             let conn = match inim::catalog::db::open_catalog(db) {
                 Ok(c) => c,
