@@ -62,3 +62,10 @@ inim catalog document import --db data/inim.sqlite \
 
 The AAR lists multiple contributors; this data file does not reproduce
 contributor names in the primary UI.
+
+## Visual review (Session 32)
+
+`scripts/screenshot-review.sh` captures fixed-viewport screenshots of the
+deterministic demo catalog (loopback only) to `tmp/ui-review/` (gitignored,
+excluded from the package). Screenshots are for EXTERNAL computer-vision
+review — visual quality is not self-certified here.
