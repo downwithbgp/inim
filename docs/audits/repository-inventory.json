@@ -1,0 +1,2610 @@
+[
+ {
+  "path": ".github/workflows/ci.yml",
+  "category": "GitHub/community metadata",
+  "audience": "contributors",
+  "authoritative": "GitHub Actions upstream releases",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": ".gitignore",
+  "category": "Configuration",
+  "audience": "maintainers",
+  "authoritative": "reviewed operator configuration",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "CHANGELOG.md",
+  "category": "Packaging or release metadata",
+  "audience": "maintainers",
+  "authoritative": "release policy",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "CONTRIBUTING.md",
+  "category": "Normative current documentation",
+  "audience": "contributors and operators",
+  "authoritative": "implementation + canonical evidence (see docs/README authority map)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "Cargo.lock",
+  "category": "Configuration",
+  "audience": "maintainers",
+  "authoritative": "reviewed operator configuration",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "Cargo.toml",
+  "category": "Packaging or release metadata",
+  "audience": "maintainers",
+  "authoritative": "release policy",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "LICENSE",
+  "category": "License or third-party notice",
+  "audience": "public readers",
+  "authoritative": "upstream license terms",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "README.md",
+  "category": "Normative current documentation",
+  "audience": "contributors and operators",
+  "authoritative": "implementation + canonical evidence (see docs/README authority map)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "RELEASING.md",
+  "category": "Packaging or release metadata",
+  "audience": "maintainers",
+  "authoritative": "release policy",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "THIRD_PARTY_NOTICES.md",
+  "category": "License or third-party notice",
+  "audience": "public readers",
+  "authoritative": "upstream license terms",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "askama.toml",
+  "category": "Configuration",
+  "audience": "maintainers",
+  "authoritative": "reviewed operator configuration",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "case-studies/inc0299001/asn-identities.json",
+  "category": "Reviewed case-study interpretation",
+  "audience": "network analysts",
+  "authoritative": "canonical evidence + operator sources (reviewed)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "case-studies/inc0299001/finding-chronology-audit.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/inc0299001/out/INC0299001/archive_manifest.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/inc0299001/out/INC0299001/evidence_appendix.jsonl",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/inc0299001/out/INC0299001/lifecycle.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/inc0299001/out/INC0299001/limitations.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/inc0299001/out/INC0299001/report.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/inc0299001/out/INC0299001/report.txt",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/inc0299001/out/INC0299001/semantic_waves.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/inc0299001/out/INC0299001/stderr.log",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/inc0299001/out/INC0299001/stdout.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/inc0299001/out/INC0299001/withdrawal_audit.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/inc0299001/peer-metadata.json",
+  "category": "Reviewed case-study interpretation",
+  "audience": "network analysts",
+  "authoritative": "canonical evidence + operator sources (reviewed)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "case-studies/inc0302574/out/INC0302574/archive_manifest.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/inc0302574/out/INC0302574/evidence_appendix.jsonl",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/inc0302574/out/INC0302574/lifecycle.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/inc0302574/out/INC0302574/limitations.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/inc0302574/out/INC0302574/relationship-audit.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/inc0302574/out/INC0302574/report.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/inc0302574/out/INC0302574/report.txt",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/inc0302574/out/INC0302574/semantic_waves.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/inc0302574/out/INC0302574/stderr.log",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/inc0302574/out/INC0302574/stdout.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/inc0302574/out/INC0302574/withdrawal_audit.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/README.md",
+  "category": "Reviewed case-study interpretation",
+  "audience": "network analysts",
+  "authoritative": "canonical evidence + operator sources (reviewed)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/case-study.json",
+  "category": "Reviewed case-study interpretation",
+  "audience": "network analysts",
+  "authoritative": "canonical evidence + operator sources (reviewed)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/PILOT-SELECTION.md",
+  "category": "Reviewed case-study interpretation",
+  "audience": "network analysts",
+  "authoritative": "canonical evidence + operator sources (reviewed)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/absence-audit.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/asn-identities.json",
+  "category": "Reviewed case-study interpretation",
+  "audience": "network analysts",
+  "authoritative": "canonical evidence + operator sources (reviewed)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/batch-reuse-report.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/batch-reuse-report.md",
+  "category": "Reviewed case-study interpretation",
+  "audience": "network analysts",
+  "authoritative": "canonical evidence + operator sources (reviewed)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/collector-locations.json",
+  "category": "Reviewed case-study interpretation",
+  "audience": "network analysts",
+  "authoritative": "canonical evidence + operator sources (reviewed)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/corpus-acquisition.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/corpus-validation.md",
+  "category": "Reviewed case-study interpretation",
+  "audience": "network analysts",
+  "authoritative": "canonical evidence + operator sources (reviewed)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/cross-observer-matrix.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/cross-observer-matrix.md",
+  "category": "Reviewed case-study interpretation",
+  "audience": "network analysts",
+  "authoritative": "canonical evidence + operator sources (reviewed)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/manifests/MANLAN-2019-NORDUNET-PILOT-I2PX-RRC00.json",
+  "category": "Configuration",
+  "audience": "maintainers",
+  "authoritative": "reviewed operator configuration",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/manifests/MANLAN-2019-NORDUNET-PILOT-I2PX-RRC06.json",
+  "category": "Configuration",
+  "audience": "maintainers",
+  "authoritative": "reviewed operator configuration",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/manifests/MANLAN-2019-NORDUNET-PILOT-I2PX-RRC15.json",
+  "category": "Configuration",
+  "audience": "maintainers",
+  "authoritative": "reviewed operator configuration",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/manifests/MANLAN-2019-NORDUNET-PILOT-I2PX-RV2.json",
+  "category": "Configuration",
+  "audience": "maintainers",
+  "authoritative": "reviewed operator configuration",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/manifests/MANLAN-2019-NORDUNET-PILOT-I2PX.json",
+  "category": "Configuration",
+  "audience": "maintainers",
+  "authoritative": "reviewed operator configuration",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/manifests/MANLAN-2019-NORDUNET-PILOT-RE-RRC00.json",
+  "category": "Configuration",
+  "audience": "maintainers",
+  "authoritative": "reviewed operator configuration",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/manifests/MANLAN-2019-NORDUNET-PILOT-RE-RRC06.json",
+  "category": "Configuration",
+  "audience": "maintainers",
+  "authoritative": "reviewed operator configuration",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/manifests/MANLAN-2019-NORDUNET-PILOT-RE-RRC15.json",
+  "category": "Configuration",
+  "audience": "maintainers",
+  "authoritative": "reviewed operator configuration",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/manifests/MANLAN-2019-NORDUNET-PILOT-RE-RV2.json",
+  "category": "Configuration",
+  "audience": "maintainers",
+  "authoritative": "reviewed operator configuration",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/manifests/MANLAN-2019-NORDUNET-PILOT-RE.json",
+  "category": "Configuration",
+  "audience": "maintainers",
+  "authoritative": "reviewed operator configuration",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/manifests/MANLAN-2019-NORDUNET-PILOT-RIS-RRC00.json",
+  "category": "Configuration",
+  "audience": "maintainers",
+  "authoritative": "reviewed operator configuration",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/manifests/MANLAN-2019-NORDUNET-PILOT-RIS-RRC06.json",
+  "category": "Configuration",
+  "audience": "maintainers",
+  "authoritative": "reviewed operator configuration",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/manifests/MANLAN-2019-NORDUNET-PILOT-RIS-RRC15.json",
+  "category": "Configuration",
+  "audience": "maintainers",
+  "authoritative": "reviewed operator configuration",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/manifests/MANLAN-2019-NORDUNET-PILOT.json",
+  "category": "Configuration",
+  "audience": "maintainers",
+  "authoritative": "reviewed operator configuration",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/network-profile.json",
+  "category": "Reviewed case-study interpretation",
+  "audience": "network analysts",
+  "authoritative": "canonical evidence + operator sources (reviewed)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/operator-anchors.json",
+  "category": "Reviewed case-study interpretation",
+  "audience": "network analysts",
+  "authoritative": "canonical evidence + operator sources (reviewed)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/out/MANLAN-2019-NORDUNET-PILOT-I2PX-RRC00/preflight.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/out/MANLAN-2019-NORDUNET-PILOT-I2PX-RRC06/preflight.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/out/MANLAN-2019-NORDUNET-PILOT-I2PX-RRC15/preflight.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/out/MANLAN-2019-NORDUNET-PILOT-I2PX-RV2/preflight.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/out/MANLAN-2019-NORDUNET-PILOT-RE-RRC00/archive_manifest.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/out/MANLAN-2019-NORDUNET-PILOT-RE-RRC00/evidence_appendix.jsonl",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/out/MANLAN-2019-NORDUNET-PILOT-RE-RRC00/lifecycle.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/out/MANLAN-2019-NORDUNET-PILOT-RE-RRC00/limitations.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/out/MANLAN-2019-NORDUNET-PILOT-RE-RRC00/performance.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/out/MANLAN-2019-NORDUNET-PILOT-RE-RRC00/report.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/out/MANLAN-2019-NORDUNET-PILOT-RE-RRC00/report.txt",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/out/MANLAN-2019-NORDUNET-PILOT-RE-RRC00/semantic_waves.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/out/MANLAN-2019-NORDUNET-PILOT-RE-RRC00/transitions.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/out/MANLAN-2019-NORDUNET-PILOT-RE-RRC00/withdrawal_audit.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/out/MANLAN-2019-NORDUNET-PILOT-RE-RRC06/archive_manifest.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/out/MANLAN-2019-NORDUNET-PILOT-RE-RRC06/evidence_appendix.jsonl",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/out/MANLAN-2019-NORDUNET-PILOT-RE-RRC06/lifecycle.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/out/MANLAN-2019-NORDUNET-PILOT-RE-RRC06/limitations.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/out/MANLAN-2019-NORDUNET-PILOT-RE-RRC06/performance.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/out/MANLAN-2019-NORDUNET-PILOT-RE-RRC06/report.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/out/MANLAN-2019-NORDUNET-PILOT-RE-RRC06/report.txt",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/out/MANLAN-2019-NORDUNET-PILOT-RE-RRC06/semantic_waves.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/out/MANLAN-2019-NORDUNET-PILOT-RE-RRC06/transitions.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/out/MANLAN-2019-NORDUNET-PILOT-RE-RRC06/withdrawal_audit.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/out/MANLAN-2019-NORDUNET-PILOT-RE-RRC15/archive_manifest.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/out/MANLAN-2019-NORDUNET-PILOT-RE-RRC15/evidence_appendix.jsonl",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/out/MANLAN-2019-NORDUNET-PILOT-RE-RRC15/lifecycle.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/out/MANLAN-2019-NORDUNET-PILOT-RE-RRC15/limitations.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/out/MANLAN-2019-NORDUNET-PILOT-RE-RRC15/performance.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/out/MANLAN-2019-NORDUNET-PILOT-RE-RRC15/report.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/out/MANLAN-2019-NORDUNET-PILOT-RE-RRC15/report.txt",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/out/MANLAN-2019-NORDUNET-PILOT-RE-RRC15/semantic_waves.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/out/MANLAN-2019-NORDUNET-PILOT-RE-RRC15/transitions.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/out/MANLAN-2019-NORDUNET-PILOT-RE-RRC15/withdrawal_audit.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/out/MANLAN-2019-NORDUNET-PILOT-RE-RV2/archive_manifest.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/out/MANLAN-2019-NORDUNET-PILOT-RE-RV2/evidence_appendix.jsonl",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/out/MANLAN-2019-NORDUNET-PILOT-RE-RV2/lifecycle.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/out/MANLAN-2019-NORDUNET-PILOT-RE-RV2/limitations.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/out/MANLAN-2019-NORDUNET-PILOT-RE-RV2/performance.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/out/MANLAN-2019-NORDUNET-PILOT-RE-RV2/report.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/out/MANLAN-2019-NORDUNET-PILOT-RE-RV2/report.txt",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/out/MANLAN-2019-NORDUNET-PILOT-RE-RV2/semantic_waves.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/out/MANLAN-2019-NORDUNET-PILOT-RE-RV2/transitions.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/out/MANLAN-2019-NORDUNET-PILOT-RE-RV2/withdrawal_audit.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/out/MANLAN-2019-NORDUNET-PILOT-RIS-RRC00/archive_manifest.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/out/MANLAN-2019-NORDUNET-PILOT-RIS-RRC00/evidence_appendix.jsonl",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/out/MANLAN-2019-NORDUNET-PILOT-RIS-RRC00/lifecycle.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/out/MANLAN-2019-NORDUNET-PILOT-RIS-RRC00/limitations.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/out/MANLAN-2019-NORDUNET-PILOT-RIS-RRC00/performance.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/out/MANLAN-2019-NORDUNET-PILOT-RIS-RRC00/report.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/out/MANLAN-2019-NORDUNET-PILOT-RIS-RRC00/report.txt",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/out/MANLAN-2019-NORDUNET-PILOT-RIS-RRC00/semantic_waves.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/out/MANLAN-2019-NORDUNET-PILOT-RIS-RRC00/transitions.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/out/MANLAN-2019-NORDUNET-PILOT-RIS-RRC00/withdrawal_audit.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/out/MANLAN-2019-NORDUNET-PILOT-RIS-RRC06/archive_manifest.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/out/MANLAN-2019-NORDUNET-PILOT-RIS-RRC06/evidence_appendix.jsonl",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/out/MANLAN-2019-NORDUNET-PILOT-RIS-RRC06/lifecycle.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/out/MANLAN-2019-NORDUNET-PILOT-RIS-RRC06/limitations.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/out/MANLAN-2019-NORDUNET-PILOT-RIS-RRC06/performance.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/out/MANLAN-2019-NORDUNET-PILOT-RIS-RRC06/report.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/out/MANLAN-2019-NORDUNET-PILOT-RIS-RRC06/report.txt",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/out/MANLAN-2019-NORDUNET-PILOT-RIS-RRC06/semantic_waves.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/out/MANLAN-2019-NORDUNET-PILOT-RIS-RRC06/transitions.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/out/MANLAN-2019-NORDUNET-PILOT-RIS-RRC06/withdrawal_audit.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/out/MANLAN-2019-NORDUNET-PILOT-RIS-RRC15/archive_manifest.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/out/MANLAN-2019-NORDUNET-PILOT-RIS-RRC15/evidence_appendix.jsonl",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/out/MANLAN-2019-NORDUNET-PILOT-RIS-RRC15/lifecycle.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/out/MANLAN-2019-NORDUNET-PILOT-RIS-RRC15/limitations.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/out/MANLAN-2019-NORDUNET-PILOT-RIS-RRC15/performance.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/out/MANLAN-2019-NORDUNET-PILOT-RIS-RRC15/report.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/out/MANLAN-2019-NORDUNET-PILOT-RIS-RRC15/report.txt",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/out/MANLAN-2019-NORDUNET-PILOT-RIS-RRC15/semantic_waves.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/out/MANLAN-2019-NORDUNET-PILOT-RIS-RRC15/transitions.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/out/MANLAN-2019-NORDUNET-PILOT-RIS-RRC15/withdrawal_audit.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/out/MANLAN-2019-NORDUNET-PILOT/archive_manifest.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/out/MANLAN-2019-NORDUNET-PILOT/evidence_appendix.jsonl",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/out/MANLAN-2019-NORDUNET-PILOT/lifecycle.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/out/MANLAN-2019-NORDUNET-PILOT/limitations.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/out/MANLAN-2019-NORDUNET-PILOT/report.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/out/MANLAN-2019-NORDUNET-PILOT/report.txt",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/out/MANLAN-2019-NORDUNET-PILOT/semantic_waves.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/out/MANLAN-2019-NORDUNET-PILOT/transitions.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/out/MANLAN-2019-NORDUNET-PILOT/withdrawal_audit.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/pilot-event.json",
+  "category": "Reviewed case-study interpretation",
+  "audience": "network analysts",
+  "authoritative": "canonical evidence + operator sources (reviewed)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/pilot-result.json",
+  "category": "Reviewed case-study interpretation",
+  "audience": "network analysts",
+  "authoritative": "canonical evidence + operator sources (reviewed)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/ris-collector-preflight.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/ris-collector-selection.md",
+  "category": "Reviewed case-study interpretation",
+  "audience": "network analysts",
+  "authoritative": "canonical evidence + operator sources (reviewed)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/ris-pilot-rrc00.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/ris-pilot-rrc06.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/ris-pilot-rrc15.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/rrc11-audit-2019.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/rrc11-audit-2019.md",
+  "category": "Reviewed case-study interpretation",
+  "audience": "network analysts",
+  "authoritative": "canonical evidence + operator sources (reviewed)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/rrc11-pex-pilot-decision.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/rrc11-pex-pilot-decision.md",
+  "category": "Reviewed case-study interpretation",
+  "audience": "network analysts",
+  "authoritative": "canonical evidence + operator sources (reviewed)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/session-audit-2019.json",
+  "category": "Immutable or generated evidence",
+  "audience": "network analysts",
+  "authoritative": "MRT/RIB/UPDATE archives + generator run (immutable)",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/session-audit-2019.md",
+  "category": "Reviewed case-study interpretation",
+  "audience": "network analysts",
+  "authoritative": "canonical evidence + operator sources (reviewed)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/pilot/ticket-reviews.json",
+  "category": "Reviewed case-study interpretation",
+  "audience": "network analysts",
+  "authoritative": "canonical evidence + operator sources (reviewed)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/target-research.json",
+  "category": "Reviewed case-study interpretation",
+  "audience": "network analysts",
+  "authoritative": "canonical evidence + operator sources (reviewed)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "deny.toml",
+  "category": "Configuration",
+  "audience": "maintainers",
+  "authoritative": "reviewed operator configuration",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "docs/ADRs/CASE-STUDY-LAYER.md",
+  "category": "Historical decision record",
+  "audience": "maintainers",
+  "authoritative": "decision context at time of writing",
+  "generated": false,
+  "current": false
+ },
+ {
+  "path": "docs/ADRs/LOCAL-CATALOG-AND-WEB.md",
+  "category": "Historical decision record",
+  "audience": "maintainers",
+  "authoritative": "decision context at time of writing",
+  "generated": false,
+  "current": false
+ },
+ {
+  "path": "docs/ADRs/MONOCLE-DATAPLANE.md",
+  "category": "Historical decision record",
+  "audience": "maintainers",
+  "authoritative": "decision context at time of writing",
+  "generated": false,
+  "current": false
+ },
+ {
+  "path": "docs/ADRs/RIPE-RIS-SUPPORT.md",
+  "category": "Historical decision record",
+  "audience": "maintainers",
+  "authoritative": "decision context at time of writing",
+  "generated": false,
+  "current": false
+ },
+ {
+  "path": "docs/BENCHMARK.md",
+  "category": "Normative current documentation",
+  "audience": "contributors and operators",
+  "authoritative": "implementation + canonical evidence (see docs/README authority map)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "docs/DATA_PROVENANCE.md",
+  "category": "Normative current documentation",
+  "audience": "contributors and operators",
+  "authoritative": "implementation + canonical evidence (see docs/README authority map)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "docs/DECISIONS.md",
+  "category": "Historical decision record",
+  "audience": "maintainers",
+  "authoritative": "decision context at time of writing",
+  "generated": false,
+  "current": false
+ },
+ {
+  "path": "docs/DESIGN.md",
+  "category": "Normative current documentation",
+  "audience": "contributors and operators",
+  "authoritative": "implementation + canonical evidence (see docs/README authority map)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "docs/DOMAIN.md",
+  "category": "Normative current documentation",
+  "audience": "contributors and operators",
+  "authoritative": "implementation + canonical evidence (see docs/README authority map)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "docs/MONOCLE_EVALUATION.md",
+  "category": "Historical decision record",
+  "audience": "maintainers",
+  "authoritative": "decision context at time of writing",
+  "generated": false,
+  "current": false
+ },
+ {
+  "path": "docs/OBSERVABILITY.md",
+  "category": "Normative current documentation",
+  "audience": "contributors and operators",
+  "authoritative": "implementation + canonical evidence (see docs/README authority map)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "docs/REQUIREMENTS.md",
+  "category": "Historical decision record",
+  "audience": "maintainers",
+  "authoritative": "decision context at time of writing",
+  "generated": false,
+  "current": false
+ },
+ {
+  "path": "docs/TASKS.md",
+  "category": "Historical decision record",
+  "audience": "maintainers",
+  "authoritative": "decision context at time of writing",
+  "generated": false,
+  "current": false
+ },
+ {
+  "path": "docs/UX.md",
+  "category": "Normative current documentation",
+  "audience": "contributors and operators",
+  "authoritative": "implementation + canonical evidence (see docs/README authority map)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "docs/session-10-baseline.md",
+  "category": "Historical decision record",
+  "audience": "maintainers",
+  "authoritative": "decision context at time of writing",
+  "generated": false,
+  "current": false
+ },
+ {
+  "path": "docs/sources/GRNOC_BULK_ACCESS_REQUEST.md",
+  "category": "Normative current documentation",
+  "audience": "contributors and operators",
+  "authoritative": "implementation + canonical evidence (see docs/README authority map)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "docs/sources/GRNOC_PUBLIC_TASK_VIEWER.md",
+  "category": "Normative current documentation",
+  "audience": "contributors and operators",
+  "authoritative": "implementation + canonical evidence (see docs/README authority map)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "manifests/INC0299001.json",
+  "category": "Configuration",
+  "audience": "maintainers",
+  "authoritative": "reviewed operator configuration",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "manifests/INC0301970.json",
+  "category": "Configuration",
+  "audience": "maintainers",
+  "authoritative": "reviewed operator configuration",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "manifests/INC0302574.json",
+  "category": "Configuration",
+  "audience": "maintainers",
+  "authoritative": "reviewed operator configuration",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "scripts/audit_pilot_absence.py",
+  "category": "Script or developer tool",
+  "audience": "maintainers",
+  "authoritative": "the command it wraps + its inputs",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "scripts/bench_parse_scaling.sh",
+  "category": "Script or developer tool",
+  "audience": "maintainers",
+  "authoritative": "the command it wraps + its inputs",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "scripts/build-cross-observer-matrix.py",
+  "category": "Script or developer tool",
+  "audience": "maintainers",
+  "authoritative": "the command it wraps + its inputs",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "scripts/build-rrc11-audit.py",
+  "category": "Script or developer tool",
+  "audience": "maintainers",
+  "authoritative": "the command it wraps + its inputs",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "scripts/build-rrc11-i2px-decision.py",
+  "category": "Script or developer tool",
+  "audience": "maintainers",
+  "authoritative": "the command it wraps + its inputs",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "scripts/compare_runs.py",
+  "category": "Script or developer tool",
+  "audience": "maintainers",
+  "authoritative": "the command it wraps + its inputs",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "scripts/pilot_rerun_equivalence.sh",
+  "category": "Script or developer tool",
+  "audience": "maintainers",
+  "authoritative": "the command it wraps + its inputs",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "scripts/ris_collector_preflight.sh",
+  "category": "Script or developer tool",
+  "audience": "maintainers",
+  "authoritative": "the command it wraps + its inputs",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "scripts/screenshot-review-session36.sh",
+  "category": "Script or developer tool",
+  "audience": "maintainers",
+  "authoritative": "the command it wraps + its inputs",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "scripts/screenshot-review-session37.sh",
+  "category": "Script or developer tool",
+  "audience": "maintainers",
+  "authoritative": "the command it wraps + its inputs",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "scripts/screenshot-review-session39.sh",
+  "category": "Script or developer tool",
+  "audience": "maintainers",
+  "authoritative": "the command it wraps + its inputs",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "scripts/screenshot-review-session41.sh",
+  "category": "Script or developer tool",
+  "audience": "maintainers",
+  "authoritative": "the command it wraps + its inputs",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "scripts/screenshot-review-session42.sh",
+  "category": "Script or developer tool",
+  "audience": "maintainers",
+  "authoritative": "the command it wraps + its inputs",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "scripts/screenshot-review-session43.sh",
+  "category": "Script or developer tool",
+  "audience": "maintainers",
+  "authoritative": "the command it wraps + its inputs",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "scripts/screenshot-review-session44.sh",
+  "category": "Script or developer tool",
+  "audience": "maintainers",
+  "authoritative": "the command it wraps + its inputs",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "scripts/screenshot-review.sh",
+  "category": "Script or developer tool",
+  "audience": "maintainers",
+  "authoritative": "the command it wraps + its inputs",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "scripts/screenshot-session37-capture.js",
+  "category": "Script or developer tool",
+  "audience": "maintainers",
+  "authoritative": "the command it wraps + its inputs",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "scripts/session35-benchmark.sh",
+  "category": "Script or developer tool",
+  "audience": "maintainers",
+  "authoritative": "the command it wraps + its inputs",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "spec/session-30-case-study/design.md",
+  "category": "Historical decision record",
+  "audience": "maintainers",
+  "authoritative": "decision context at time of writing",
+  "generated": false,
+  "current": false
+ },
+ {
+  "path": "spec/session-30-case-study/requirements.md",
+  "category": "Historical decision record",
+  "audience": "maintainers",
+  "authoritative": "decision context at time of writing",
+  "generated": false,
+  "current": false
+ },
+ {
+  "path": "spec/session-30-case-study/tasks.md",
+  "category": "Historical decision record",
+  "audience": "maintainers",
+  "authoritative": "decision context at time of writing",
+  "generated": false,
+  "current": false
+ },
+ {
+  "path": "spec/session-31-pilot/design.md",
+  "category": "Historical decision record",
+  "audience": "maintainers",
+  "authoritative": "decision context at time of writing",
+  "generated": false,
+  "current": false
+ },
+ {
+  "path": "spec/session-31-pilot/tasks.md",
+  "category": "Historical decision record",
+  "audience": "maintainers",
+  "authoritative": "decision context at time of writing",
+  "generated": false,
+  "current": false
+ },
+ {
+  "path": "spec/session-32-perf/design.md",
+  "category": "Historical decision record",
+  "audience": "maintainers",
+  "authoritative": "decision context at time of writing",
+  "generated": false,
+  "current": false
+ },
+ {
+  "path": "spec/session-32-perf/tasks.md",
+  "category": "Historical decision record",
+  "audience": "maintainers",
+  "authoritative": "decision context at time of writing",
+  "generated": false,
+  "current": false
+ },
+ {
+  "path": "spec/session-33-corpora/tasks.md",
+  "category": "Historical decision record",
+  "audience": "maintainers",
+  "authoritative": "decision context at time of writing",
+  "generated": false,
+  "current": false
+ },
+ {
+  "path": "spec/session-34/tasks.md",
+  "category": "Historical decision record",
+  "audience": "maintainers",
+  "authoritative": "decision context at time of writing",
+  "generated": false,
+  "current": false
+ },
+ {
+  "path": "spec/session-35/tasks.md",
+  "category": "Historical decision record",
+  "audience": "maintainers",
+  "authoritative": "decision context at time of writing",
+  "generated": false,
+  "current": false
+ },
+ {
+  "path": "spec/session-36/tasks.md",
+  "category": "Historical decision record",
+  "audience": "maintainers",
+  "authoritative": "decision context at time of writing",
+  "generated": false,
+  "current": false
+ },
+ {
+  "path": "spec/session-37/tasks.md",
+  "category": "Historical decision record",
+  "audience": "maintainers",
+  "authoritative": "decision context at time of writing",
+  "generated": false,
+  "current": false
+ },
+ {
+  "path": "spec/session-38/tasks.md",
+  "category": "Historical decision record",
+  "audience": "maintainers",
+  "authoritative": "decision context at time of writing",
+  "generated": false,
+  "current": false
+ },
+ {
+  "path": "src/assess.rs",
+  "category": "Production source",
+  "audience": "maintainers",
+  "authoritative": "implementation (behavioral authority)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/catalog/access.rs",
+  "category": "Production source",
+  "audience": "maintainers",
+  "authoritative": "implementation (behavioral authority)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/catalog/analyzability.rs",
+  "category": "Production source",
+  "audience": "maintainers",
+  "authoritative": "implementation (behavioral authority)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/catalog/archive_plan.rs",
+  "category": "Production source",
+  "audience": "maintainers",
+  "authoritative": "implementation (behavioral authority)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/catalog/batch.rs",
+  "category": "Production source",
+  "audience": "maintainers",
+  "authoritative": "implementation (behavioral authority)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/catalog/case_study_compare.rs",
+  "category": "Production source",
+  "audience": "maintainers",
+  "authoritative": "implementation (behavioral authority)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/catalog/case_study_import.rs",
+  "category": "Production source",
+  "audience": "maintainers",
+  "authoritative": "implementation (behavioral authority)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/catalog/db.rs",
+  "category": "Production source",
+  "audience": "maintainers",
+  "authoritative": "implementation (behavioral authority)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/catalog/discovery.rs",
+  "category": "Production source",
+  "audience": "maintainers",
+  "authoritative": "implementation (behavioral authority)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/catalog/document.rs",
+  "category": "Production source",
+  "audience": "maintainers",
+  "authoritative": "implementation (behavioral authority)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/catalog/domain.rs",
+  "category": "Production source",
+  "audience": "maintainers",
+  "authoritative": "implementation (behavioral authority)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/catalog/grnoc.rs",
+  "category": "Production source",
+  "audience": "maintainers",
+  "authoritative": "implementation (behavioral authority)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/catalog/grnoc_viewer.rs",
+  "category": "Production source",
+  "audience": "maintainers",
+  "authoritative": "implementation (behavioral authority)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/catalog/grouping.rs",
+  "category": "Production source",
+  "audience": "maintainers",
+  "authoritative": "implementation (behavioral authority)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/catalog/import.rs",
+  "category": "Production source",
+  "audience": "maintainers",
+  "authoritative": "implementation (behavioral authority)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/catalog/migrations.rs",
+  "category": "Production source",
+  "audience": "maintainers",
+  "authoritative": "implementation (behavioral authority)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/catalog/mock_server.rs",
+  "category": "Production source",
+  "audience": "maintainers",
+  "authoritative": "implementation (behavioral authority)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/catalog/mod.rs",
+  "category": "Production source",
+  "audience": "maintainers",
+  "authoritative": "implementation (behavioral authority)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/catalog/netprofile.rs",
+  "category": "Production source",
+  "audience": "maintainers",
+  "authoritative": "implementation (behavioral authority)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/catalog/observer_compare.rs",
+  "category": "Production source",
+  "audience": "maintainers",
+  "authoritative": "implementation (behavioral authority)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/catalog/origin_inventory.rs",
+  "category": "Production source",
+  "audience": "maintainers",
+  "authoritative": "implementation (behavioral authority)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/catalog/phase_summary.rs",
+  "category": "Production source",
+  "audience": "maintainers",
+  "authoritative": "implementation (behavioral authority)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/catalog/relationships.rs",
+  "category": "Production source",
+  "audience": "maintainers",
+  "authoritative": "implementation (behavioral authority)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/catalog/review.rs",
+  "category": "Production source",
+  "audience": "maintainers",
+  "authoritative": "implementation (behavioral authority)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/catalog/session_audit.rs",
+  "category": "Production source",
+  "audience": "maintainers",
+  "authoritative": "implementation (behavioral authority)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/catalog/source_extract.rs",
+  "category": "Production source",
+  "audience": "maintainers",
+  "authoritative": "implementation (behavioral authority)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/catalog/status.rs",
+  "category": "Production source",
+  "audience": "maintainers",
+  "authoritative": "implementation (behavioral authority)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/catalog/store.rs",
+  "category": "Production source",
+  "audience": "maintainers",
+  "authoritative": "implementation (behavioral authority)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/catalog/sync.rs",
+  "category": "Production source",
+  "audience": "maintainers",
+  "authoritative": "implementation (behavioral authority)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/catalog/target_research.rs",
+  "category": "Production source",
+  "audience": "maintainers",
+  "authoritative": "implementation (behavioral authority)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/catalog/tests.rs",
+  "category": "Production source",
+  "audience": "maintainers",
+  "authoritative": "implementation (behavioral authority)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/catalog/web/api.rs",
+  "category": "Production source",
+  "audience": "maintainers",
+  "authoritative": "implementation (behavioral authority)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/catalog/web/handlers.rs",
+  "category": "Production source",
+  "audience": "maintainers",
+  "authoritative": "implementation (behavioral authority)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/catalog/web/mod.rs",
+  "category": "Production source",
+  "audience": "maintainers",
+  "authoritative": "implementation (behavioral authority)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/catalog/web/server.rs",
+  "category": "Production source",
+  "audience": "maintainers",
+  "authoritative": "implementation (behavioral authority)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/catalog/web/session_context.rs",
+  "category": "Production source",
+  "audience": "maintainers",
+  "authoritative": "implementation (behavioral authority)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/catalog/web/templates/analysis.html",
+  "category": "Template or stylesheet",
+  "audience": "operators (NOC analysts)",
+  "authoritative": "workbench view model + domain model",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/catalog/web/templates/analysis_queue.html",
+  "category": "Template or stylesheet",
+  "audience": "operators (NOC analysts)",
+  "authoritative": "workbench view model + domain model",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/catalog/web/templates/archive_batches.html",
+  "category": "Template or stylesheet",
+  "audience": "operators (NOC analysts)",
+  "authoritative": "workbench view model + domain model",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/catalog/web/templates/base.html",
+  "category": "Template or stylesheet",
+  "audience": "operators (NOC analysts)",
+  "authoritative": "workbench view model + domain model",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/catalog/web/templates/case_studies.html",
+  "category": "Template or stylesheet",
+  "audience": "operators (NOC analysts)",
+  "authoritative": "workbench view model + domain model",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/catalog/web/templates/case_study.html",
+  "category": "Template or stylesheet",
+  "audience": "operators (NOC analysts)",
+  "authoritative": "workbench view model + domain model",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/catalog/web/templates/corpus.html",
+  "category": "Template or stylesheet",
+  "audience": "operators (NOC analysts)",
+  "authoritative": "workbench view model + domain model",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/catalog/web/templates/corpus_relationships.html",
+  "category": "Template or stylesheet",
+  "audience": "operators (NOC analysts)",
+  "authoritative": "workbench view model + domain model",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/catalog/web/templates/dashboard.html",
+  "category": "Template or stylesheet",
+  "audience": "operators (NOC analysts)",
+  "authoritative": "workbench view model + domain model",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/catalog/web/templates/event_detail.html",
+  "category": "Template or stylesheet",
+  "audience": "operators (NOC analysts)",
+  "authoritative": "workbench view model + domain model",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/catalog/web/templates/event_list.html",
+  "category": "Template or stylesheet",
+  "audience": "operators (NOC analysts)",
+  "authoritative": "workbench view model + domain model",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/catalog/web/templates/event_relationships.html",
+  "category": "Template or stylesheet",
+  "audience": "operators (NOC analysts)",
+  "authoritative": "workbench view model + domain model",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/catalog/web/templates/incident_candidates.html",
+  "category": "Template or stylesheet",
+  "audience": "operators (NOC analysts)",
+  "authoritative": "workbench view model + domain model",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/catalog/web/templates/streams.html",
+  "category": "Template or stylesheet",
+  "audience": "operators (NOC analysts)",
+  "authoritative": "workbench view model + domain model",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/catalog/web/templates/sync_runs.html",
+  "category": "Template or stylesheet",
+  "audience": "operators (NOC analysts)",
+  "authoritative": "workbench view model + domain model",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/catalog/web/templates/workbench.html",
+  "category": "Template or stylesheet",
+  "audience": "operators (NOC analysts)",
+  "authoritative": "workbench view model + domain model",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/catalog/web/tests.rs",
+  "category": "Production source",
+  "audience": "maintainers",
+  "authoritative": "implementation (behavioral authority)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/catalog/web/view.rs",
+  "category": "Production source",
+  "audience": "maintainers",
+  "authoritative": "implementation (behavioral authority)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/catalog/workbench.rs",
+  "category": "Production source",
+  "audience": "maintainers",
+  "authoritative": "implementation (behavioral authority)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/cohort.rs",
+  "category": "Production source",
+  "audience": "maintainers",
+  "authoritative": "implementation (behavioral authority)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/compare.rs",
+  "category": "Production source",
+  "audience": "maintainers",
+  "authoritative": "implementation (behavioral authority)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/conventions/grnoc.rs",
+  "category": "Production source",
+  "audience": "maintainers",
+  "authoritative": "implementation (behavioral authority)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/conventions/mod.rs",
+  "category": "Production source",
+  "audience": "maintainers",
+  "authoritative": "implementation (behavioral authority)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/derived_cache.rs",
+  "category": "Production source",
+  "audience": "maintainers",
+  "authoritative": "implementation (behavioral authority)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/discover.rs",
+  "category": "Production source",
+  "audience": "maintainers",
+  "authoritative": "implementation (behavioral authority)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/domain/assessment.rs",
+  "category": "Production source",
+  "audience": "maintainers",
+  "authoritative": "implementation (behavioral authority)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/domain/entity.rs",
+  "category": "Production source",
+  "audience": "maintainers",
+  "authoritative": "implementation (behavioral authority)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/domain/event.rs",
+  "category": "Production source",
+  "audience": "maintainers",
+  "authoritative": "implementation (behavioral authority)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/domain/expectation.rs",
+  "category": "Production source",
+  "audience": "maintainers",
+  "authoritative": "implementation (behavioral authority)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/domain/mod.rs",
+  "category": "Production source",
+  "audience": "maintainers",
+  "authoritative": "implementation (behavioral authority)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/domain/observation.rs",
+  "category": "Production source",
+  "audience": "maintainers",
+  "authoritative": "implementation (behavioral authority)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/domain/route.rs",
+  "category": "Production source",
+  "audience": "maintainers",
+  "authoritative": "implementation (behavioral authority)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/domain/wave.rs",
+  "category": "Production source",
+  "audience": "maintainers",
+  "authoritative": "implementation (behavioral authority)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/fixtures.rs",
+  "category": "Production source",
+  "audience": "maintainers",
+  "authoritative": "implementation (behavioral authority)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/ingest/mod.rs",
+  "category": "Production source",
+  "audience": "maintainers",
+  "authoritative": "implementation (behavioral authority)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/lib.rs",
+  "category": "Production source",
+  "audience": "maintainers",
+  "authoritative": "implementation (behavioral authority)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/lifecycle.rs",
+  "category": "Production source",
+  "audience": "maintainers",
+  "authoritative": "implementation (behavioral authority)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/main.rs",
+  "category": "Production source",
+  "audience": "maintainers",
+  "authoritative": "implementation (behavioral authority)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/manifest.rs",
+  "category": "Production source",
+  "audience": "maintainers",
+  "authoritative": "implementation (behavioral authority)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/observability.rs",
+  "category": "Production source",
+  "audience": "maintainers",
+  "authoritative": "implementation (behavioral authority)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/orchestrate.rs",
+  "category": "Production source",
+  "audience": "maintainers",
+  "authoritative": "implementation (behavioral authority)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/outcome.rs",
+  "category": "Production source",
+  "audience": "maintainers",
+  "authoritative": "implementation (behavioral authority)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/output.rs",
+  "category": "Production source",
+  "audience": "maintainers",
+  "authoritative": "implementation (behavioral authority)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/perf.rs",
+  "category": "Production source",
+  "audience": "maintainers",
+  "authoritative": "implementation (behavioral authority)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/pipeline.rs",
+  "category": "Production source",
+  "audience": "maintainers",
+  "authoritative": "implementation (behavioral authority)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/plan.rs",
+  "category": "Production source",
+  "audience": "maintainers",
+  "authoritative": "implementation (behavioral authority)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/profiles/internet2.rs",
+  "category": "Production source",
+  "audience": "maintainers",
+  "authoritative": "implementation (behavioral authority)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/profiles/mod.rs",
+  "category": "Production source",
+  "audience": "maintainers",
+  "authoritative": "implementation (behavioral authority)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/report.rs",
+  "category": "Production source",
+  "audience": "maintainers",
+  "authoritative": "implementation (behavioral authority)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/routes.rs",
+  "category": "Production source",
+  "audience": "maintainers",
+  "authoritative": "implementation (behavioral authority)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/schema.rs",
+  "category": "Production source",
+  "audience": "maintainers",
+  "authoritative": "implementation (behavioral authority)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/sequitur/builder.rs",
+  "category": "Production source",
+  "audience": "maintainers",
+  "authoritative": "implementation (behavioral authority)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/sequitur/grammar.rs",
+  "category": "Production source",
+  "audience": "maintainers",
+  "authoritative": "implementation (behavioral authority)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/sequitur/invariants.rs",
+  "category": "Production source",
+  "audience": "maintainers",
+  "authoritative": "implementation (behavioral authority)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/sequitur/mod.rs",
+  "category": "Production source",
+  "audience": "maintainers",
+  "authoritative": "implementation (behavioral authority)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/sources/grnoc.rs",
+  "category": "Production source",
+  "audience": "maintainers",
+  "authoritative": "implementation (behavioral authority)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/sources/internet2/mod.rs",
+  "category": "Production source",
+  "audience": "maintainers",
+  "authoritative": "implementation (behavioral authority)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/sources/internet2/ticket.rs",
+  "category": "Production source",
+  "audience": "maintainers",
+  "authoritative": "implementation (behavioral authority)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/sources/mod.rs",
+  "category": "Production source",
+  "audience": "maintainers",
+  "authoritative": "implementation (behavioral authority)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/target.rs",
+  "category": "Production source",
+  "audience": "maintainers",
+  "authoritative": "implementation (behavioral authority)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/tokenize.rs",
+  "category": "Production source",
+  "audience": "maintainers",
+  "authoritative": "implementation (behavioral authority)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/waves.rs",
+  "category": "Production source",
+  "audience": "maintainers",
+  "authoritative": "implementation (behavioral authority)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "tests/fixtures/README.md",
+  "category": "Test fixture",
+  "audience": "maintainers",
+  "authoritative": "upstream source or synthetic generator",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "tests/fixtures/grnoc/INC0301970.json",
+  "category": "Test fixture",
+  "audience": "maintainers",
+  "authoritative": "upstream source or synthetic generator",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "tests/fixtures/grnoc/viewer/CHG0099999.json",
+  "category": "Test fixture",
+  "audience": "maintainers",
+  "authoritative": "upstream source or synthetic generator",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "tests/fixtures/grnoc/viewer/INC0227937.json",
+  "category": "Test fixture",
+  "audience": "maintainers",
+  "authoritative": "upstream source or synthetic generator",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "tests/fixtures/grnoc/viewer/INC0301970.json",
+  "category": "Test fixture",
+  "audience": "maintainers",
+  "authoritative": "upstream source or synthetic generator",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "tests/fixtures/grnoc/viewer/malformed.json",
+  "category": "Test fixture",
+  "audience": "maintainers",
+  "authoritative": "upstream source or synthetic generator",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "tests/fixtures/internet2/CHG0107955.json",
+  "category": "Test fixture",
+  "audience": "maintainers",
+  "authoritative": "upstream source or synthetic generator",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "tests/fixtures/internet2/INC0299001.json",
+  "category": "Test fixture",
+  "audience": "maintainers",
+  "authoritative": "upstream source or synthetic generator",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "tests/fixtures/internet2/INC0302574.json",
+  "category": "Test fixture",
+  "audience": "maintainers",
+  "authoritative": "upstream source or synthetic generator",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "tests/fixtures/mrt/update-example.gz",
+  "category": "Test fixture",
+  "audience": "maintainers",
+  "authoritative": "upstream source or synthetic generator",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "tests/fixtures/ris/updates.20190821.1600.gz",
+  "category": "Test fixture",
+  "audience": "maintainers",
+  "authoritative": "upstream source or synthetic generator",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "tests/i2px_audit_test.rs",
+  "category": "Test source",
+  "audience": "maintainers",
+  "authoritative": "implementation behavior + fixtures",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "tests/release_test.rs",
+  "category": "Test source",
+  "audience": "maintainers",
+  "authoritative": "implementation behavior + fixtures",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "tests/rrc11_audit_test.rs",
+  "category": "Test source",
+  "audience": "maintainers",
+  "authoritative": "implementation behavior + fixtures",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "tests/vertical_slice_test.rs",
+  "category": "Test source",
+  "audience": "maintainers",
+  "authoritative": "implementation behavior + fixtures",
+  "generated": false,
+  "current": true
+ }
+]
