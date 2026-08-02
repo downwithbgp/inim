@@ -2848,6 +2848,7 @@ pub fn load_event_workbench(
         std::path::Path::new("case-studies/manlan-2019/pilot"),
     );
     crate::catalog::workbench::WorkbenchContext::load_session_metadata(conn, &mut context);
+    crate::catalog::workbench::WorkbenchContext::load_relationship_audit(&mut context, event_id);
     let Some(vm) = crate::catalog::workbench::IncidentWorkbenchViewModel::for_event(
         conn,
         event_id,

@@ -3177,6 +3177,22 @@ pub fn render_observed_result(vm: &IncidentWorkbenchViewModel) -> String {
     out
 }
 
+/// Reviewed ticket-relationship audit (Session 38, Part 8).
+///
+/// Loaded from the reviewed audit artifact (`manifests/{event_id}-
+/// relationship-audit.json`, runtime data). When present, the ticket's
+/// assessment uses ONLY relationship-relevant evidence: a qualifying
+/// observer for the named relationship, or an explicit insufficiency
+/// statement — never a supporting-plane run presented as primary.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct TicketRelationshipAudit {
+    pub relationship: String,
+    pub decision: String,
+    pub assessment: String,
+    pub supporting_run_classification: String,
+    pub supporting_note: String,
+}
+
 /// Machine-readable unit totals (Session 38, Part 1/10).
 ///
 /// One source of truth for the page, the JSON API, the text report,
@@ -3269,6 +3285,9 @@ pub struct IncidentWorkbenchViewModel {
     pub plane_asns: Vec<u32>,
     /// Machine-readable unit totals (Part 1/10).
     pub units: WorkbenchUnits,
+    /// Reviewed ticket-relationship audit (Part 8); None for subjects
+    /// without one.
+    pub relationship_audit: Option<TicketRelationshipAudit>,
     pub runs: Vec<WorkbenchRunView>,
     pub episodes: Vec<ObserverEpisode>,
     pub breadth: Vec<RegionObservationSummary>,
@@ -3297,6 +3316,9 @@ pub struct WorkbenchRunView {
     pub named_path_plane: String,
     /// "{source family}/{collector}" (runtime manifest data).
     pub source: String,
+    /// Run classification for the ticket relationship (Part 8), e.g.
+    /// "supporting-re-plane"; empty when no audit exists.
+    pub classification: String,
     pub archive_coverage: String,
 }
 
@@ -3316,6 +3338,8 @@ pub struct CoverageSessionView {
 /// Reviewed session context for workbench building.
 #[derive(Debug, Clone, Default)]
 pub struct WorkbenchContext {
+    /// Reviewed ticket-relationship audit (Part 8), when one exists.
+    pub relationship_audit: Option<TicketRelationshipAudit>,
     /// (collector, peer_ip) → (peer_asn, label, role, relationship).
     pub session_peers: BTreeMap<(String, String), (u32, String, String, RelationshipKind)>,
     pub registry: Option<CollectorLocationRegistry>,
@@ -3479,6 +3503,11 @@ impl IncidentWorkbenchViewModel {
             if plane_asns.is_empty() {
                 plane_asns = meta.predicate_asns;
             }
+            let run_classification = context
+                .relationship_audit
+                .as_ref()
+                .map(|a| a.supporting_run_classification.clone())
+                .unwrap_or_default();
             run_views.push(WorkbenchRunView {
                 id: run.id,
                 event_id: subject_id.to_string(),
@@ -3490,6 +3519,7 @@ impl IncidentWorkbenchViewModel {
                 window_end: meta.window_end.clone(),
                 named_path_plane: meta.plane.clone(),
                 source: meta.source.clone(),
+                classification: run_classification.clone(),
                 archive_coverage: meta.coverage.clone(),
             });
 
@@ -3598,6 +3628,12 @@ impl IncidentWorkbenchViewModel {
         let plane_label = named_planes.first().cloned().unwrap_or_default();
         let grouped_cues = build_grouped_cues(&episodes, &plane_label, &plane_asns);
         let units = WorkbenchUnits::from_parts(&breadth, &episodes);
+        // Part 8: when a ticket-relationship audit exists, the primary
+        // assessment comes from relationship-relevant evidence.
+        let expectation_assessment = match &context.relationship_audit {
+            Some(a) => a.assessment.clone(),
+            None => expectation,
+        };
         let vm = IncidentWorkbenchViewModel {
             subject_id: subject_id.to_string(),
             subject_kind: subject_kind.to_string(),
@@ -3608,7 +3644,7 @@ impl IncidentWorkbenchViewModel {
             window_start,
             window_end,
             current_result,
-            expectation_assessment: expectation,
+            expectation_assessment,
             archive_coverage,
             observed_result: String::new(),
             scope_limit: String::new(),
@@ -3618,6 +3654,7 @@ impl IncidentWorkbenchViewModel {
             linked_tickets: Vec::new(),
             plane_asns,
             units,
+            relationship_audit: context.relationship_audit.clone(),
             runs: run_views,
             episodes,
             breadth,
@@ -3975,6 +4012,7 @@ mod workbench_view_tests {
                 route_instance_count: 0,
                 transition_count: 0,
             },
+            relationship_audit: None,
             runs: vec![],
             episodes: vec![],
             breadth: vec![],
@@ -3996,6 +4034,18 @@ impl WorkbenchContext {
     /// (network profile, collector locations, session audit, reviewed
     /// peering-plane pilot decision). Returns an empty context when the directory
     /// or its data files are absent (generic events).
+    /// Load the reviewed ticket-relationship audit from the manifests
+    /// directory (runtime data; file name is generic — the plane
+    /// identity lives in the file, never in src/).
+    pub fn load_relationship_audit(ctx: &mut WorkbenchContext, event_id: &str) {
+        let path = format!("out/{event_id}/relationship-audit.json");
+        if let Ok(raw) = std::fs::read_to_string(&path) {
+            if let Ok(audit) = serde_json::from_str::<TicketRelationshipAudit>(&raw) {
+                ctx.relationship_audit = Some(audit);
+            }
+        }
+    }
+
     /// Load observed peer-session metadata from the catalog (Part 5).
     pub fn load_session_metadata(conn: &Connection, ctx: &mut WorkbenchContext) {
         if let Ok(rows) = crate::catalog::store::list_session_metadata(conn) {
@@ -4168,6 +4218,12 @@ impl IncidentWorkbenchViewModel {
             "  current observed result: {}\n  expectation: {}\n  archive coverage: {}\n",
             self.current_result, self.expectation_assessment, self.archive_coverage
         ));
+        if let Some(a) = &self.relationship_audit {
+            out.push_str(&format!(
+                "  ticket relationship assessment: {}\n  supporting note: {}\n",
+                a.assessment, a.supporting_note
+            ));
+        }
         out.push_str(&format!(
             "  units: {} observer session(s), {} changed, {} episode(s), {} stream(s), {} distinct prefix(es), {} route instance(s), {} transition(s)\n",
             self.units.session_count,
@@ -4327,6 +4383,7 @@ mod text_report_tests {
                 route_instance_count: 0,
                 transition_count: 0,
             },
+            relationship_audit: None,
             runs: vec![],
             episodes: vec![ObserverEpisode {
                 analysis_run: 1,
@@ -5066,6 +5123,7 @@ mod session38_unit_tests {
             linked_tickets: vec![],
             plane_asns: vec![],
             units,
+            relationship_audit: None,
             runs: vec![],
             episodes: episodes.clone(),
             breadth: rows,

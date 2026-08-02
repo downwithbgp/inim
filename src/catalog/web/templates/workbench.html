@@ -14,6 +14,10 @@
     {% if !vm.scope_limit.is_empty() %}
     <p class="wb-scope">Scope limit: {{ vm.scope_limit }}</p>
     {% endif %}
+    {% if vm.relationship_audit.is_some() %}
+    <p class="wb-audit">Ticket relationship assessment: {{ vm.relationship_audit.as_ref().unwrap().assessment }}</p>
+    <p class="muted wb-note">{{ vm.relationship_audit.as_ref().unwrap().supporting_note }}</p>
+    {% endif %}
   </div>
 
   <p class="wb-links">
@@ -312,13 +316,14 @@
   <summary>Analysis history ({{ runs.len() }} runs)</summary>
   <div class="wb-scroll">
   <table class="wb-table">
-  <thead><tr><th>Run</th><th>Source family / collector</th><th>Plane</th><th>Completed</th><th>Result</th><th>Details</th></tr></thead>
+  <thead><tr><th>Run</th><th>Source family / collector</th><th>Plane</th><th>Classification</th><th>Completed</th><th>Result</th><th>Details</th></tr></thead>
   <tbody>
   {% for r in runs %}
   <tr>
     <td class="wb-num">{{ r.id }}</td>
     <td class="wb-nowrap">{{ r.source }}</td>
     <td>{{ r.named_path_plane }}</td>
+    <td>{% if r.classification.is_empty() %}—{% else %}{{ r.classification }}{% endif %}</td>
     <td class="wb-mono wb-nowrap">{{ r.completed_at }}</td>
     <td>{{ r.verdict }}</td>
     <td><a href="/analyses/{{ r.id }}">run detail</a></td>

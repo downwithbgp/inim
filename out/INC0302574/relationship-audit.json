@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "event_id": "INC0302574",
+  "relationship": "direct I2PX peer relationship (ticket: 'Brief Outage - I2 PX Peer RIPE via NYIIX (NEWA)')",
+  "reviewed_at": "2026-08-02",
+  "event_date": "2026-07-30",
+  "method": "Full peer inventory of the event-date RIS baseline bviews (bview.20260730.0000.gz) at the candidate collectors with direct AS11164 peers per the current RIS peer lists (RRC11/NYIIX and RRC14/Palo Alto). The event-date bview peer table is authoritative; current peer lists are supporting context only.",
+  "baseline_bviews": [
+    {
+      "collector": "rrc11",
+      "filename": "bview.20260730.0000.gz",
+      "timestamp_utc": "2026-07-30T00:00:00Z",
+      "source_sha256": "87103d659a21f54eda496e8cfddede6137447bed47241c61b0c14c8a9a8c51af",
+      "sessions": 43
+    },
+    {
+      "collector": "rrc14",
+      "filename": "bview.20260730.0000.gz",
+      "timestamp_utc": "2026-07-30T00:00:00Z",
+      "source_sha256": "bff2cd9881a2ccc0295407b75ee35c35efa0d339732be02468982a28ece77a67",
+      "sessions": 21
+    }
+  ],
+  "direct_i2px_sessions": [
+    { "collector": "rrc11", "peer_ip": "198.32.160.221", "address_family": "ipv4", "peer_asn": 11164, "as3333_origin_route_count": 0 },
+    { "collector": "rrc11", "peer_ip": "2001:504:1::a501:1164:1", "address_family": "ipv6", "peer_asn": 11164, "as3333_origin_route_count": 0 },
+    { "collector": "rrc14", "peer_ip": "198.32.176.128", "address_family": "ipv4", "peer_asn": 11164, "as3333_origin_route_count": 0 },
+    { "collector": "rrc14", "peer_ip": "2001:504:d::1:1164:2", "address_family": "ipv6", "peer_asn": 11164, "as3333_origin_route_count": 0 }
+  ],
+  "as3333_visibility": {
+    "note": "AS3333-origin routes are visible at both collectors via OTHER peer sessions (6 IPv4 + 1 IPv6 distinct prefixes at rrc11; 6 IPv4 + 1 IPv6 at rrc14), but NONE of those origin paths contain AS11164 (origin path-class membership for the I2PX plane is empty for every AS3333-origin session).",
+    "direct_session_qualifying_baseline": 0,
+    "indirect_path_qualifying_baseline": 0
+  },
+  "decision": "insufficient-visibility",
+  "assessment": "Insufficient public-collector visibility for the named I2PX relationship: the direct AS11164 sessions existed at RRC11 and RRC14 on 2026-07-30, but no AS3333-origin route was visible through them, and no AS3333-origin path contained AS11164. No qualifying I2PX baseline exists; the relationship cannot be assessed with public-collector evidence.",
+  "supporting_run_classification": "supporting-re-plane",
+  "supporting_note": "The existing INC0302574 run (origin AS3333, reviewed R&E-plane transit predicate, RouteViews collectors) observes the R&E plane, NOT the I2PX relationship named by the ticket. It is retained and classified as a supporting R&E-plane observation."
+}

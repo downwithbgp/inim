@@ -15,6 +15,17 @@ use crate::catalog::web::server::{build_app, build_state};
 use crate::catalog::web::AppState;
 
 #[allow(dead_code)]
+/// Expected INC0302574 relationship assessment (runtime data; the
+/// plane identity never enters src/).
+fn audit_assessment() -> String {
+    let raw = std::fs::read_to_string("out/INC0302574/relationship-audit.json").unwrap_or_default();
+    let v: serde_json::Value = serde_json::from_str(&raw).unwrap_or_default();
+    v.get("assessment")
+        .and_then(|a| a.as_str())
+        .unwrap_or("")
+        .to_string()
+}
+
 fn repo_artifacts_available() -> bool {
     std::path::Path::new("manifests").is_dir()
         && std::path::Path::new("out/INC0302574/report.json").is_file()
@@ -1445,11 +1456,17 @@ async fn expectation_assessment_uses_assessment_not_title() {
         return;
     }
     assert_eq!(status, StatusCode::OK);
+    // Session 38 Part 8: the ticket names the direct peer relationship
+    // on the reviewed PX plane (plane identity lives in reviewed data,
+    // never in src/), so the expectation assessment comes from the
+    // reviewed relationship audit (insufficient visibility), not from
+    // the R&E run's assessment and never from the target label.
     assert!(
-        body.contains(
-            "Expectation assessment</dt><dd>Consistent with the redundant-attachment expectation."
-        ),
-        "assessment text from the run assessment renders in the assessment field"
+        body.contains(&format!(
+            "Expectation assessment</dt><dd>{}",
+            audit_assessment()
+        )),
+        "relationship-relevant assessment renders in the assessment field"
     );
     assert!(
         !body.contains("Expectation assessment</dt><dd>RIPE via NYIIX"),
@@ -1465,6 +1482,11 @@ async fn expectation_assessment_uses_assessment_not_title() {
     assert!(
         !uva.contains("Expectation assessment</dt><dd>UVA via Internet2"),
         "target label not expectation"
+    );
+    // UVA has no relationship audit: its assessment stays the run assessment.
+    assert!(
+        !uva.contains("Insufficient public-collector visibility"),
+        "no audit applies to UVA"
     );
 }
 
@@ -2179,10 +2201,21 @@ async fn header_does_not_inline_all_linked_ticket_ids() {
     );
     assert!(body.contains("View tickets"), "toggle present");
     // The identifiers are inside the toggle's content; the header line
-    // itself must not contain the full list.
+    // itself must not contain the comma-separated wall (the first
+    // identifier is runtime data — read it from the case-study file).
+    let cs =
+        std::fs::read_to_string("case-studies/manlan-2019/case-study.json").unwrap_or_default();
+    let cs_v: serde_json::Value = serde_json::from_str(&cs).unwrap_or_default();
+    let first_id = cs_v
+        .get("related_events")
+        .and_then(|r| r.as_array())
+        .and_then(|r| r.first())
+        .and_then(|t| t.get("external_identifier"))
+        .and_then(|t| t.as_str())
+        .unwrap_or("__none__");
     let header = body.split("wb-event-context").next().unwrap_or("");
     assert!(
-        !header.contains("CHG0038258, INC0040257"),
+        !header.contains(&format!("{first_id},")),
         "no inline ticket-id wall in the first summary"
     );
 }
