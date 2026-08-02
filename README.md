@@ -87,6 +87,9 @@ reference their source runs. See `docs/DATA_PROVENANCE.md` and
 cargo build --release
 ```
 
+The built binary is `./target/release/inim` (or install it on your PATH
+with `cargo install --path .`).
+
 ### Local catalog and web workbench
 
 ```sh
