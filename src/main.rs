@@ -313,6 +313,22 @@ enum CatalogCommands {
         #[arg(long, value_name = "PATH", default_value = "session-audit.json")]
         out: PathBuf,
     },
+    /// Backfill OBSERVED peer-session metadata from cached baseline RIBs.
+    ///
+    /// Runs a full peer inventory over the given cache directories for
+    /// the date and records each session's peer ASN (an observed
+    /// protocol fact) into observer_session_metadata, time-scoped by the
+    /// RIB timestamp. Idempotent: re-running produces identical rows.
+    SessionMetadataBackfill {
+        #[arg(long, value_name = "PATH")]
+        db: PathBuf,
+        /// Cache directory + source family, repeatable: --cache DIR:family.
+        #[arg(long, value_name = "DIR:FAMILY", required = true)]
+        cache: Vec<String>,
+        /// Filename date filter for baseline RIBs (e.g. 20260714).
+        #[arg(long, value_name = "DATE", required = true)]
+        date: String,
+    },
 }
 
 /// Ticket-relationship administration.
@@ -1418,6 +1434,36 @@ fn cmd_catalog(stdout: &mut dyn Write, command: &CatalogCommands) -> i32 {
             *full_inventory,
             out,
         ),
+        CatalogCommands::SessionMetadataBackfill { db, cache, date } => {
+            let conn = match inim::catalog::db::open_catalog(db) {
+                Ok(c) => c,
+                Err(e) => {
+                    let _ = writeln!(stdout, "error: {e}");
+                    return EXIT_INVALID_INPUT;
+                }
+            };
+            let mut caches: Vec<(std::path::PathBuf, String)> = Vec::new();
+            for entry in cache {
+                let Some((dir, family)) = entry.split_once(':') else {
+                    let _ = writeln!(stdout, "error: --cache expects DIR:FAMILY, got {entry:?}");
+                    return EXIT_INVALID_INPUT;
+                };
+                caches.push((std::path::PathBuf::from(dir), family.to_string()));
+            }
+            match inim::catalog::session_audit::backfill_session_metadata(&conn, &caches, date) {
+                Ok(n) => {
+                    let _ = writeln!(
+                        stdout,
+                        "session metadata backfill: {n} observation(s) recorded"
+                    );
+                    EXIT_SUCCESS
+                }
+                Err(e) => {
+                    let _ = writeln!(stdout, "error: {e}");
+                    EXIT_INVALID_INPUT
+                }
+            }
+        }
         CatalogCommands::AnalysisQueue { db, state } => {
             cmd_analysis_queue(stdout, db, state.as_deref())
         }

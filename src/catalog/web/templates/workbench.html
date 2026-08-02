@@ -131,6 +131,7 @@
   <th>Prefixes</th>
   <th>Restored</th>
   <th>End state</th>
+  <th>Cooldown outcome</th>
   <th>Details</th>
 </tr></thead>
 <tbody>
@@ -145,6 +146,7 @@
   <td class="wb-num" data-label="Prefixes">{{ e.prefixes }}</td>
   <td class="wb-mono wb-nowrap" data-label="Restored">{{ e.restored }}</td>
   <td data-label="End state"><span class="wb-end {{ e.end_state_class }}">{{ e.end_state }}</span></td>
+  <td data-label="Cooldown outcome">{{ e.cooldown }}</td>
   <td>
     <details class="wb-episode-details"{% if e.expanded %} open{% endif %}>
       <summary>View</summary>
@@ -216,7 +218,7 @@
   <table class="wb-table wb-episodes">
   <thead><tr>
     <th>First</th><th>Region</th><th>Observer</th><th>Peer / view</th>
-    <th>Observed change</th><th>Streams</th><th>Prefixes</th><th>Restored</th><th>End state</th><th>Details</th>
+    <th>Observed change</th><th>Streams</th><th>Prefixes</th><th>Restored</th><th>End state</th><th>Cooldown outcome</th><th>Details</th>
   </tr></thead>
   <tbody>
   {% for e in unchanged_episodes %}
@@ -230,6 +232,7 @@
     <td class="wb-num" data-label="Prefixes">{{ e.prefixes }}</td>
     <td class="wb-mono wb-nowrap" data-label="Restored">{{ e.restored }}</td>
     <td data-label="End state"><span class="wb-end {{ e.end_state_class }}">{{ e.end_state }}</span></td>
+    <td data-label="Cooldown outcome">{{ e.cooldown }}</td>
     <td>
       <details class="wb-episode-details"{% if e.expanded %} open{% endif %}>
         <summary>View</summary>

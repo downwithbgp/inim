@@ -2843,9 +2843,10 @@ pub fn load_event_workbench(
     let Some(event) = event else { return Ok(None) };
     // Collector sites are stable reviewed facts; the pilot-scoped session
     // audit and peering-plane decision are NOT applied to unrelated events.
-    let context = crate::catalog::workbench::WorkbenchContext::load_registry_only(
+    let mut context = crate::catalog::workbench::WorkbenchContext::load_registry_only(
         std::path::Path::new("case-studies/manlan-2019/pilot"),
     );
+    crate::catalog::workbench::WorkbenchContext::load_session_metadata(conn, &mut context);
     let Some(vm) = crate::catalog::workbench::IncidentWorkbenchViewModel::for_event(
         conn,
         event_id,
@@ -2893,7 +2894,8 @@ pub fn load_case_study_workbench(
     let pilot_dir = std::path::Path::new("case-studies")
         .join(slug)
         .join("pilot");
-    let context = crate::catalog::workbench::WorkbenchContext::load_from_pilot_dir(&pilot_dir);
+    let mut context = crate::catalog::workbench::WorkbenchContext::load_from_pilot_dir(&pilot_dir);
+    crate::catalog::workbench::WorkbenchContext::load_session_metadata(conn, &mut context);
     let Some(mut vm) = crate::catalog::workbench::IncidentWorkbenchViewModel::for_case_study(
         conn,
         slug,
@@ -3143,6 +3145,7 @@ pub struct WorkbenchEpisodeRow {
     pub restored: String,
     pub end_state: String,
     pub end_state_class: String,
+    pub cooldown: String,
     pub changed: bool,
     pub session: String,
     pub sentence: String,
@@ -3278,6 +3281,28 @@ fn effect_slug(kind: &crate::catalog::workbench::EffectKind) -> &'static str {
     }
 }
 
+/// Human peer-identity label from OBSERVED peer ASNs (Part 5).
+///
+/// The observed ASN is a protocol fact and renders even without a
+/// reviewed organization label; conflicting observations render as
+/// ambiguous instead of silently choosing one.
+pub fn peer_identity_label(observed_asns: Vec<u32>) -> String {
+    let mut asns = observed_asns;
+    asns.sort_unstable();
+    asns.dedup();
+    match asns.len() {
+        0 => "peer ASN not observed in source evidence".to_string(),
+        1 => format!(
+            "AS{} · organization unclassified · role unclassified",
+            asns[0]
+        ),
+        _ => {
+            let list: Vec<String> = asns.iter().map(|a| format!("AS{a}")).collect();
+            format!("peer ASN ambiguous ({})", list.join(" / "))
+        }
+    }
+}
+
 fn episode_row(
     vm: &crate::catalog::workbench::IncidentWorkbenchViewModel,
     e: &crate::catalog::workbench::ObserverEpisode,
@@ -3295,11 +3320,37 @@ fn episode_row(
         format!("{collector} · {}", e.observer_site)
     };
     let relationship = e.relationship.label().to_lowercase();
-    let peer = match e.peer_asn {
-        Some(asn) => format!("AS{asn}"),
-        None => "peer ASN not in reviewed evidence".to_string(),
+    // Observed peer ASN (protocol fact from RIB evidence, Part 5) takes
+    // precedence; reviewed organization labels are separate concepts.
+    let (peer, org_role) = if !e.observed_peer_asns.is_empty() {
+        let label = peer_identity_label(e.observed_peer_asns.clone());
+        if label.starts_with("peer ASN ambiguous") {
+            (label, String::new())
+        } else {
+            // label = "ASn · organization unclassified · role unclassified"
+            let mut parts = label.splitn(2, " · ");
+            (
+                parts.next().unwrap_or(&label).to_string(),
+                parts.next().unwrap_or("").to_string(),
+            )
+        }
+    } else {
+        match e.peer_asn {
+            Some(asn) => (format!("AS{asn}"), String::new()),
+            None => (
+                "peer ASN not observed in source evidence".to_string(),
+                String::new(),
+            ),
+        }
     };
-    let peer_view = format!("{peer} · {relationship} {}", e.named_path_plane);
+    let peer_view = if org_role.is_empty() {
+        format!("{peer} · {relationship} {}", e.named_path_plane)
+    } else {
+        format!(
+            "{peer} · {org_role} · {relationship} {}",
+            e.named_path_plane
+        )
+    };
     let restored = if changed {
         match (&e.restoration_start, &e.restoration_end) {
             (Some(a), Some(b)) if a != b => {
@@ -3310,6 +3361,23 @@ fn episode_row(
         }
     } else {
         "—".to_string()
+    };
+    use crate::catalog::workbench::CooldownOutcome as CO;
+    let cooldown = match &e.cooldown_outcome {
+        CO::None => "—".to_string(),
+        CO::RestoredAt(t) => format!("Restored {} in cooldown", wb_time(t, window)),
+        CO::StillChangingBeforeAnalysisEnd(t) => {
+            format!(
+                "Still changing at {}; no restoration before analysis end",
+                wb_time(t, window)
+            )
+        }
+        CO::NoRestorationBeforeAnalysisEnd(end) => {
+            format!(
+                "No restoration before analysis end ({})",
+                wb_time(end, window)
+            )
+        }
     };
     let (end_state, end_state_class) = match e.end_state {
         ES::BaselineRestored => ("Baseline restored".to_string(), "wb-end-restored"),
@@ -3432,6 +3500,7 @@ fn episode_row(
         restored,
         end_state,
         end_state_class: end_state_class.to_string(),
+        cooldown,
         changed,
         session: e.observer_session.clone(),
         sentence: e.representative_evidence.clone(),

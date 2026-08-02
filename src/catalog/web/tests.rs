@@ -1539,8 +1539,8 @@ async fn observed_peer_asn_is_never_rendered_as_unreviewed() {
     // reviewed evidence — a fact about evidence, not a review verdict.
     let (_, ripe) = event_workbench("INC0302574").await;
     assert!(
-        ripe.contains("peer ASN not in reviewed evidence"),
-        "absence of peer ASN evidence rendered honestly"
+        ripe.contains("peer ASN not observed in source evidence"),
+        "absence of observed peer-ASN evidence rendered honestly"
     );
     assert!(!ripe.contains("ASN: unreviewed"));
 }

@@ -5,10 +5,10 @@
 //! reopened database at the current version is a no-op.
 
 /// Current catalog schema version.
-pub const CATALOG_SCHEMA_VERSION: u32 = 8;
+pub const CATALOG_SCHEMA_VERSION: u32 = 9;
 
 /// Ordered migrations. Index i migrates user_version i -> i+1.
-pub const MIGRATIONS: &[&str] = &[V1, V2, V3, V4, V5, V6, V7, V8];
+pub const MIGRATIONS: &[&str] = &[V1, V2, V3, V4, V5, V6, V7, V8, V9];
 
 const V1: &str = r#"
 CREATE TABLE catalog_events (
@@ -447,4 +447,30 @@ CREATE INDEX idx_reviews_external ON ticket_reviews(external_id);
 const V8: &str = r#"
 ALTER TABLE stream_lifecycle_summaries ADD COLUMN first_change_utc TEXT;
 ALTER TABLE stream_lifecycle_summaries ADD COLUMN restoration_time_utc TEXT;
+"#;
+
+/// V9 — observed peer-session metadata + run classification.
+///
+/// `observer_session_metadata` records the OBSERVED peer ASN per
+/// (collector, peer IP, address family) from baseline RIB evidence,
+/// time-scoped by the RIB timestamp. It is an observed protocol fact,
+/// distinct from reviewed organization labels. `analysis_runs.
+/// classification` labels a run's role for its ticket relationship
+/// (e.g. "primary" vs "supporting-re-plane") — Session 38.
+const V9: &str = r#"
+CREATE TABLE observer_session_metadata (
+    id             INTEGER PRIMARY KEY,
+    source_family  TEXT NOT NULL,
+    collector      TEXT NOT NULL,
+    peer_ip        TEXT NOT NULL,
+    address_family TEXT NOT NULL,
+    peer_asn       INTEGER NOT NULL,
+    valid_from     TEXT NOT NULL,
+    valid_to       TEXT,
+    source_archive TEXT NOT NULL,
+    source_sha256  TEXT NOT NULL,
+    UNIQUE (collector, peer_ip, address_family, peer_asn, source_archive)
+);
+CREATE INDEX idx_session_metadata_lookup ON observer_session_metadata(collector, peer_ip);
+ALTER TABLE analysis_runs ADD COLUMN classification TEXT;
 "#;

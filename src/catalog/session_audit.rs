@@ -381,6 +381,7 @@ pub fn run_peer_inventory(opts: &SessionAuditOptions) -> Result<Vec<PeerInventor
                     &rib.collector,
                     &rib.rib_timestamp_utc,
                     &sha,
+                    &rib.local_path.to_string_lossy(),
                     opts.origin_asns.clone(),
                 );
                 let res = match stream_full_inventory(&mut acc, rib) {
@@ -497,6 +498,55 @@ pub fn run_session_audit(opts: &SessionAuditOptions) -> Result<Vec<SessionAuditR
             ))
     });
     Ok(rows)
+}
+/// Backfill observed peer-session metadata from cached baseline RIBs
+/// (Session 38, Part 5).
+///
+/// Runs a FULL peer inventory (all sessions, any origin) over the given
+/// cache directories for the date and records each session's OBSERVED
+/// peer ASN into `observer_session_metadata`, time-scoped by the RIB
+/// timestamp. Idempotent: re-running produces identical rows. The
+/// inventory deliberately has no origin filter — the metadata is a
+/// protocol fact about the session, independent of the analysis target.
+pub fn backfill_session_metadata(
+    conn: &rusqlite::Connection,
+    caches: &[(std::path::PathBuf, String)],
+    date: &str,
+) -> Result<usize, String> {
+    let opts = SessionAuditOptions {
+        profile: crate::catalog::netprofile::ServicePlaneProfile {
+            service_planes: Vec::new(),
+            asn_roles: Vec::new(),
+            updated_utc: String::new(),
+            provenance: "session-metadata backfill (no plane classification)".to_string(),
+        },
+        registry: crate::catalog::netprofile::CollectorLocationRegistry::default(),
+        caches: caches.to_vec(),
+        date: date.to_string(),
+        origin_asns: Vec::new(),
+        jobs: 4,
+        extraction_cache: caches.first().map(|(d, _)| d.clone()).unwrap_or_default(),
+    };
+    let rows = run_peer_inventory(&opts)?;
+    let mut inserted = 0usize;
+    for row in &rows {
+        let metadata = crate::catalog::domain::ObserverSessionMetadata {
+            id: 0,
+            source_family: row.source_family.clone(),
+            collector: row.collector.clone(),
+            peer_ip: row.peer_ip.clone(),
+            address_family: row.address_family.clone(),
+            peer_asn: row.peer_asn,
+            valid_from: row.rib_timestamp_utc.clone(),
+            valid_to: None,
+            source_archive: row.rib_source.clone(),
+            source_sha256: row.rib_source_sha.clone(),
+        };
+        let id = crate::catalog::store::insert_session_metadata(conn, &metadata)?;
+        let _ = id;
+        inserted += 1;
+    }
+    Ok(inserted)
 }
 
 #[cfg(test)]

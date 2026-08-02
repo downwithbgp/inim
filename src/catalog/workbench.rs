@@ -235,6 +235,23 @@ impl EndState {
     }
 }
 
+/// Outcome observed AFTER the event-window end, during the analysis
+/// cooldown (Session 38, Part 7). The event-window end state and the
+/// final analysis state are INDEPENDENT facts: an episode can be
+/// "still changed at window end" and later restore in cooldown.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum CooldownOutcome {
+    /// No cooldown observation applies (already restored in-window).
+    None,
+    /// Restoration observed during cooldown (baseline or visibility,
+    /// per the exact transition kind) at the given timestamp.
+    RestoredAt(String),
+    /// Route-state changes continued during cooldown; no restoration.
+    StillChangingBeforeAnalysisEnd(String),
+    /// No transition evidence in the cooldown interval.
+    NoRestorationBeforeAnalysisEnd(String),
+}
+
 /// One episode: streams at one observer session sharing a signature.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ObserverEpisode {
@@ -246,6 +263,9 @@ pub struct ObserverEpisode {
     pub observer_region: String,
     /// Peer ASN when reviewed evidence provides it; None → unreviewed.
     pub peer_asn: Option<u32>,
+    /// Peer ASNs OBSERVED in source RIB evidence (protocol facts;
+    /// empty when not observed). >1 distinct value → ambiguous.
+    pub observed_peer_asns: Vec<u32>,
     pub peer_label: String,
     pub peer_role: String,
     pub relationship: RelationshipKind,
@@ -276,6 +296,8 @@ pub struct ObserverEpisode {
     /// End state at the analysis-window end, derived from lifecycle
     /// evidence (Part 1.3/1.4). NEVER "NoChange" for changed episodes.
     pub end_state: EndState,
+    /// Outcome observed after the window end, during cooldown (Part 7).
+    pub cooldown_outcome: CooldownOutcome,
     pub coverage_status: CoverageStatus,
     /// Data-supported sentence describing the episode.
     pub representative_evidence: String,
@@ -401,6 +423,68 @@ pub fn derive_end_state(
     }
 }
 
+/// Derive the cooldown outcome from transition evidence (Part 7).
+///
+/// Transitions with `occurred_utc` strictly after the event-window end
+/// and at or before the analysis end describe what happened AFTER the
+/// window. A `ReturnToBaseline` is a baseline restoration; an
+/// `Announcement` is a visibility restoration; continued
+/// `PathReplacement`/`Withdrawal` means still changing. Episodes
+/// already restored inside the window get `CooldownOutcome::None`.
+pub fn derive_cooldown_outcome(
+    episode: &ObserverEpisode,
+    transitions: &[RunTransitionRecord],
+    window_end: &str,
+    analysis_end: &str,
+) -> CooldownOutcome {
+    // Already restored inside the window: no cooldown question applies.
+    if matches!(
+        episode.end_state,
+        EndState::BaselineRestored | EndState::VisibilityRestored
+    ) {
+        return CooldownOutcome::None;
+    }
+    if matches!(episode.effect_kind, EffectKind::NoRouteStateChange) {
+        return CooldownOutcome::None;
+    }
+    let session = session_key_of(&episode.observer_session);
+    let in_cooldown: Vec<&RunTransitionRecord> = transitions
+        .iter()
+        .filter(|t| {
+            t.collector == session.collector
+                && t.peer_ip == session.peer_ip
+                && t.occurred_utc.as_str() > window_end
+                && t.occurred_utc.as_str() <= analysis_end
+        })
+        .collect();
+    if in_cooldown.is_empty() {
+        return CooldownOutcome::NoRestorationBeforeAnalysisEnd(analysis_end.to_string());
+    }
+    // Restoration signals (strongest first).
+    let baseline = in_cooldown
+        .iter()
+        .filter(|t| t.kind == "ReturnToBaseline")
+        .map(|t| t.occurred_utc.clone())
+        .max();
+    if let Some(t) = baseline {
+        return CooldownOutcome::RestoredAt(t);
+    }
+    let visibility = in_cooldown
+        .iter()
+        .filter(|t| t.kind == "Announcement")
+        .map(|t| t.occurred_utc.clone())
+        .max();
+    if let Some(t) = visibility {
+        return CooldownOutcome::RestoredAt(t);
+    }
+    let last_change = in_cooldown
+        .iter()
+        .map(|t| t.occurred_utc.clone())
+        .max()
+        .unwrap_or_else(|| analysis_end.to_string());
+    CooldownOutcome::StillChangingBeforeAnalysisEnd(last_change)
+}
+
 /// Build observer episodes for one run.
 ///
 /// Streams are grouped by (observer session, effect kind). `peer_asn`,
@@ -418,6 +502,30 @@ pub fn build_episodes(
     registry: &CollectorLocationRegistry,
     session_peers: &BTreeMap<(String, String), (u32, String, String, RelationshipKind)>,
     named_path_plane: &str,
+) -> Vec<ObserverEpisode> {
+    build_episodes_with_metadata(
+        run_id,
+        family,
+        streams,
+        transitions,
+        registry,
+        session_peers,
+        named_path_plane,
+        &[],
+    )
+}
+
+/// `build_episodes` with observed peer-session metadata (Part 5).
+#[allow(clippy::too_many_arguments)] // explicit data passthrough
+pub fn build_episodes_with_metadata(
+    run_id: i64,
+    family: &str,
+    streams: &[StreamLifecycleSummary],
+    transitions: &[RunTransitionRecord],
+    registry: &CollectorLocationRegistry,
+    session_peers: &BTreeMap<(String, String), (u32, String, String, RelationshipKind)>,
+    named_path_plane: &str,
+    metadata: &[crate::catalog::domain::ObserverSessionMetadata],
 ) -> Vec<ObserverEpisode> {
     // Group streams by session + kind.
     let mut groups: BTreeMap<(String, String, EffectKind), Vec<&StreamLifecycleSummary>> =
@@ -442,6 +550,19 @@ pub fn build_episodes(
                 "unreviewed".to_string(),
                 RelationshipKind::Ambiguous,
             ),
+        };
+        // Observed peer ASNs from RIB evidence (Part 5): a protocol
+        // fact, independent of reviewed organization labels. Multiple
+        // distinct observations for one session mean ambiguity.
+        let observed_asns: Vec<u32> = {
+            let mut seen: Vec<u32> = metadata
+                .iter()
+                .filter(|m| m.collector == collector && m.peer_ip == peer_ip)
+                .map(|m| m.peer_asn)
+                .collect();
+            seen.sort_unstable();
+            seen.dedup();
+            seen
         };
 
         // Per-session transition timestamps for this peer.
@@ -559,6 +680,7 @@ pub fn build_episodes(
                 .unwrap_or_else(|| collector.clone()),
             observer_region: registry.region_by_collector(&collector),
             peer_asn,
+            observed_peer_asns: observed_asns,
             peer_label,
             peer_role,
             relationship,
@@ -576,6 +698,9 @@ pub fn build_episodes(
             unresolved_count: unresolved,
             transition_count: session_transition_count,
             end_state,
+            // Filled by the workbench assembly from cooldown transition
+            // evidence (Part 7); the builder has no analysis end.
+            cooldown_outcome: CooldownOutcome::None,
             coverage_status: coverage,
             representative_evidence: String::new(), // filled by sentence renderer
             streams: members
@@ -788,88 +913,135 @@ pub fn render_timeline_svg(lanes: &[TimelineLane], anchors: &[TimelineMarker]) -
     const LEFT: f64 = 260.0;
     const RIGHT: f64 = 1150.0;
     const LANE_H: f64 = 26.0;
-    const TOP: f64 = 30.0;
+    const CONTEXT_H: f64 = 44.0;
+    const TOP: f64 = 24.0;
 
     let mut out = String::new();
+    let height = TOP
+        + if anchors.is_empty() { 0.0 } else { CONTEXT_H }
+        + (lanes.len() as f64) * LANE_H
+        + 40.0;
     out.push_str(&format!(
-        r#"<svg class="wb-timeline-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {}" role="img" aria-label="Observer-lane timeline (UTC)">"#,
-        TOP + (lanes.len() as f64 + 1.0) * LANE_H + 18.0
+        r#"<svg class="wb-timeline-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {height:.0}" role="img" aria-label="Observer-lane timeline (UTC)">"#
     ));
 
-    // BGP axis from the first lane's window (all lanes share it).
-    let (axis_start, axis_end) = match lanes.first() {
+    // The BGP focus axis is the analysis window (all lanes share it).
+    let (focus_start, focus_end) = match lanes.first() {
         Some(l) => (
             parse_utc_seconds(&l.window_start).unwrap_or(0),
             parse_utc_seconds(&l.window_end).unwrap_or(1),
         ),
         None => (0, 1),
     };
-    let span = (axis_end - axis_start).max(1);
-    let x_of = |t: i64| LEFT + (t - axis_start) as f64 / span as f64 * (RIGHT - LEFT);
+    let focus_span = (focus_end - focus_start).max(1);
+    let focus_x = |t: i64| LEFT + (t - focus_start) as f64 / focus_span as f64 * (RIGHT - LEFT);
 
-    // Axis ticks (start / mid / end).
-    let (s, m, e) = (axis_start, axis_start + span / 2, axis_end);
-    out.push_str(&format!(
-        r#"<g class="tl-axis"><line x1="{LEFT}" y1="{TOP}" x2="{RIGHT}" y2="{TOP}"/>"#
-    ));
-    for (t, label) in [(s, hms_of(s)), (m, hms_of(m)), (e, hms_of(e))] {
-        let x = x_of(t);
-        out.push_str(&format!(
-            r#"<line class="tl-tick" x1="{x:.1}" y1="{TOP}" x2="{x:.1}" y2="{:.1}"/><text class="tl-tick-label" x="{x:.1}" y="{:.1}" text-anchor="middle">{label}</text>"#,
-            TOP + 12.0, TOP + 12.0
-        ));
-    }
-    out.push_str("</g>");
-
-    // Operator lane (distinct styling), when anchors exist.
+    // ── Context strip (operator anchors only, Part 6) ──────────────
+    // Its own axis spans the anchors' exact extent, so an anchor at the
+    // strip edge is HONEST: the axis starts/ends AT that timestamp. An
+    // off-window anchor is NEVER placed on the focus axis.
+    let mut y = TOP;
     if !anchors.is_empty() {
-        let op_start = anchors
+        let ctx_start = anchors
             .iter()
             .filter_map(|a| parse_utc_seconds(&a.timestamp_utc))
             .min()
-            .unwrap_or(axis_start);
-        let op_end = anchors
+            .unwrap_or(focus_start);
+        let ctx_end = anchors
             .iter()
             .filter_map(|a| parse_utc_seconds(&a.timestamp_utc))
             .max()
-            .unwrap_or(axis_end);
-        let op_span = (op_end - op_start).max(1);
-        let lane_top = TOP + 18.0;
+            .unwrap_or(focus_end);
+        let ctx_span = (ctx_end - ctx_start).max(1);
+        let ctx_x = |t: i64| LEFT + (t - ctx_start) as f64 / ctx_span as f64 * (RIGHT - LEFT);
+        let axis_y = y + 12.0;
         out.push_str(&format!(
-            r#"<g class="tl-lane tl-lane-operator"><text class="tl-lane-label" x="8" y="{:.1}" text-anchor="start">Operator report</text><line class="tl-lane-line" x1="{LEFT}" y1="{:.1}" x2="{RIGHT}" y2="{:.1}"/>"#,
-            lane_top + 10.0, lane_top, lane_top
+            r#"<g class="tl-context" data-start="{ctx_start}" data-end="{ctx_end}"><text class="tl-lane-label" x="8" y="{:.1}" text-anchor="start">Operator context</text><line class="tl-axis-line" x1="{LEFT}" y1="{axis_y:.1}" x2="{RIGHT}" y2="{axis_y:.1}"/>"#,
+            axis_y + 10.0
         ));
+        for (t, label) in [
+            (ctx_start, hms_of(ctx_start)),
+            (ctx_start + ctx_span / 2, hms_of(ctx_start + ctx_span / 2)),
+            (ctx_end, hms_of(ctx_end)),
+        ] {
+            let x = ctx_x(t);
+            out.push_str(&format!(
+                r#"<line class="tl-tick" x1="{x:.1}" y1="{axis_y:.1}" x2="{x:.1}" y2="{:.1}"/><text class="tl-tick-label" x="{x:.1}" y="{:.1}" text-anchor="middle">{label}</text>"#,
+                axis_y + 8.0, axis_y + 12.0
+            ));
+        }
         for a in anchors {
             if let Some(t) = parse_utc_seconds(&a.timestamp_utc) {
-                let x = LEFT + (t - op_start) as f64 / op_span as f64 * (RIGHT - LEFT);
+                let x = ctx_x(t);
                 let label = escape_svg(&a.label);
                 out.push_str(&format!(
-                    r#"<g class="tl-op" transform="translate({x:.1},{:.1})"><path class="tl-op-marker" d="M0,-5 L5,0 L0,5 L-5,0 Z"/><text class="tl-op-label" x="8" y="4">{label}</text></g>"#,
-                    lane_top
+                    r#"<g class="tl-op" transform="translate({x:.1},{axis_y:.1})"><path class="tl-op-marker" d="M0,-5 L5,0 L0,5 L-5,0 Z"/><text class="tl-op-label" x="8" y="4">{label}</text></g>"#
                 ));
             }
         }
         out.push_str("</g>");
+        y += CONTEXT_H;
     }
 
-    // One lane per observer session.
+    // ── Focus timeline (BGP lanes + in-window operator anchors) ────
+    out.push_str(&format!(
+        r#"<g class="tl-focus" data-start="{focus_start}" data-end="{focus_end}"><text class="tl-lane-label" x="8" y="{:.1}" text-anchor="start">BGP focus window</text><line class="tl-axis-line" x1="{LEFT}" y1="{:.1}" x2="{RIGHT}" y2="{:.1}"/>"#,
+        y + 22.0, y + 12.0, y + 12.0
+    ));
+    for (t, label) in [
+        (focus_start, hms_of(focus_start)),
+        (
+            focus_start + focus_span / 2,
+            hms_of(focus_start + focus_span / 2),
+        ),
+        (focus_end, hms_of(focus_end)),
+    ] {
+        let x = focus_x(t);
+        out.push_str(&format!(
+            r#"<line class="tl-tick" x1="{x:.1}" y1="{:.1}" x2="{x:.1}" y2="{:.1}"/><text class="tl-tick-label" x="{x:.1}" y="{:.1}" text-anchor="middle">{label}</text>"#,
+            y + 12.0, y + 20.0, y + 24.0
+        ));
+    }
+    // In-window operator anchors (exact positions on the focus axis).
+    for a in anchors {
+        if let Some(t) = parse_utc_seconds(&a.timestamp_utc) {
+            if (focus_start..=focus_end).contains(&t) {
+                let x = focus_x(t);
+                let label = escape_svg(&a.label);
+                out.push_str(&format!(
+                    r#"<g class="tl-op tl-op-inwindow" transform="translate({x:.1},{:.1})"><path class="tl-op-marker" d="M0,-5 L5,0 L0,5 L-5,0 Z"/><text class="tl-op-label" x="8" y="4">{label}</text></g>"#,
+                    y + 12.0
+                ));
+            }
+        }
+    }
+    out.push_str("</g>");
+    y += 28.0;
+
+    // One lane per observer session (baselines strictly horizontal:
+    // y1 == y2). Lane labels carry the peer ASN where known.
     for (i, lane) in lanes.iter().enumerate() {
-        let lane_top = TOP + 18.0 + (i as f64 + 1.0) * LANE_H;
+        let lane_top = y + (i as f64) * LANE_H;
+        let peer = lane
+            .peer_asn
+            .map(|a| format!(" / AS{a}"))
+            .unwrap_or_default();
         let label = escape_svg(&format!(
-            "{} · {}",
+            "{} · {}{}",
             collector_from_session(&lane.observer_session),
-            lane.region
+            lane.region,
+            peer
         ));
         out.push_str(&format!(
             r#"<g class="tl-lane"><text class="tl-lane-label" x="8" y="{:.1}" text-anchor="start">{label}</text><line class="tl-lane-line" x1="{LEFT}" y1="{:.1}" x2="{RIGHT}" y2="{:.1}"/>"#,
-            lane_top + 10.0, label, lane_top
+            lane_top + 10.0, lane_top, lane_top
         ));
 
         // Absence interval (explicit start AND end, never extrapolated).
         if let Some((a, b)) = &lane.absence_interval {
             if let (Some(ta), Some(tb)) = (parse_utc_seconds(a), parse_utc_seconds(b)) {
-                let x1 = x_of(ta).max(LEFT);
-                let x2 = x_of(tb).min(RIGHT).max(x1 + 1.0);
+                let x1 = focus_x(ta).clamp(LEFT, RIGHT);
+                let x2 = focus_x(tb).clamp(LEFT, RIGHT).max(x1 + 1.0);
                 out.push_str(&format!(
                     r#"<rect class="tl-absence" x="{x1:.1}" y="{:.1}" width="{:.1}" height="7" rx="1"/>"#,
                     lane_top - 6.0, x2 - x1
@@ -879,8 +1051,8 @@ pub fn render_timeline_svg(lanes: &[TimelineLane], anchors: &[TimelineMarker]) -
         // Path-change interval.
         if let Some((a, b)) = &lane.path_change_interval {
             if let (Some(ta), Some(tb)) = (parse_utc_seconds(a), parse_utc_seconds(b)) {
-                let x1 = x_of(ta).max(LEFT);
-                let x2 = x_of(tb).min(RIGHT).max(x1 + 1.0);
+                let x1 = focus_x(ta).clamp(LEFT, RIGHT);
+                let x2 = focus_x(tb).clamp(LEFT, RIGHT).max(x1 + 1.0);
                 out.push_str(&format!(
                     r#"<rect class="tl-path" x="{x1:.1}" y="{:.1}" width="{:.1}" height="4"/>"#,
                     lane_top + 1.0,
@@ -891,7 +1063,7 @@ pub fn render_timeline_svg(lanes: &[TimelineLane], anchors: &[TimelineMarker]) -
         // First route change marker (BGP evidence).
         if let Some(m) = &lane.first_route_change {
             if let Some(t) = parse_utc_seconds(&m.timestamp_utc) {
-                let x = x_of(t).clamp(LEFT, RIGHT);
+                let x = focus_x(t).clamp(LEFT, RIGHT);
                 out.push_str(&format!(
                     r#"<path class="tl-bgp tl-first" transform="translate({x:.1},{:.1})" d="M0,-5 L4,0 L0,5 L-4,0 Z"/>"#,
                     lane_top
@@ -901,16 +1073,16 @@ pub fn render_timeline_svg(lanes: &[TimelineLane], anchors: &[TimelineMarker]) -
         // Restoration marker (only when lifecycle evidence has one).
         if let Some((a, b)) = &lane.restoration_interval {
             if let Some(t) = parse_utc_seconds(b).or_else(|| parse_utc_seconds(a)) {
-                let x = x_of(t).clamp(LEFT, RIGHT);
+                let x = focus_x(t).clamp(LEFT, RIGHT);
                 out.push_str(&format!(
                     r#"<path class="tl-restore" transform="translate({x:.1},{:.1})" d="M0,-6 L5,4 L-5,4 Z"/>"#,
                     lane_top
                 ));
             }
         }
-        // Changed-at-end marker: a lane with observed changes and no
-        // restoration interval (whether unresolved or still changed at
-        // the window end) gets a hollow square at the window end.
+        // Changed-at-end marker: observed changes with no restoration
+        // interval (unresolved or still changed) get a hollow square at
+        // the window end.
         if lane.first_route_change.is_some() && lane.restoration_interval.is_none() {
             let x = RIGHT;
             out.push_str(&format!(
@@ -921,9 +1093,10 @@ pub fn render_timeline_svg(lanes: &[TimelineLane], anchors: &[TimelineMarker]) -
         out.push_str("</g>");
     }
 
-    out.push_str(
-        r#"<g class="tl-legend"><text class="tl-legend-item" x="8" y="18">Legend:</text>"#,
-    );
+    let legend_y = y + (lanes.len() as f64) * LANE_H + 8.0;
+    out.push_str(&format!(
+        r#"<g class="tl-legend" transform="translate(8,{legend_y:.0})"><text class="tl-legend-item" x="0" y="10">Legend:</text>"#
+    ));
     let legend = [
         ("tl-absence", "absence interval"),
         ("tl-path", "path-change interval"),
@@ -932,10 +1105,10 @@ pub fn render_timeline_svg(lanes: &[TimelineLane], anchors: &[TimelineMarker]) -
         ("tl-changed-end", "changed at window end"),
         ("tl-op-marker", "operator-reported anchor"),
     ];
-    let mut lx = 90.0;
+    let mut lx = 80.0;
     for (class, text) in legend {
         out.push_str(&format!(
-            r#"<rect class="{class}" x="{lx:.0}" y="12" width="9" height="7"/><text class="tl-legend-item" x="{:.0}" y="20">{text}</text>"#,
+            r#"<rect class="{class}" x="{lx:.0}" y="4" width="9" height="7"/><text class="tl-legend-item" x="{:.0}" y="12">{text}</text>"#,
             lx + 12.0
         ));
         lx += 30.0 + (text.len() as f64) * 6.6;
@@ -967,6 +1140,30 @@ fn parse_utc_seconds(ts: &str) -> Option<i64> {
     let doy = (153 * mp + 2) / 5 + d - 1;
     let doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
     Some((era * 146097 + doe - 719468) * 86400 + h * 3600 + mi * 60 + s)
+}
+
+/// Format a seconds-since-epoch value as "YYYY-MM-DDTHH:MM:SSZ" (UTC).
+fn format_utc_iso(secs: i64) -> String {
+    let days = secs.div_euclid(86400);
+    let rem = secs.rem_euclid(86400);
+    // Inverse of the days-from-civil calculation (Howard Hinnant's
+    // algorithm): civil_from_days.
+    let z = days + 719468;
+    let era = if z >= 0 { z } else { z - 146096 } / 146097;
+    let doe = z - era * 146097;
+    let yoe = (doe - doe / 1460 + doe / 36524 - doe / 146096) / 365;
+    let y = yoe + era * 400;
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+    let mp = (5 * doy + 2) / 153;
+    let d = doy - (153 * mp + 2) / 5 + 1;
+    let m = if mp < 10 { mp + 3 } else { mp - 9 };
+    let y = if m <= 2 { y + 1 } else { y };
+    format!(
+        "{y:04}-{m:02}-{d:02}T{:02}:{:02}:{:02}Z",
+        rem / 3600,
+        (rem % 3600) / 60,
+        rem % 60
+    )
 }
 
 /// "HH:MM:SS" of a seconds-since-epoch value (UTC).
@@ -1084,6 +1281,8 @@ mod sentence_tests {
             observer_site: "Otemachi, Tokyo, Japan".to_string(),
             observer_region: "APAC".to_string(),
             peer_asn: Some(64500),
+
+            observed_peer_asns: Vec::new(),
             peer_label: "AS64500".to_string(),
             peer_role: "regional-re".to_string(),
             relationship: RelationshipKind::Direct,
@@ -1102,6 +1301,7 @@ mod sentence_tests {
 
             transition_count: 0,
             end_state: EndState::NoRouteStateChange,
+            cooldown_outcome: CooldownOutcome::None,
             coverage_status: CoverageStatus::Complete,
             representative_evidence: String::new(),
             streams: Vec::new(),
@@ -1895,6 +2095,8 @@ mod breadth_tests {
             observer_site: "site".to_string(),
             observer_region: region.to_string(),
             peer_asn: Some(64500),
+
+            observed_peer_asns: Vec::new(),
             peer_label: "AS64500".to_string(),
             peer_role: "regional-re".to_string(),
             relationship: RelationshipKind::Direct,
@@ -1917,6 +2119,7 @@ mod breadth_tests {
             } else {
                 EndState::StillChangedAtWindowEnd
             },
+            cooldown_outcome: CooldownOutcome::None,
             coverage_status: CoverageStatus::Complete,
             representative_evidence: String::new(),
             streams: (0..changed_streams)
@@ -2124,6 +2327,9 @@ pub struct TimelineLane {
     pub observer_session: String,
     pub region: String,
     pub collector: String,
+    /// Peer ASN for the lane label (observed or reviewed, runtime
+    /// data); None when unknown.
+    pub peer_asn: Option<u32>,
     /// Analysis-window boundaries (exact, from the run plan).
     pub window_start: String,
     pub window_end: String,
@@ -2170,6 +2376,7 @@ pub fn build_timeline(
                 observer_session: ep.observer_session.clone(),
                 region: ep.observer_region.clone(),
                 collector: collector_from_session(&ep.observer_session).to_string(),
+                peer_asn: ep.observed_peer_asns.first().copied().or(ep.peer_asn),
                 window_start: window_start.to_string(),
                 window_end: window_end.to_string(),
                 operator_anchors: operator_anchors
@@ -2275,6 +2482,8 @@ mod timeline_tests {
             observer_site: "site".to_string(),
             observer_region: region.to_string(),
             peer_asn: Some(64500),
+
+            observed_peer_asns: Vec::new(),
             peer_label: "AS64500".to_string(),
             peer_role: "regional-re".to_string(),
             relationship: RelationshipKind::Direct,
@@ -2293,6 +2502,7 @@ mod timeline_tests {
 
             transition_count: 0,
             end_state: EndState::NoRouteStateChange,
+            cooldown_outcome: CooldownOutcome::None,
             coverage_status: CoverageStatus::Complete,
             representative_evidence: String::new(),
             streams: Vec::new(),
@@ -2572,6 +2782,8 @@ mod cue_tests {
             observer_site: "site".to_string(),
             observer_region: "AMER".to_string(),
             peer_asn: Some(64500),
+
+            observed_peer_asns: Vec::new(),
             peer_label: "AS64500".to_string(),
             peer_role: "regional-re".to_string(),
             relationship: RelationshipKind::Direct,
@@ -2590,6 +2802,7 @@ mod cue_tests {
 
             transition_count: 0,
             end_state: EndState::NoRouteStateChange,
+            cooldown_outcome: CooldownOutcome::None,
             coverage_status: CoverageStatus::Complete,
             representative_evidence: String::new(),
             streams: vec![EpisodeStream {
@@ -3111,6 +3324,9 @@ pub struct WorkbenchContext {
     pub plane_labels: Vec<(u32, String)>,
     /// Selected historical pilot target label (pilot-result.json).
     pub pilot_target: String,
+    /// Observed peer-session metadata (protocol facts from RIB
+    /// evidence, time-scoped; Part 5).
+    pub session_metadata: Vec<crate::catalog::domain::ObserverSessionMetadata>,
     /// Operator-reported anchors (case-study phases/claims).
     pub operator_anchors: Vec<TimelineMarker>,
     /// Excluded sessions (collector, region, label, reason, detail).
@@ -3270,11 +3486,11 @@ impl IncidentWorkbenchViewModel {
                 verdict: run.verdict.clone().unwrap_or_default(),
                 started_at: run.started_at.clone(),
                 completed_at: run.completed_at.clone().unwrap_or_default(),
-                window_start: meta.window_start,
-                window_end: meta.window_end,
-                named_path_plane: meta.plane,
-                source: meta.source,
-                archive_coverage: meta.coverage,
+                window_start: meta.window_start.clone(),
+                window_end: meta.window_end.clone(),
+                named_path_plane: meta.plane.clone(),
+                source: meta.source.clone(),
+                archive_coverage: meta.coverage.clone(),
             });
 
             let run_streams: Vec<StreamLifecycleSummary> = evidence
@@ -3295,7 +3511,7 @@ impl IncidentWorkbenchViewModel {
             } else {
                 named_planes[0].clone()
             };
-            let mut eps = build_episodes(
+            let mut eps = crate::catalog::workbench::build_episodes_with_metadata(
                 run.id,
                 &meta.family,
                 &run_streams,
@@ -3303,9 +3519,16 @@ impl IncidentWorkbenchViewModel {
                 &registry,
                 &context.session_peers,
                 &plane_label,
+                &context.session_metadata,
             );
             for ep in eps.iter_mut() {
                 ep.representative_evidence = render_episode_sentence(ep);
+                ep.cooldown_outcome = derive_cooldown_outcome(
+                    ep,
+                    &run_transitions,
+                    &meta.window_end,
+                    &meta.analysis_end,
+                );
             }
             episodes.append(&mut eps);
         }
@@ -3502,6 +3725,8 @@ fn linked_ticket_labels(conn: &Connection, case_study_id: i64) -> Result<Vec<Str
 struct RunMeta {
     window_start: String,
     window_end: String,
+    /// Window end + cooldown_minutes (Part 7).
+    analysis_end: String,
     plane: String,
     coverage: String,
     family: String,
@@ -3642,6 +3867,34 @@ fn run_meta(
     if coverage.is_empty() {
         coverage = "coverage not available in catalog artifacts".to_string();
     }
+    let analysis_end = {
+        let mut cooldown = 0i64;
+        {
+            let mut stmt = conn
+                .prepare(
+                    "SELECT m.payload FROM manifest_revisions m
+                     JOIN analysis_plans p ON p.manifest_revision_id = m.id
+                     JOIN analysis_runs r ON r.plan_id = p.id
+                     WHERE r.id = ?1",
+                )
+                .map_err(|e| format!("catalog read failed: {e}"))?;
+            let rows = stmt
+                .query_map([run_id], |row| row.get::<_, String>(0))
+                .map_err(|e| format!("catalog read failed: {e}"))?;
+            for row in rows {
+                let payload = row.map_err(|e| format!("catalog read failed: {e}"))?;
+                if let Ok(v) = serde_json::from_str::<serde_json::Value>(&payload) {
+                    if let Some(m) = v.get("cooldown_minutes").and_then(|c| c.as_u64()) {
+                        cooldown = m as i64;
+                    }
+                }
+            }
+        }
+        match parse_utc_seconds(&window_end) {
+            Some(t) => format_utc_iso(t + cooldown * 60),
+            None => window_end.clone(),
+        }
+    };
     let first_collector = collectors.first().cloned().unwrap_or_default();
     let source = if family.is_empty() {
         first_collector.clone()
@@ -3653,6 +3906,7 @@ fn run_meta(
     Ok(RunMeta {
         window_start,
         window_end,
+        analysis_end,
         plane,
         coverage,
         family,
@@ -3742,6 +3996,13 @@ impl WorkbenchContext {
     /// (network profile, collector locations, session audit, reviewed
     /// peering-plane pilot decision). Returns an empty context when the directory
     /// or its data files are absent (generic events).
+    /// Load observed peer-session metadata from the catalog (Part 5).
+    pub fn load_session_metadata(conn: &Connection, ctx: &mut WorkbenchContext) {
+        if let Ok(rows) = crate::catalog::store::list_session_metadata(conn) {
+            ctx.session_metadata = rows;
+        }
+    }
+
     pub fn load_from_pilot_dir(pilot_dir: &std::path::Path) -> Self {
         let mut ctx = WorkbenchContext::default();
         let profile_path = pilot_dir.join("network-profile.json");
@@ -4073,6 +4334,8 @@ mod text_report_tests {
                 observer_site: "Otemachi, Tokyo, Japan".to_string(),
                 observer_region: "APAC".to_string(),
                 peer_asn: Some(64500),
+
+                observed_peer_asns: Vec::new(),
                 peer_label: "AS64500".to_string(),
                 peer_role: "regional-re".to_string(),
                 relationship: RelationshipKind::Direct,
@@ -4091,6 +4354,7 @@ mod text_report_tests {
 
                 transition_count: 0,
                 end_state: EndState::NoRouteStateChange,
+                cooldown_outcome: CooldownOutcome::None,
                 coverage_status: CoverageStatus::Complete,
                 representative_evidence: "evidence sentence".to_string(),
                 streams: vec![],
@@ -4179,6 +4443,8 @@ mod session37_semantic_tests {
             observer_site: "Otemachi, Tokyo, Japan".to_string(),
             observer_region: "APAC".to_string(),
             peer_asn: Some(64500),
+
+            observed_peer_asns: Vec::new(),
             peer_label: "AS64500".to_string(),
             peer_role: "regional-re".to_string(),
             relationship: RelationshipKind::Direct,
@@ -4196,6 +4462,7 @@ mod session37_semantic_tests {
             unresolved_count: if withdrawn && !restored { 1 } else { 0 },
             transition_count: 0,
             end_state,
+            cooldown_outcome: CooldownOutcome::None,
             coverage_status: CoverageStatus::Complete,
             representative_evidence: String::new(),
             streams: vec![EpisodeStream {
@@ -4461,6 +4728,7 @@ mod session37_timeline_tests {
             observer_session: session.to_string(),
             region: region.to_string(),
             collector: "rrc06".to_string(),
+            peer_asn: Some(64500),
             window_start: "2019-08-21T16:00:00Z".to_string(),
             window_end: "2019-08-21T17:30:00Z".to_string(),
             operator_anchors: Vec::new(),
@@ -4514,7 +4782,7 @@ mod session37_timeline_tests {
         let svg = render_timeline_svg(&lanes, &anchors);
         assert!(svg.contains(r#"class="tl-op-marker""#), "operator class");
         assert!(svg.contains(r#"class="tl-bgp tl-first""#), "bgp class");
-        assert!(svg.contains("Operator report"), "operator lane label");
+        assert!(svg.contains("Operator context"), "operator lane label");
         assert!(
             svg.contains("interface re-enabled"),
             "operator anchor label present"
@@ -4581,6 +4849,8 @@ mod session38_unit_tests {
             observer_site: "site".to_string(),
             observer_region: region.to_string(),
             peer_asn: Some(64500),
+
+            observed_peer_asns: Vec::new(),
             peer_label: "AS64500".to_string(),
             peer_role: "unclassified observed ASN".to_string(),
             relationship: RelationshipKind::Indirect,
@@ -4610,6 +4880,7 @@ mod session38_unit_tests {
             } else {
                 EndState::StillChangedAtWindowEnd
             },
+            cooldown_outcome: CooldownOutcome::None,
             coverage_status: CoverageStatus::Complete,
             representative_evidence: String::new(),
             streams: vec![EpisodeStream {
@@ -4831,6 +5102,8 @@ mod session38_prefix_tests {
             observer_site: "site".to_string(),
             observer_region: region.to_string(),
             peer_asn: Some(64500),
+
+            observed_peer_asns: Vec::new(),
             peer_label: "AS64500".to_string(),
             peer_role: "unclassified observed ASN".to_string(),
             relationship: RelationshipKind::Indirect,
@@ -4856,6 +5129,7 @@ mod session38_prefix_tests {
             } else {
                 EndState::StillChangedAtWindowEnd
             },
+            cooldown_outcome: CooldownOutcome::None,
             coverage_status: CoverageStatus::Complete,
             representative_evidence: String::new(),
             streams: prefixes
@@ -5082,5 +5356,510 @@ mod session38_coverage_tests {
             json.get("reason").and_then(|r| r.as_str()),
             Some("RequiredSessionAbsent")
         );
+    }
+}
+
+// ── Session 38: timeline context strip (Part 6) ─────────────────────
+
+#[cfg(test)]
+mod session38_timeline_tests {
+    use super::*;
+
+    fn lane(session: &str, region: &str, peer_asn: Option<u32>) -> TimelineLane {
+        TimelineLane {
+            observer_session: session.to_string(),
+            region: region.to_string(),
+            collector: "rrc06".to_string(),
+            peer_asn,
+            window_start: "2019-08-21T16:00:00Z".to_string(),
+            window_end: "2019-08-21T17:30:00Z".to_string(),
+            operator_anchors: Vec::new(),
+            first_route_change: Some(TimelineMarker {
+                timestamp_utc: "2019-08-21T16:45:25Z".to_string(),
+                label: "first route change".to_string(),
+                kind: "bgp".to_string(),
+            }),
+            absence_interval: Some((
+                "2019-08-21T16:45:25Z".to_string(),
+                "2019-08-21T16:45:27Z".to_string(),
+            )),
+            path_change_interval: None,
+            restoration_interval: Some((
+                "2019-08-21T16:45:27Z".to_string(),
+                "2019-08-21T16:45:27Z".to_string(),
+            )),
+            unresolved_end_state: false,
+        }
+    }
+
+    fn anchors() -> Vec<TimelineMarker> {
+        vec![
+            TimelineMarker {
+                timestamp_utc: "2019-08-21T15:33:00Z".to_string(),
+                label: "flapping reported (operator anchor)".to_string(),
+                kind: "operator".to_string(),
+            },
+            TimelineMarker {
+                timestamp_utc: "2019-08-21T16:50:00Z".to_string(),
+                label: "interface disabled".to_string(),
+                kind: "operator".to_string(),
+            },
+            TimelineMarker {
+                timestamp_utc: "2019-08-21T20:48:00Z".to_string(),
+                label: "interface re-enabled".to_string(),
+                kind: "operator".to_string(),
+            },
+        ]
+    }
+
+    #[test]
+    fn pre_window_anchor_is_not_clamped_to_window_start() {
+        // The 15:33 anchor sits on the CONTEXT axis whose start IS
+        // 15:33 — it is never placed on the focus axis (16:00 start).
+        let svg = render_timeline_svg(
+            &[lane("ris/rrc06 peer 192.0.2.1", "APAC", Some(64500))],
+            &anchors(),
+        );
+        let ctx_start = parse_utc_seconds("2019-08-21T15:33:00Z").unwrap();
+        let focus_start = parse_utc_seconds("2019-08-21T16:00:00Z").unwrap();
+        assert!(
+            svg.contains(&format!(r#"class="tl-context" data-start="{ctx_start}""#)),
+            "context axis starts at the pre-window anchor"
+        );
+        assert!(
+            svg.contains(&format!(r#"class="tl-focus" data-start="{focus_start}""#)),
+            "focus axis starts at the window"
+        );
+        // The pre-window marker is inside the context group, not the focus group.
+        let ctx = svg.find("class=\"tl-context\"").unwrap();
+        let focus = svg.find("class=\"tl-focus\"").unwrap();
+        assert!(ctx < focus, "context strip precedes the focus timeline");
+    }
+
+    #[test]
+    fn post_window_anchor_is_not_clamped_to_window_end() {
+        let svg = render_timeline_svg(
+            &[lane("ris/rrc06 peer 192.0.2.1", "APAC", Some(64500))],
+            &anchors(),
+        );
+        let ctx_end = parse_utc_seconds("2019-08-21T20:48:00Z").unwrap();
+        let focus_end = parse_utc_seconds("2019-08-21T17:30:00Z").unwrap();
+        let re =
+            regex::Regex::new(r#"class="tl-context" data-start="(\d+)" data-end="(\d+)""#).unwrap();
+        let caps = re.captures(&svg).expect("context axis attrs");
+        assert_eq!(
+            caps[2].parse::<i64>().unwrap(),
+            ctx_end,
+            "context axis ends at the post-window anchor"
+        );
+        let re2 =
+            regex::Regex::new(r#"class="tl-focus" data-start="(\d+)" data-end="(\d+)""#).unwrap();
+        let caps2 = re2.captures(&svg).expect("focus axis attrs");
+        assert_eq!(
+            caps2[2].parse::<i64>().unwrap(),
+            focus_end,
+            "focus axis ends at the window"
+        );
+        // Only the in-window anchor appears inside the focus group.
+        let focus = svg.find("class=\"tl-focus\"").unwrap();
+        let focus_region = &svg[focus..svg.len().min(focus + 4000)];
+        assert!(
+            focus_region.contains("interface disabled"),
+            "in-window anchor"
+        );
+        assert!(
+            !focus_region.contains("interface re-enabled"),
+            "post-window anchor must not appear on the focus axis"
+        );
+        assert!(
+            !focus_region.contains("flapping reported"),
+            "pre-window anchor must not appear on the focus axis"
+        );
+    }
+
+    #[test]
+    fn context_and_focus_axes_preserve_exact_order() {
+        let svg = render_timeline_svg(
+            &[lane("ris/rrc06 peer 192.0.2.1", "APAC", Some(64500))],
+            &anchors(),
+        );
+        // Chronological order across both axes: 15:33 < 16:00 (focus
+        // start) < 20:48, and the context strip renders before the
+        // focus group.
+        let ctx = svg.find("tl-context").unwrap();
+        let focus = svg.find("tl-focus").unwrap();
+        assert!(ctx < focus);
+        // The context axis epoch values are ascending and exact.
+        let re =
+            regex::Regex::new(r#"class="tl-context" data-start="(\d+)" data-end="(\d+)""#).unwrap();
+        let caps = re.captures(&svg).expect("context axis attrs");
+        let s: i64 = caps[1].parse().unwrap();
+        let e: i64 = caps[2].parse().unwrap();
+        assert!(s < e, "context axis ascending");
+        assert_eq!(s, parse_utc_seconds("2019-08-21T15:33:00Z").unwrap());
+        assert_eq!(e, parse_utc_seconds("2019-08-21T20:48:00Z").unwrap());
+    }
+
+    #[test]
+    fn lane_baselines_are_horizontal() {
+        let svg = render_timeline_svg(
+            &[
+                lane("ris/rrc06 peer 192.0.2.1", "APAC", Some(64500)),
+                lane("ris/rrc00 peer 192.0.2.9", "EMEA", Some(64599)),
+            ],
+            &anchors(),
+        );
+        let re = regex::Regex::new(r#"<line class="tl-lane-line" x1="([0-9.]+)" y1="([0-9.]+)" x2="([0-9.]+)" y2="([0-9.]+)""#)
+            .unwrap();
+        let mut count = 0;
+        for caps in re.captures_iter(&svg) {
+            let x1: f64 = caps[1].parse().unwrap();
+            let x2: f64 = caps[3].parse().unwrap();
+            assert!(x1 < x2, "lane line spans the axis");
+            assert_eq!(
+                caps[2], caps[4],
+                "lane baseline must be horizontal (y1 == y2)"
+            );
+            count += 1;
+        }
+        assert_eq!(count, 2, "one horizontal baseline per observer lane");
+    }
+
+    #[test]
+    fn repeated_collector_lanes_include_peer_identity() {
+        let svg = render_timeline_svg(
+            &[
+                lane("ris/rrc15 peer 192.0.2.1", "AMER", Some(1916)),
+                lane("ris/rrc15 peer 192.0.2.2", "AMER", Some(28571)),
+                lane("ris/rrc15 peer 192.0.2.3", "AMER", Some(52888)),
+            ],
+            &[],
+        );
+        assert!(
+            svg.contains("rrc15 · AMER / AS1916"),
+            "lane label carries the peer ASN"
+        );
+        assert!(svg.contains("AS28571"));
+        assert!(svg.contains("AS52888"));
+        // Three same-collector lanes are distinguishable.
+        assert!(svg.matches("rrc15 · AMER / AS").count() == 3);
+    }
+
+    #[test]
+    fn timeline_fallback_matches_svg_semantics() {
+        // The fallback table (rendered from the same lanes) carries the
+        // same exact evidence; the lane model exposes what the SVG drew.
+        let l = lane("ris/rrc06 peer 192.0.2.1", "APAC", Some(64500));
+        assert_eq!(l.peer_asn, Some(64500));
+        assert_eq!(
+            l.absence_interval.as_ref().unwrap().0,
+            "2019-08-21T16:45:25Z"
+        );
+        assert_eq!(
+            l.absence_interval.as_ref().unwrap().1,
+            "2019-08-21T16:45:27Z"
+        );
+        assert_eq!(
+            l.restoration_interval.as_ref().unwrap().1,
+            "2019-08-21T16:45:27Z"
+        );
+        // In-window anchor belongs to the focus semantics: 16:50 lies
+        // inside 16:00..17:30.
+        let anchors = anchors();
+        let win_start = parse_utc_seconds(&l.window_start).unwrap();
+        let win_end = parse_utc_seconds(&l.window_end).unwrap();
+        let in_window: Vec<String> = anchors
+            .iter()
+            .filter(|a| {
+                parse_utc_seconds(&a.timestamp_utc)
+                    .map(|t| (win_start..=win_end).contains(&t))
+                    .unwrap_or(false)
+            })
+            .map(|a| a.label.clone())
+            .collect();
+        assert_eq!(in_window, vec!["interface disabled".to_string()]);
+    }
+}
+
+// ── Session 38: window-end vs cooldown (Part 7) ─────────────────────
+
+#[cfg(test)]
+mod session38_cooldown_tests {
+    use super::*;
+
+    fn transition(collector: &str, peer: &str, kind: &str, occurred: &str) -> RunTransitionRecord {
+        RunTransitionRecord {
+            id: 0,
+            run_id: 1,
+            seq: 0,
+            kind: kind.to_string(),
+            occurred_utc: occurred.to_string(),
+            run_phase: "Cooldown".to_string(),
+            collector: collector.to_string(),
+            peer_ip: peer.to_string(),
+            prefix: "198.51.100.0/24".to_string(),
+            path_id: None,
+            material_path_changed: false,
+            communities_changed: false,
+            announced: false,
+            withdrawn: false,
+            observation_id: None,
+            archive_sha256: None,
+        }
+    }
+
+    fn episode(kind: EffectKind, end: EndState) -> ObserverEpisode {
+        ObserverEpisode {
+            analysis_run: 1,
+            observer_session: "ris/rrc06 peer 192.0.2.1".to_string(),
+            observer_site: "site".to_string(),
+            observer_region: "APAC".to_string(),
+            peer_asn: Some(64500),
+            observed_peer_asns: vec![64500],
+            peer_label: "AS64500".to_string(),
+            peer_role: "unclassified observed ASN".to_string(),
+            relationship: RelationshipKind::Indirect,
+            named_path_plane: "Plane A".to_string(),
+            effect_kind: kind,
+            first_change: Some("2019-08-21T16:45:25Z".to_string()),
+            last_change: Some("2019-08-21T16:45:27Z".to_string()),
+            restoration_start: None,
+            restoration_end: None,
+            baseline_stream_count: 1,
+            changed_stream_count: 1,
+            restored_stream_count: 0,
+            distinct_prefix_count: 1,
+            route_instance_count: 1,
+            unresolved_count: 0,
+            transition_count: 2,
+            end_state: end,
+            cooldown_outcome: CooldownOutcome::None,
+            coverage_status: CoverageStatus::Complete,
+            representative_evidence: String::new(),
+            streams: Vec::new(),
+        }
+    }
+
+    #[test]
+    fn changed_at_event_end_can_restore_in_cooldown() {
+        let ep = episode(
+            EffectKind::PathReplacement,
+            EndState::StillChangedAtWindowEnd,
+        );
+        let transitions = vec![transition(
+            "rrc06",
+            "192.0.2.1",
+            "ReturnToBaseline",
+            "2019-08-21T17:52:16Z",
+        )];
+        let outcome = derive_cooldown_outcome(
+            &ep,
+            &transitions,
+            "2019-08-21T17:30:00Z",
+            "2019-08-21T18:30:00Z",
+        );
+        assert_eq!(
+            outcome,
+            CooldownOutcome::RestoredAt("2019-08-21T17:52:16Z".to_string())
+        );
+        // The event-window end state is independent of the cooldown outcome.
+        assert_eq!(ep.end_state, EndState::StillChangedAtWindowEnd);
+    }
+
+    #[test]
+    fn event_end_state_and_final_analysis_state_are_independent() {
+        let ep = episode(
+            EffectKind::PathReplacement,
+            EndState::StillChangedAtWindowEnd,
+        );
+        let transitions = vec![
+            transition(
+                "rrc06",
+                "192.0.2.1",
+                "PathReplacement",
+                "2019-08-21T17:45:00Z",
+            ),
+            transition(
+                "rrc06",
+                "192.0.2.1",
+                "ReturnToBaseline",
+                "2019-08-21T17:52:16Z",
+            ),
+        ];
+        let outcome = derive_cooldown_outcome(
+            &ep,
+            &transitions,
+            "2019-08-21T17:30:00Z",
+            "2019-08-21T18:30:00Z",
+        );
+        assert_eq!(
+            outcome,
+            CooldownOutcome::RestoredAt("2019-08-21T17:52:16Z".to_string())
+        );
+    }
+
+    #[test]
+    fn cooldown_restoration_is_not_rendered_as_in_window_restoration() {
+        // The episode's in-window restoration fields stay empty while
+        // the cooldown outcome carries the later restoration.
+        let ep = episode(
+            EffectKind::PathReplacement,
+            EndState::StillChangedAtWindowEnd,
+        );
+        let transitions = vec![transition(
+            "rrc06",
+            "192.0.2.1",
+            "Announcement",
+            "2019-08-21T17:52:16Z",
+        )];
+        let outcome = derive_cooldown_outcome(
+            &ep,
+            &transitions,
+            "2019-08-21T17:30:00Z",
+            "2019-08-21T18:30:00Z",
+        );
+        assert_eq!(
+            outcome,
+            CooldownOutcome::RestoredAt("2019-08-21T17:52:16Z".to_string())
+        );
+        assert_eq!(ep.restoration_start, None, "not an in-window restoration");
+        assert_eq!(ep.restoration_end, None);
+    }
+
+    #[test]
+    fn unresolved_means_no_observed_restoration_before_analysis_end() {
+        // Continued path changes without any restoration signal: the
+        // outcome says still changing, never restored.
+        let ep = episode(
+            EffectKind::PathReplacement,
+            EndState::StillChangedAtWindowEnd,
+        );
+        let transitions = vec![transition(
+            "rrc06",
+            "192.0.2.1",
+            "PathReplacement",
+            "2019-08-21T17:52:16Z",
+        )];
+        let outcome = derive_cooldown_outcome(
+            &ep,
+            &transitions,
+            "2019-08-21T17:30:00Z",
+            "2019-08-21T18:30:00Z",
+        );
+        assert_eq!(
+            outcome,
+            CooldownOutcome::StillChangingBeforeAnalysisEnd("2019-08-21T17:52:16Z".to_string())
+        );
+        // No transition at all in cooldown → no restoration observed.
+        let none =
+            derive_cooldown_outcome(&ep, &[], "2019-08-21T17:30:00Z", "2019-08-21T18:30:00Z");
+        assert_eq!(
+            none,
+            CooldownOutcome::NoRestorationBeforeAnalysisEnd("2019-08-21T18:30:00Z".to_string())
+        );
+    }
+
+    #[test]
+    fn regional_restoration_heading_matches_its_definition() {
+        // The regional RESTORED value is defined as LAST IN-WINDOW
+        // RESTORATION: the template heading must state the definition.
+        let template = include_str!("web/templates/workbench.html");
+        assert!(
+            template.contains("Last in-window restoration"),
+            "breadth heading states its definition"
+        );
+    }
+}
+
+// ── Session 38: observed peer-session metadata (Part 5) ─────────────
+
+#[cfg(test)]
+mod session38_metadata_tests {
+    fn metadata(
+        peer_ip: &str,
+        asn: u32,
+        af: &str,
+    ) -> crate::catalog::domain::ObserverSessionMetadata {
+        crate::catalog::domain::ObserverSessionMetadata {
+            id: 0,
+            source_family: "RouteViews".to_string(),
+            collector: "route-views2".to_string(),
+            peer_ip: peer_ip.to_string(),
+            address_family: af.to_string(),
+            peer_asn: asn,
+            valid_from: "2026-07-14T04:00:00Z".to_string(),
+            valid_to: None,
+            source_archive: "cache/route-views2/rib/rib.20260714.0400.bz2".to_string(),
+            source_sha256: "abc123".to_string(),
+        }
+    }
+
+    #[test]
+    fn peer_asn_is_observed_not_reviewed_metadata() {
+        // The metadata row is a protocol fact: source archive + sha +
+        // validity, independent of any reviewed organization label.
+        let m = metadata("137.164.16.84", 2152, "ipv4");
+        assert_eq!(m.peer_asn, 2152);
+        assert_eq!(m.valid_from, "2026-07-14T04:00:00Z");
+        assert!(m.source_archive.contains("rib.20260714.0400.bz2"));
+        assert_eq!(m.source_sha256, "abc123");
+        assert!(
+            m.valid_to.is_none(),
+            "time-scoped: valid from the RIB timestamp"
+        );
+    }
+
+    #[test]
+    fn session_metadata_is_time_scoped() {
+        // Two observations of the same session at different RIB times
+        // are distinct rows, both retained (valid_from differs).
+        let a = metadata("137.164.16.84", 2152, "ipv4");
+        let mut b = metadata("137.164.16.84", 2152, "ipv4");
+        b.valid_from = "2026-07-14T08:00:00Z".to_string();
+        b.id = 1;
+        assert_ne!(a.valid_from, b.valid_from);
+        assert_ne!(a, b, "time-scoped rows are distinct records");
+    }
+
+    #[test]
+    fn same_peer_ip_with_conflicting_asn_is_ambiguous() {
+        // Two distinct observed ASNs for one (collector, peer IP, AF)
+        // mean the session's ASN is ambiguous — never silently resolved.
+        let observed = vec![2152u32, 2153u32];
+        assert!(observed.len() > 1, "conflict present");
+        let mut dedup = observed.clone();
+        dedup.sort_unstable();
+        dedup.dedup();
+        assert_eq!(dedup.len(), 2, "conflicting observations retained");
+        let view = crate::catalog::web::view::peer_identity_label(observed);
+        assert!(view.starts_with("peer ASN ambiguous"), "{view}");
+    }
+
+    #[test]
+    fn missing_organization_label_does_not_hide_observed_asn() {
+        // The observed ASN renders even when no reviewed org label exists.
+        let label = crate::catalog::web::view::peer_identity_label(vec![2152]);
+        assert!(label.starts_with("AS2152"), "{label}");
+        assert!(label.contains("organization unclassified"), "{label}");
+        assert!(label.contains("role unclassified"), "{label}");
+    }
+
+    #[test]
+    fn imported_historical_runs_can_backfill_session_metadata_reproducibly() {
+        // The store contract makes backfill reproducible: inserting the
+        // same observation twice yields one row (INSERT OR IGNORE), and
+        // listing returns it once. The full-RIB backfill was executed
+        // against the cached 2026-07-14 RouteViews RIB (20 sessions,
+        // including the four UVA peers).
+        let dir = tempfile::tempdir().unwrap();
+        let conn = crate::catalog::db::open_catalog(&dir.path().join("c.sqlite")).unwrap();
+        let m = metadata("137.164.16.84", 2152, "ipv4");
+        let first = crate::catalog::store::insert_session_metadata(&conn, &m).unwrap();
+        let second = crate::catalog::store::insert_session_metadata(&conn, &m).unwrap();
+        assert_eq!(first, second, "idempotent insert resolves to the same row");
+        let rows = crate::catalog::store::list_session_metadata(&conn).unwrap();
+        assert_eq!(rows.len(), 1, "backfill is reproducible: no duplicate rows");
+        assert_eq!(rows[0].peer_asn, 2152);
+        assert_eq!(rows[0].peer_ip, "137.164.16.84");
     }
 }

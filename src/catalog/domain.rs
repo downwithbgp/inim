@@ -136,6 +136,27 @@ pub struct SemanticWaveSummary {
     pub instance_count: i64,
 }
 
+/// Observed peer-session metadata (Session 38, Part 5).
+///
+/// The peer ASN is an OBSERVED protocol fact from baseline RIB
+/// evidence, time-scoped by the RIB timestamp — distinct from reviewed
+/// organization labels and roles. Multiple observations of the same
+/// (collector, peer IP, address family) with DIFFERENT peer ASNs mean
+/// the session's ASN is ambiguous and must be rendered as such.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ObserverSessionMetadata {
+    pub id: i64,
+    pub source_family: String,
+    pub collector: String,
+    pub peer_ip: String,
+    pub address_family: String,
+    pub peer_asn: u32,
+    pub valid_from: String,
+    pub valid_to: Option<String>,
+    pub source_archive: String,
+    pub source_sha256: String,
+}
+
 /// A catalog synchronization run.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CatalogSyncRun {

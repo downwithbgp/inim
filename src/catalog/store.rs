@@ -1290,3 +1290,78 @@ pub fn get_ticket_review(
         Some(r) => Ok(Some(r.map_err(|e| format!("catalog read failed: {e}"))?)),
     }
 }
+
+/// Record one observed peer-session metadata row (idempotent).
+pub fn insert_session_metadata(
+    conn: &Connection,
+    row: &super::domain::ObserverSessionMetadata,
+) -> Result<i64, String> {
+    conn.execute(
+        "INSERT OR IGNORE INTO observer_session_metadata
+         (source_family, collector, peer_ip, address_family, peer_asn,
+          valid_from, valid_to, source_archive, source_sha256)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+        rusqlite::params![
+            row.source_family,
+            row.collector,
+            row.peer_ip,
+            row.address_family,
+            row.peer_asn,
+            row.valid_from,
+            row.valid_to,
+            row.source_archive,
+            row.source_sha256,
+        ],
+    )
+    .map_err(|e| format!("catalog write failed: {e}"))?;
+    let id: i64 = conn
+        .query_row(
+            "SELECT id FROM observer_session_metadata
+             WHERE collector = ?1 AND peer_ip = ?2 AND address_family = ?3
+               AND peer_asn = ?4 AND source_archive = ?5",
+            rusqlite::params![
+                row.collector,
+                row.peer_ip,
+                row.address_family,
+                row.peer_asn,
+                row.source_archive
+            ],
+            |r| r.get(0),
+        )
+        .map_err(|e| format!("catalog read failed: {e}"))?;
+    Ok(id)
+}
+
+/// List all observed peer-session metadata rows.
+pub fn list_session_metadata(
+    conn: &Connection,
+) -> Result<Vec<super::domain::ObserverSessionMetadata>, String> {
+    let mut stmt = conn
+        .prepare(
+            "SELECT id, source_family, collector, peer_ip, address_family,
+                    peer_asn, valid_from, valid_to, source_archive, source_sha256
+             FROM observer_session_metadata ORDER BY collector, peer_ip, valid_from",
+        )
+        .map_err(|e| format!("catalog read failed: {e}"))?;
+    let rows = stmt
+        .query_map([], |row| {
+            Ok(super::domain::ObserverSessionMetadata {
+                id: row.get(0)?,
+                source_family: row.get(1)?,
+                collector: row.get(2)?,
+                peer_ip: row.get(3)?,
+                address_family: row.get(4)?,
+                peer_asn: row.get(5)?,
+                valid_from: row.get(6)?,
+                valid_to: row.get(7)?,
+                source_archive: row.get(8)?,
+                source_sha256: row.get(9)?,
+            })
+        })
+        .map_err(|e| format!("catalog read failed: {e}"))?;
+    let mut out = Vec::new();
+    for r in rows {
+        out.push(r.map_err(|e| format!("catalog read failed: {e}"))?);
+    }
+    Ok(out)
+}

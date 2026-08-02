@@ -814,6 +814,8 @@ pub struct PeerInventoryRow {
     pub location: String,
     pub rib_timestamp_utc: String,
     pub rib_source_sha: String,
+    /// Local path of the baseline RIB this row was parsed from.
+    pub rib_source: String,
     pub peer_ip: String,
     pub peer_asn: u32,
     pub address_family: String,
@@ -845,6 +847,7 @@ pub struct PeerInventoryAccumulator<'a> {
     collector: String,
     evidence_at: String,
     source_sha: String,
+    rib_source: String,
     origin_asns: Vec<u32>,
     rows: Vec<MutableInventoryRow>,
 }
@@ -863,6 +866,7 @@ struct MutableInventoryRow {
 }
 
 impl<'a> PeerInventoryAccumulator<'a> {
+    #[allow(clippy::too_many_arguments)] // one argument per evidence source
     pub fn new(
         profile: &'a ServicePlaneProfile,
         registry: &'a CollectorLocationRegistry,
@@ -870,6 +874,7 @@ impl<'a> PeerInventoryAccumulator<'a> {
         collector: &str,
         evidence_at: &str,
         source_sha: &str,
+        rib_source: &str,
         origin_asns: Vec<u32>,
     ) -> Self {
         PeerInventoryAccumulator {
@@ -879,6 +884,7 @@ impl<'a> PeerInventoryAccumulator<'a> {
             collector: collector.to_string(),
             evidence_at: evidence_at.to_string(),
             source_sha: source_sha.to_string(),
+            rib_source: rib_source.to_string(),
             origin_asns,
             rows: Vec::new(),
         }
@@ -949,6 +955,7 @@ impl<'a> PeerInventoryAccumulator<'a> {
                     .unwrap_or_else(|| "unknown".to_string()),
                 rib_timestamp_utc: self.evidence_at.clone(),
                 rib_source_sha: self.source_sha.clone(),
+                rib_source: self.rib_source.clone(),
                 peer_ip: r.peer_ip,
                 peer_asn: r.peer_asn,
                 address_family: r.address_family,
@@ -996,6 +1003,7 @@ pub fn peer_inventory(
         collector,
         evidence_at,
         source_sha,
+        "",
         origin_asns.to_vec(),
     );
     for route in routes {
