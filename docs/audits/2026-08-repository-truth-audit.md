@@ -24,7 +24,7 @@ This audit verifies that every tracked file is classified, that every current st
 
 ## Summary
 
-Tracked files: **336** · inventory entries: **336**
+Tracked files: **337** · inventory entries: **337**
 
 | Category | Files |
 |---|---|
@@ -35,7 +35,7 @@ Tracked files: **336** · inventory entries: **336**
 | Historical decision record | 22 |
 | Script or developer tool | 19 |
 | Template or stylesheet | 16 |
-| Normative current documentation | 14 |
+| Normative current documentation | 15 |
 | Test fixture | 11 |
 | Test source | 6 |
 | Packaging or release metadata | 3 |
@@ -55,7 +55,7 @@ Tracked files: **336** · inventory entries: **336**
 | `LICENSE` | License or third-party notice | public readers | upstream license terms | no | current | reviewed in this audit | none | reviewed (unchanged) |
 | `README.md` | Normative current documentation | contributors and operators | implementation + canonical evidence (see docs/README authority map) | no | current | line-by-line reviewed in this audit | updated in this audit | reviewed + updated |
 | `RELEASING.md` | Packaging or release metadata | maintainers | release policy | no | current | reviewed in this audit | none | reviewed (unchanged) |
-| `THIRD_PARTY_NOTICES.md` | License or third-party notice | public readers | upstream license terms | no | current | reviewed in this audit | none | reviewed (unchanged) |
+| `THIRD_PARTY_NOTICES.md` | License or third-party notice | public readers | upstream license terms | no | current | reviewed in this audit | updated in this audit | reviewed + updated |
 | `askama.toml` | Configuration | maintainers | reviewed operator configuration | no | current | reviewed in this audit | none | reviewed (unchanged) |
 | `case-studies/inc0299001/README.md` | Reviewed case-study interpretation | network analysts | canonical evidence + operator sources (reviewed) | no | current | claims re-checked against canonical evidence in this audit | updated in this audit | reviewed + updated |
 | `case-studies/inc0299001/asn-identities.json` | Reviewed case-study interpretation | network analysts | canonical evidence + operator sources (reviewed) | no | current | claims re-checked against canonical evidence in this audit | none | reviewed (unchanged) |
@@ -228,6 +228,7 @@ Tracked files: **336** · inventory entries: **336**
 | `docs/TASKS.md` | Historical decision record | maintainers | decision context at time of writing | no | historical | status and applicability reviewed in this audit | none | reviewed (unchanged) |
 | `docs/UX.md` | Normative current documentation | contributors and operators | implementation + canonical evidence (see docs/README authority map) | no | current | line-by-line reviewed in this audit | updated in this audit | reviewed + updated |
 | `docs/audits/2026-08-repository-truth-audit.md` | Normative current documentation | maintainers | repository-inventory.json + git state (rendered, reviewed content) | no | current | line-by-line reviewed in this audit | updated in this audit | reviewed + updated |
+| `docs/audits/external-links-2026-08.md` | Normative current documentation | maintainers | dated curl checks of documented external URLs | no | current | line-by-line reviewed in this audit | none | reviewed (unchanged) |
 | `docs/audits/repository-inventory.json` | Configuration | maintainers | reviewed classification of tracked files | no | current | reviewed in this audit | updated in this audit | reviewed + updated |
 | `docs/session-10-baseline.md` | Historical decision record | maintainers | decision context at time of writing | no | historical | status and applicability reviewed in this audit | none | reviewed (unchanged) |
 | `docs/sources/GRNOC_BULK_ACCESS_REQUEST.md` | Normative current documentation | contributors and operators | implementation + canonical evidence (see docs/README authority map) | no | current | line-by-line reviewed in this audit | none | reviewed (unchanged) |
@@ -268,41 +269,41 @@ Tracked files: **336** · inventory entries: **336**
 | `spec/session-37/tasks.md` | Historical decision record | maintainers | decision context at time of writing | no | historical | status and applicability reviewed in this audit | none | reviewed (unchanged) |
 | `spec/session-38/tasks.md` | Historical decision record | maintainers | decision context at time of writing | no | historical | status and applicability reviewed in this audit | none | reviewed (unchanged) |
 | `src/assess.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed (unchanged) |
-| `src/catalog/access.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed (unchanged) |
-| `src/catalog/analyzability.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed (unchanged) |
-| `src/catalog/archive_plan.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed (unchanged) |
-| `src/catalog/batch.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed (unchanged) |
-| `src/catalog/case_study_compare.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed (unchanged) |
-| `src/catalog/case_study_import.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed (unchanged) |
+| `src/catalog/access.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | updated in this audit | reviewed + updated |
+| `src/catalog/analyzability.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | updated in this audit | reviewed + updated |
+| `src/catalog/archive_plan.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | updated in this audit | reviewed + updated |
+| `src/catalog/batch.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | updated in this audit | reviewed + updated |
+| `src/catalog/case_study_compare.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | updated in this audit | reviewed + updated |
+| `src/catalog/case_study_import.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | updated in this audit | reviewed + updated |
 | `src/catalog/db.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed (unchanged) |
-| `src/catalog/discovery.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed (unchanged) |
-| `src/catalog/document.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed (unchanged) |
-| `src/catalog/domain.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed (unchanged) |
+| `src/catalog/discovery.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | updated in this audit | reviewed + updated |
+| `src/catalog/document.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | updated in this audit | reviewed + updated |
+| `src/catalog/domain.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | updated in this audit | reviewed + updated |
 | `src/catalog/grnoc.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed (unchanged) |
-| `src/catalog/grnoc_viewer.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed (unchanged) |
-| `src/catalog/grouping.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed (unchanged) |
-| `src/catalog/import.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed (unchanged) |
-| `src/catalog/migrations.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed (unchanged) |
+| `src/catalog/grnoc_viewer.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | updated in this audit | reviewed + updated |
+| `src/catalog/grouping.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | updated in this audit | reviewed + updated |
+| `src/catalog/import.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | updated in this audit | reviewed + updated |
+| `src/catalog/migrations.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | updated in this audit | reviewed + updated |
 | `src/catalog/mock_server.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed (unchanged) |
 | `src/catalog/mod.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed (unchanged) |
-| `src/catalog/netprofile.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed (unchanged) |
-| `src/catalog/observer_compare.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed (unchanged) |
-| `src/catalog/origin_inventory.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed (unchanged) |
-| `src/catalog/phase_summary.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed (unchanged) |
-| `src/catalog/relationships.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed (unchanged) |
-| `src/catalog/review.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed (unchanged) |
-| `src/catalog/session_audit.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed (unchanged) |
+| `src/catalog/netprofile.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | updated in this audit | reviewed + updated |
+| `src/catalog/observer_compare.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | updated in this audit | reviewed + updated |
+| `src/catalog/origin_inventory.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | updated in this audit | reviewed + updated |
+| `src/catalog/phase_summary.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | updated in this audit | reviewed + updated |
+| `src/catalog/relationships.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | updated in this audit | reviewed + updated |
+| `src/catalog/review.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | updated in this audit | reviewed + updated |
+| `src/catalog/session_audit.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | updated in this audit | reviewed + updated |
 | `src/catalog/source_extract.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed (unchanged) |
 | `src/catalog/status.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed (unchanged) |
-| `src/catalog/store.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed (unchanged) |
-| `src/catalog/sync.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed (unchanged) |
-| `src/catalog/target_research.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed (unchanged) |
-| `src/catalog/tests.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed (unchanged) |
-| `src/catalog/web/api.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed (unchanged) |
-| `src/catalog/web/handlers.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed (unchanged) |
+| `src/catalog/store.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | updated in this audit | reviewed + updated |
+| `src/catalog/sync.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | updated in this audit | reviewed + updated |
+| `src/catalog/target_research.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | updated in this audit | reviewed + updated |
+| `src/catalog/tests.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | updated in this audit | reviewed + updated |
+| `src/catalog/web/api.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | updated in this audit | reviewed + updated |
+| `src/catalog/web/handlers.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | updated in this audit | reviewed + updated |
 | `src/catalog/web/mod.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed (unchanged) |
 | `src/catalog/web/server.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed (unchanged) |
-| `src/catalog/web/session_context.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed (unchanged) |
+| `src/catalog/web/session_context.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | updated in this audit | reviewed + updated |
 | `src/catalog/web/templates/analysis.html` | Template or stylesheet | operators (NOC analysts) | workbench view model + domain model | no | current | user-visible text audited in this audit | none | reviewed (unchanged) |
 | `src/catalog/web/templates/analysis_queue.html` | Template or stylesheet | operators (NOC analysts) | workbench view model + domain model | no | current | user-visible text audited in this audit | none | reviewed (unchanged) |
 | `src/catalog/web/templates/archive_batches.html` | Template or stylesheet | operators (NOC analysts) | workbench view model + domain model | no | current | user-visible text audited in this audit | none | reviewed (unchanged) |
@@ -318,12 +319,12 @@ Tracked files: **336** · inventory entries: **336**
 | `src/catalog/web/templates/incident_candidates.html` | Template or stylesheet | operators (NOC analysts) | workbench view model + domain model | no | current | user-visible text audited in this audit | none | reviewed (unchanged) |
 | `src/catalog/web/templates/streams.html` | Template or stylesheet | operators (NOC analysts) | workbench view model + domain model | no | current | user-visible text audited in this audit | none | reviewed (unchanged) |
 | `src/catalog/web/templates/sync_runs.html` | Template or stylesheet | operators (NOC analysts) | workbench view model + domain model | no | current | user-visible text audited in this audit | none | reviewed (unchanged) |
-| `src/catalog/web/templates/workbench.html` | Template or stylesheet | operators (NOC analysts) | workbench view model + domain model | no | current | user-visible text audited in this audit | none | reviewed (unchanged) |
+| `src/catalog/web/templates/workbench.html` | Template or stylesheet | operators (NOC analysts) | workbench view model + domain model | no | current | user-visible text audited in this audit | updated in this audit | reviewed + updated |
 | `src/catalog/web/tests.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | updated in this audit | reviewed + updated |
 | `src/catalog/web/view.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | updated in this audit | reviewed + updated |
 | `src/catalog/workbench.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | updated in this audit | reviewed + updated |
 | `src/cohort.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed (unchanged) |
-| `src/compare.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed (unchanged) |
+| `src/compare.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | updated in this audit | reviewed + updated |
 | `src/conventions/grnoc.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed (unchanged) |
 | `src/conventions/mod.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed (unchanged) |
 | `src/derived_cache.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed (unchanged) |
@@ -332,7 +333,7 @@ Tracked files: **336** · inventory entries: **336**
 | `src/domain/entity.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed (unchanged) |
 | `src/domain/event.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed (unchanged) |
 | `src/domain/expectation.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed (unchanged) |
-| `src/domain/mod.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed (unchanged) |
+| `src/domain/mod.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | updated in this audit | reviewed + updated |
 | `src/domain/observation.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed (unchanged) |
 | `src/domain/route.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed (unchanged) |
 | `src/domain/wave.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed (unchanged) |
@@ -340,15 +341,15 @@ Tracked files: **336** · inventory entries: **336**
 | `src/ingest/mod.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed (unchanged) |
 | `src/lib.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed (unchanged) |
 | `src/lifecycle.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed (unchanged) |
-| `src/main.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed (unchanged) |
+| `src/main.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | updated in this audit | reviewed + updated |
 | `src/manifest.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed (unchanged) |
 | `src/observability.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed (unchanged) |
-| `src/orchestrate.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed (unchanged) |
+| `src/orchestrate.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | updated in this audit | reviewed + updated |
 | `src/outcome.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed (unchanged) |
-| `src/output.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed (unchanged) |
-| `src/perf.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed (unchanged) |
-| `src/pipeline.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed (unchanged) |
-| `src/plan.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed (unchanged) |
+| `src/output.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | updated in this audit | reviewed + updated |
+| `src/perf.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | updated in this audit | reviewed + updated |
+| `src/pipeline.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | updated in this audit | reviewed + updated |
+| `src/plan.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | updated in this audit | reviewed + updated |
 | `src/profiles/internet2.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed (unchanged) |
 | `src/profiles/mod.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed (unchanged) |
 | `src/report.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed (unchanged) |
@@ -358,16 +359,16 @@ Tracked files: **336** · inventory entries: **336**
 | `src/sequitur/grammar.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed (unchanged) |
 | `src/sequitur/invariants.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed (unchanged) |
 | `src/sequitur/mod.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed (unchanged) |
-| `src/sources/grnoc.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed (unchanged) |
-| `src/sources/internet2/mod.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed (unchanged) |
-| `src/sources/internet2/ticket.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed (unchanged) |
-| `src/sources/mod.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed (unchanged) |
-| `src/target.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed (unchanged) |
+| `src/sources/grnoc.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | updated in this audit | reviewed + updated |
+| `src/sources/internet2/mod.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | updated in this audit | reviewed + updated |
+| `src/sources/internet2/ticket.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | updated in this audit | reviewed + updated |
+| `src/sources/mod.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | updated in this audit | reviewed + updated |
+| `src/target.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | updated in this audit | reviewed + updated |
 | `src/tokenize.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed (unchanged) |
 | `src/waves.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed (unchanged) |
 | `tests/artifact_audit_test.rs` | Test source | maintainers | implementation behavior + fixtures | no | current | reviewed in this audit | updated in this audit | reviewed + updated |
 | `tests/audit_test.rs` | Test source | maintainers | implementation behavior + fixtures | no | current | reviewed in this audit | updated in this audit | reviewed + updated |
-| `tests/fixtures/README.md` | Test fixture | maintainers | upstream source or synthetic generator | no | current | provenance reviewed in this audit | none | reviewed (unchanged) |
+| `tests/fixtures/README.md` | Test fixture | maintainers | upstream source or synthetic generator | no | current | provenance reviewed in this audit | updated in this audit | reviewed + updated |
 | `tests/fixtures/grnoc/INC0301970.json` | Test fixture | maintainers | upstream source or synthetic generator | no | current | provenance reviewed in this audit | none | reviewed (unchanged) |
 | `tests/fixtures/grnoc/viewer/CHG0099999.json` | Test fixture | maintainers | upstream source or synthetic generator | no | current | provenance reviewed in this audit | none | reviewed (unchanged) |
 | `tests/fixtures/grnoc/viewer/INC0227937.json` | Test fixture | maintainers | upstream source or synthetic generator | no | current | provenance reviewed in this audit | none | reviewed (unchanged) |

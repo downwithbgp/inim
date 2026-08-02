@@ -1,6 +1,6 @@
 # GRNOC bulk-access request — DRAFT (not sent)
 
-**Status:** DRAFT — created 2026-08-01, refined 2026-08-01 (Session 34).
+**Status:** DRAFT — created 2026-08-01, refined 2026-08-01. Reviewed but not sent.
 **Do not send without user approval.** Silence is never treated as
 permission for aggressive crawling.
 
@@ -80,7 +80,7 @@ Viewer (`https://ticket-viewer.grnoc.iu.edu/`).
 > **How we retrieve it today (current reviewed behavior)**
 > - Smooth limiter: at most 2 immediate requests, then paced at a
 >   sustained **5 requests/second** ceiling (reviewed local operational
->   guidance, Session 35; NOT a publicly documented API guarantee).
+>   guidance; NOT a publicly documented API guarantee).
 > - Maximum 5 requests in flight.
 > - Fully responsive to source feedback: 429/Retry-After reduces the
 >   effective rate immediately; repeated throttling stops the sync;
@@ -147,10 +147,11 @@ sent until they are filled in:
 
 ## Usage notes
 
-- The project is not distributing any corpus in this session; the
+- The project is not distributing any corpus; the
   request is for guidance before any larger acquisition or publication
   is considered.
-- Current acquisition remains bounded by the self-imposed conservative
-  policy (1 concurrent request, 0.25 req/s, budget 100 per sync).
+- Current acquisition remains bounded by the reviewed policy (default
+  ceiling 5 requests/second, burst 2, max 5 in-flight, budget 100 per
+  sync; adaptive to 429/Retry-After).
 - See `GRNOC_PUBLIC_TASK_VIEWER.md` for the protocol audit that
   documents the current viewer behavior.

@@ -164,7 +164,7 @@ request draft is maintained at `docs/sources/GRNOC_BULK_ACCESS_REQUEST.md`
 The sync client implemented for this protocol (see `src/catalog/access.rs`
 and `src/catalog/grnoc_viewer.rs`) applies:
 
-- Reviewed local operational guidance (Session 35, Part 8): the
+- Reviewed local operational guidance: the
   unauthenticated Public Task Viewer endpoints can be accessed at up to
   **5 requests/second** without operational concern. This is reviewed
   local guidance, NOT a publicly documented API service-level guarantee.
@@ -193,7 +193,7 @@ public responses captured during this audit (see
 All tests use fixtures; the live service is never called from the test
 suite.
 
-## Session 34 update
+## Reviewed corpus state
 
 - The ten acquired MAN LAN tickets are now **reviewed operational data**
   (reviewed case-study roles, entity labels, linked maintenance

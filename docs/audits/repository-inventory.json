@@ -2686,5 +2686,13 @@
   "authoritative": "implementation behavior + fixtures",
   "generated": false,
   "current": true
+ },
+ {
+  "path": "docs/audits/external-links-2026-08.md",
+  "category": "Normative current documentation",
+  "audience": "maintainers",
+  "authoritative": "dated curl checks of documented external URLs",
+  "generated": false,
+  "current": true
  }
 ]
