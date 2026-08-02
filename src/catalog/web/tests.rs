@@ -1535,6 +1535,8 @@ async fn region_key_is_valid() {
         .split("wb-region\">")
         .skip(1)
         .map(|s| s.split('<').next().unwrap_or(""))
+        .map(str::trim)
+        .filter(|r| !r.is_empty())
         .collect();
     assert!(!regions.is_empty(), "region cells present");
     for r in &regions {
@@ -1552,7 +1554,7 @@ async fn region_key_is_valid() {
         "collector id must not render as a region key"
     );
     assert!(
-        body.contains("No qualifying baseline"),
+        body.contains("Coverage limitations"),
         "coverage status human label for the RRC11 session"
     );
 }
@@ -1639,18 +1641,27 @@ async fn primary_ui_contains_no_raw_internal_enum_labels() {
 }
 
 #[tokio::test]
-async fn first_screen_contains_observed_result() {
+async fn first_screen_leads_with_findings_and_covers_breadth() {
     let (status, body) = manlan_workbench().await;
     if body.is_empty() {
         return;
     }
     assert_eq!(status, StatusCode::OK);
-    assert!(body.contains("Observed result"));
+    // The generated observed-result sentence now lives in the
+    // secondary Observation coverage section (Session 39, Part 7); the
+    // breadth ratio never precedes the concrete findings.
+    let findings = body.find("Externally observed routing changes").unwrap();
+    let coverage = body.find("Observation coverage").unwrap();
+    let result = body.find("Route-state changes appeared at").unwrap();
     assert!(
-        body.contains("Route-state changes appeared at"),
-        "generated observed-result sentence"
+        findings < coverage && coverage < result,
+        "breadth sentence sits inside Observation coverage, after findings"
     );
     assert!(body.contains("baseline streams changed"), "stream totals");
+    assert!(
+        !body[..findings].contains("eligible observer sessions"),
+        "no breadth ratio before the findings"
+    );
 }
 
 #[tokio::test]
@@ -1908,8 +1919,12 @@ async fn no_change_rows_remain_discoverable() {
     }
     assert_eq!(status, StatusCode::OK);
     assert!(
-        body.contains("No-change sessions (2)"),
+        body.contains("Other selected observers"),
         "unchanged rows collapsed but discoverable with visible count"
+    );
+    assert!(
+        body.contains("saw no route-state change for the selected prefixes"),
+        "no-change observer statements rendered"
     );
     assert!(
         body.contains("10 eligible observer sessions"),
@@ -2090,9 +2105,21 @@ async fn not_applicable_is_distinct_from_not_reviewed() {
     }
     assert_eq!(status, StatusCode::OK);
     assert!(
-        !body.contains("not reviewed"),
-        "N/A concepts are never rendered as 'not reviewed'"
+        body.contains("Not applicable — multi-ticket case study"),
+        "N/A source task type stated explicitly"
     );
+    // Unreviewed ASN identities render "name not reviewed" (Part 6);
+    // every other "not reviewed" occurrence would be a conflation of
+    // N/A concepts with a review verdict.
+    let lower = body.to_lowercase();
+    for m in lower.match_indices("not reviewed") {
+        let start = m.0.saturating_sub(20);
+        let ctx = &lower[start..m.0 + m.1.len()];
+        assert!(
+            ctx.contains("name not reviewed"),
+            "'not reviewed' only ever appears as 'name not reviewed', got: {ctx}"
+        );
+    }
 }
 
 #[tokio::test]
@@ -2255,18 +2282,24 @@ async fn exact_iso_time_remains_in_details() {
 }
 
 #[tokio::test]
-async fn mobile_first_view_prioritizes_result_and_scope() {
-    // In the DOM, the observed result and scope limit precede the event
-    // context facts, so the first mobile viewport shows title + result
-    // + scope before any secondary metadata.
+async fn mobile_first_view_prioritizes_findings_and_scope() {
+    // In the DOM, the findings and scope limit precede the event
+    // context facts and the coverage ratios, so the first mobile
+    // viewport shows title + findings + scope before any secondary
+    // metadata (Session 39, Part 7).
     let (status, body) = manlan_workbench().await;
     if body.is_empty() {
         return;
     }
     assert_eq!(status, StatusCode::OK);
-    let result = body.find("Observed result").unwrap();
+    let findings = body.find("Externally observed routing changes").unwrap();
     let context = body.find("Event context").unwrap();
     let scope = body.find("Scope limit:").unwrap();
-    assert!(result < context, "observed result precedes event context");
+    let coverage = body.find("Observation coverage").unwrap();
+    // The scope limit precedes the event-context facts; the findings
+    // precede the coverage ratios. Event context is a collapsed
+    // <details> on mobile, so it never occupies the first viewport.
     assert!(scope < context, "scope limit precedes event context");
+    assert!(findings < coverage, "findings precede coverage ratios");
+    assert!(coverage > context, "coverage ratios follow context");
 }

@@ -128,6 +128,28 @@ a:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px soli
 .wb-sortable th.sorted-asc::after { content: " ▲"; }
 .wb-sortable th.sorted-desc::after { content: " ▼"; }
 
+/* ── Routing findings (Session 39): operator-first cards + table. */
+.wb-pilot-range { font-size: 0.9rem; margin: 0.2rem 0; }
+.wb-audit { margin: 0.3rem 0; color: #7a4a00; }
+.wb-nofinding { font-size: 0.95rem; margin: 0.3rem 0; }
+.wb-finding { border: 1px solid var(--line); background: #fff; padding: 0.5rem 0.7rem; margin: 0.5rem 0; }
+.wb-finding-head { display: flex; flex-wrap: wrap; gap: 0.3rem 1rem; align-items: baseline; font-size: 0.85rem; }
+.wb-finding-head .wb-prefix-link { font-weight: 700; color: var(--link); text-decoration: underline; }
+.wb-finding-statement { font-size: 0.88rem; margin: 0.4rem 0 0.3rem; line-height: 1.45; }
+.wb-finding-paths { display: flex; flex-wrap: wrap; gap: 0.25rem 0.6rem; align-items: baseline; font-size: 0.82rem; margin: 0.2rem 0; }
+.wb-path-label { color: var(--muted); font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.04em; }
+.wb-path { background: #f5f5f3; padding: 0.05rem 0.35rem; }
+.wb-finding-outcome { font-size: 0.82rem; margin: 0.2rem 0; }
+.wb-copy-actions { margin: 0.4rem 0 0; font-size: 0.8rem; }
+.wb-copy { font-size: 0.75rem; padding: 0.15rem 0.5rem; margin-right: 0.4rem; border: 1px solid var(--line); background: #f0f0f0; cursor: pointer; }
+.wb-region { margin: 0.4rem 0; }
+.wb-region-statements { margin: 0.2rem 0 0.4rem; font-size: 0.85rem; }
+.wb-region-ratio { font-size: 0.75rem; }
+.wb-finding-row td { background: #fff; }
+.wb-finding-row .wb-change { font-weight: 700; }
+.wb-nochange-statements { margin: 0.2rem 0 0.4rem; font-size: 0.85rem; }
+.wb-episode-detail { margin: 0.5rem 0; }
+
 /* ── Narrow / mobile (Part 12): stacked header, scrollable tables,
    definition-list episode rows. Text never shrinks below readable size;
    timestamps, ASNs, and prefixes never break. */
@@ -2950,6 +2972,10 @@ pub struct WorkbenchView {
     pub episodes: Vec<WorkbenchEpisodeRow>,
     /// No-change rows, rendered collapsed but discoverable (Part 6).
     pub unchanged_episodes: Vec<WorkbenchEpisodeRow>,
+    /// Operator-facing routing findings (Session 39, Parts 3-5, 8).
+    pub findings: Vec<WorkbenchFindingRow>,
+    /// Concrete per-region observer comparison (Part 9).
+    pub region_comparison: Vec<WorkbenchRegionComparisonRow>,
     pub breadth: Vec<WorkbenchBreadthRow>,
     pub timeline: Vec<WorkbenchTimelineRow>,
     pub timeline_svg: String,
@@ -2958,6 +2984,10 @@ pub struct WorkbenchView {
     pub cues: Vec<crate::catalog::workbench::InvestigationCue>,
     pub grouped_cues: Vec<crate::catalog::workbench::GroupedCue>,
     pub runs: Vec<crate::catalog::workbench::WorkbenchRunView>,
+    /// No-change observer statements (Session 39, Part 8): short
+    /// per-session sentences, e.g. "RRC00 in Amsterdam saw no
+    /// route-state change for the selected prefixes."
+    pub no_change_statements: Vec<String>,
     /// Denominator line: "10 eligible observer sessions: 8 changed,
     /// 2 unchanged, 1 no qualifying baseline."
     pub denominator: String,
@@ -3033,6 +3063,9 @@ impl WorkbenchView {
         let mut f = WorkbenchFilters::from_query(filters);
         f.expand_all = filters.expand;
         let (episodes, unchanged, denominator) = episode_rows(&vm, &f);
+        let findings = finding_rows(&vm, &f);
+        let region_comparison = region_comparison_rows(&vm, &f);
+        let no_change_statements = no_change_statements(&vm);
         let breadth = breadth_rows(&vm);
         let timeline = timeline_rows(&vm);
         let timeline_svg =
@@ -3061,6 +3094,8 @@ impl WorkbenchView {
         WorkbenchView {
             episodes,
             unchanged_episodes: unchanged,
+            findings,
+            region_comparison,
             breadth,
             timeline,
             timeline_svg,
@@ -3069,6 +3104,7 @@ impl WorkbenchView {
             cues,
             grouped_cues,
             runs,
+            no_change_statements,
             denominator,
             header_incident_range: if vm.incident_horizon_start.is_empty() {
                 String::new()
@@ -3293,6 +3329,34 @@ fn effect_slug(kind: &crate::catalog::workbench::EffectKind) -> &'static str {
         K::MixedRouteChange => "mixed",
         K::NoRouteStateChange => "unchanged",
     }
+}
+
+/// Filter a routing finding (Session 39): the same dimensions as the
+/// episode filters, mapped onto the finding's effect vocabulary.
+fn matches_finding_filter(
+    f: &crate::catalog::workbench::RoutingFinding,
+    wf: &WorkbenchFilters,
+) -> bool {
+    use crate::catalog::workbench::RoutingEffect as RE;
+    let slug = match f.effect {
+        RE::PrefixesTemporarilyAbsent => "absent",
+        RE::PrefixesWithdrawn => "withdrawn",
+        RE::AsPathChanged => "path",
+        RE::PrependingChanged => "prepend",
+        RE::NamedPlaneDeparted | RE::NamedPlaneReturned => "plane",
+        RE::MixedChange => "mixed",
+        RE::VisibilityRestored | RE::BaselinePathRestored => "path",
+    };
+    if !wf.kind.is_empty() && slug != wf.kind {
+        return false;
+    }
+    if !wf.region.is_empty() && f.observer_region != wf.region {
+        return false;
+    }
+    if !wf.rel.is_empty() && f.relationship.label().to_lowercase() != wf.rel {
+        return false;
+    }
+    true
 }
 
 /// Human peer-identity label from OBSERVED peer ASNs (Part 5).
@@ -3572,6 +3636,364 @@ fn stream_end_state_human(s: &crate::catalog::workbench::EpisodeStream) -> Strin
         return "Still changed at window end".to_string();
     }
     "No change".to_string()
+}
+
+/// One operator-facing routing finding row (Session 39, Parts 4-5, 8).
+#[derive(Debug, Clone, Serialize)]
+pub struct WorkbenchFindingRow {
+    pub stable_id: String,
+    /// HH:MM:SS UTC (exact ISO in `first_exact` and the JSON API).
+    pub time: String,
+    /// "RRC15 · São Paulo" (region in `region`).
+    pub observer: String,
+    pub region: String,
+    /// "RNP · AS1916" or "AS1916 · name not reviewed".
+    pub peer: String,
+    pub relationship: String,
+    /// "11 prefixes" (exact list in `exact_prefixes`).
+    pub prefixes: String,
+    pub prefix_count: usize,
+    /// Observed route change label (effect vocabulary, Part 4).
+    pub change: String,
+    /// Compact before-path signature (space-joined ASN sequence).
+    pub before: String,
+    /// Compact after-path signature, or "absent" for pure absences.
+    pub after: String,
+    /// Outcome text: restoration(s) or "still changed" state.
+    pub outcome: String,
+    /// One concise operational statement (Part 4).
+    pub statement: String,
+    pub exact_prefixes: Vec<String>,
+    /// Copy payloads (progressive enhancement only; the exact data is
+    /// visible without JavaScript). Each line is one prefix/path.
+    pub copy_prefixes: String,
+    pub copy_before_paths: String,
+    pub copy_after_paths: String,
+    /// Exact per-prefix rows for the drill-down (Part 5).
+    pub stream_rows: Vec<WorkbenchFindingStreamRow>,
+    pub evidence_refs: Vec<String>,
+    pub scope_limit: String,
+    /// Exact ISO timestamps (details/API only).
+    pub first_exact: String,
+    pub visibility_restored_exact: String,
+    pub baseline_restored_exact: String,
+    pub expanded: bool,
+    pub prefixes_open: bool,
+}
+
+/// One prefix row of a finding drill-down (exact paths, Part 5).
+#[derive(Debug, Clone, Serialize)]
+pub struct WorkbenchFindingStreamRow {
+    pub prefix: String,
+    /// Exact baseline AS path (ASN sequence, uncollapsed).
+    pub baseline: String,
+    /// Exact changed AS path, or "absent" for a withdrawal.
+    pub after: String,
+    /// Exact final observed AS path, or "—".
+    pub final_path: String,
+    pub first: String,
+    pub vis_restored: String,
+    pub base_restored: String,
+    pub evidence: String,
+}
+
+/// Short per-session statements for observers with no route-state
+/// change (Session 39, Part 8): "RRC00 in Amsterdam saw no route-state
+/// change for the selected prefixes." No-change evidence only — never
+/// presented as proof about the named relationship.
+fn no_change_statements(vm: &crate::catalog::workbench::IncidentWorkbenchViewModel) -> Vec<String> {
+    let mut statements: Vec<String> = Vec::new();
+    for e in &vm.episodes {
+        if e.effect_kind != crate::catalog::workbench::EffectKind::NoRouteStateChange {
+            continue;
+        }
+        let collector = crate::catalog::workbench::collector_from_session(&e.observer_session);
+        statements.push(format!(
+            "{} in {} saw no route-state change for the selected prefixes.",
+            collector, e.observer_site
+        ));
+    }
+    statements.sort();
+    statements.dedup();
+    statements
+}
+
+/// One region of the observer comparison (Session 39, Part 9):
+/// concrete per-site statements first, ratio as compact metadata.
+#[derive(Debug, Clone, Serialize)]
+pub struct WorkbenchRegionComparisonRow {
+    pub region: String,
+    /// Concrete finding statements for this region's observer sites.
+    pub statements: Vec<String>,
+    /// Compact coverage ratio, e.g. "2/2" (secondary metadata).
+    pub ratio: String,
+}
+
+fn finding_rows(
+    vm: &crate::catalog::workbench::IncidentWorkbenchViewModel,
+    f: &WorkbenchFilters,
+) -> Vec<WorkbenchFindingRow> {
+    use crate::catalog::workbench::RoutingEffect as RE;
+    let window = &vm.window_start;
+    vm.findings
+        .iter()
+        .enumerate()
+        .filter(|(_, finding)| matches_finding_filter(finding, f))
+        .map(|(idx, finding)| {
+            let peer = match finding.peer_asn {
+                Some(asn) => {
+                    if finding.peer_name == "name not reviewed" {
+                        format!("AS{asn} · name not reviewed")
+                    } else {
+                        format!("{} · AS{asn}", finding.peer_name)
+                    }
+                }
+                None => "peer ASN not observed in source evidence".to_string(),
+            };
+            let relationship = finding.relationship.label().to_lowercase();
+            let before = if finding.baseline_path_signature == "—" {
+                "—".to_string()
+            } else {
+                finding.baseline_path_signature.clone()
+            };
+            // Pure absences have no changed path: render the absence.
+            let after = match (&finding.changed_path_signature, finding.effect) {
+                (s, _) if s != "—" => s.clone(),
+                (_, RE::PrefixesTemporarilyAbsent | RE::PrefixesWithdrawn) => "absent".to_string(),
+                _ => "—".to_string(),
+            };
+            let outcome = finding_outcome(finding);
+            let time = finding
+                .first_observed
+                .as_deref()
+                .map(|t| wb_time(t, window))
+                .unwrap_or_else(|| "—".to_string());
+            let stream_rows: Vec<WorkbenchFindingStreamRow> = finding
+                .streams
+                .iter()
+                .map(|s| WorkbenchFindingStreamRow {
+                    prefix: s.prefix.clone(),
+                    baseline: exact_path_display(&s.baseline_path),
+                    after: match &s.changed_path {
+                        Some(p) => exact_path_display(p),
+                        None => {
+                            if s.withdrawn {
+                                "absent".to_string()
+                            } else {
+                                "—".to_string()
+                            }
+                        }
+                    },
+                    final_path: s
+                        .final_path
+                        .as_ref()
+                        .map(|p| exact_path_display(p))
+                        .unwrap_or_else(|| "—".to_string()),
+                    first: s
+                        .first_change_utc
+                        .as_deref()
+                        .map(|t| wb_time(t, window))
+                        .unwrap_or_else(|| "—".to_string()),
+                    vis_restored: s
+                        .visibility_restored_at
+                        .as_deref()
+                        .map(|t| wb_time(t, window))
+                        .unwrap_or_else(|| "—".to_string()),
+                    base_restored: s
+                        .baseline_restored_at
+                        .as_deref()
+                        .map(|t| wb_time(t, window))
+                        .unwrap_or_else(|| "—".to_string()),
+                    evidence: s.evidence_refs.clone(),
+                })
+                .collect();
+            WorkbenchFindingRow {
+                stable_id: finding.stable_id.clone(),
+                time,
+                observer: format!("{} · {}", finding.collector, finding.observer_site),
+                region: finding.observer_region.clone(),
+                peer,
+                relationship,
+                prefixes: if finding.distinct_prefixes == 1 {
+                    "1 prefix".to_string()
+                } else {
+                    format!("{} prefixes", finding.distinct_prefixes)
+                },
+                prefix_count: finding.distinct_prefixes,
+                change: finding.effect.label().to_string(),
+                before,
+                after,
+                outcome,
+                statement: crate::catalog::workbench::finding_statement(finding),
+                exact_prefixes: finding.exact_prefixes.clone(),
+                copy_prefixes: finding.exact_prefixes.join("\n"),
+                copy_before_paths: finding
+                    .streams
+                    .iter()
+                    .map(|s| exact_path_display(&s.baseline_path))
+                    .collect::<Vec<_>>()
+                    .join("\n"),
+                copy_after_paths: finding
+                    .streams
+                    .iter()
+                    .map(|s| match &s.changed_path {
+                        Some(p) => exact_path_display(p),
+                        None => {
+                            if s.withdrawn {
+                                "absent".to_string()
+                            } else {
+                                "—".to_string()
+                            }
+                        }
+                    })
+                    .collect::<Vec<_>>()
+                    .join("\n"),
+                stream_rows,
+                evidence_refs: finding.evidence_refs.clone(),
+                scope_limit: finding.scope_limit.clone(),
+                first_exact: finding.first_observed.clone().unwrap_or_default(),
+                visibility_restored_exact: finding
+                    .visibility_restored_at
+                    .clone()
+                    .unwrap_or_default(),
+                baseline_restored_exact: finding.baseline_restored_at.clone().unwrap_or_default(),
+                expanded: f.expand_all || f.episode == Some(idx),
+                prefixes_open: f.prefixes == Some(idx),
+            }
+        })
+        .collect()
+}
+
+/// Exact AS path display: plain space-joined ASN sequence. The compact
+/// ×N collapse is only used in the summary signature, never here.
+fn exact_path_display(path: &[u32]) -> String {
+    if path.is_empty() {
+        return "—".to_string();
+    }
+    path.iter()
+        .map(|asn| format!("AS{asn}"))
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
+/// Outcome text for a finding: restoration(s) or still-changed state.
+fn finding_outcome(f: &crate::catalog::workbench::RoutingFinding) -> String {
+    use crate::catalog::workbench::EndState as ES;
+    let window = f.first_observed.as_deref().unwrap_or("");
+    let time = |t: &str| wb_time(t, window);
+    match (
+        &f.visibility_restored_at,
+        &f.baseline_restored_at,
+        &f.state_at_window_end,
+    ) {
+        (Some(v), Some(b), _) => format!("Visibility {} · baseline {}", time(v), time(b)),
+        (Some(v), None, _) => format!("Visibility {}", time(v)),
+        (None, Some(b), _) => format!("Baseline {}", time(b)),
+        (None, None, ES::StillChangedAtWindowEnd) => "Still changed at window end".to_string(),
+        (None, None, ES::AbsentAtWindowEnd) => "Absent at window end".to_string(),
+        (None, None, ES::Unresolved) => "Unresolved".to_string(),
+        _ => "—".to_string(),
+    }
+}
+
+/// Observer comparison by region (Session 39, Part 9): one concrete
+/// statement per observer site, then the compact ratio as metadata.
+fn region_comparison_rows(
+    vm: &crate::catalog::workbench::IncidentWorkbenchViewModel,
+    f: &WorkbenchFilters,
+) -> Vec<WorkbenchRegionComparisonRow> {
+    let mut by_region: std::collections::BTreeMap<String, Vec<String>> =
+        std::collections::BTreeMap::new();
+    let mut by_region_ratio: std::collections::BTreeMap<String, (usize, usize)> =
+        std::collections::BTreeMap::new();
+    let mut changed_sessions: std::collections::BTreeSet<String> =
+        std::collections::BTreeSet::new();
+    for fnd in vm
+        .findings
+        .iter()
+        .filter(|fnd| matches_finding_filter(fnd, f))
+    {
+        by_region
+            .entry(fnd.observer_region.clone())
+            .or_default()
+            .push(format!(
+                "{}: {} beginning {}",
+                fnd.observer_site,
+                finding_region_phrase(fnd),
+                fnd.first_observed
+                    .as_deref()
+                    .map(|t| wb_time(t, &vm.window_start))
+                    .unwrap_or_else(|| "the observed time".to_string())
+            ));
+        changed_sessions.insert(fnd.observer_site.clone());
+    }
+    // No-change sessions per region: "no route-state counterpart".
+    for e in &vm.episodes {
+        if e.effect_kind == crate::catalog::workbench::EffectKind::NoRouteStateChange {
+            let site = e.observer_site.clone();
+            if !changed_sessions.contains(&site) {
+                by_region
+                    .entry(e.observer_region.clone())
+                    .or_default()
+                    .push(format!("{}: no route-state counterpart observed", site));
+            }
+        }
+    }
+    // Eligible-per-region ratios from the breadth summary.
+    for b in &vm.breadth {
+        let (ch, el) = by_region_ratio.entry(b.region.clone()).or_default();
+        *ch = b.changed_observer_sessions;
+        *el = b.eligible_observer_sessions;
+    }
+    by_region
+        .into_iter()
+        .map(|(region, mut statements)| {
+            statements.sort();
+            let (ch, el) = by_region_ratio.get(&region).copied().unwrap_or((0, 0));
+            WorkbenchRegionComparisonRow {
+                region,
+                statements,
+                ratio: if el == 0 {
+                    "—".to_string()
+                } else {
+                    format!("{ch}/{el}")
+                },
+            }
+        })
+        .collect()
+}
+
+/// Short concrete phrase for one finding in the regional summary.
+fn finding_region_phrase(f: &crate::catalog::workbench::RoutingFinding) -> String {
+    use crate::catalog::workbench::{EndState as ES, RoutingEffect as RE};
+    let n = f.distinct_prefixes;
+    let unit = if n == 1 {
+        "1 prefix".to_string()
+    } else {
+        format!("{n} prefixes")
+    };
+    let changed = match f.effect {
+        RE::PrefixesTemporarilyAbsent => "briefly disappeared",
+        RE::PrefixesWithdrawn => "became absent",
+        RE::AsPathChanged => "changed path",
+        RE::PrependingChanged => "changed prepending",
+        RE::NamedPlaneDeparted => "left the reviewed plane",
+        RE::NamedPlaneReturned => "returned to the reviewed plane",
+        RE::VisibilityRestored => "returned to visibility",
+        RE::BaselinePathRestored => "restored the baseline path",
+        RE::MixedChange => "showed mixed route-state changes",
+    };
+    let mut s = format!("{unit} {changed}");
+    match (&f.baseline_restored_at, &f.state_at_window_end) {
+        (Some(t), _) => s.push_str(&format!(
+            "; earlier path state returned by {}",
+            wb_time(t, f.first_observed.as_deref().unwrap_or(""))
+        )),
+        (None, ES::StillChangedAtWindowEnd) => s.push_str("; still changed at window end"),
+        (None, ES::AbsentAtWindowEnd) => s.push_str("; absent at window end"),
+        _ => {}
+    }
+    s
 }
 
 /// Display-time renderer (Part 4): HH:MM:SS UTC for same-day rows.

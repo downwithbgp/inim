@@ -39,6 +39,18 @@ There is no Contributor License Agreement.
 - **New persisted formats carry schema versions.** Bump the schema and
   reject old identity semantics rather than silently reinterpreting them.
 
+## Public history
+
+The repository is public at https://github.com/downwithbgp/inim.
+
+- **Public history must not be rewritten without extraordinary reason.**
+- Future work uses ordinary commits and ordinary `git revert` commits for
+  published mistakes.
+- **Force-pushes to `main` are prohibited.**
+- Generated runtime data stays out of Git: `data/`, `cache/`, `tmp/`,
+  and the top-level `out/` directory are gitignored. Reviewed evidence
+  lives under `case-studies/` and is committed deliberately.
+
 ## Release checklist
 
 See `RELEASING.md` for the release-readiness checklist (gates, license

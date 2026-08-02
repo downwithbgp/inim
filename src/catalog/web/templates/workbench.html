@@ -6,10 +6,9 @@
 
 <div class="wb-panel wb-header">
   <div class="wb-observed">
-    <h3>Observed result</h3>
-    <p class="wb-result">{{ vm.observed_result }}</p>
-    {% if !vm.current_result.is_empty() && vm.current_result != vm.observed_result %}
-    <p class="muted wb-note">{{ vm.current_result }}</p>
+    <h3>Displayed analysis scope</h3>
+    {% if !header_pilot_range.is_empty() %}
+    <p class="wb-pilot-range">{{ header_pilot_range }}</p>
     {% endif %}
     {% if !vm.scope_limit.is_empty() %}
     <p class="wb-scope">Scope limit: {{ vm.scope_limit }}</p>
@@ -27,7 +26,7 @@
     · <a href="{% if vm.subject_kind == "case-study" %}/case-studies/{{ vm.subject_id }}{% else %}/events/{{ vm.subject_id }}{% endif %}">Provenance</a>
   </p>
 
-  <details class="wb-event-context" open>
+  <details class="wb-event-context">
     <summary>Event context</summary>
     <dl class="wb-facts">
       <div><dt>Source task type</dt><dd>{{ vm.source_task_type }}</dd></div>
@@ -51,7 +50,231 @@
   </details>
 </div>
 
-<h3 class="wb-section">Observed breadth by region</h3>
+<!-- ================================================================
+     PRIMARY: EXTERNALLY OBSERVED ROUTING CHANGES
+     Changed findings first, chronological, each with exact time,
+     observer site, peer ASN, prefix access, before/after routes, and
+     restoration/outcome. Breadth ratios never precede this section.
+     ================================================================ -->
+<h3 class="wb-section">Externally observed routing changes</h3>
+<p class="wb-filters">
+  Filters:
+  <a href="?"{% if !filters.active() %} class="wb-filter-active"{% endif %}>all</a>
+  <a href="?changed=1"{% if filters.changed %} class="wb-filter-active"{% endif %}>changed</a>
+  <a href="?kind=absent"{% if filters.kind == "absent" %} class="wb-filter-active"{% endif %}>absent</a>
+  <a href="?kind=path"{% if filters.kind == "path" %} class="wb-filter-active"{% endif %}>path changed</a>
+  <a href="?kind=plane"{% if filters.kind == "plane" %} class="wb-filter-active"{% endif %}>plane departure</a>
+  <a href="?kind=unchanged"{% if filters.kind == "unchanged" %} class="wb-filter-active"{% endif %}>unchanged</a>
+  <a href="?kind=withdrawn"{% if filters.kind == "withdrawn" %} class="wb-filter-active"{% endif %}>withdrawn</a>
+  · <a href="?region=AMER"{% if filters.region == "AMER" %} class="wb-filter-active"{% endif %}>AMER</a>
+  <a href="?region=EMEA"{% if filters.region == "EMEA" %} class="wb-filter-active"{% endif %}>EMEA</a>
+  <a href="?region=APAC"{% if filters.region == "APAC" %} class="wb-filter-active"{% endif %}>APAC</a>
+  · <a href="?rel=direct"{% if filters.rel == "direct" %} class="wb-filter-active"{% endif %}>direct</a>
+  <a href="?rel=indirect"{% if filters.rel == "indirect" %} class="wb-filter-active"{% endif %}>indirect</a>
+</p>
+{% if findings.is_empty() %}
+{% if !filters.active() %}
+<p class="wb-nofinding">No relevant observer visibility was available.</p>
+{% if !no_change_statements.is_empty() %}
+<p class="wb-note">Supporting R&amp;E-plane observation: {{ no_change_statements.len() }} selected observer session{% if no_change_statements.len() == 1 %}s{% endif %} showed no route-state change. A no-change supporting plane is not evidence about the named relationship.</p>
+{% endif %}
+{% else %}
+<p class="muted">No routing findings match the current filter.</p>
+{% endif %}
+{% else %}
+{% for f in findings %}
+<div class="wb-finding" id="finding-{{ f.stable_id }}">
+  <div class="wb-finding-head">
+    <span class="wb-mono wb-nowrap">{{ f.time }}</span>
+    <span class="wb-nowrap">{{ f.observer }}{% if !f.region.is_empty() %}, {{ f.region }}{% endif %}</span>
+    <span class="wb-nowrap wb-peer">{{ f.peer }}</span>
+    {% if !f.relationship.is_empty() %}<span class="muted wb-nowrap">{{ f.relationship }}</span>{% endif %}
+    <a class="wb-prefix-link" href="#prefixes-{{ f.stable_id }}">{{ f.prefixes }}</a>
+    <span class="wb-change">{{ f.change }}</span>
+  </div>
+  <p class="wb-finding-statement">{{ f.statement }}</p>
+  <div class="wb-finding-paths">
+    <span class="wb-path-label">Before</span>
+    <span class="wb-mono wb-path">{{ f.before }}</span>
+    <span class="wb-path-label">After</span>
+    <span class="wb-mono wb-path">{{ f.after }}</span>
+  </div>
+  <p class="wb-finding-outcome"><span class="wb-path-label">Outcome</span> {{ f.outcome }}</p>
+  <details class="wb-prefix-drilldown" id="prefixes-{{ f.stable_id }}"{% if f.prefixes_open %} open{% endif %}>
+    <summary>View prefixes ({{ f.exact_prefixes.len() }})</summary>
+    <div class="wb-scroll">
+    <table class="wb-table wb-finding-prefixes">
+      <thead><tr>
+        <th>Prefix</th><th>Before path</th><th>After path</th><th>Final path</th>
+        <th>First change</th><th>Visibility restored</th><th>Baseline restored</th><th>Evidence</th>
+      </tr></thead>
+      <tbody>
+      {% for s in f.stream_rows %}
+      <tr>
+        <td class="wb-mono wb-nowrap">{{ s.prefix }}</td>
+        <td class="wb-nowrap">{{ s.baseline }}</td>
+        <td class="wb-nowrap">{{ s.after }}</td>
+        <td class="wb-nowrap">{{ s.final_path }}</td>
+        <td class="wb-mono wb-nowrap">{{ s.first }}</td>
+        <td class="wb-mono wb-nowrap">{{ s.vis_restored }}</td>
+        <td class="wb-mono wb-nowrap">{{ s.base_restored }}</td>
+        <td class="wb-mono wb-evidence">{{ s.evidence }}</td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+    <p class="wb-copy-actions">
+      <button type="button" class="wb-copy" data-copy="{{ f.copy_prefixes }}">Copy prefixes</button>
+      <button type="button" class="wb-copy" data-copy="{{ f.copy_before_paths }}">Copy before paths</button>
+      <button type="button" class="wb-copy" data-copy="{{ f.copy_after_paths }}">Copy after paths</button>
+      <span class="muted wb-note">Exact data is shown above and remains available without JavaScript; copy buttons are a convenience.</span>
+    </p>
+    {% if !f.scope_limit.is_empty() %}
+    <p class="muted wb-note">{{ f.scope_limit }}</p>
+    {% endif %}
+  </details>
+</div>
+{% endfor %}
+{% endif %}
+
+<!-- ================================================================
+     SECONDARY: OBSERVER COMPARISON BY REGION
+     Concrete per-site statements; compact ratios as metadata only.
+     ================================================================ -->
+<h3 class="wb-section">Observer comparison by region</h3>
+{% if region_comparison.is_empty() %}
+<p class="muted">No regional observer comparison.</p>
+{% else %}
+{% for r in region_comparison %}
+<div class="wb-region">
+  <h4 class="wb-subsection">{{ r.region }}{% if r.ratio != "—" %} <span class="muted wb-region-ratio">({{ r.ratio }} changed/eligible sessions)</span>{% endif %}</h4>
+  <ul class="flat wb-region-statements">
+  {% for s in r.statements %}
+    <li>{{ s }}</li>
+  {% endfor %}
+  </ul>
+</div>
+{% endfor %}
+{% endif %}
+
+<!-- ================================================================
+     ROUTING FINDINGS (dense table form; same evidence as above)
+     ================================================================ -->
+<h3 class="wb-section">Routing findings</h3>
+{% if findings.is_empty() %}
+<p class="muted">No changed routing findings.</p>
+{% else %}
+<div class="wb-scroll">
+<table class="wb-table wb-sortable wb-findings" data-sortable>
+<thead><tr>
+  <th>Time</th>
+  <th>Observer / site</th>
+  <th>Peer / relationship</th>
+  <th>Affected prefixes</th>
+  <th>Observed route change</th>
+  <th>Before path</th>
+  <th>After path</th>
+  <th>Outcome</th>
+  <th>Details</th>
+</tr></thead>
+<tbody>
+{% for f in findings %}
+<tr class="wb-finding-row" id="row-{{ f.stable_id }}">
+  <td class="wb-mono wb-nowrap" data-label="Time">{{ f.time }}</td>
+  <td class="wb-nowrap" data-label="Observer / site">{{ f.observer }}{% if !f.region.is_empty() %}, {{ f.region }}{% endif %}</td>
+  <td class="wb-nowrap wb-peer" data-label="Peer / relationship">{{ f.peer }}{% if !f.relationship.is_empty() %} · {{ f.relationship }}{% endif %}</td>
+  <td class="wb-nowrap" data-label="Affected prefixes"><a href="#prefixes-{{ f.stable_id }}">{{ f.prefixes }}</a></td>
+  <td data-label="Observed route change"><span class="wb-change">{{ f.change }}</span></td>
+  <td class="wb-mono wb-nowrap" data-label="Before path">{{ f.before }}</td>
+  <td class="wb-mono wb-nowrap" data-label="After path">{{ f.after }}</td>
+  <td data-label="Outcome">{{ f.outcome }}</td>
+  <td>
+    <details class="wb-episode-details"{% if f.expanded %} open{% endif %}>
+      <summary>View</summary>
+      <div class="wb-episode-expanded">
+        <p class="wb-sentence">{{ f.statement }}</p>
+        <dl class="wb-facts">
+          <div><dt>First change</dt><dd class="wb-mono">{{ f.first_exact }}</dd></div>
+          <div><dt>Visibility restored</dt><dd class="wb-mono">{{ f.visibility_restored_exact }}</dd></div>
+          <div><dt>Baseline restored</dt><dd class="wb-mono">{{ f.baseline_restored_exact }}</dd></div>
+          <div><dt>Observer streams</dt><dd>{{ f.stream_rows.len() }}</dd></div>
+          <div><dt>Exact prefixes</dt><dd class="wb-mono">{{ f.exact_prefixes | join(", ") }}</dd></div>
+          {% if !f.evidence_refs.is_empty() %}
+          <div><dt>Evidence</dt><dd class="wb-mono">{{ f.evidence_refs | join("; ") }}</dd></div>
+          {% endif %}
+        </dl>
+      </div>
+    </details>
+  </td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+{% endif %}
+
+<!-- ================================================================
+     TIMELINE (secondary to the textual findings)
+     ================================================================ -->
+<h3 class="wb-section">Timeline (UTC)</h3>
+{% if timeline.is_empty() %}
+<p class="muted">No timeline lanes.</p>
+{% else %}
+<div class="wb-scroll wb-timeline-scroll">{{ timeline_svg|safe }}</div>
+{% if !anchors.is_empty() %}
+<p class="muted wb-note">Operator-reported anchors (diamonds) are distinct from BGP evidence (triangles/bars). The operator lane spans its anchors' extent; observer lanes span the pilot window. Exact observed timestamps only — the timeline never interpolates unobserved state.</p>
+{% endif %}
+<div class="wb-scroll">
+<table class="wb-table wb-timeline">
+<thead><tr><th>Observer session</th><th>Region</th><th>Window</th><th>First route change</th><th>Absence interval</th><th>Path-change interval</th><th>Restoration</th><th>End state</th></tr></thead>
+<tbody>
+{% for lane in timeline %}
+<tr>
+  <td class="wb-nowrap">{{ lane.session }}</td>
+  <td class="wb-nowrap wb-region">{{ lane.region }}</td>
+  <td class="wb-mono wb-nowrap">{{ lane.window }}</td>
+  <td class="wb-mono wb-nowrap">{{ lane.first_change }}</td>
+  <td class="wb-mono wb-nowrap">{{ lane.absence }}</td>
+  <td class="wb-mono wb-nowrap">{{ lane.path_change }}</td>
+  <td class="wb-mono wb-nowrap">{{ lane.restoration }}</td>
+  <td>{% if lane.end_state == "unresolved" %}<span class="wb-status wb-unresolved">unresolved</span>{% else %}<span class="muted">observed</span>{% endif %}</td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+{% endif %}
+
+<!-- ================================================================
+     SUGGESTED INTERNAL CHECKS (evidence-linked investigation cues)
+     ================================================================ -->
+<h3 class="wb-section">Suggested internal checks</h3>
+<p class="muted wb-note">Investigation cues based on observed external facts — not diagnosis, not root cause, not remediation.</p>
+{% if grouped_cues.is_empty() %}
+<p class="muted">No investigation cues (no route-state changes observed).</p>
+{% else %}
+<ul class="flat wb-cue-groups">
+{% for g in grouped_cues %}
+<li class="wb-cue-group">
+  <span class="wb-cue-title">{{ g.title }}</span>
+  <span class="wb-cue-text">{{ g.text }}</span>
+  {% if g.drill_down.is_some() %}<a href="?prefixes={{ g.drill_down.as_ref().unwrap() }}">exact prefixes</a>{% endif %}
+</li>
+{% endfor %}
+</ul>
+{% endif %}
+
+<!-- ================================================================
+     SECONDARY: OBSERVATION COVERAGE
+     Breadth ratios, denominators, no-baseline conditions, and
+     no-change observers belong here — after the findings.
+     ================================================================ -->
+<h3 class="wb-section">Observation coverage</h3>
+{% if !vm.observed_result.is_empty() %}
+<p class="wb-result">{{ vm.observed_result }}</p>
+{% endif %}
+<p class="wb-denominator">{{ denominator }}</p>
 {% if breadth.is_empty() %}
 <p class="muted">No regional breadth summary.</p>
 {% else %}
@@ -91,7 +314,7 @@
 {% endif %}
 
 {% if !coverage.is_empty() %}
-<h4 class="wb-subsection">No qualifying baseline</h4>
+<h4 class="wb-subsection">Coverage limitations</h4>
 <div class="wb-scroll">
 <table class="wb-table wb-narrow">
 <thead><tr><th>Region</th><th>Session</th><th>Reason</th><th>Evidence detail</th></tr></thead>
@@ -109,205 +332,11 @@
 </div>
 {% endif %}
 
-{% if !timeline_focus %}
-<h3 class="wb-section">Observer episodes</h3>
-<p class="wb-denominator">{{ denominator }}</p>
-<p class="wb-filters">
-  Filters:
-  <a href="?"{% if !filters.active() %} class="wb-filter-active"{% endif %}>all</a>
-  <a href="?changed=1"{% if filters.changed %} class="wb-filter-active"{% endif %}>changed</a>
-  <a href="?kind=absent"{% if filters.kind == "absent" %} class="wb-filter-active"{% endif %}>absent</a>
-  <a href="?kind=path"{% if filters.kind == "path" %} class="wb-filter-active"{% endif %}>path changed</a>
-  <a href="?kind=plane"{% if filters.kind == "plane" %} class="wb-filter-active"{% endif %}>plane departure</a>
-  <a href="?kind=unchanged"{% if filters.kind == "unchanged" %} class="wb-filter-active"{% endif %}>unchanged</a>
-  <a href="?kind=withdrawn"{% if filters.kind == "withdrawn" %} class="wb-filter-active"{% endif %}>withdrawn</a>
-  · <a href="?region=AMER"{% if filters.region == "AMER" %} class="wb-filter-active"{% endif %}>AMER</a>
-  <a href="?region=EMEA"{% if filters.region == "EMEA" %} class="wb-filter-active"{% endif %}>EMEA</a>
-  <a href="?region=APAC"{% if filters.region == "APAC" %} class="wb-filter-active"{% endif %}>APAC</a>
-  · <a href="?rel=direct"{% if filters.rel == "direct" %} class="wb-filter-active"{% endif %}>direct</a>
-  <a href="?rel=indirect"{% if filters.rel == "indirect" %} class="wb-filter-active"{% endif %}>indirect</a>
-</p>
-{% if episodes.is_empty() && unchanged_episodes.is_empty() %}
-<p class="muted">No observer episodes match the current filter.</p>
-{% else %}
-<div class="wb-scroll">
-<table class="wb-table wb-sortable wb-episodes" data-sortable>
-<thead><tr>
-  <th>First</th>
-  <th>Region</th>
-  <th>Observer</th>
-  <th>Peer / view</th>
-  <th>Observed change</th>
-  <th>Streams</th>
-  <th>Prefixes</th>
-  <th>Restored</th>
-  <th>End state</th>
-  <th>Cooldown outcome</th>
-  <th>Details</th>
-</tr></thead>
-<tbody>
-{% for e in episodes %}
-<tr class="wb-episode-row{% if e.changed %} wb-changed{% else %} wb-unchanged{% endif %}">
-  <td class="wb-mono wb-nowrap" data-label="First">{{ e.first }}</td>
-  <td class="wb-nowrap wb-region" data-label="Region">{{ e.region }}</td>
-  <td class="wb-nowrap" data-label="Observer">{{ e.observer }}</td>
-  <td class="wb-nowrap wb-peer" data-label="Peer / view">{{ e.peer_view }}</td>
-  <td data-label="Observed change"><span class="wb-change">{{ e.change }}</span></td>
-  <td class="wb-num" data-label="Streams">{{ e.streams }}</td>
-  <td class="wb-num" data-label="Prefixes">{{ e.prefixes }}</td>
-  <td class="wb-mono wb-nowrap" data-label="Restored">{{ e.restored }}</td>
-  <td data-label="End state"><span class="wb-end {{ e.end_state_class }}">{{ e.end_state }}</span></td>
-  <td data-label="Cooldown outcome">{{ e.cooldown }}</td>
-  <td>
-    <details class="wb-episode-details"{% if e.expanded %} open{% endif %}>
-      <summary>View</summary>
-      <div class="wb-episode-expanded">
-        <p class="wb-sentence">{{ e.sentence }}</p>
-        <dl class="wb-facts">
-          <div><dt>Session</dt><dd class="wb-mono">{{ e.session }}</dd></div>
-          <div><dt>Source family</dt><dd>{{ e.family }}</dd></div>
-          <div><dt>Relationship</dt><dd>{{ e.relationship }}</dd></div>
-          <div><dt>Path plane</dt><dd>{{ e.plane }}</dd></div>
-          <div><dt>Baseline</dt><dd>{{ e.baseline_plane_state }}</dd></div>
-          <div><dt>Changed</dt><dd>{{ e.changed_plane_state }}</dd></div>
-          <div><dt>First change</dt><dd class="wb-mono">{{ e.first_exact }}</dd></div>
-          <div><dt>Last change</dt><dd class="wb-mono">{{ e.last_exact }}</dd></div>
-          <div><dt>Restoration</dt><dd class="wb-mono">{{ e.restoration_exact }}</dd></div>
-          <div><dt>Baseline streams</dt><dd>{{ e.baseline_streams }}</dd></div>
-          <div><dt>Route instances</dt><dd>{{ e.route_instances }}</dd></div>
-          <div><dt>Unresolved</dt><dd>{{ e.unresolved }}</dd></div>
-        </dl>
-        {% if !e.signatures.is_empty() %}
-        <h5 class="wb-subsection">Grouped prefix signatures</h5>
-        <ul class="flat">
-        {% for s in e.signatures %}
-          <li><span class="wb-mono">{{ s.count }}</span> {{ s.human }}: <span class="wb-mono">{{ s.prefixes }}</span></li>
-        {% endfor %}
-        </ul>
-        {% endif %}
-        {% if !e.evidence_refs.is_empty() %}
-        <p class="wb-note">Representative evidence: <span class="wb-mono">{{ e.evidence_refs }}</span></p>
-        {% endif %}
-        <details class="wb-prefix-drilldown"{% if e.prefixes_open %} open{% endif %}>
-          <summary>Prefix drill-down ({{ e.stream_rows.len() }})</summary>
-          <div class="wb-scroll">
-          <table class="wb-table">
-            <thead><tr>
-              <th>Prefix</th><th>Baseline path</th><th>Change</th>
-              <th>First change</th><th>Restoration</th><th>End state</th><th>Evidence</th>
-            </tr></thead>
-            <tbody>
-            {% for s in e.stream_rows %}
-            <tr>
-              <td class="wb-mono wb-nowrap">{{ s.prefix }}</td>
-              <td class="wb-nowrap">{{ s.baseline }}</td>
-              <td>{{ s.change }}</td>
-              <td class="wb-mono wb-nowrap">{{ s.first }}</td>
-              <td class="wb-mono wb-nowrap">{{ s.restoration }}</td>
-              <td>{{ s.end_state }}</td>
-              <td class="wb-mono wb-evidence">{{ s.evidence }}</td>
-            </tr>
-            {% endfor %}
-            </tbody>
-          </table>
-          </div>
-          <p class="muted wb-note">Evidence references point into the run's immutable artifacts; raw MRT files are never loaded on this page.</p>
-        </details>
-      </div>
-    </details>
-  </td>
-</tr>
-{% endfor %}
-</tbody>
-</table>
-</div>
-
-{% if !unchanged_episodes.is_empty() %}
-<details class="wb-collapsed">
-  <summary>No-change sessions ({{ unchanged_episodes.len() }})</summary>
-  <div class="wb-scroll">
-  <table class="wb-table wb-episodes">
-  <thead><tr>
-    <th>First</th><th>Region</th><th>Observer</th><th>Peer / view</th>
-    <th>Observed change</th><th>Streams</th><th>Prefixes</th><th>Restored</th><th>End state</th><th>Cooldown outcome</th><th>Details</th>
-  </tr></thead>
-  <tbody>
-  {% for e in unchanged_episodes %}
-  <tr class="wb-episode-row wb-unchanged">
-    <td class="wb-mono wb-nowrap" data-label="First">{{ e.first }}</td>
-    <td class="wb-nowrap wb-region" data-label="Region">{{ e.region }}</td>
-    <td class="wb-nowrap" data-label="Observer">{{ e.observer }}</td>
-    <td class="wb-nowrap wb-peer" data-label="Peer / view">{{ e.peer_view }}</td>
-    <td data-label="Observed change"><span class="wb-change">{{ e.change }}</span></td>
-    <td class="wb-num" data-label="Streams">{{ e.streams }}</td>
-    <td class="wb-num" data-label="Prefixes">{{ e.prefixes }}</td>
-    <td class="wb-mono wb-nowrap" data-label="Restored">{{ e.restored }}</td>
-    <td data-label="End state"><span class="wb-end {{ e.end_state_class }}">{{ e.end_state }}</span></td>
-    <td data-label="Cooldown outcome">{{ e.cooldown }}</td>
-    <td>
-      <details class="wb-episode-details"{% if e.expanded %} open{% endif %}>
-        <summary>View</summary>
-        <div class="wb-episode-expanded">
-          <p class="wb-sentence">{{ e.sentence }}</p>
-          <dl class="wb-facts">
-            <div><dt>Session</dt><dd class="wb-mono">{{ e.session }}</dd></div>
-            <div><dt>Path plane</dt><dd>{{ e.plane }}</dd></div>
-            <div><dt>Baseline</dt><dd>{{ e.baseline_plane_state }}</dd></div>
-          </dl>
-        </div>
-      </details>
-    </td>
-  </tr>
-  {% endfor %}
-  </tbody>
-  </table>
-  </div>
-</details>
-{% endif %}
-{% endif %}
-{% endif %}
-
-<h3 class="wb-section">Timeline (UTC)</h3>
-{% if timeline.is_empty() %}
-<p class="muted">No timeline lanes.</p>
-{% else %}
-<div class="wb-scroll wb-timeline-scroll">{{ timeline_svg|safe }}</div>
-{% if !anchors.is_empty() %}
-<p class="muted wb-note">Operator-reported anchors (diamonds) are distinct from BGP evidence (triangles/bars). The operator lane spans its anchors' extent; observer lanes span the pilot window. Exact observed timestamps only — the timeline never interpolates unobserved state.</p>
-{% endif %}
-<div class="wb-scroll">
-<table class="wb-table wb-timeline">
-<thead><tr><th>Observer session</th><th>Region</th><th>Window</th><th>First route change</th><th>Absence interval</th><th>Path-change interval</th><th>Restoration</th><th>End state</th></tr></thead>
-<tbody>
-{% for lane in timeline %}
-<tr>
-  <td class="wb-nowrap">{{ lane.session }}</td>
-  <td class="wb-nowrap wb-region">{{ lane.region }}</td>
-  <td class="wb-mono wb-nowrap">{{ lane.window }}</td>
-  <td class="wb-mono wb-nowrap">{{ lane.first_change }}</td>
-  <td class="wb-mono wb-nowrap">{{ lane.absence }}</td>
-  <td class="wb-mono wb-nowrap">{{ lane.path_change }}</td>
-  <td class="wb-mono wb-nowrap">{{ lane.restoration }}</td>
-  <td>{% if lane.end_state == "unresolved" %}<span class="wb-status wb-unresolved">unresolved</span>{% else %}<span class="muted">observed</span>{% endif %}</td>
-</tr>
-{% endfor %}
-</tbody>
-</table>
-</div>
-{% endif %}
-
-<h3 class="wb-section">Suggested internal checks</h3>
-<p class="muted wb-note">Investigation cues based on observed external facts — not diagnosis, not root cause, not remediation.</p>
-{% if grouped_cues.is_empty() %}
-<p class="muted">No investigation cues (no route-state changes observed).</p>
-{% else %}
-<ul class="flat wb-cue-groups">
-{% for g in grouped_cues %}
-<li class="wb-cue-group">
-  <span class="wb-cue-title">{{ g.title }}</span>
-  <span class="wb-cue-text">{{ g.text }}</span>
-  {% if g.drill_down.is_some() %}<a href="?prefixes={{ g.drill_down.as_ref().unwrap() }}">exact prefixes</a>{% endif %}
-</li>
+{% if !no_change_statements.is_empty() %}
+<h4 class="wb-subsection">Other selected observers</h4>
+<ul class="flat wb-nochange-statements">
+{% for s in no_change_statements %}
+<li>{{ s }}</li>
 {% endfor %}
 </ul>
 {% endif %}
@@ -334,15 +363,161 @@
   </div>
 </details>
 
+<details class="wb-episode-detail">
+  <summary>Observer episodes — internal detail ({{ episodes.len() }}{% if !unchanged_episodes.is_empty() %} + {{ unchanged_episodes.len() }} unchanged{% endif %})</summary>
+  <div class="wb-scroll">
+  <table class="wb-table wb-episodes">
+  <thead><tr>
+    <th>First</th><th>Region</th><th>Observer</th><th>Peer / view</th>
+    <th>Observed change</th><th>Streams</th><th>Prefixes</th><th>Restored</th><th>End state</th><th>Cooldown outcome</th><th>Details</th>
+  </tr></thead>
+  <tbody>
+  {% for e in episodes %}
+  <tr class="wb-episode-row{% if e.changed %} wb-changed{% else %} wb-unchanged{% endif %}">
+    <td class="wb-mono wb-nowrap" data-label="First">{{ e.first }}</td>
+    <td class="wb-nowrap wb-region" data-label="Region">{{ e.region }}</td>
+    <td class="wb-nowrap" data-label="Observer">{{ e.observer }}</td>
+    <td class="wb-nowrap wb-peer" data-label="Peer / view">{{ e.peer_view }}</td>
+    <td data-label="Observed change"><span class="wb-change">{{ e.change }}</span></td>
+    <td class="wb-num" data-label="Streams">{{ e.streams }}</td>
+    <td class="wb-num" data-label="Prefixes">{{ e.prefixes }}</td>
+    <td class="wb-mono wb-nowrap" data-label="Restored">{{ e.restored }}</td>
+    <td data-label="End state"><span class="wb-end {{ e.end_state_class }}">{{ e.end_state }}</span></td>
+    <td data-label="Cooldown outcome">{{ e.cooldown }}</td>
+    <td>
+      <details class="wb-episode-details"{% if e.expanded %} open{% endif %}>
+        <summary>View</summary>
+        <div class="wb-episode-expanded">
+          <p class="wb-sentence">{{ e.sentence }}</p>
+          <dl class="wb-facts">
+            <div><dt>Session</dt><dd class="wb-mono">{{ e.session }}</dd></div>
+            <div><dt>Source family</dt><dd>{{ e.family }}</dd></div>
+            <div><dt>Relationship</dt><dd>{{ e.relationship }}</dd></div>
+            <div><dt>Path plane</dt><dd>{{ e.plane }}</dd></div>
+            <div><dt>Baseline</dt><dd>{{ e.baseline_plane_state }}</dd></div>
+            <div><dt>Changed</dt><dd>{{ e.changed_plane_state }}</dd></div>
+            <div><dt>First change</dt><dd class="wb-mono">{{ e.first_exact }}</dd></div>
+            <div><dt>Last change</dt><dd class="wb-mono">{{ e.last_exact }}</dd></div>
+            <div><dt>Restoration</dt><dd class="wb-mono">{{ e.restoration_exact }}</dd></div>
+            <div><dt>Baseline streams</dt><dd>{{ e.baseline_streams }}</dd></div>
+            <div><dt>Route instances</dt><dd>{{ e.route_instances }}</dd></div>
+            <div><dt>Unresolved</dt><dd>{{ e.unresolved }}</dd></div>
+          </dl>
+          {% if !e.signatures.is_empty() %}
+          <h5 class="wb-subsection">Grouped prefix signatures</h5>
+          <ul class="flat">
+          {% for s in e.signatures %}
+            <li><span class="wb-mono">{{ s.count }}</span> {{ s.human }}: <span class="wb-mono">{{ s.prefixes }}</span></li>
+          {% endfor %}
+          </ul>
+          {% endif %}
+          {% if !e.evidence_refs.is_empty() %}
+          <p class="wb-note">Representative evidence: <span class="wb-mono">{{ e.evidence_refs }}</span></p>
+          {% endif %}
+          <details class="wb-prefix-drilldown"{% if e.prefixes_open %} open{% endif %}>
+            <summary>Prefix drill-down ({{ e.stream_rows.len() }})</summary>
+            <div class="wb-scroll">
+            <table class="wb-table">
+              <thead><tr>
+                <th>Prefix</th><th>Baseline path</th><th>Change</th>
+                <th>First change</th><th>Restoration</th><th>End state</th><th>Evidence</th>
+              </tr></thead>
+              <tbody>
+              {% for s in e.stream_rows %}
+              <tr>
+                <td class="wb-mono wb-nowrap">{{ s.prefix }}</td>
+                <td class="wb-nowrap">{{ s.baseline }}</td>
+                <td>{{ s.change }}</td>
+                <td class="wb-mono wb-nowrap">{{ s.first }}</td>
+                <td class="wb-mono wb-nowrap">{{ s.restoration }}</td>
+                <td>{{ s.end_state }}</td>
+                <td class="wb-mono wb-evidence">{{ s.evidence }}</td>
+              </tr>
+              {% endfor %}
+              </tbody>
+            </table>
+            </div>
+            <p class="muted wb-note">Evidence references point into the run's immutable artifacts; raw MRT files are never loaded on this page.</p>
+          </details>
+        </div>
+      </details>
+    </td>
+  </tr>
+  {% endfor %}
+  {% for e in unchanged_episodes %}
+  <tr class="wb-episode-row wb-unchanged">
+    <td class="wb-mono wb-nowrap" data-label="First">{{ e.first }}</td>
+    <td class="wb-nowrap wb-region" data-label="Region">{{ e.region }}</td>
+    <td class="wb-nowrap" data-label="Observer">{{ e.observer }}</td>
+    <td class="wb-nowrap wb-peer" data-label="Peer / view">{{ e.peer_view }}</td>
+    <td data-label="Observed change"><span class="wb-change">{{ e.change }}</span></td>
+    <td class="wb-num" data-label="Streams">{{ e.streams }}</td>
+    <td class="wb-num" data-label="Prefixes">{{ e.prefixes }}</td>
+    <td class="wb-mono wb-nowrap" data-label="Restored">{{ e.restored }}</td>
+    <td data-label="End state"><span class="wb-end {{ e.end_state_class }}">{{ e.end_state }}</span></td>
+    <td data-label="Cooldown outcome">{{ e.cooldown }}</td>
+    <td>
+      <details class="wb-episode-details"{% if e.expanded %} open{% endif %}>
+        <summary>View</summary>
+        <div class="wb-episode-expanded">
+          <p class="wb-sentence">{{ e.sentence }}</p>
+          <dl class="wb-facts">
+            <div><dt>Session</dt><dd class="wb-mono">{{ e.session }}</dd></div>
+            <div><dt>Source family</dt><dd>{{ e.family }}</dd></div>
+            <div><dt>Relationship</dt><dd>{{ e.relationship }}</dd></div>
+            <div><dt>Path plane</dt><dd>{{ e.plane }}</dd></div>
+            <div><dt>Baseline</dt><dd>{{ e.baseline_plane_state }}</dd></div>
+            <div><dt>Changed</dt><dd>{{ e.changed_plane_state }}</dd></div>
+            <div><dt>First change</dt><dd class="wb-mono">{{ e.first_exact }}</dd></div>
+            <div><dt>Last change</dt><dd class="wb-mono">{{ e.last_exact }}</dd></div>
+            <div><dt>Restoration</dt><dd class="wb-mono">{{ e.restoration_exact }}</dd></div>
+            <div><dt>Baseline streams</dt><dd>{{ e.baseline_streams }}</dd></div>
+            <div><dt>Route instances</dt><dd>{{ e.route_instances }}</dd></div>
+            <div><dt>Unresolved</dt><dd>{{ e.unresolved }}</dd></div>
+          </dl>
+          {% if !e.signatures.is_empty() %}
+          <h5 class="wb-subsection">Grouped prefix signatures</h5>
+          <ul class="flat">
+          {% for s in e.signatures %}
+            <li><span class="wb-mono">{{ s.count }}</span> {{ s.human }}: <span class="wb-mono">{{ s.prefixes }}</span></li>
+          {% endfor %}
+          </ul>
+          {% endif %}
+          {% if !e.evidence_refs.is_empty() %}
+          <p class="wb-note">Representative evidence: <span class="wb-mono">{{ e.evidence_refs }}</span></p>
+          {% endif %}
+        </div>
+      </details>
+    </td>
+  </tr>
+  {% endfor %}
+  </tbody>
+  </table>
+  </div>
+</details>
+
 <script>
 /* Progressive enhancement only: column sorting + mobile event-context
-   collapse. Episode expansion uses native <details> and works without
-   JavaScript. */
+   collapse + copy buttons. Findings expansion uses native <details>
+   and works without JavaScript. */
 (function () {
   if (window.matchMedia && window.matchMedia('(max-width: 640px)').matches) {
     var ctx = document.querySelector('.wb-event-context');
     if (ctx) { ctx.removeAttribute('open'); }
   }
+  /* copy buttons (progressive enhancement; payloads are data-attributes) */
+  document.querySelectorAll('button.wb-copy').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var text = btn.getAttribute('data-copy') || '';
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function () {
+          var old = btn.textContent;
+          btn.textContent = 'Copied';
+          setTimeout(function () { btn.textContent = old; }, 1200);
+        });
+      }
+    });
+  });
   /* column sorting below */
   document.querySelectorAll('table[data-sortable]').forEach(function (table) {
     var headers = table.querySelectorAll('th');

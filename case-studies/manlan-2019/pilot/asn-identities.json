@@ -1,0 +1,80 @@
+{
+  "schema_version": 1,
+  "case_study_slug": "manlan-2019",
+  "reviewed_at": "2026-08-02",
+  "provenance": "Reviewed analyst interpretation (Session 39). Names and roles are taken ONLY from the reviewed network profile (network-profile.json, Session 35) and the reviewed session audit (session-audit-2019.md, Session 34/35) for the 2019-08-21 pilot baseline. No ASN role or name is inferred from memory or from current registry data; identities without a reviewed label render as 'name not reviewed'.",
+  "identities": [
+    {
+      "asn": 11537,
+      "display_name": "Internet2 R&E",
+      "role": "research-education routing plane",
+      "valid_from": "2019-08-21",
+      "valid_to": null,
+      "provenance": "network-profile.json service_planes (reviewed, Session 35)",
+      "review_status": "reviewed"
+    },
+    {
+      "asn": 11164,
+      "display_name": "Internet2 Peer Exchange",
+      "role": "settlement-free/public peering plane",
+      "valid_from": "2019-08-21",
+      "valid_to": null,
+      "provenance": "network-profile.json service_planes (reviewed, Session 35)",
+      "review_status": "reviewed"
+    },
+    {
+      "asn": 2603,
+      "display_name": "NORDUnet",
+      "role": "national research-education network (target origin)",
+      "valid_from": "2019-08-21",
+      "valid_to": null,
+      "provenance": "pilot-result.json target + network-profile.json asn_roles (reviewed)",
+      "review_status": "reviewed"
+    },
+    {
+      "asn": 2152,
+      "display_name": "CENIC",
+      "role": "California research-education network",
+      "valid_from": "2019-08-21",
+      "valid_to": null,
+      "provenance": "session-audit-2019.md (reviewed, Session 34/35)",
+      "review_status": "reviewed"
+    },
+    {
+      "asn": 7660,
+      "display_name": "APAN-JP",
+      "role": "Asia-Pacific research-education network",
+      "valid_from": "2019-08-21",
+      "valid_to": null,
+      "provenance": "session-audit-2019.md (reviewed, Session 34/35)",
+      "review_status": "reviewed"
+    },
+    {
+      "asn": 4608,
+      "display_name": "CNNIC",
+      "role": "not reviewed",
+      "valid_from": "2019-08-21",
+      "valid_to": null,
+      "provenance": "session-audit-2019.md (reviewed, Session 34/35)",
+      "review_status": "reviewed"
+    },
+    {
+      "asn": 4777,
+      "display_name": "ARTERIA Networks",
+      "role": "not reviewed",
+      "valid_from": "2019-08-21",
+      "valid_to": null,
+      "provenance": "session-audit-2019.md (reviewed, Session 34/35)",
+      "review_status": "reviewed"
+    },
+    {
+      "asn": 1916,
+      "display_name": "RNP",
+      "role": "Brazilian national research-education network",
+      "valid_from": "2019-08-21",
+      "valid_to": null,
+      "provenance": "session-audit-2019.md (reviewed, Session 34/35)",
+      "review_status": "reviewed"
+    }
+  ]
+}
