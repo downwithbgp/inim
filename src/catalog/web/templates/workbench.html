@@ -12,7 +12,7 @@
     {% if !vm.scope_limit.is_empty() %}
     <p class="wb-scope">Scope limit: {{ vm.scope_limit }}</p>
     {% endif %}
-    {% if vm.relationship_audit.is_some() %}
+    {% if vm.relationship_audit.is_some() && !no_visibility_page %}
     <p class="wb-audit">Ticket relationship assessment: {{ vm.relationship_audit.as_ref().unwrap().assessment }}</p>
     <p class="muted wb-note">{{ vm.relationship_audit.as_ref().unwrap().supporting_note }}</p>
     {% endif %}
@@ -32,31 +32,47 @@
 <div class="wb-novis">
   <h3 class="wb-section">Named relationship</h3>
   <p class="wb-novis-relationship">{{ vm.relationship_audit.as_ref().unwrap().relationship }}</p>
+  <p class="wb-novis-statement">The named relationship cannot be assessed from these public collectors.</p>
   <h3 class="wb-section">Public-collector eligibility</h3>
   {% if vm.relationship_audit.as_ref().unwrap().direct_sessions.is_empty() %}
   <p class="muted">No direct sessions recorded in the reviewed audit.</p>
   {% else %}
   <ul class="flat wb-novis-eligibility">
   {% for s in vm.relationship_audit.as_ref().unwrap().direct_sessions %}
-    <li>{{ s.collector }} ({{ s.address_family }}) had a direct AS{{ s.peer_asn }} session; {{ s.origin_route_count }} event-origin route{% if s.origin_route_count == 1 %}{% else %}s{% endif %} visible through it at baseline.</li>
+    <li>{{ s.collector }} ({{ s.address_family }}) directly peered with AS{{ s.peer_asn }}; {{ s.origin_route_count }} {{ origin_label }}-origin (AS{{ origin_asn }}) route{% if s.origin_route_count == 1 %}{% else %}s{% endif %} received through it at baseline.</li>
   {% endfor %}
   </ul>
   {% endif %}
   <h3 class="wb-section">Assessment</h3>
   <p class="wb-novis-assessment">{{ vm.relationship_audit.as_ref().unwrap().assessment }}</p>
   <details class="wb-collapsed">
-    <summary>Supporting R&amp;E-plane observation ({{ no_change_statements.len() }})</summary>
-    <p class="wb-note">{{ no_change_statements.len() }} selected RouteViews session{% if no_change_statements.len() == 1 %}{% else %}s{% endif %} showed no route-state change. This does not assess the named I2PX relationship.</p>
+    <summary>Supporting R&amp;E observation ({{ no_change_statements.len() }}) ▸</summary>
+    <p class="wb-note">{{ no_change_statements.len() }} selected RouteViews session{% if no_change_statements.len() == 1 %}{% else %}s{% endif %} showed no route-state change. This does not assess the named relationship.</p>
     <ul class="flat wb-nochange-statements">
     {% for s in no_change_statements %}
       <li>{{ s }}</li>
     {% endfor %}
     </ul>
+    {% if !region_comparison.is_empty() %}
+    <h4 class="wb-subsection">Observer comparison by region</h4>
+    {% for r in region_comparison %}
+    <div class="wb-region">
+      <h5 class="wb-subsection">{{ r.region }}</h5>
+      <ul class="flat wb-region-statements">
+      {% for st in r.statements %}
+        <li>{{ st }}</li>
+      {% endfor %}
+      </ul>
+    </div>
+    {% endfor %}
+    {% endif %}
   </details>
 </div>
 {% else %}
 <h3 class="wb-section">Externally observed routing changes</h3>
-<p class="wb-filters">
+<details class="wb-filters-wrap" open>
+  <summary>Filter findings</summary>
+  <p class="wb-filters">
   Filters:
   <a href="?"{% if !filters.active() %} class="wb-filter-active"{% endif %}>all</a>
   <a href="?changed=1"{% if filters.changed %} class="wb-filter-active"{% endif %}>changed</a>
@@ -70,7 +86,8 @@
   <a href="?region=APAC"{% if filters.region == "APAC" %} class="wb-filter-active"{% endif %}>APAC</a>
   · <a href="?rel=direct"{% if filters.rel == "direct" %} class="wb-filter-active"{% endif %}>direct</a>
   <a href="?rel=indirect"{% if filters.rel == "indirect" %} class="wb-filter-active"{% endif %}>indirect</a>
-</p>
+  </p>
+</details>
 {% if findings.is_empty() %}
 {% if !filters.active() %}
 <p class="wb-nofinding">No relevant observer visibility was available.</p>
@@ -92,31 +109,8 @@
     <a class="wb-prefix-link" href="#prefixes-{{ f.stable_id }}">{{ f.prefixes }}</a>
     <span class="wb-change">{{ f.change }}</span>
   </div>
-  <p class="wb-finding-statement">{{ f.statement }}</p>
-  {% if !f.path_explanation.is_empty() %}
-  <p class="wb-path-explanation">{{ f.path_explanation }}</p>
-  {% endif %}
-  <div class="wb-finding-paths">
-    <div class="wb-path-col">
-      <span class="wb-path-label">Before</span>
-      <ol class="wb-named-path">
-      {% for seg in f.named_before %}
-        <li class="wb-seg {{ seg.mark }}"><span class="wb-seg-mark">{{ seg.asn }}</span>{{ seg.label }}</li>
-      {% endfor %}
-      </ol>
-      <span class="wb-mono wb-path-numeric">{{ f.numeric_before }}</span>
-    </div>
-    <div class="wb-path-col">
-      <span class="wb-path-label">After</span>
-      <ol class="wb-named-path">
-      {% for seg in f.named_after %}
-        <li class="wb-seg {{ seg.mark }}"><span class="wb-seg-mark">{{ seg.asn }}</span>{{ seg.label }}</li>
-      {% endfor %}
-      </ol>
-      <span class="wb-mono wb-path-numeric">{{ f.numeric_after }}</span>
-    </div>
-  </div>
-  <p class="wb-path-legend muted wb-note">Inserted segments are underlined; removed segments are struck through. The exact numeric AS path is shown beneath each named path and remains authoritative.</p>
+  <p class="wb-finding-meaning">{{ f.compact_meaning }}</p>
+  <p class="wb-finding-final">{{ f.final_state_line }}</p>
   <p class="wb-prefix-preview">
     {% if f.preview_prefixes.is_empty() %}{% else %}
     <span class="wb-mono">{{ f.preview_prefixes | join(", ") }}</span>
@@ -124,7 +118,71 @@
     · <a href="#prefixes-{{ f.stable_id }}">view all {{ f.prefix_count }}</a>
     {% endif %}
   </p>
-  <p class="wb-finding-outcome"><span class="wb-path-label">Outcome</span> {{ f.outcome }}</p>
+  <p class="wb-finding-links">
+    <details class="wb-route-sequence">
+      <summary>Route sequence ▸</summary>
+      <div class="wb-scroll">
+      <table class="wb-table wb-chronology">
+        <thead><tr><th>Step</th><th>Time (UTC)</th><th>Route state</th><th>Restoration</th></tr></thead>
+        <tbody>
+        {% for step in f.chronology.steps %}
+        <tr>
+          <td class="wb-nowrap">{{ step.label }}</td>
+          <td class="wb-mono wb-nowrap">{{ step.time }}</td>
+          <td class="wb-mono">{% if step.path.is_some() %}{{ step.path.as_ref().unwrap() }}{% else %}—{% endif %}</td>
+          <td>{% if step.restoration.is_some() %}{{ step.restoration.as_ref().unwrap() }}{% else %}{% endif %}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      </div>
+      <p class="muted wb-note">Event-window end: {{ f.chronology.state_at_event_window_end }} · Analysis end: {{ f.chronology.state_at_analysis_end }}</p>
+    </details>
+    <a href="#prefixes-{{ f.stable_id }}">Prefixes ▸</a>
+    <details class="wb-identity-notes">
+      <summary>ASN identity notes ▸</summary>
+      <p class="wb-sentence">{{ f.statement }}</p>
+      <p class="wb-path-legend muted wb-note">Inserted segments are underlined; removed segments are struck through. The exact numeric AS path is shown beneath each named path and remains authoritative.</p>
+      <div class="wb-finding-paths">
+        <div class="wb-path-col">
+          <span class="wb-path-label">Before</span>
+          <ol class="wb-named-path">
+          {% for seg in f.named_before %}
+            <li class="wb-seg {{ seg.mark }}"><span class="wb-seg-mark">{{ seg.asn }}</span>{{ seg.label }}</li>
+          {% endfor %}
+          </ol>
+          <span class="wb-mono wb-path-numeric">{{ f.numeric_before }}</span>
+        </div>
+        <div class="wb-path-col">
+          <span class="wb-path-label">After</span>
+          <ol class="wb-named-path">
+          {% for seg in f.named_after %}
+            <li class="wb-seg {{ seg.mark }}"><span class="wb-seg-mark">{{ seg.asn }}</span>{{ seg.label }}</li>
+          {% endfor %}
+          </ol>
+          <span class="wb-mono wb-path-numeric">{{ f.numeric_after }}</span>
+        </div>
+      </div>
+      <ul class="flat wb-identity-notes-list">
+      {% for n in f.identity_notes %}
+        <li><span class="wb-mono">{{ n.label }}</span>
+        {% if n.current_identity.is_some() %}
+          — <span class="muted">Current registry identity: {{ n.current_identity.as_ref().unwrap() }}; historical identity not reviewed</span>
+        {% else %}
+          — <span class="muted">{{ n.note }}</span>
+        {% endif %}</li>
+      {% endfor %}
+      </ul>
+    </details>
+    <details class="wb-evidence">
+      <summary>Evidence ▸</summary>
+      {% if f.evidence_refs.is_empty() %}
+      <p class="muted wb-note">Evidence references are recorded per prefix in the drill-down.</p>
+      {% else %}
+      <p class="wb-note wb-mono">{{ f.evidence_refs | join("; ") }}</p>
+      {% endif %}
+    </details>
+  </p>
   <details class="wb-prefix-drilldown" id="prefixes-{{ f.stable_id }}"{% if f.prefixes_open %} open{% endif %}>
     <summary>View prefixes ({{ f.exact_prefixes.len() }})</summary>
     <div class="wb-scroll">
@@ -223,7 +281,7 @@
     <div><dt>Source task type</dt><dd>{{ vm.source_task_type }}</dd></div>
     <div><dt>Reviewed incident role</dt><dd>{{ vm.reviewed_incident_role }}</dd></div>
     <div><dt>Lifecycle</dt><dd>{{ vm.lifecycle }}</dd></div>
-    {% if !vm.expectation_assessment.is_empty() %}
+    {% if !vm.expectation_assessment.is_empty() && !no_visibility_page %}
     <div><dt>Expectation assessment</dt><dd>{{ vm.expectation_assessment }}</dd></div>
     {% endif %}
     {% if !vm.linked_tickets.is_empty() %}
@@ -242,8 +300,11 @@
 
 <!-- ================================================================
      SECONDARY: OBSERVER COMPARISON BY REGION (narrative; ratios live
-     in Observation coverage, Session 40, Part 10)
+     in Observation coverage, Session 40, Part 10). Hidden on the
+     no-visibility page where it would only repeat supporting-plane
+     evidence (Session 41, Part 11).
      ================================================================ -->
+{% if !no_visibility_page %}
 <h3 class="wb-section">Observer comparison by region</h3>
 {% if region_comparison.is_empty() %}
 <p class="muted">No regional observer comparison.</p>
@@ -258,6 +319,7 @@
   </ul>
 </div>
 {% endfor %}
+{% endif %}
 {% endif %}
 
 <!-- ================================================================
@@ -592,6 +654,8 @@
   if (window.matchMedia && window.matchMedia('(max-width: 640px)').matches) {
     var ctx = document.querySelector('.wb-context');
     if (ctx) { ctx.removeAttribute('open'); }
+    var filters = document.querySelector('.wb-filters-wrap');
+    if (filters) { filters.removeAttribute('open'); }
   }
   /* copy buttons (progressive enhancement; payloads are data-attributes) */
   document.querySelectorAll('button.wb-copy').forEach(function (btn) {

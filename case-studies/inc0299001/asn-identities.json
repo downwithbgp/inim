@@ -14,15 +14,6 @@
       "review_status": "CurrentIdentityOnly"
     },
     {
-      "asn": 11537,
-      "display_name": "Internet2",
-      "role": "research-education network",
-      "valid_from": "2026-07-14",
-      "valid_to": "2026-07-14",
-      "provenance": "RIPE stat as-overview (current holder, retrieved 2026-08-02); current identity only, historical identity not reviewed",
-      "review_status": "CurrentIdentityOnly"
-    },
-    {
       "asn": 40220,
       "display_name": "Virginia Tech (MARIA)",
       "role": "university network (observed peer)",

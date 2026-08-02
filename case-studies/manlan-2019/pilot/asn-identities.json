@@ -36,8 +36,8 @@
       "display_name": "RNP",
       "role": "Brazilian national research-education network",
       "valid_from": "2019-08-21",
-      "valid_to": "2019-08-21",
-      "provenance": "session-audit-2019.md (reviewed, Session 34/35) (HistoricallyReviewed for 2019-08-21)",
+      "valid_to": null,
+      "provenance": "session-audit-2019.md (reviewed, Session 34/35) (HistoricallyReviewed; stable organizational role reviewed for the 2019-08-21 pilot, not time-limited to the case-study date)",
       "review_status": "HistoricallyReviewed"
     },
     {
@@ -45,8 +45,8 @@
       "display_name": "CENIC",
       "role": "California research-education network",
       "valid_from": "2019-08-21",
-      "valid_to": "2019-08-21",
-      "provenance": "session-audit-2019.md (reviewed, Session 34/35) (HistoricallyReviewed for 2019-08-21)",
+      "valid_to": null,
+      "provenance": "session-audit-2019.md (reviewed, Session 34/35) (HistoricallyReviewed; stable organizational role reviewed for the 2019-08-21 pilot, not time-limited to the case-study date)",
       "review_status": "HistoricallyReviewed"
     },
     {
@@ -63,8 +63,8 @@
       "display_name": "NORDUnet",
       "role": "national research-education network (target origin)",
       "valid_from": "2019-08-21",
-      "valid_to": "2019-08-21",
-      "provenance": "pilot-result.json target + network-profile.json asn_roles (reviewed) (HistoricallyReviewed for 2019-08-21)",
+      "valid_to": null,
+      "provenance": "pilot-result.json target + network-profile.json asn_roles (reviewed) (HistoricallyReviewed; stable organizational role reviewed for the 2019-08-21 pilot, not time-limited to the case-study date)",
       "review_status": "HistoricallyReviewed"
     },
     {
@@ -90,8 +90,8 @@
       "display_name": "CNNIC",
       "role": "not reviewed",
       "valid_from": "2019-08-21",
-      "valid_to": "2019-08-21",
-      "provenance": "session-audit-2019.md (reviewed, Session 34/35) (HistoricallyReviewed for 2019-08-21)",
+      "valid_to": null,
+      "provenance": "session-audit-2019.md (reviewed, Session 34/35) (HistoricallyReviewed; stable organizational role reviewed for the 2019-08-21 pilot, not time-limited to the case-study date)",
       "review_status": "HistoricallyReviewed"
     },
     {
@@ -99,8 +99,8 @@
       "display_name": "ARTERIA Networks",
       "role": "not reviewed",
       "valid_from": "2019-08-21",
-      "valid_to": "2019-08-21",
-      "provenance": "session-audit-2019.md (reviewed, Session 34/35) (HistoricallyReviewed for 2019-08-21)",
+      "valid_to": null,
+      "provenance": "session-audit-2019.md (reviewed, Session 34/35) (HistoricallyReviewed; stable organizational role reviewed for the 2019-08-21 pilot, not time-limited to the case-study date)",
       "review_status": "HistoricallyReviewed"
     },
     {
@@ -117,8 +117,8 @@
       "display_name": "APAN-JP",
       "role": "Asia-Pacific research-education network",
       "valid_from": "2019-08-21",
-      "valid_to": "2019-08-21",
-      "provenance": "session-audit-2019.md (reviewed, Session 34/35) (HistoricallyReviewed for 2019-08-21)",
+      "valid_to": null,
+      "provenance": "session-audit-2019.md (reviewed, Session 34/35) (HistoricallyReviewed; stable organizational role reviewed for the 2019-08-21 pilot, not time-limited to the case-study date)",
       "review_status": "HistoricallyReviewed"
     },
     {
@@ -126,8 +126,8 @@
       "display_name": "Internet2 Peer Exchange",
       "role": "settlement-free/public peering plane",
       "valid_from": "2019-08-21",
-      "valid_to": "2019-08-21",
-      "provenance": "network-profile.json service_planes (reviewed, Session 35) (HistoricallyReviewed for 2019-08-21)",
+      "valid_to": null,
+      "provenance": "network-profile.json service_planes (reviewed, Session 35) (HistoricallyReviewed; stable organizational role reviewed for the 2019-08-21 pilot, not time-limited to the case-study date)",
       "review_status": "HistoricallyReviewed"
     },
     {
@@ -135,8 +135,8 @@
       "display_name": "Internet2 R&E",
       "role": "research-education routing plane",
       "valid_from": "2019-08-21",
-      "valid_to": "2019-08-21",
-      "provenance": "network-profile.json service_planes (reviewed, Session 35) (HistoricallyReviewed for 2019-08-21)",
+      "valid_to": null,
+      "provenance": "network-profile.json service_planes (reviewed, Session 35) (HistoricallyReviewed; stable organizational role reviewed for the 2019-08-21 pilot, not time-limited to the case-study date)",
       "review_status": "HistoricallyReviewed"
     },
     {

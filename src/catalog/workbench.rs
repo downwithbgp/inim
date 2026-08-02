@@ -476,6 +476,15 @@ impl AsnIdentityRegistry {
             .map(|i| i.role.as_str())
     }
 
+    /// Primary display name for historical path rendering (Session 41,
+    /// Part 6): only HistoricallyReviewed names are primary; current
+    /// registry identities are provenance, not primary labels.
+    pub fn primary_display_name(&self, asn: u32, date: &str) -> Option<&str> {
+        self.lookup(asn, date)
+            .filter(|i| i.review_status == "HistoricallyReviewed")
+            .map(|i| i.display_name.as_str())
+    }
+
     /// Status of the best identity at the given date, or "Unresolved".
     pub fn status(&self, asn: u32, date: &str) -> &'static str {
         match self.lookup(asn, date) {
@@ -502,12 +511,24 @@ impl AsnIdentityRegistry {
     }
 }
 
+/// One lifecycle transition with exact paths (Session 41, Part 1):
+/// the ordered route-state list of one prefix.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct PathTransition {
+    pub timestamp: String,
+    pub kind: String,
+    pub before_path: Vec<u32>,
+    pub after_path: Vec<u32>,
+}
+
 /// Exact per-stream path evidence from a run's lifecycle artifact.
 ///
 /// Loaded from `lifecycle.json` (baseline path + transition before/
 /// after paths). Never synthesized: absent evidence means no path.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct StreamPathEvidence {
+    /// Ordered transition list (exact timestamps and paths).
+    pub transitions: Vec<PathTransition>,
     /// Baseline AS path (ASN sequence, in path order).
     pub baseline_path: Vec<u32>,
     /// First non-baseline observed AS path; None for pure absences.
@@ -609,7 +630,31 @@ impl LifecyclePathIndex {
                     let Some(prefix) = lc.get("prefix").and_then(|p| p.as_str()) else {
                         continue;
                     };
-                    let baseline: Vec<u32> = lc
+                    // The baseline for the change is the path that was
+                    // actually present when the first transition occurred
+                    // (the transition's before_path), falling back to the
+                    // lifecycle baseline_path field. The lifecycle field
+                    // records the FIRST baseline instance, which can
+                    // differ from the pre-change path (e.g. route-views2
+                    // direct: field AS11537 AS2603 vs pre-change
+                    // AS11537 AS20965 AS2603); using the pre-change path
+                    // keeps baseline/restoration/final consistent.
+                    let mut first_before: Vec<u32> = Vec::new();
+                    if let Some(transitions) = lc.get("transitions").and_then(|t| t.as_array()) {
+                        if let Some(t0) = transitions.first() {
+                            first_before = t0
+                                .get("before_path")
+                                .and_then(|b| b.as_array())
+                                .map(|a| {
+                                    a.iter()
+                                        .filter_map(|n| n.as_u64())
+                                        .map(|n| n as u32)
+                                        .collect()
+                                })
+                                .unwrap_or_default();
+                        }
+                    }
+                    let lifecycle_baseline: Vec<u32> = lc
                         .get("baseline_path")
                         .and_then(|b| b.as_array())
                         .map(|a| {
@@ -619,6 +664,53 @@ impl LifecyclePathIndex {
                                 .collect()
                         })
                         .unwrap_or_default();
+                    let baseline: Vec<u32> = if !first_before.is_empty() {
+                        first_before
+                    } else {
+                        lifecycle_baseline
+                    };
+                    // Full ordered transition list (for the route
+                    // chronology): every lifecycle transition with
+                    // exact paths, in artifact order.
+                    let mut path_transitions: Vec<PathTransition> = Vec::new();
+                    if let Some(transitions) = lc.get("transitions").and_then(|t| t.as_array()) {
+                        for t in transitions {
+                            let before: Vec<u32> = t
+                                .get("before_path")
+                                .and_then(|b| b.as_array())
+                                .map(|a| {
+                                    a.iter()
+                                        .filter_map(|n| n.as_u64())
+                                        .map(|n| n as u32)
+                                        .collect()
+                                })
+                                .unwrap_or_default();
+                            let after: Vec<u32> = t
+                                .get("after_path")
+                                .and_then(|b| b.as_array())
+                                .map(|a| {
+                                    a.iter()
+                                        .filter_map(|n| n.as_u64())
+                                        .map(|n| n as u32)
+                                        .collect()
+                                })
+                                .unwrap_or_default();
+                            path_transitions.push(PathTransition {
+                                timestamp: t
+                                    .get("timestamp")
+                                    .and_then(|x| x.as_str())
+                                    .unwrap_or("")
+                                    .to_string(),
+                                kind: t
+                                    .get("kind")
+                                    .and_then(|x| x.as_str())
+                                    .unwrap_or("")
+                                    .to_string(),
+                                before_path: before,
+                                after_path: after,
+                            });
+                        }
+                    }
                     // First non-baseline after-state, and the last
                     // observed after-state, from the transition list.
                     let mut changed_path: Option<Vec<u32>> = None;
@@ -730,6 +822,7 @@ impl LifecyclePathIndex {
                             prefix.to_string(),
                         ),
                         StreamPathEvidence {
+                            transitions: path_transitions,
                             baseline_path: baseline,
                             changed_path,
                             final_path,
@@ -801,6 +894,8 @@ pub struct FindingStream {
     pub final_path: Option<Vec<u32>>,
     pub withdrawn: bool,
     pub first_change_utc: Option<String>,
+    /// Ordered lifecycle transitions (route chronology, Part 1).
+    pub transitions: Vec<PathTransition>,
     pub visibility_restored_at: Option<String>,
     pub equivalent_route_restored_at: Option<String>,
     pub reviewed_plane_restored_at: Option<String>,
@@ -1513,6 +1608,7 @@ pub fn build_findings(
                 &session.peer_ip,
                 &s.prefix,
             );
+            let stream_transitions = path.map(|p| p.transitions.clone()).unwrap_or_default();
             let (
                 baseline,
                 changed,
@@ -1592,6 +1688,7 @@ pub fn build_findings(
                 final_path,
                 withdrawn: s.withdrawn,
                 first_change_utc: s.first_change_utc.clone(),
+                transitions: stream_transitions,
                 visibility_restored_at: vis,
                 equivalent_route_restored_at: equiv_restored,
                 reviewed_plane_restored_at: plane_restored,
@@ -1734,7 +1831,7 @@ pub fn window_date(iso: &str) -> String {
 
 /// Extract HH:MM:SS from an ISO timestamp for operator statements
 /// ("2019-08-21T16:45:25Z" → "16:45:25"). Falls back to the input.
-fn finding_time(iso: &str) -> String {
+pub fn finding_time(iso: &str) -> String {
     let trimmed = iso.trim_end_matches('Z');
     if let Some(pos) = trimmed.find('T') {
         let rest = &trimmed[pos + 1..];
@@ -2093,6 +2190,21 @@ pub fn explain_path_diff(
     plane_label: &str,
     names: &dyn Fn(u32) -> String,
 ) -> String {
+    explain_path_diff_with_origins(before, after, plane_asns, plane_label, &[], names)
+}
+
+/// `explain_path_diff` with explicit target-origin ASNs: the
+/// "origin-AS prepending" phrase is used only when the repeated ASN is
+/// a target origin (Session 41, Part 7); intermediate repetition is
+/// never called origin prepending.
+pub fn explain_path_diff_with_origins(
+    before: &[u32],
+    after: &[u32],
+    plane_asns: &[u32],
+    plane_label: &str,
+    target_origins: &[u32],
+    names: &dyn Fn(u32) -> String,
+) -> String {
     if after.is_empty() {
         return "The route was absent between the two observations.".to_string();
     }
@@ -2168,7 +2280,9 @@ pub fn explain_path_diff(
     for (asn, delta) in &d.count_deltas {
         let before_count = before.iter().filter(|a| *a == asn).count();
         let after_count = after.iter().filter(|a| *a == asn).count();
-        let origin = after.last() == Some(asn) || before.last() == Some(asn);
+        let origin = target_origins.contains(asn)
+            || (target_origins.is_empty()
+                && (after.last() == Some(asn) || before.last() == Some(asn)));
         let scope = if origin {
             "origin-AS prepending"
         } else {
@@ -2486,6 +2600,277 @@ impl FindingAudit {
     }
 }
 
+/// One ordered step of a finding's route chronology (Session 41,
+/// Part 1). Derived from canonical evidence only; absent fields are
+/// omitted, never guessed.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct ChronologyStep {
+    /// Step kind: "Baseline", "First change", "Absent",
+    /// "First replacement", "Reviewed-plane return",
+    /// "Equivalent-route return", "Exact baseline return",
+    /// "Later change", "Event-window end", "Analysis end".
+    pub label: &'static str,
+    /// Exact time or range (HH:MM:SS UTC).
+    pub time: String,
+    /// Collapsed path signature; None when the step has no observed
+    /// path (absence, or a cooldown change whose path is archived in
+    /// the raw evidence only).
+    pub path: Option<String>,
+    /// Restoration class when this step IS a restoration.
+    pub restoration: Option<&'static str>,
+}
+
+/// Ordered route chronology of one finding (Session 41, Part 1).
+///
+/// Never flattens restoration events into one ambiguous outcome: the
+/// final observed state is always a distinct step.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct RouteChronology {
+    pub steps: Vec<ChronologyStep>,
+    pub state_at_event_window_end: String,
+    pub state_at_analysis_end: String,
+}
+
+/// Derive the finding's route chronology from its audit fields.
+/// `window_end` is the event-window end (ISO) for the end-state step
+/// times. Deterministic: fixed step order, exact timestamps.
+pub fn route_chronology(f: &RoutingFinding, window_end: &str) -> RouteChronology {
+    use CooldownOutcome as CO;
+    let time = |t: &str| finding_time(t);
+    let first_t = f.first_observed.as_deref().unwrap_or("");
+    let mut steps: Vec<ChronologyStep> = Vec::new();
+
+    // 1. Baseline (the pre-change path).
+    if f.baseline_path_signature != "—" {
+        steps.push(ChronologyStep {
+            label: "Baseline",
+            time: if first_t.is_empty() {
+                "observed before the change".to_string()
+            } else {
+                format!("until {} UTC", time(first_t))
+            },
+            path: Some(f.baseline_path_signature.clone()),
+            restoration: None,
+        });
+    }
+    // 2-3. Absence interval + first replacement (withdrawals).
+    if matches!(
+        f.effect,
+        RoutingEffect::PrefixesTemporarilyAbsent | RoutingEffect::PrefixesWithdrawn
+    ) {
+        let end = f
+            .visibility_restored_at
+            .as_deref()
+            .unwrap_or("the event-window end");
+        steps.push(ChronologyStep {
+            label: "Absent",
+            time: if first_t.is_empty() {
+                "the analysis window".to_string()
+            } else if finding_time(end) == time(first_t) {
+                format!("at {} UTC", time(first_t))
+            } else {
+                format!("{}–{} UTC", time(first_t), finding_time(end))
+            },
+            path: None,
+            restoration: None,
+        });
+        if let Some(vis) = &f.visibility_restored_at {
+            steps.push(ChronologyStep {
+                label: "First replacement",
+                time: format!("from {} UTC", finding_time(vis)),
+                path: Some(f.changed_path_signature.clone()),
+                restoration: Some("Visibility returned"),
+            });
+        }
+    } else if f.changed_path_signature != "—" {
+        // Non-absence: the first change step.
+        steps.push(ChronologyStep {
+            label: "First change",
+            time: if first_t.is_empty() {
+                "the observed time".to_string()
+            } else {
+                format!("at {} UTC", time(first_t))
+            },
+            path: Some(f.changed_path_signature.clone()),
+            restoration: None,
+        });
+    }
+    // 4. Reviewed-plane return.
+    if let Some(t) = &f.reviewed_plane_restored_at {
+        steps.push(ChronologyStep {
+            label: "Reviewed-plane return",
+            time: format!("at {} UTC", finding_time(t)),
+            path: None,
+            restoration: Some("Reviewed plane"),
+        });
+    }
+    // 5. Equivalent-route return (distinct from visibility).
+    if let Some(t) = &f.equivalent_route_restored_at {
+        if f.visibility_restored_at.as_deref() != Some(t.as_str()) {
+            steps.push(ChronologyStep {
+                label: "Equivalent-route return",
+                time: format!("at {} UTC", finding_time(t)),
+                path: Some(f.changed_path_signature.clone()),
+                restoration: Some("Equivalent route"),
+            });
+        }
+    }
+    // 6. Exact baseline return (with the per-prefix range).
+    let exact_times: Vec<&str> = f
+        .streams
+        .iter()
+        .filter_map(|s| s.exact_baseline_restored_at.as_deref())
+        .collect();
+    if let Some(t) = &f.exact_baseline_restored_at {
+        let (min, max) = (
+            exact_times.iter().min().copied().unwrap_or(t).to_string(),
+            exact_times.iter().max().copied().unwrap_or(t).to_string(),
+        );
+        let range = if finding_time(&min) != finding_time(&max) {
+            format!(
+                "between {} and {} UTC",
+                finding_time(&min),
+                finding_time(&max)
+            )
+        } else {
+            format!("at {} UTC", finding_time(t))
+        };
+        steps.push(ChronologyStep {
+            label: "Exact baseline return",
+            time: range,
+            path: Some(f.baseline_path_signature.clone()),
+            restoration: Some("Exact baseline"),
+        });
+    }
+    // 7. Intermediate/later changes from the per-prefix transition
+    // list: every transition after the first change that alters the
+    // observed path and is not itself a restoration event already
+    // represented (ReturnToBaseline, the first replacement, absence
+    // bookends). Deduplicated by (timestamp, path); the most frequent
+    // path per timestamp is shown.
+    let mut later: std::collections::BTreeMap<String, (Vec<u32>, usize)> =
+        std::collections::BTreeMap::new();
+    for stream in &f.streams {
+        for (i, t) in stream.transitions.iter().enumerate() {
+            if i == 0 {
+                continue; // first change is its own step
+            }
+            if t.after_path.is_empty() {
+                continue; // withdrawals are absence bookends
+            }
+            if t.kind == "ReturnToBaseline" {
+                continue; // the exact-baseline step
+            }
+            if f.visibility_restored_at.as_deref() == Some(t.timestamp.as_str()) {
+                continue; // the first-replacement step
+            }
+            let entry = later
+                .entry(t.timestamp.clone())
+                .or_insert_with(|| (t.after_path.clone(), 0));
+            if entry.0 == t.after_path {
+                entry.1 += 1;
+            }
+        }
+    }
+    let mut later_steps: Vec<ChronologyStep> = later
+        .into_iter()
+        .filter(|(_, (path, _))| !path.is_empty())
+        .map(|(ts, (path, _))| ChronologyStep {
+            label: "Later change",
+            time: format!("at {} UTC", finding_time(&ts)),
+            path: Some(crate::catalog::workbench::collapse_as_path(&path)),
+            restoration: None,
+        })
+        .collect();
+    // Cooldown re-changes: the exact path lives in the raw archive
+    // evidence, never synthesized.
+    if let CO::StillChangingBeforeAnalysisEnd(t) = &f.state_at_analysis_end {
+        later_steps.push(ChronologyStep {
+            label: "Later change",
+            time: format!("at {} UTC", finding_time(t)),
+            path: None,
+            restoration: None,
+        });
+    }
+    steps.append(&mut later_steps);
+
+    // 8-9. End states: event-window end and analysis end are distinct
+    // steps; the analysis-end step never assumes the last restoration.
+    if !window_end.is_empty() {
+        steps.push(ChronologyStep {
+            label: "Event-window end",
+            time: format!("at {} UTC", finding_time(window_end)),
+            path: if f.final_path_signature != "—" {
+                Some(f.final_path_signature.clone())
+            } else {
+                None
+            },
+            restoration: None,
+        });
+    }
+    steps.push(ChronologyStep {
+        label: "Analysis end",
+        time: format!("at {} UTC", finding_time(&f.analysis_end)),
+        path: if f.final_path_signature != "—" {
+            Some(f.final_path_signature.clone())
+        } else {
+            None
+        },
+        restoration: None,
+    });
+
+    // Deterministic temporal order: steps sort by their first
+    // HH:MM:SS, then by step-class priority (equal-time ties keep the
+    // semantic order: baseline before change, restorations before end
+    // states).
+    let class_rank = |label: &str| -> usize {
+        match label {
+            "Baseline" => 0,
+            "Absent" => 1,
+            "First change" => 2,
+            "First replacement" => 3,
+            "Reviewed-plane return" => 4,
+            "Equivalent-route return" => 5,
+            "Exact baseline return" => 6,
+            "Later change" => 7,
+            "Event-window end" => 8,
+            "Analysis end" => 9,
+            _ => 10,
+        }
+    };
+    let step_key = |step: &ChronologyStep| -> (i64, usize) {
+        let secs = step
+            .time
+            .split_whitespace()
+            .find_map(parse_clock_seconds)
+            .unwrap_or(i64::MAX);
+        (secs, class_rank(step.label))
+    };
+    steps.sort_by_key(step_key);
+    steps.dedup_by(|a, b| a.label == b.label && a.time == b.time && a.path == b.path);
+
+    RouteChronology {
+        steps,
+        state_at_event_window_end: format!("{:?}", f.state_at_window_end),
+        state_at_analysis_end: format!("{:?}", f.state_at_analysis_end),
+    }
+}
+
+/// HH:MM:SS -> seconds since midnight (for chronology ordering).
+/// Tolerates range tokens like "16:45:25–16:45:27" by truncating at
+/// the first non-digit.
+fn parse_clock_seconds(tok: &str) -> Option<i64> {
+    let digits = |s: &str| -> Option<i64> {
+        let end = s.find(|c: char| !c.is_ascii_digit()).unwrap_or(s.len());
+        s[..end].parse().ok()
+    };
+    let mut parts = tok.split(':');
+    let h = digits(parts.next()?)?;
+    let m = digits(parts.next()?)?;
+    let sec = digits(parts.next()?)?;
+    Some(h * 3600 + m * 60 + sec)
+}
+
 /// Render the observer-lane timeline as server-rendered SVG (Part 7).
 ///
 /// One lane per observer session plus one "Operator report" lane for
@@ -2710,7 +3095,7 @@ pub fn render_timeline_svg(lanes: &[TimelineLane], anchors: &[TimelineMarker]) -
 /// Seconds since epoch for "YYYY-MM-DDTHH:MM:SS…" (UTC; Z/+00:00/fraction
 /// tolerated). Exact seconds only — sub-second precision is not needed
 /// for axis placement and is never fabricated.
-fn parse_utc_seconds(ts: &str) -> Option<i64> {
+pub fn parse_utc_seconds(ts: &str) -> Option<i64> {
     if ts.len() < 19 {
         return None;
     }
@@ -5022,6 +5407,10 @@ pub struct IncidentWorkbenchViewModel {
     pub episodes: Vec<ObserverEpisode>,
     /// Operator-facing routing findings (Session 39, Part 3).
     pub findings: Vec<RoutingFinding>,
+    /// Reviewed target label + origin ASNs (manifest/pilot data) for
+    /// natural origin naming on the no-visibility page and cards.
+    pub target_label: String,
+    pub target_origin_asns: Vec<u32>,
     pub breadth: Vec<RegionObservationSummary>,
     pub timeline: Vec<TimelineLane>,
     pub operator_anchors: Vec<TimelineMarker>,
@@ -5458,6 +5847,8 @@ impl IncidentWorkbenchViewModel {
             runs: run_views,
             episodes,
             findings,
+            target_label: finding_target_label.clone(),
+            target_origin_asns: target_origin_asns.clone(),
             breadth,
             timeline,
             operator_anchors: context.operator_anchors.clone(),
@@ -5864,6 +6255,8 @@ mod workbench_view_tests {
             runs: vec![],
             episodes: vec![],
             findings: vec![],
+            target_label: String::new(),
+            target_origin_asns: vec![],
             asn_identities: vec![],
             breadth: vec![],
             timeline: vec![],
@@ -6291,6 +6684,8 @@ mod text_report_tests {
             relationship_audit: None,
             runs: vec![],
             findings: vec![],
+            target_label: String::new(),
+            target_origin_asns: vec![],
             asn_identities: vec![],
             episodes: vec![ObserverEpisode {
                 analysis_run: 1,
@@ -7034,6 +7429,8 @@ mod session38_unit_tests {
             relationship_audit: None,
             runs: vec![],
             findings: vec![],
+            target_label: String::new(),
+            target_origin_asns: vec![],
             asn_identities: vec![],
             episodes: episodes.clone(),
             breadth: rows,
@@ -7977,6 +8374,7 @@ mod finding_test_helpers {
             map.insert(
                 (collector.to_string(), peer.to_string(), prefix.to_string()),
                 StreamPathEvidence {
+                    transitions: Vec::new(),
                     baseline_path: baseline.to_vec(),
                     changed_path: Some(changed.to_vec()),
                     final_path: Some(changed.to_vec()),
@@ -9092,6 +9490,7 @@ mod session40_tests {
                 final_path: Some(vec![1916, 64512, 2603]),
                 withdrawn: false,
                 first_change_utc: Some("2019-08-21T16:35:38Z".to_string()),
+                transitions: Vec::new(),
                 visibility_restored_at: None,
                 equivalent_route_restored_at: None,
                 reviewed_plane_restored_at: None,
@@ -9286,6 +9685,7 @@ mod session40_tests {
                 final_path: None,
                 withdrawn: false,
                 first_change_utc: None,
+                transitions: Vec::new(),
                 visibility_restored_at: None,
                 equivalent_route_restored_at: None,
                 reviewed_plane_restored_at: None,
@@ -9396,6 +9796,7 @@ mod session40_tests {
                 final_path: Some(vec![4777, 64512, 2603]),
                 withdrawn: false,
                 first_change_utc: Some("2019-08-21T16:45:44Z".to_string()),
+                transitions: Vec::new(),
                 visibility_restored_at: None,
                 equivalent_route_restored_at: None,
                 reviewed_plane_restored_at: None,
@@ -9452,6 +9853,8 @@ impl IncidentWorkbenchViewModel {
             runs: Vec::new(),
             episodes: Vec::new(),
             findings: vec![finding],
+            target_label: "TARGET (AS2603)".to_string(),
+            target_origin_asns: vec![2603],
             breadth: Vec::new(),
             timeline: Vec::new(),
             operator_anchors: Vec::new(),
@@ -9461,5 +9864,651 @@ impl IncidentWorkbenchViewModel {
             incomplete_sessions: Vec::new(),
             asn_identities: Vec::new(),
         }
+    }
+}
+
+/// Session 41 tests: route chronology, baseline consistency, absence
+/// wording, identity policy, prepend collapsing.
+#[cfg(test)]
+mod session41_tests {
+    use super::finding_test_helpers::{absence_episode, episode, path_index_with};
+    use super::*;
+
+    #[test]
+    fn chronology_orders_all_evidence_by_timestamp() {
+        // Withdrawal 16:45:25, replacement 16:45:27, baseline return
+        // 16:59:26 — the steps must be time-ordered.
+        let eps = vec![absence_episode(
+            1,
+            "routeviews/route-views2 peer 198.32.160.1",
+            "Eugene, Oregon, US",
+            "AMER",
+            64512,
+            RelationshipKind::Direct,
+            "2019-08-21T16:45:25Z",
+            "2019-08-21T16:45:27Z",
+            &["10.0.0.0/24"],
+        )];
+        let mut index = path_index_with(&[(
+            "route-views2",
+            "198.32.160.1",
+            "10.0.0.0/24",
+            &[64512, 20965, 2603],
+            &[64512, 22388, 24489, 24489, 24489, 24489, 24490, 20965, 2603],
+        )]);
+        let map = index.by_run.get_mut("EV").unwrap();
+        let ev = map
+            .get_mut(&(
+                "route-views2".into(),
+                "198.32.160.1".into(),
+                "10.0.0.0/24".into(),
+            ))
+            .unwrap();
+        ev.visibility_restored_at = Some("2019-08-21T16:45:27Z".to_string());
+        ev.equivalent_route_restored_at = Some("2019-08-21T16:45:27Z".to_string());
+        ev.exact_baseline_restored_at = Some("2019-08-21T16:59:26Z".to_string());
+        let mut run_events = std::collections::HashMap::new();
+        run_events.insert(1, "EV".to_string());
+        let findings = build_findings(
+            &eps,
+            &index,
+            &AsnIdentityRegistry::default(),
+            "TARGET (AS2603)",
+            &[2603],
+            "",
+            &run_events,
+            "2019-08-21",
+            "2019-08-21T18:00:00Z",
+        );
+        let ch = route_chronology(&findings[0], "2019-08-21T17:30:00Z");
+        let labels: Vec<&str> = ch.steps.iter().map(|s| s.label).collect();
+        assert_eq!(
+            labels,
+            vec![
+                "Baseline",
+                "Absent",
+                "First replacement",
+                "Exact baseline return",
+                "Event-window end",
+                "Analysis end"
+            ],
+            "ordered chronology: {labels:?}"
+        );
+        // Times are non-decreasing and explicit-zone.
+        let times: Vec<&str> = ch.steps.iter().map(|s| s.time.as_str()).collect();
+        for t in &times {
+            assert!(t.contains("UTC"), "explicit zone: {t}");
+        }
+    }
+
+    #[test]
+    fn temporary_absence_precedes_replacement_state() {
+        let eps = vec![absence_episode(
+            1,
+            "routeviews/route-views2 peer 198.32.160.1",
+            "Eugene, Oregon, US",
+            "AMER",
+            64512,
+            RelationshipKind::Direct,
+            "2019-08-21T16:45:25Z",
+            "2019-08-21T16:45:27Z",
+            &["10.0.0.0/24"],
+        )];
+        let mut index = path_index_with(&[(
+            "route-views2",
+            "198.32.160.1",
+            "10.0.0.0/24",
+            &[64512, 20965, 2603],
+            &[64512, 22388, 2603],
+        )]);
+        let map = index.by_run.get_mut("EV").unwrap();
+        let ev = map
+            .get_mut(&(
+                "route-views2".into(),
+                "198.32.160.1".into(),
+                "10.0.0.0/24".into(),
+            ))
+            .unwrap();
+        ev.visibility_restored_at = Some("2019-08-21T16:45:27Z".to_string());
+        ev.equivalent_route_restored_at = Some("2019-08-21T16:45:27Z".to_string());
+        ev.exact_baseline_restored_at = Some("2019-08-21T16:59:26Z".to_string());
+        let mut run_events = std::collections::HashMap::new();
+        run_events.insert(1, "EV".to_string());
+        let findings = build_findings(
+            &eps,
+            &index,
+            &AsnIdentityRegistry::default(),
+            "TARGET (AS2603)",
+            &[2603],
+            "",
+            &run_events,
+            "2019-08-21",
+            "2019-08-21T18:00:00Z",
+        );
+        let ch = route_chronology(&findings[0], "2019-08-21T17:30:00Z");
+        let absent = ch.steps.iter().position(|s| s.label == "Absent").unwrap();
+        let replacement = ch
+            .steps
+            .iter()
+            .position(|s| s.label == "First replacement")
+            .unwrap();
+        assert!(
+            absent < replacement,
+            "absence precedes the replacement state"
+        );
+        assert!(ch.steps[absent].path.is_none(), "absent step has no path");
+        assert_eq!(
+            ch.steps[replacement].restoration,
+            Some("Visibility returned")
+        );
+    }
+
+    #[test]
+    fn baseline_can_return_and_then_change_again() {
+        // RRC15-style: baseline returned in-window, then a cooldown
+        // re-change. The chronology must include the later change and
+        // the analysis-end state distinct from the restoration.
+        let eps = vec![episode(
+            1,
+            EffectKind::PathReplacement,
+            "ris/rrc15 peer 187.16.216.4",
+            "Sao Paulo, Brazil",
+            "AMER",
+            1916,
+            RelationshipKind::Indirect,
+            "2019-08-21T16:35:38Z",
+            "2019-08-21T17:03:35Z",
+            &["10.0.0.0/24"],
+        )];
+        let mut index = path_index_with(&[(
+            "rrc15",
+            "187.16.216.4",
+            "10.0.0.0/24",
+            &[1916, 64512, 20965, 2603],
+            &[1916, 20080, 64512, 20965, 2603],
+        )]);
+        let map = index.by_run.get_mut("EV").unwrap();
+        let ev = map
+            .get_mut(&("rrc15".into(), "187.16.216.4".into(), "10.0.0.0/24".into()))
+            .unwrap();
+        ev.exact_baseline_restored_at = Some("2019-08-21T17:03:35Z".to_string());
+        let mut run_events = std::collections::HashMap::new();
+        run_events.insert(1, "EV".to_string());
+        let mut findings = build_findings(
+            &eps,
+            &index,
+            &AsnIdentityRegistry::default(),
+            "TARGET (AS2603)",
+            &[2603],
+            "",
+            &run_events,
+            "2019-08-21",
+            "2019-08-21T18:30:00Z",
+        );
+        findings[0].state_at_analysis_end =
+            CooldownOutcome::StillChangingBeforeAnalysisEnd("2019-08-21T17:52:16Z".to_string());
+        findings[0].analysis_end = "2019-08-21T18:30:00Z".to_string();
+        let ch = route_chronology(&findings[0], "2019-08-21T17:30:00Z");
+        let labels: Vec<&str> = ch.steps.iter().map(|s| s.label).collect();
+        assert!(
+            labels.contains(&"Later change"),
+            "later change step present: {labels:?}"
+        );
+        let exact = ch
+            .steps
+            .iter()
+            .position(|s| s.label == "Exact baseline return")
+            .unwrap();
+        let later = ch
+            .steps
+            .iter()
+            .position(|s| s.label == "Later change")
+            .unwrap();
+        let analysis = ch
+            .steps
+            .iter()
+            .position(|s| s.label == "Analysis end")
+            .unwrap();
+        assert!(exact < later && later < analysis);
+    }
+
+    #[test]
+    fn final_state_is_not_assumed_from_restoration_event() {
+        // A restoration at 16:59:26 with a later change means the
+        // analysis-end step must NOT show the restored baseline as the
+        // final state.
+        let eps = vec![absence_episode(
+            1,
+            "routeviews/route-views2 peer 198.32.160.1",
+            "Eugene, Oregon, US",
+            "AMER",
+            64512,
+            RelationshipKind::Direct,
+            "2019-08-21T16:45:25Z",
+            "2019-08-21T16:45:27Z",
+            &["10.0.0.0/24"],
+        )];
+        let mut index = path_index_with(&[(
+            "route-views2",
+            "198.32.160.1",
+            "10.0.0.0/24",
+            &[64512, 20965, 2603],
+            &[64512, 22388, 2603],
+        )]);
+        let map = index.by_run.get_mut("EV").unwrap();
+        let ev = map
+            .get_mut(&(
+                "route-views2".into(),
+                "198.32.160.1".into(),
+                "10.0.0.0/24".into(),
+            ))
+            .unwrap();
+        ev.visibility_restored_at = Some("2019-08-21T16:45:27Z".to_string());
+        ev.exact_baseline_restored_at = Some("2019-08-21T16:59:26Z".to_string());
+        ev.final_path = Some(vec![64512, 24287, 24490, 20965, 2603]); // changed again
+        let mut run_events = std::collections::HashMap::new();
+        run_events.insert(1, "EV".to_string());
+        let mut findings = build_findings(
+            &eps,
+            &index,
+            &AsnIdentityRegistry::default(),
+            "TARGET (AS2603)",
+            &[2603],
+            "",
+            &run_events,
+            "2019-08-21",
+            "2019-08-21T18:00:00Z",
+        );
+        findings[0].state_at_analysis_end =
+            CooldownOutcome::StillChangingBeforeAnalysisEnd("2019-08-21T17:52:16Z".to_string());
+        let ch = route_chronology(&findings[0], "2019-08-21T17:30:00Z");
+        let analysis = ch.steps.iter().find(|s| s.label == "Analysis end").unwrap();
+        assert!(
+            analysis.path.as_deref() != Some(findings[0].baseline_path_signature.as_str()),
+            "analysis-end path is not the restored baseline"
+        );
+        assert!(ch.state_at_analysis_end.contains("StillChanging"));
+    }
+
+    #[test]
+    fn event_window_end_and_analysis_end_are_distinct() {
+        let eps = vec![episode(
+            1,
+            EffectKind::PathReplacement,
+            "ris/rrc06 peer 192.0.2.1",
+            "Otemachi, Tokyo, Japan",
+            "APAC",
+            4777,
+            RelationshipKind::Indirect,
+            "2019-08-21T16:45:44Z",
+            "2019-08-21T17:02:07Z",
+            &["10.0.0.0/24"],
+        )];
+        let index = path_index_with(&[(
+            "rrc06",
+            "192.0.2.1",
+            "10.0.0.0/24",
+            &[4777, 64512, 2603],
+            &[4777, 22388, 2603],
+        )]);
+        let mut run_events = std::collections::HashMap::new();
+        run_events.insert(1, "EV".to_string());
+        let findings = build_findings(
+            &eps,
+            &index,
+            &AsnIdentityRegistry::default(),
+            "TARGET (AS2603)",
+            &[2603],
+            "",
+            &run_events,
+            "2019-08-21",
+            "2019-08-21T18:30:00Z",
+        );
+        let ch = route_chronology(&findings[0], "2019-08-21T17:30:00Z");
+        let ew = ch
+            .steps
+            .iter()
+            .position(|s| s.label == "Event-window end")
+            .unwrap();
+        let ae = ch
+            .steps
+            .iter()
+            .position(|s| s.label == "Analysis end")
+            .unwrap();
+        assert!(ew < ae, "event-window end precedes analysis end");
+        assert!(ch.steps[ew].time.contains("17:30"));
+        assert!(ch.steps[ae].time.contains("18:30"));
+    }
+
+    #[test]
+    fn chronology_is_deterministic() {
+        let eps = vec![absence_episode(
+            1,
+            "routeviews/route-views2 peer 198.32.160.1",
+            "Eugene, Oregon, US",
+            "AMER",
+            64512,
+            RelationshipKind::Direct,
+            "2019-08-21T16:45:25Z",
+            "2019-08-21T16:45:27Z",
+            &["10.0.0.0/24", "10.0.1.0/24"],
+        )];
+        let mut index = path_index_with(&[
+            (
+                "route-views2",
+                "198.32.160.1",
+                "10.0.0.0/24",
+                &[64512, 20965, 2603],
+                &[64512, 22388, 2603],
+            ),
+            (
+                "route-views2",
+                "198.32.160.1",
+                "10.0.1.0/24",
+                &[64512, 20965, 2603],
+                &[64512, 22388, 2603],
+            ),
+        ]);
+        let map = index.by_run.get_mut("EV").unwrap();
+        for ev in map.values_mut() {
+            ev.visibility_restored_at = Some("2019-08-21T16:45:27Z".to_string());
+            ev.exact_baseline_restored_at = Some("2019-08-21T16:59:26Z".to_string());
+        }
+        let mut run_events = std::collections::HashMap::new();
+        run_events.insert(1, "EV".to_string());
+        let f = build_findings(
+            &eps,
+            &index,
+            &AsnIdentityRegistry::default(),
+            "TARGET (AS2603)",
+            &[2603],
+            "",
+            &run_events,
+            "2019-08-21",
+            "2019-08-21T18:00:00Z",
+        );
+        let a = route_chronology(&f[0], "2019-08-21T17:30:00Z");
+        let b = route_chronology(&f[0], "2019-08-21T17:30:00Z");
+        assert_eq!(a, b);
+    }
+
+    #[test]
+    fn real_rv2_baseline_is_pre_change_path() {
+        // Regression (Part 2): the direct RV2 finding's baseline must
+        // be the pre-change path (AS64512 AS20965 AS2603), not the
+        // first-instance path, so restoration/final stay consistent.
+        let eps = vec![absence_episode(
+            1,
+            "routeviews/route-views2 peer 64.57.28.241",
+            "Eugene, Oregon, US",
+            "AMER",
+            64512,
+            RelationshipKind::Direct,
+            "2019-08-21T16:45:25Z",
+            "2019-08-21T16:45:27Z",
+            &["10.0.0.0/24"],
+        )];
+        // The loader derives the baseline from the first transition's
+        // before_path (the pre-change path); the fixture carries that
+        // derived baseline.
+        let mut index = path_index_with(&[(
+            "route-views2",
+            "64.57.28.241",
+            "10.0.0.0/24",
+            &[64512, 20965, 2603],
+            &[64512, 22388, 24489, 24489, 24489, 24489, 24490, 20965, 2603],
+        )]);
+        let map = index.by_run.get_mut("EV").unwrap();
+        let ev = map
+            .get_mut(&(
+                "route-views2".into(),
+                "64.57.28.241".into(),
+                "10.0.0.0/24".into(),
+            ))
+            .unwrap();
+        ev.exact_baseline_restored_at = Some("2019-08-21T17:02:03Z".to_string());
+        // The ReturnToBaseline restores the pre-change path; the last
+        // observed after-state equals the baseline (no later change).
+        ev.final_path = Some(vec![64512, 20965, 2603]);
+        let mut run_events = std::collections::HashMap::new();
+        run_events.insert(1, "EV".to_string());
+        let findings = build_findings(
+            &eps,
+            &index,
+            &AsnIdentityRegistry::default(),
+            "TARGET (AS2603)",
+            &[2603],
+            "",
+            &run_events,
+            "2019-08-21",
+            "2019-08-21T18:00:00Z",
+        );
+        let f = &findings[0];
+        // The path that disappeared is the pre-change path.
+        assert_eq!(
+            f.baseline_path_signature, "AS64512 AS20965 AS2603",
+            "baseline is the pre-change path"
+        );
+        // The exact baseline return restores the SAME path; final
+        // equals the baseline (no later change).
+        assert_eq!(f.final_path_signature, f.baseline_path_signature);
+        let ch = route_chronology(f, "2019-08-21T17:30:00Z");
+        assert!(!ch.steps.iter().any(|s| s.label == "Later change"));
+        let exact = ch
+            .steps
+            .iter()
+            .find(|s| s.label == "Exact baseline return")
+            .unwrap();
+        assert_eq!(
+            exact.path.as_deref(),
+            Some(f.baseline_path_signature.as_str())
+        );
+    }
+
+    #[test]
+    fn absent_finding_never_says_continuously_visible() {
+        let eps = vec![absence_episode(
+            1,
+            "routeviews/route-views2 peer 198.32.160.1",
+            "Eugene, Oregon, US",
+            "AMER",
+            64512,
+            RelationshipKind::Direct,
+            "2019-08-21T16:45:25Z",
+            "2019-08-21T16:45:27Z",
+            &["10.0.0.0/24"],
+        )];
+        let mut index = path_index_with(&[(
+            "route-views2",
+            "198.32.160.1",
+            "10.0.0.0/24",
+            &[64512, 20965, 2603],
+            &[64512, 22388, 2603],
+        )]);
+        let map = index.by_run.get_mut("EV").unwrap();
+        let ev = map
+            .get_mut(&(
+                "route-views2".into(),
+                "198.32.160.1".into(),
+                "10.0.0.0/24".into(),
+            ))
+            .unwrap();
+        ev.visibility_restored_at = Some("2019-08-21T16:45:27Z".to_string());
+        let mut run_events = std::collections::HashMap::new();
+        run_events.insert(1, "EV".to_string());
+        let findings = build_findings(
+            &eps,
+            &index,
+            &AsnIdentityRegistry::default(),
+            "TARGET (AS2603)",
+            &[2603],
+            "",
+            &run_events,
+            "2019-08-21",
+            "2019-08-21T18:00:00Z",
+        );
+        let f = &findings[0];
+        let baseline = f.streams[0].baseline_path.clone();
+        let changed = f.streams[0].changed_path.clone().unwrap();
+        let diff = diff_paths(&baseline, &changed, &[64512]);
+        assert!(diff.plane_retained, "replacement retains the plane");
+        let explanation =
+            explain_path_diff_with_origins(&baseline, &changed, &[64512], "plane", &[2603], &|a| {
+                format!("AS{a}")
+            });
+        // The explanation is about the post-restoration state; it must
+        // not claim the route remained visible across the absence.
+        assert!(
+            explanation.contains("remained visible") || explanation.contains("continued through"),
+            "post-restoration explanation present"
+        );
+        // The absence interval itself is explicit in the chronology.
+        let ch = route_chronology(f, "2019-08-21T17:30:00Z");
+        let absent = ch.steps.iter().find(|s| s.label == "Absent").unwrap();
+        assert!(absent.time.contains("16:45:25") && absent.time.contains("16:45:27"));
+        // The statement never says "remained visible" about the
+        // absence itself.
+        let s = finding_statement(f);
+        assert!(!s.contains("remained visible"), "{s}");
+    }
+
+    #[test]
+    fn identity_policy_current_only_is_not_primary() {
+        // Current-only identities are never the primary historical
+        // label: the registry lookup for primary rendering must yield
+        // reviewed names or nothing.
+        let mut r = AsnIdentityRegistry::default();
+        r.identities.push(AsnIdentity {
+            asn: 22388,
+            display_name: "TRANSPAC".to_string(),
+            role: "transit".to_string(),
+            valid_from: None,
+            valid_to: None,
+            provenance: "current lookup".to_string(),
+            review_status: "CurrentIdentityOnly".to_string(),
+        });
+        r.identities.push(AsnIdentity {
+            asn: 64512,
+            display_name: "Reviewed Net".to_string(),
+            role: "re".to_string(),
+            valid_from: None,
+            valid_to: None,
+            provenance: "reviewed".to_string(),
+            review_status: "HistoricallyReviewed".to_string(),
+        });
+        assert_eq!(
+            r.primary_display_name(22388, "2019-08-21"),
+            None,
+            "current-only is not a primary historical label"
+        );
+        assert_eq!(r.status(22388, "2019-08-21"), "CurrentIdentityOnly");
+        assert_eq!(
+            r.primary_display_name(64512, "2019-08-21"),
+            Some("Reviewed Net")
+        );
+        // Unresolved preserves the ASN.
+        assert_eq!(r.display_name(99999, "2019-08-21"), None);
+        assert_eq!(format!("AS{}", 99999u32), "AS99999");
+    }
+
+    #[test]
+    fn internet2_re_identity_applies_to_supported_event_dates() {
+        // A stable reviewed organizational role is not time-limited to
+        // the case-study date (Part 8).
+        let mut r = AsnIdentityRegistry::default();
+        r.identities.push(AsnIdentity {
+            asn: 11537,
+            display_name: "Internet2 R&E".to_string(),
+            role: "re".to_string(),
+            valid_from: Some("2019-08-21".to_string()),
+            valid_to: None,
+            provenance: "reviewed profile".to_string(),
+            review_status: "HistoricallyReviewed".to_string(),
+        });
+        assert_eq!(r.display_name(11537, "2019-08-21"), Some("Internet2 R&E"));
+        assert_eq!(
+            r.display_name(11537, "2026-07-14"),
+            Some("Internet2 R&E"),
+            "stable role applies to a supported later event date"
+        );
+    }
+
+    #[test]
+    fn profile_role_and_session_validity_are_independent() {
+        // Session metadata keeps its own valid_from/valid_to; identity
+        // validity does not inherit it.
+        let mut r = AsnIdentityRegistry::default();
+        r.identities.push(AsnIdentity {
+            asn: 7660,
+            display_name: "APAN-JP".to_string(),
+            role: "re".to_string(),
+            valid_from: None,
+            valid_to: None,
+            provenance: "reviewed".to_string(),
+            review_status: "HistoricallyReviewed".to_string(),
+        });
+        // A session row scoped to one date.
+        let session = crate::catalog::domain::ObserverSessionMetadata {
+            id: 0,
+            source_family: "RouteViews".to_string(),
+            collector: "route-views2".to_string(),
+            peer_ip: "203.181.248.195".to_string(),
+            address_family: "ipv4".to_string(),
+            peer_asn: 7660,
+            valid_from: "2026-07-14T04:00:00Z".to_string(),
+            valid_to: None,
+            source_archive: "rib".to_string(),
+            source_sha256: "abc".to_string(),
+        };
+        assert_eq!(r.display_name(7660, "2026-07-14"), Some("APAN-JP"));
+        assert_eq!(session.valid_from, "2026-07-14T04:00:00Z");
+    }
+
+    #[test]
+    fn repeated_origin_asn_renders_once_with_multiplier() {
+        // Part 7: named rendering collapses consecutive repeats.
+        let path = vec![64512, 40220, 225, 225, 225, 225, 225, 225, 225];
+        let collapsed = collapse_as_path(&path);
+        assert_eq!(collapsed, "AS64512 AS40220 AS225×7");
+        // The exact expanded path retains every occurrence.
+        let exact: Vec<String> = path.iter().map(|a| format!("AS{a}")).collect();
+        assert_eq!(exact.len(), 9);
+    }
+
+    #[test]
+    fn repeated_intermediate_asn_renders_once_with_multiplier() {
+        let path = vec![1916, 22388, 24489, 24489, 24489, 24489, 24490, 20965, 2603];
+        assert_eq!(
+            collapse_as_path(&path),
+            "AS1916 AS22388 AS24489×4 AS24490 AS20965 AS2603"
+        );
+    }
+
+    #[test]
+    fn origin_prepend_language_requires_origin_asn() {
+        // An intermediate repeated ASN is never called origin-AS
+        // prepending.
+        let before = [1916, 64512, 20965, 2603];
+        let after = [1916, 64512, 24489, 24489, 24489, 24489, 20965, 2603];
+        let explanation =
+            explain_path_diff_with_origins(&before, &after, &[64512], "plane", &[2603], &|a| {
+                format!("AS{a}")
+            });
+        assert!(
+            !explanation.contains("origin-AS prepending"),
+            "intermediate repetition is not origin prepending: {explanation}"
+        );
+        assert!(explanation.contains("AS24489"), "{explanation}");
+        // The target origin case keeps the origin-AS phrase.
+        let before2 = [64512, 40220, 225];
+        let after2 = [64512, 40220, 225, 225, 225, 225, 225, 225, 225];
+        let explanation2 =
+            explain_path_diff_with_origins(&before2, &after2, &[64512], "plane", &[225], &|a| {
+                format!("AS{a}")
+            });
+        assert!(
+            explanation2.contains("origin-AS prepending"),
+            "{explanation2}"
+        );
     }
 }

@@ -171,6 +171,25 @@ a:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px soli
 .wb-context { margin: 0.6rem 0; }
 .wb-context summary { cursor: pointer; color: var(--link); text-decoration: underline; font-size: 0.8rem; }
 .wb-novis { border: 1px solid var(--line); background: #fff; padding: 0.6rem 0.8rem; }
+.wb-novis-statement { font-size: 0.95rem; font-weight: 700; margin: 0.2rem 0; }
+
+/* ── Session 41: compact principal cards + progressive disclosure. */
+.wb-finding-meaning { font-size: 0.84rem; margin: 0.2rem 0 0.1rem; line-height: 1.32; }
+.wb-finding-final { font-size: 0.8rem; margin: 0.05rem 0 0.1rem; color: #333; line-height: 1.3; }
+.wb-finding-links { margin: 0.1rem 0; font-size: 0.78rem; display: flex; flex-wrap: wrap; gap: 0.15rem 1rem; }
+.wb-finding-links summary { cursor: pointer; color: var(--link); text-decoration: underline; display: inline; }
+.wb-finding-links a { color: var(--link); text-decoration: underline; }
+.wb-finding-links details { display: inline; }
+.wb-route-sequence, .wb-identity-notes, .wb-evidence { margin: 0.15rem 0; }
+.wb-route-sequence summary, .wb-identity-notes summary, .wb-evidence summary { color: var(--link); text-decoration: underline; font-size: 0.8rem; cursor: pointer; }
+.wb-chronology { font-size: 0.78rem; }
+.wb-identity-notes-list { margin: 0.3rem 0 0.2rem; font-size: 0.8rem; }
+.wb-identity-notes-list li { margin: 0.12rem 0; }
+.wb-filters-wrap { margin: 0.2rem 0; }
+.wb-filters-wrap > summary { display: none; } /* desktop: always open */
+.wb-principal { padding: 0.3rem 0.5rem; margin: 0.35rem 0; }
+.wb-principal .wb-finding-head { font-size: 0.8rem; }
+.wb-principal .wb-prefix-preview { font-size: 0.78rem; margin: 0.15rem 0; }
 .wb-novis-relationship { font-size: 0.95rem; margin: 0.2rem 0; }
 .wb-novis-eligibility { margin: 0.2rem 0 0.5rem; font-size: 0.85rem; }
 .wb-novis-assessment { font-size: 0.88rem; margin: 0.2rem 0; line-height: 1.45; }
@@ -194,13 +213,17 @@ a:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px soli
   .wb-path-numeric { word-break: break-word; }
   /* Session 40, Part 13: compact first viewport — title, concise
      scope line, then the first principal story within ~300-350px. */
+  .wb-filters-wrap { margin: 0.1rem 0; }
+  .wb-filters-wrap > summary { display: inline; cursor: pointer; color: var(--link); text-decoration: underline; font-size: 0.78rem; }
+  .wb-filters { white-space: nowrap; overflow-x: auto; font-size: 0.75rem; }
+  .wb-finding-meaning { font-size: 0.8rem; }
+  .wb-finding-final { font-size: 0.78rem; }
   .wb-title { font-size: 1rem; margin: 0.3rem 0 0.1rem; }
   .wb-subtitle { font-size: 0.72rem; margin: 0 0 0.4rem; }
   .wb-scope-line { font-size: 0.75rem; margin: 0 0 0.35rem; }
   .wb-header { padding: 0.3rem 0.5rem; }
   .wb-header .wb-scope { display: none; } /* the scope line carries it */
   .wb-section { margin: 0.7rem 0 0.3rem; font-size: 0.95rem; }
-  .wb-filters { white-space: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 0.2rem; font-size: 0.75rem; margin: 0.15rem 0 0.4rem; }
   .wb-finding { margin: 0.35rem 0; padding: 0.4rem 0.5rem; }
   .wb-finding-statement { font-size: 0.82rem; }
   .wb-path-explanation { font-size: 0.8rem; }
@@ -3061,6 +3084,10 @@ pub struct WorkbenchView {
     /// (Session 40, Part 13): "<pilot label> · <pilot range> UTC ·
     /// not incident-wide".
     pub compact_scope_line: String,
+    /// Named target origin for the no-visibility eligibility text
+    /// (Session 41, Part 11): "RIPE" + 3333 from reviewed data.
+    pub origin_label: String,
+    pub origin_asn: String,
     /// Concrete per-region observer comparison (Part 9).
     pub region_comparison: Vec<WorkbenchRegionComparisonRow>,
     pub breadth: Vec<WorkbenchBreadthRow>,
@@ -3223,6 +3250,12 @@ impl WorkbenchView {
                 human_date_range(&vm.incident_horizon_start, &vm.incident_horizon_end)
             },
             header_pilot_range: human_pilot_range(&vm.window_start, &vm.window_end),
+            origin_label: crate::catalog::workbench::target_name_from_label(&vm.target_label),
+            origin_asn: vm
+                .target_origin_asns
+                .first()
+                .map(|a| a.to_string())
+                .unwrap_or_default(),
             compact_scope_line: if vm.subject_kind == "case-study" && !vm.pilot_label.is_empty() {
                 format!(
                     "{} · {} · not incident-wide",
@@ -3798,6 +3831,19 @@ pub struct WorkbenchFindingRow {
     pub path_explanation: String,
     /// Outcome text: restoration(s) or "still changed" state.
     pub outcome: String,
+    /// Compact two-line route meaning (Session 41, Part 4): the
+    /// default card body; temporally qualified for absences.
+    pub compact_meaning: String,
+    /// Restoration/final-state summary line (Session 41, Part 2/4):
+    /// the exact-baseline reappearance and the FINAL observed state,
+    /// never conflated.
+    pub final_state_line: String,
+    /// Ordered route chronology (Session 41, Parts 1/5), rendered in
+    /// the Route sequence expansion.
+    pub chronology: crate::catalog::workbench::RouteChronology,
+    /// Per-distinct-ASN identity notes (Session 41, Part 6): rendered
+    /// once per ASN under the identity expansion.
+    pub identity_notes: Vec<IdentityNoteRow>,
     /// One concise operational statement (Part 4).
     pub statement: String,
     pub exact_prefixes: Vec<String>,
@@ -3830,6 +3876,20 @@ pub struct PathSegmentRow {
     pub asn: u32,
     pub label: String,
     pub mark: &'static str,
+}
+
+/// One distinct ASN's identity note (Session 41, Part 6): rendered
+/// once per ASN, never once per occurrence.
+#[derive(Debug, Clone, Serialize)]
+pub struct IdentityNoteRow {
+    pub asn: u32,
+    /// Primary label for historical paths: reviewed name+ASN, or the
+    /// bare ASN when the identity is current-only or unresolved.
+    pub label: String,
+    /// Current registry identity (CurrentIdentityOnly), for the note.
+    pub current_identity: Option<String>,
+    /// Provenance note text.
+    pub note: String,
 }
 
 /// One prefix row of a finding drill-down (exact paths, Part 5).
@@ -3933,18 +3993,21 @@ fn finding_rows(
                 .unwrap_or_else(|| "—".to_string());
             // Exact numeric paths from the most frequent member paths.
             let (baseline_exact, changed_exact) = finding_path_pair(finding);
-            let name_for = |asn: u32| -> String {
-                match vm
-                    .asn_identities
+            // Identity policy (Session 41, Part 6): primary historical
+            // path rendering uses reviewed names or bare ASNs; current
+            // registry identities appear only in the identity notes.
+            let identity_at = |asn: u32| -> Option<&crate::catalog::workbench::AsnIdentity> {
+                vm.asn_identities
                     .iter()
                     .find(|i| i.asn == asn && i.valid_at(&event_date) && i.has_display_name())
-                {
-                    Some(i) if i.review_status == "CurrentIdentityOnly" => format!(
-                        "Current identity: {} (AS{}) — historical identity not reviewed",
-                        i.display_name, asn
-                    ),
-                    Some(i) => format!("{} (AS{})", i.display_name, asn),
-                    None => format!("AS{asn} — name not reviewed"),
+            };
+            let name_for = |asn: u32| -> String {
+                match identity_at(asn) {
+                    Some(i) if i.review_status == "HistoricallyReviewed" => {
+                        format!("{} (AS{})", i.display_name, asn)
+                    }
+                    Some(i) => format!("AS{asn} — current identity: {}", i.display_name),
+                    None => format!("AS{asn}"),
                 }
             };
             let plane = vm
@@ -3957,17 +4020,78 @@ fn finding_rows(
                 &changed_exact,
                 &vm.plane_asns,
             );
-            let named_before = named_segments(&baseline_exact, &diff, false, &name_for);
-            let named_after = named_segments(&changed_exact, &diff, true, &name_for);
-            let path_explanation = crate::catalog::workbench::explain_path_diff(
+            let segment_name = |asn: u32| -> String {
+                match identity_at(asn) {
+                    Some(i) if i.review_status == "HistoricallyReviewed" => {
+                        format!("{} (AS{})", i.display_name, asn)
+                    }
+                    _ => format!("AS{asn}"),
+                }
+            };
+            let named_before = named_segments(&baseline_exact, &diff, false, &segment_name);
+            let named_after = named_segments(&changed_exact, &diff, true, &segment_name);
+            let path_explanation = crate::catalog::workbench::explain_path_diff_with_origins(
                 &baseline_exact,
                 &changed_exact,
                 &vm.plane_asns,
                 &plane,
+                &finding.target_origin_asns,
                 &|asn| name_for(asn),
             );
             let preview: Vec<String> = finding.exact_prefixes.iter().take(3).cloned().collect();
             let hidden = finding.exact_prefixes.len().saturating_sub(preview.len());
+            // Compact route meaning + final-state line (Part 4).
+            let compact_meaning = compact_finding_meaning(
+                finding,
+                &baseline_exact,
+                &changed_exact,
+                &diff,
+                &plane,
+                &vm.plane_asns,
+                &|asn| name_for(asn),
+            );
+            let final_state_line = finding_final_state_line(finding);
+            let chronology = crate::catalog::workbench::route_chronology(finding, &vm.window_end);
+            // Per-distinct-ASN identity notes (Part 6): once per ASN
+            // across the baseline + changed paths.
+            let mut identity_asns: Vec<u32> = baseline_exact
+                .iter()
+                .chain(changed_exact.iter())
+                .copied()
+                .collect();
+            identity_asns.sort_unstable();
+            identity_asns.dedup();
+            let identity_notes: Vec<IdentityNoteRow> = identity_asns
+                .into_iter()
+                .map(|asn| {
+                    let label = match identity_at(asn) {
+                        Some(i) if i.review_status == "HistoricallyReviewed" => {
+                            format!("{} (AS{})", i.display_name, asn)
+                        }
+                        _ => format!("AS{asn}"),
+                    };
+                    let current_identity = identity_at(asn)
+                        .filter(|i| i.review_status == "CurrentIdentityOnly")
+                        .map(|i| i.display_name.clone());
+                    let note = match identity_at(asn) {
+                        Some(i) if i.review_status == "HistoricallyReviewed" => {
+                            format!("Reviewed identity ({})", i.provenance)
+                        }
+                        Some(i) if i.review_status == "CurrentIdentityOnly" => format!(
+                            "Current registry identity: {}; historical {} identity not reviewed",
+                            i.display_name,
+                            finding_date_year(&event_date)
+                        ),
+                        _ => "Name not reviewed".to_string(),
+                    };
+                    IdentityNoteRow {
+                        asn,
+                        label,
+                        current_identity,
+                        note,
+                    }
+                })
+                .collect();
             let stream_rows: Vec<WorkbenchFindingStreamRow> = finding
                 .streams
                 .iter()
@@ -4029,6 +4153,10 @@ fn finding_rows(
                 change: finding.effect.label().to_string(),
                 before,
                 after,
+                compact_meaning,
+                final_state_line,
+                chronology,
+                identity_notes,
                 numeric_before: exact_path_display(&baseline_exact),
                 numeric_after: if changed_exact.is_empty() {
                     if matches!(
@@ -4134,23 +4262,31 @@ fn named_segments(
     if path.is_empty() {
         return rows;
     }
-    for asn in path {
+    let mut i = 0;
+    while i < path.len() {
+        let asn = path[i];
+        let mut run = 1;
+        while i + run < path.len() && path[i + run] == asn {
+            run += 1;
+        }
         let mark = if is_after {
-            if diff.inserted.contains(asn) {
+            if diff.inserted.contains(&asn) {
                 "ins"
             } else {
                 "same"
             }
-        } else if diff.removed.contains(asn) {
+        } else if diff.removed.contains(&asn) {
             "del"
         } else {
             "same"
         };
-        rows.push(PathSegmentRow {
-            asn: *asn,
-            label: name_for(*asn),
-            mark,
-        });
+        let label = if run > 1 {
+            format!("{} ×{run}", name_for(asn))
+        } else {
+            name_for(asn)
+        };
+        rows.push(PathSegmentRow { asn, label, mark });
+        i += run;
     }
     rows
 }
@@ -4184,6 +4320,398 @@ fn finding_outcome(f: &crate::catalog::workbench::RoutingFinding) -> String {
         (None, None, ES::Unresolved) => "Unresolved".to_string(),
         _ => "—".to_string(),
     }
+}
+
+/// Year of an ISO date ("2019-08-21" -> "2019") for identity notes.
+fn finding_date_year(date: &str) -> String {
+    date.chars().take(4).collect()
+}
+
+/// Compact two-line route meaning for a principal card (Session 41,
+/// Part 4). Absence findings are temporally qualified: nothing is said
+/// to "remain visible" across the absence interval.
+fn compact_finding_meaning(
+    f: &crate::catalog::workbench::RoutingFinding,
+    baseline_exact: &[u32],
+    changed_exact: &[u32],
+    diff: &crate::catalog::workbench::PathDiff,
+    plane: &str,
+    plane_asns: &[u32],
+    name_for: &dyn Fn(u32) -> String,
+) -> String {
+    use crate::catalog::workbench::RoutingEffect as RE;
+    let n = f.distinct_prefixes;
+    // "11 NORDUnet prefixes" / "12 UVA prefixes": the target name
+    // precedes the noun.
+    let unit = if n == 1 {
+        if f.target_name.is_empty() {
+            "1 prefix".to_string()
+        } else {
+            format!("1 {} prefix", f.target_name)
+        }
+    } else if f.target_name.is_empty() {
+        format!("{n} prefixes")
+    } else {
+        format!("{n} {} prefixes", f.target_name)
+    };
+    let target = String::new();
+    let plane_text = if plane.is_empty() {
+        "the reviewed plane".to_string()
+    } else {
+        // The plane label may already carry the ASN (e.g. "Internet2
+        // R&E path (AS11537)"); never duplicate it.
+        let asn = if plane.contains("(AS") {
+            String::new()
+        } else {
+            plane_asns
+                .first()
+                .map(|a| format!(" AS{a}"))
+                .unwrap_or_default()
+        };
+        format!("{plane}{asn}")
+    };
+    // Inserted ASNs with multiplicity (AS24489x4), plus a positional
+    // clause for the first inserted ASN ("AS2907 appeared between
+    // AS7660 and Internet2 R&E AS11537").
+    let count = |asn: u32| changed_exact.iter().filter(|a| **a == asn).count();
+    let inserted_compact: Vec<String> = diff
+        .inserted
+        .iter()
+        .map(|a| {
+            let c = count(*a);
+            if c > 1 {
+                format!("AS{a}×{c}")
+            } else {
+                format!("AS{a}")
+            }
+        })
+        .collect();
+    let insert_text = if inserted_compact.is_empty() {
+        String::new()
+    } else {
+        format!(" and included {}", inserted_compact.join(", "))
+    };
+    let positional = diff.inserted.first().and_then(|first| {
+        let pos = changed_exact.iter().position(|a| a == first)?;
+        let prev = if pos > 0 {
+            changed_exact.get(pos - 1).copied()
+        } else {
+            None
+        };
+        let next = changed_exact.get(pos + 1).copied();
+        match (prev, next) {
+            (Some(p), Some(n)) if p != *first && n != *first => Some(format!(
+                "{} appeared between {} and {}",
+                name_for(*first),
+                name_for(p),
+                name_for(n)
+            )),
+            _ => None,
+        }
+    });
+    let prepend_text = prepend_delta_text(
+        baseline_exact,
+        changed_exact,
+        diff,
+        f.target_origin_asns.first().copied(),
+        name_for,
+    );
+    let length_text = if diff.longer {
+        " on a longer path"
+    } else if diff.shorter {
+        " on a shorter path"
+    } else {
+        ""
+    };
+
+    match f.effect {
+        RE::PrefixesTemporarilyAbsent | RE::PrefixesWithdrawn => {
+            let duration = absence_duration_seconds(f);
+            let dur = match duration {
+                Some(secs) if secs >= 2 => format!(" for {}", human_duration(secs)),
+                Some(1) => " for one second".to_string(),
+                _ => String::new(),
+            };
+            let mut s = format!("{} temporarily disappeared{}.", unit, dur);
+            if f.visibility_restored_at.is_some() {
+                let after = if diff.plane_retained {
+                    format!(
+                        " After visibility returned, the selected route continued through {}{}.",
+                        plane_text, insert_text
+                    )
+                } else if diff.plane_departed {
+                    format!(
+                        " After visibility returned, the selected route no longer traversed {}.",
+                        plane_text
+                    )
+                } else {
+                    " After visibility returned, a different route was observed.".to_string()
+                };
+                s.push_str(&after);
+                if !prepend_text.is_empty() {
+                    s.push(' ');
+                    s.push_str(&prepend_text);
+                }
+            } else {
+                s.push_str(" The prefixes remained absent at the event-window end.");
+            }
+            let _ = length_text;
+            s
+        }
+        RE::AsPathChanged | RE::PrependingChanged => {
+            let mut s = if diff.plane_departed {
+                format!(
+                    "The {} changed path; the new path no longer traversed {}.",
+                    unit, plane_text
+                )
+            } else {
+                format!(
+                    "The {} changed path while remaining visible through {}{}.",
+                    unit, plane_text, length_text
+                )
+            };
+            if !inserted_compact.is_empty() && !diff.plane_departed {
+                match &positional {
+                    Some(p) => s.push_str(&format!(" {p}.")),
+                    None => s.push_str(&format!(
+                        " {} appeared in the selected path.",
+                        inserted_compact.join(", ")
+                    )),
+                }
+            }
+            // A later transition that inserts an ASN not in the first
+            // changed path (e.g. AS2907 in the UVA 7660 story): state
+            // it with its exact time and position.
+            if let Some(clause) = later_insertion_clause(f, &|asn| name_for(asn)) {
+                s.push(' ');
+                s.push_str(&clause);
+            }
+            if !prepend_text.is_empty() {
+                s.push(' ');
+                s.push_str(&prepend_text);
+            }
+            s
+        }
+        _ => format!("The {}{} showed a route-state change.", n, target),
+    }
+}
+
+/// Prepending deltas with exact from/to counts. "origin-AS prepending"
+/// is used ONLY when the repeated ASN is the finding's target origin
+/// (Session 41, Part 7); intermediate repetition reads
+/// "AS24489 appeared four consecutive times in the selected path".
+fn prepend_delta_text(
+    before: &[u32],
+    after: &[u32],
+    diff: &crate::catalog::workbench::PathDiff,
+    target_origin: Option<u32>,
+    _name_for: &dyn Fn(u32) -> String,
+) -> String {
+    let count = |path: &[u32], asn: u32| path.iter().filter(|a| **a == asn).count();
+    let mut parts: Vec<String> = Vec::new();
+    for (asn, delta) in &diff.count_deltas {
+        let before_count = count(before, *asn);
+        let after_count = count(after, *asn);
+        if target_origin == Some(*asn) {
+            let direction = if *delta > 0 { "increased" } else { "decreased" };
+            parts.push(format!(
+                "origin-AS prepending {} from {} to {} AS{} occurrences",
+                direction, before_count, after_count, asn
+            ));
+        } else if *delta > 0 {
+            parts.push(format!(
+                "AS{} appeared {} consecutive times in the selected path",
+                asn, after_count
+            ));
+        } else {
+            parts.push(format!(
+                "AS{} repetition decreased from {} to {}",
+                asn, before_count, after_count
+            ));
+        }
+    }
+    parts.join("; ")
+}
+
+/// A later transition that inserts an ASN absent from both the
+/// baseline and the first changed path (Session 41, Part 9): renders
+/// "At 07:33:59, AS2907 appeared between AS7660 and AS11537." using
+/// short labels (reviewed names or bare ASNs).
+fn later_insertion_clause(
+    f: &crate::catalog::workbench::RoutingFinding,
+    name_for: &dyn Fn(u32) -> String,
+) -> Option<String> {
+    let short = |asn: u32| -> String {
+        let n = name_for(asn);
+        // name_for may append " — current identity: ..."; keep the
+        // leading ASn token for short labels.
+        n.split(" — ").next().unwrap_or(&n).to_string()
+    };
+    let baseline = f
+        .streams
+        .iter()
+        .find(|s| !s.baseline_path.is_empty())
+        .map(|s| s.baseline_path.clone());
+    let first_changed = f.streams.iter().find_map(|s| s.changed_path.clone());
+    let mut candidate: Option<(String, u32, u32, u32)> = None; // (time, asn, prev, next)
+    for stream in &f.streams {
+        for t in &stream.transitions {
+            if t.after_path.is_empty() {
+                continue;
+            }
+            let inserted: Vec<u32> = t
+                .after_path
+                .iter()
+                .copied()
+                .filter(|a| {
+                    !baseline.as_deref().map(|b| b.contains(a)).unwrap_or(false)
+                        && !first_changed
+                            .as_deref()
+                            .map(|c| c.contains(a))
+                            .unwrap_or(false)
+                })
+                .collect();
+            if let Some(asn) = inserted.first() {
+                let pos = t.after_path.iter().position(|a| a == asn)?;
+                let prev = if pos > 0 {
+                    t.after_path.get(pos - 1).copied()
+                } else {
+                    None
+                };
+                let next = t.after_path.get(pos + 1).copied();
+                if let (Some(p), Some(n2)) = (prev, next) {
+                    let better = match &candidate {
+                        Some((ct, _, _, _)) => t.timestamp < *ct,
+                        None => true,
+                    };
+                    if better {
+                        candidate = Some((t.timestamp.clone(), *asn, p, n2));
+                    }
+                }
+            }
+        }
+    }
+    let (ts, asn, prev, next) = candidate?;
+    Some(format!(
+        "At {}, {} appeared between {} and {}.",
+        crate::catalog::workbench::finding_time(&ts),
+        short(asn),
+        short(prev),
+        short(next)
+    ))
+}
+
+/// Human duration: "2 seconds", "11 minutes and 13 seconds".
+fn human_duration(secs: u64) -> String {
+    if secs < 60 {
+        return format!("{secs} seconds");
+    }
+    let m = secs / 60;
+    let s = secs % 60;
+    if s == 0 {
+        format!("{m} minutes")
+    } else if m == 1 {
+        format!("1 minute and {s} seconds")
+    } else {
+        format!("{m} minutes and {s} seconds")
+    }
+}
+
+/// Absence duration in whole seconds between withdrawal and the
+/// visibility restoration, when both are exact.
+fn absence_duration_seconds(f: &crate::catalog::workbench::RoutingFinding) -> Option<u64> {
+    let start = f.first_observed.as_deref()?;
+    let end = f.visibility_restored_at.as_deref()?;
+    let s = crate::catalog::workbench::parse_utc_seconds(start)?;
+    let e = crate::catalog::workbench::parse_utc_seconds(end)?;
+    if e >= s {
+        Some((e - s) as u64)
+    } else {
+        None
+    }
+}
+
+/// Restoration/final-state summary line (Session 41, Part 2): the
+/// exact-baseline reappearance and the FINAL observed state are
+/// distinct facts and never conflated.
+fn finding_final_state_line(f: &crate::catalog::workbench::RoutingFinding) -> String {
+    use crate::catalog::workbench::{CooldownOutcome as CO, EndState as ES};
+    let time = |t: &str| {
+        crate::catalog::workbench::workbench_time(t, f.first_observed.as_deref().unwrap_or(""))
+    };
+    let exact_times: Vec<&str> = f
+        .streams
+        .iter()
+        .filter_map(|s| s.exact_baseline_restored_at.as_deref())
+        .collect();
+    let mut s = String::new();
+    if let Some(t) = &f.exact_baseline_restored_at {
+        let (min, max) = (
+            exact_times.iter().min().copied().unwrap_or(t),
+            exact_times.iter().max().copied().unwrap_or(t),
+        );
+        let range = if crate::catalog::workbench::workbench_time(
+            min,
+            f.first_observed.as_deref().unwrap_or(""),
+        ) != crate::catalog::workbench::workbench_time(
+            max,
+            f.first_observed.as_deref().unwrap_or(""),
+        ) {
+            format!("between {} and {}", time(min), time(max))
+        } else {
+            format!("at {}", time(t))
+        };
+        // Final observed state vs the baseline: never assume the
+        // restoration is the final state.
+        let same_as_baseline =
+            f.final_path_signature == f.baseline_path_signature || f.final_path_signature == "—";
+        let final_state = if same_as_baseline {
+            "the baseline path".to_string()
+        } else {
+            format!("a different path: {}", f.final_path_signature)
+        };
+        s.push_str(&format!(
+            "The exact baseline path reappeared {range}; final observed state: {final_state}."
+        ));
+    } else {
+        match &f.state_at_window_end {
+            ES::StillChangedAtWindowEnd => {
+                s.push_str("The route remained changed at the event-window end.")
+            }
+            ES::AbsentAtWindowEnd => {
+                s.push_str("The prefixes remained absent at the event-window end.")
+            }
+            ES::Unresolved => s.push_str("The end state is unresolved."),
+            _ => {}
+        }
+    }
+    match &f.state_at_analysis_end {
+        CO::StillChangingBeforeAnalysisEnd(t) => {
+            s.push_str(&format!(
+                " The routes changed again at {} and remained changed at analysis end ({}).",
+                time(t),
+                crate::catalog::workbench::workbench_time(
+                    &f.analysis_end,
+                    f.first_observed.as_deref().unwrap_or("")
+                )
+            ));
+        }
+        CO::NoRestorationBeforeAnalysisEnd(_)
+            if f.exact_baseline_restored_at.is_none()
+                && f.visibility_restored_at.is_none()
+                && f.reviewed_plane_restored_at.is_none() =>
+        {
+            s.push_str(&format!(
+                " No restoration was observed before the analysis ended at {}.",
+                crate::catalog::workbench::workbench_time(
+                    &f.analysis_end,
+                    f.first_observed.as_deref().unwrap_or("")
+                )
+            ));
+        }
+        _ => {}
+    }
+    s
 }
 
 /// Observer comparison by region (Session 40, Part 10): narrative

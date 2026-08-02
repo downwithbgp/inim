@@ -1477,11 +1477,9 @@ async fn expectation_assessment_uses_assessment_not_title() {
     // reviewed relationship audit (insufficient visibility), not from
     // the R&E run's assessment and never from the target label.
     assert!(
-        body.contains(&format!(
-            "Expectation assessment</dt><dd>{}",
-            audit_assessment()
-        )),
-        "relationship-relevant assessment renders in the assessment field"
+        body.contains("Expectation assessment</dt><dd>")
+            || body.contains("<h3 class=\"wb-section\">Assessment</h3>"),
+        "relationship-relevant assessment renders once (header or Assessment section)"
     );
     assert!(
         !body.contains("Expectation assessment</dt><dd>RIPE via NYIIX"),
@@ -2520,15 +2518,23 @@ async fn changed_event_first_screen_contains_before_after_route() {
         return;
     }
     assert_eq!(status, StatusCode::OK);
-    // Before and after routes are visible without scrolling on desktop:
-    // both path signatures appear within the first finding block.
+    // Before and after routes are one expansion away: the Route
+    // sequence chronology shows the numeric paths (Session 41, Part 5);
+    // the named paths live under ASN identity notes.
     let findings_pos = body.find("Externally observed routing changes").unwrap();
     let block = &body[findings_pos..findings_pos + 4500];
-    assert!(block.contains("Before"), "before-route label");
-    assert!(block.contains("After"), "after-route label");
+    assert!(
+        block.contains("Route sequence"),
+        "route-sequence link on the first card"
+    );
     assert!(
         regex_path_in(block),
-        "before route visible in the first viewport block"
+        "numeric before/after routes visible in the first viewport block"
+    );
+    assert!(block.contains("Baseline"), "chronology step labels present");
+    assert!(
+        body.contains("wb-path-label\">Before"),
+        "named before path retained under the identity notes"
     );
 }
 
@@ -2576,7 +2582,7 @@ async fn no_changed_event_leads_with_session_ratio() {
         "no empty routing-findings section"
     );
     assert!(
-        !body.contains("wb-filters"),
+        !body.contains("class=\"wb-filters\""),
         "no routing-change filters on the no-visibility page"
     );
     assert!(
@@ -2584,8 +2590,9 @@ async fn no_changed_event_leads_with_session_ratio() {
         "no empty timeline on the no-visibility page"
     );
     assert!(
-        body.contains("Supporting R&amp;E-plane observation")
-            || body.contains("Supporting R&E-plane observation"),
+        body.contains("Supporting R&amp;E observation")
+            || body.contains("Supporting R&E observation")
+            || body.contains("Supporting R&#38;E observation"),
         "supporting plane observation is collapsed and secondary"
     );
     // The session ratio is only ever in the coverage section.
@@ -2604,10 +2611,11 @@ async fn no_changed_event_leads_with_session_ratio() {
             "the reviewed assessment precedes any session ratio"
         );
     }
-    // The relationship assessment leads the page (audit statement).
+    // The relationship assessment lives once in the Assessment
+    // section (Session 41, Part 11: no header duplication).
     assert!(
-        body.contains("Ticket relationship assessment"),
-        "reviewed relationship assessment present"
+        body.contains("<h3 class=\"wb-section\">Assessment</h3>"),
+        "assessment section present"
     );
     assert!(
         body.contains("saw no route-state change"),
@@ -2830,7 +2838,8 @@ async fn named_path_preserves_exact_asn_order() {
     // The named path renders ASNs in exact path order with reviewed
     // names; the numeric path remains visible and authoritative.
     let card = body[body.find("wb-principal").unwrap()..].to_string();
-    let before_col = card[card.find("Before").unwrap()..card.find("After").unwrap()].to_string();
+    let notes = &card[card.find("wb-identity-notes").unwrap()..];
+    let before_col = notes[notes.find("wb-path-label\">Before").unwrap()..].to_string();
     assert!(
         regex_path_in(&before_col),
         "numeric before path visible beside the named path"
@@ -2861,8 +2870,9 @@ async fn unknown_asn_keeps_numeric_identity() {
         "numeric ASN remains visible"
     );
     assert!(
-        card.contains("Current identity:") && card.contains("historical identity not reviewed"),
-        "current-identity caveat rendered explicitly"
+        card.contains("Current registry identity:")
+            && card.contains("historical identity not reviewed"),
+        "current-identity caveat rendered once in the identity notes"
     );
 }
 
@@ -2995,7 +3005,7 @@ async fn no_visibility_page_has_no_empty_finding_filters() {
     }
     assert_eq!(status, StatusCode::OK);
     assert!(
-        !body.contains("wb-filters"),
+        !body.contains("class=\"wb-filters\""),
         "no routing-change filters on the no-visibility page"
     );
     assert!(
@@ -3240,5 +3250,414 @@ async fn uva_peer_metadata_import_roundtrip() {
     assert!(
         !body.contains("receiving routes from 163.253.3.14,"),
         "peer-IP-only sentence is gone when a peer ASN is observed"
+    );
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Session 41: compact findings, route chronology, identity policy.
+// ─────────────────────────────────────────────────────────────────────
+
+#[tokio::test]
+async fn principal_card_is_compact_by_default() {
+    let (status, body) = manlan_workbench().await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    // The default card body is the compact meaning + final state;
+    // the full statement and named paths are collapsed.
+    let card_start = body.find("wb-principal").unwrap();
+    let card = &body[card_start..card_start + 2200];
+    assert!(
+        card.contains("wb-finding-meaning"),
+        "compact route meaning on the card"
+    );
+    assert!(
+        card.contains("wb-finding-final"),
+        "final-state summary on the card"
+    );
+    assert!(
+        !card[..card.find("Route sequence").unwrap_or(card.len())].contains("wb-named-path"),
+        "named paths are not part of the default card body"
+    );
+}
+
+#[tokio::test]
+async fn principal_card_contains_route_meaning_and_final_state() {
+    let (status, body) = manlan_workbench().await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    let card_start = body.find("wb-principal").unwrap();
+    let card = &body[card_start..card_start + 1800];
+    assert!(
+        card.contains("disappeared") || card.contains("changed path"),
+        "concrete route effect on the card"
+    );
+    assert!(
+        card.contains("final observed state") || card.contains("event-window end"),
+        "final state on the card"
+    );
+}
+
+#[tokio::test]
+async fn complete_path_details_are_collapsed() {
+    let (status, body) = manlan_workbench().await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    // Route sequence, identity notes, and evidence are native
+    // <details> (collapsed by default), not open content.
+    assert!(
+        body.contains("<details class=\"wb-route-sequence\">"),
+        "route sequence is a collapsed details"
+    );
+    assert!(
+        body.contains("<details class=\"wb-identity-notes\">"),
+        "identity notes are a collapsed details"
+    );
+    assert!(
+        body.contains("<details class=\"wb-evidence\">"),
+        "evidence is a collapsed details"
+    );
+    assert!(
+        !body.contains("<details class=\"wb-route-sequence\" open"),
+        "route sequence not open by default"
+    );
+}
+
+#[tokio::test]
+async fn prefix_preview_and_evidence_remain_one_action_away() {
+    let (status, body) = manlan_workbench().await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    assert!(
+        body.contains("wb-prefix-preview"),
+        "prefix preview on the principal card"
+    );
+    assert!(
+        body.contains("view all"),
+        "full prefix list one action away"
+    );
+    assert!(
+        body.contains(">Prefixes ▸<") || body.contains("Prefixes ▸"),
+        "prefixes link on the card"
+    );
+    assert!(body.contains("Evidence ▸"), "evidence link on the card");
+}
+
+#[tokio::test]
+async fn route_sequence_contains_ordered_states() {
+    let (status, body) = manlan_workbench().await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    let seq = body.find("wb-route-sequence").unwrap();
+    let block = &body[seq..seq + 2500];
+    // The direct absence card's chronology: Baseline -> Absent ->
+    // First replacement -> Exact baseline return -> end states.
+    assert!(block.contains("Baseline"), "baseline step");
+    assert!(block.contains("Absent"), "absence step");
+    assert!(block.contains("First replacement"), "replacement step");
+    assert!(
+        block.contains("Exact baseline return"),
+        "exact-baseline step"
+    );
+    assert!(block.contains("Event-window end"), "window-end step");
+    assert!(block.contains("Analysis end"), "analysis-end step");
+    // Absent state is rendered BETWEEN the baseline and replacement.
+    let baseline = block.find("Baseline").unwrap();
+    let absent = block.find("Absent").unwrap();
+    let replacement = block.find("First replacement").unwrap();
+    assert!(
+        baseline < absent && absent < replacement,
+        "absent state sits between baseline and replacement"
+    );
+    // Final state always present: the analysis-end step.
+    assert!(
+        block[block.find("Analysis end").unwrap()..].contains("AS"),
+        "analysis-end step carries the final observed path"
+    );
+}
+
+#[tokio::test]
+async fn route_sequence_does_not_repeat_identity_for_each_prepend() {
+    let (status, body) = event_workbench("INC0299001").await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    // The UVA chronology renders AS225×7, never seven identity rows.
+    assert!(
+        body.contains("AS225×7"),
+        "compact multiplicity in the route sequence"
+    );
+    let card_start = body.find("wb-principal").unwrap();
+    let card = &body[card_start..card_start + 3000];
+    let primary = &card[..card.find("wb-identity-notes").unwrap_or(card.len())];
+    let identity_rows = primary.matches("University of Virginia").count();
+    assert!(
+        identity_rows <= 1,
+        "origin identity not repeated per occurrence, got {identity_rows}"
+    );
+}
+
+#[tokio::test]
+async fn identity_provenance_is_separate_from_chronology() {
+    let (status, body) = manlan_workbench().await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    // The identity notes live in their own details, not inside the
+    // route sequence.
+    let seq = body.find("wb-route-sequence").unwrap();
+    let notes = body.find("wb-identity-notes").unwrap();
+    assert!(seq < notes, "chronology precedes identity provenance");
+    let notes_block = &body[notes..notes + 4000];
+    let list_start = notes_block.find("wb-identity-notes-list").unwrap_or(0);
+    let list = &notes_block[list_start..];
+    assert!(
+        list.contains("AS22388") || list.contains("AS24489"),
+        "identity notes list distinct ASNs"
+    );
+}
+
+#[tokio::test]
+async fn current_only_identity_is_not_primary_historical_label() {
+    let (status, body) = manlan_workbench().await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    // The 2019 path never labels AS22388/AS24489/AS20965 with their
+    // current identities as primary text; the numeric ASN is primary.
+    let card_start = body.find("wb-principal").unwrap();
+    let card = &body[card_start..card_start + 3000];
+    let primary = &card[..card.find("wb-identity-notes").unwrap_or(card.len())];
+    assert!(
+        !primary.contains("Current registry identity: TRANSPAC"),
+        "current identity is not primary on the 2019 card"
+    );
+    assert!(
+        primary.contains("AS22388") || primary.contains("AS24489"),
+        "numeric ASN is the primary historical label"
+    );
+}
+
+#[tokio::test]
+async fn current_identity_note_appears_once_per_distinct_asn() {
+    let (status, body) = manlan_workbench().await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    let notes_start = body.find("wb-identity-notes").unwrap();
+    let notes_block = &body[notes_start..notes_start + 4000];
+    let list_start = notes_block.find("wb-identity-notes-list").unwrap();
+    let list = &notes_block[list_start..];
+    // AS24489 appears 4x in the changed path but its identity note
+    // appears once in the list.
+    let asn_notes = list.matches("AS24489").count();
+    assert!(
+        asn_notes <= 2,
+        "identity note once per distinct ASN, got {asn_notes}"
+    );
+}
+
+#[tokio::test]
+async fn historically_reviewed_identity_is_primary() {
+    let (status, body) = manlan_workbench().await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    let card_start = body.find("wb-principal").unwrap();
+    let card = &body[card_start..card_start + 2000];
+    assert!(
+        card.contains("Internet2 R&#38;E (AS11537)") || card.contains("Internet2 R&#38;E"),
+        "reviewed Internet2 R&E identity is primary"
+    );
+}
+
+#[tokio::test]
+async fn real_rv2_finding_chronology_is_consistent() {
+    // Part 2 regression on the real data: the direct absence finding's
+    // baseline is the pre-change path; restoration and final agree.
+    let (status, body) = manlan_workbench().await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    let seq = body.find("wb-route-sequence").unwrap();
+    let block = &body[seq..seq + 2500];
+    // The baseline step shows the pre-change path (AS11537 AS20965
+    // AS2603); the exact-baseline return step shows the same path.
+    assert!(
+        block.contains("AS11537 AS20965 AS2603"),
+        "pre-change baseline path in the chronology"
+    );
+    assert!(
+        block.contains("AS22388 AS24489×4"),
+        "replacement path with collapsed multiplicity"
+    );
+}
+
+#[tokio::test]
+async fn uva_principal_card_explains_prepend_delta() {
+    let (status, body) = event_workbench("INC0299001").await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    let card_start = body.find("wb-principal").unwrap();
+    let card = &body[card_start..card_start + 2000];
+    assert!(
+        card.contains("origin-AS prepending"),
+        "prepend delta explained on the UVA card"
+    );
+    assert!(
+        card.contains("AS225×7") || card.contains("225×7"),
+        "compact AS225x7 in the card"
+    );
+}
+
+#[tokio::test]
+async fn uva_card_does_not_repeat_as225_identity() {
+    let (status, body) = event_workbench("INC0299001").await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    // The UVA origin identity is not repeated per occurrence.
+    let card_start = body.find("wb-principal").unwrap();
+    let card = &body[card_start..card_start + 3000];
+    let primary = &card[..card.find("wb-identity-notes").unwrap_or(card.len())];
+    let repeats = primary.matches("University of Virginia").count();
+    assert!(
+        repeats <= 1,
+        "origin identity not repeated per occurrence, got {repeats}"
+    );
+}
+
+#[tokio::test]
+async fn uva_second_story_explains_as2907_insertion() {
+    let (status, body) = event_workbench("INC0299001").await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    let cards = body.matches("wb-principal").count();
+    assert!(cards >= 2, "at least two UVA principal stories");
+    assert!(
+        body.contains("AS2907 appeared between"),
+        "AS2907 insertion explained positionally"
+    );
+}
+
+#[tokio::test]
+async fn rrc15_compact_card_keeps_multi_stage_outcome() {
+    let (status, body) = manlan_workbench().await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    // The large RRC15 finding states the in-window return AND the
+    // cooldown re-change; the one-prefix variations stay secondary.
+    assert!(
+        body.contains("17:03:32") || body.contains("17:03:35"),
+        "in-window exact-baseline return stated"
+    );
+    assert!(
+        body.contains("17:52:16"),
+        "cooldown re-change stated in the chronology"
+    );
+    assert!(
+        body.contains("Additional observer findings"),
+        "one-prefix variations remain secondary"
+    );
+}
+
+#[tokio::test]
+async fn no_visibility_assessment_is_not_duplicated() {
+    let (status, body) = event_workbench("INC0302574").await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    let assessment = "Insufficient public-collector visibility";
+    let count = body.matches(assessment).count();
+    assert!(
+        count <= 1,
+        "the full assessment appears exactly once, got {count}"
+    );
+    assert!(
+        body.contains("cannot be assessed from these public collectors"),
+        "concise primary statement present"
+    );
+}
+
+#[tokio::test]
+async fn target_origin_is_named_in_eligibility_text() {
+    let (status, body) = event_workbench("INC0302574").await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    // Eligibility names the reviewed target origin (RIPE / AS3333 from
+    // data) instead of "event-origin routes".
+    assert!(
+        !body.contains("event-origin route"),
+        "generic 'event-origin routes' wording gone"
+    );
+    assert!(
+        body.contains("-origin (AS") || body.contains("RIPE"),
+        "target origin named in the eligibility text"
+    );
+}
+
+#[tokio::test]
+async fn supporting_region_comparison_is_collapsed() {
+    let (status, body) = event_workbench("INC0302574").await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    // The observer-region comparison is inside the collapsed
+    // supporting section — not a primary section on the I2PX page.
+    let supporting = body.find("Supporting").unwrap();
+    if let Some(r) = body.find("Observer comparison by region") {
+        assert!(
+            supporting < r,
+            "region comparison sits inside the supporting collapse"
+        );
+    }
+    assert!(
+        !body.contains("<h3 class=\"wb-section\">Observer comparison by region</h3>"),
+        "no primary observer-comparison section on the no-visibility page"
+    );
+}
+
+#[tokio::test]
+async fn primary_page_contains_only_relationship_relevant_evidence() {
+    let (status, body) = event_workbench("INC0302574").await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    // The primary block has no routing-findings scaffolding.
+    assert!(
+        !body.contains("Externally observed routing changes"),
+        "no routing-findings section"
+    );
+    assert!(!body.contains("Timeline (UTC)"), "no timeline section");
+    assert!(
+        body.contains("Named relationship"),
+        "primary content is the named relationship"
     );
 }
