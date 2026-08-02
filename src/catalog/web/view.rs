@@ -3791,6 +3791,14 @@ fn stream_end_state_human(s: &crate::catalog::workbench::EpisodeStream) -> Strin
     "No change".to_string()
 }
 
+/// Earlier-change link data (Session 44, Part 4): the separate
+/// related finding at the same session.
+#[derive(Debug, Clone, Serialize)]
+pub struct WorkbenchEarlierChange {
+    pub stable_id: String,
+    pub label: String,
+}
+
 /// One operator-facing routing finding row (Session 39, Parts 4-5, 8).
 #[derive(Debug, Clone, Serialize)]
 pub struct WorkbenchFindingRow {
@@ -3860,6 +3868,8 @@ pub struct WorkbenchFindingRow {
     pub stream_rows: Vec<WorkbenchFindingStreamRow>,
     pub evidence_refs: Vec<String>,
     pub scope_limit: String,
+    /// Earlier-change link (Session 44, Part 4).
+    pub earlier_change: Option<WorkbenchEarlierChange>,
     /// Exact ISO timestamps (details/API only).
     pub first_exact: String,
     pub visibility_restored_exact: String,
@@ -4202,6 +4212,13 @@ fn finding_rows(
                     .join("\n"),
                 stream_rows,
                 evidence_refs: finding.evidence_refs.clone(),
+                earlier_change: finding
+                    .earlier_change
+                    .as_ref()
+                    .map(|ec| WorkbenchEarlierChange {
+                        stable_id: ec.stable_id.clone(),
+                        label: ec.label.clone(),
+                    }),
                 scope_limit: finding.scope_limit.clone(),
                 first_exact: finding.first_observed.clone().unwrap_or_default(),
                 visibility_restored_exact: finding
@@ -4426,40 +4443,62 @@ fn compact_finding_meaning(
 
     match f.effect {
         RE::PrefixesTemporarilyAbsent | RE::PrefixesWithdrawn => {
+            // Precise absence wording (Session 44, Part 3): the
+            // duration is the actual Withdrawal-to-return interval
+            // (54 ms for the UVA group), stated in ms when
+            // sub-second. Never a vague "temporarily disappeared"
+            // and never a traffic-interruption claim.
             let duration = absence_duration_seconds(f);
             let dur = match duration {
                 Some(secs) if secs >= 2 => format!(" for {}", human_duration(secs)),
                 Some(1) => " for one second".to_string(),
-                _ => String::new(),
+                _ => match absence_duration_millis(f) {
+                    Some(ms) => format!(" for {ms} ms"),
+                    None => String::new(),
+                },
             };
-            let mut s = format!("{} temporarily disappeared{}.", unit, dur);
+            let verb = if n == 1 { "was" } else { "were" };
+            let mut s = format!("{} {verb} withdrawn from this observer{}.", unit, dur);
             if f.visibility_restored_at.is_some() {
-                // Ordered withdrawal story (Session 42, Part 1): the
-                // pair of paths around the withdrawal. Wording never
-                // comes from a baseline-vs-arbitrary-transition
-                // comparison.
+                // Ordered withdrawal story (Session 44, Parts 2-3):
+                // the route that returned and the event-baseline
+                // relation. The pre-finding route is never called the
+                // baseline; the "exact baseline" claim requires
+                // EventBaseline equality.
                 if let Some(story) = crate::catalog::workbench::withdrawal_story(f) {
                     let origin = f.target_origin_asns.first().copied();
-                    if let Some(o) = origin {
-                        let before_n = story.before_path.iter().filter(|a| **a == o).count();
-                        let return_n = story.return_path.iter().filter(|a| **a == o).count();
-                        if before_n != return_n {
-                            s.push_str(&format!(
-                                " Before the withdrawal, the path contained AS{o}×{before_n}; visibility returned on a path containing AS{o}×{return_n}."
-                            ));
-                        }
-                    }
-                    // One concise semantic sentence about the return
-                    // path (Session 42, Part 4): repetition already
-                    // expressed by the ×N notation is never restated,
-                    // and a pure origin-prepend difference is already
-                    // covered by the ordered pair above.
+                    let event_sig = if f.event_baseline_path_signature.is_empty()
+                        || f.event_baseline_path_signature == "—"
+                    {
+                        f.baseline_path_signature.clone()
+                    } else {
+                        f.event_baseline_path_signature.clone()
+                    };
+                    let returned_on_event_baseline =
+                        crate::catalog::workbench::collapse_as_path(&story.return_path)
+                            == event_sig;
                     let ret_diff = crate::catalog::workbench::diff_paths(
                         &story.before_path,
                         &story.return_path,
                         plane_asns,
                     );
-                    if ret_diff.plane_retained && !ret_diff.inserted.is_empty() {
+                    if returned_on_event_baseline {
+                        let return_n = origin
+                            .map(|o| story.return_path.iter().filter(|a| **a == o).count())
+                            .unwrap_or(0);
+                        if return_n > 0 {
+                            s.push_str(&format!(
+                                " They returned on the event-baseline path containing AS{}×{return_n}.",
+                                origin.unwrap()
+                            ));
+                        } else {
+                            s.push_str(" They returned on the event-baseline path.");
+                        }
+                    } else if ret_diff.plane_retained && !ret_diff.inserted.is_empty() {
+                        // One concise semantic sentence about the
+                        // return path (Session 42, Part 4): repetition
+                        // already expressed by the ×N notation is
+                        // never restated.
                         let only_origin = ret_diff.inserted.iter().all(|a| Some(*a) == origin);
                         if !only_origin {
                             let count_in =
@@ -4490,15 +4529,55 @@ fn compact_finding_meaning(
                                 added.join(", ")
                             };
                             s.push_str(&format!(
-                                " Visibility returned on a {shape} path that still traversed {}, adding {}.",
+                                " They returned on a {shape} path that still traversed {}, adding {}.",
                                 plane_text, joined
+                            ));
+                        } else {
+                            let return_n = origin
+                                .map(|o| story.return_path.iter().filter(|a| **a == o).count())
+                                .unwrap_or(0);
+                            s.push_str(&format!(
+                                " They returned on a path containing AS{}×{return_n}.",
+                                origin.unwrap_or(0)
                             ));
                         }
                     } else if ret_diff.plane_departed {
                         s.push_str(&format!(
-                            " Visibility returned on a path that no longer traversed {}.",
+                            " They returned on a path that no longer traversed {}.",
                             plane_text
                         ));
+                    } else {
+                        s.push_str(" They returned to visibility.");
+                    }
+                    // The later settle: "By 07:36:30 UTC, the selected
+                    // paths again contained AS225×1, matching the
+                    // pre-withdrawal state but not the event baseline."
+                    if let (Some(o), Some(last_t)) = (
+                        origin,
+                        f.streams
+                            .iter()
+                            .filter_map(|s| s.transitions.iter().last())
+                            .max_by_key(|t| t.timestamp.clone()),
+                    ) {
+                        let last_n = last_t.after_path.iter().filter(|a| **a == o).count();
+                        let return_n = story.return_path.iter().filter(|a| **a == o).count();
+                        if last_n != return_n && last_n > 0 {
+                            let lt = crate::catalog::workbench::finding_time(&last_t.timestamp);
+                            let settled_on_pre = last_t.after_path == story.before_path;
+                            let matches_event =
+                                crate::catalog::workbench::collapse_as_path(&last_t.after_path)
+                                    == event_sig;
+                            let clause = if settled_on_pre && !matches_event {
+                                ", matching the pre-withdrawal state but not the event baseline"
+                            } else if matches_event {
+                                ", returning to the event baseline"
+                            } else {
+                                ""
+                            };
+                            s.push_str(&format!(
+                                " By {lt} UTC, the selected paths again contained AS{o}×{last_n}{clause}."
+                            ));
+                        }
                     }
                 } else {
                     // No per-prefix transition evidence: fall back to
@@ -4690,6 +4769,44 @@ fn human_duration(secs: u64) -> String {
 
 /// Absence duration in whole seconds between withdrawal and the
 /// visibility restoration, when both are exact.
+/// Sub-second absence duration in milliseconds from the ordered
+/// Withdrawal-to-return timestamps (Session 44, Part 3): the exact
+/// 54 ms interval for the UVA group, never a vague duration.
+fn absence_duration_millis(f: &crate::catalog::workbench::RoutingFinding) -> Option<u64> {
+    use crate::catalog::workbench::{finding_time, withdrawal_story};
+    let story = withdrawal_story(f)?;
+    let start = story.withdrawal_at.as_deref()?;
+    let end = story.returned_at_min.as_deref()?;
+    let ms = |iso: &str| -> Option<i64> {
+        let t = finding_time(iso);
+        let mut p = t.split(':');
+        let h: i64 = p.next()?.parse().ok()?;
+        let m: i64 = p.next()?.parse().ok()?;
+        let sec: i64 = p.next()?.trim_end_matches('Z').parse().ok()?;
+        Some((h * 3600 + m * 60 + sec) * 1000)
+    };
+    let frac = |iso: &str| -> i64 {
+        // Fractional seconds from the full ISO timestamp.
+        match iso.find('.') {
+            Some(dot) => {
+                let digits: String = iso[dot + 1..]
+                    .chars()
+                    .take_while(|c| c.is_ascii_digit())
+                    .collect();
+                let n = digits.len().min(3);
+                digits[..n].parse::<i64>().unwrap_or(0) * 10i64.pow((3 - n) as u32)
+            }
+            None => 0,
+        }
+    };
+    let d = ms(end)? - ms(start)? + frac(end) - frac(start);
+    if d > 0 {
+        Some(d as u64)
+    } else {
+        None
+    }
+}
+
 fn absence_duration_seconds(f: &crate::catalog::workbench::RoutingFinding) -> Option<u64> {
     // The Withdrawal-to-return interval from the ordered evidence
     // (Session 42, Part 1), never the episode's first-change span.

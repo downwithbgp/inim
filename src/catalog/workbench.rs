@@ -903,6 +903,18 @@ pub struct FindingStream {
     pub evidence_refs: String,
 }
 
+/// A related earlier change at the same session (Session 44,
+/// Part 4): the visible prepend/path-change event that preceded a
+/// withdrawal finding. The related finding stays separate; this is a
+/// visible link, never a merge.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct EarlierChange {
+    pub stable_id: String,
+    /// Evidence-derived label, e.g. "origin prepending reduced from
+    /// AS225×7 to AS225×1 while the routes remained visible".
+    pub label: String,
+}
+
 /// Operator-facing routing finding (Session 39, Part 3).
 ///
 /// One coherent routing story at one observer session: which prefixes,
@@ -919,6 +931,14 @@ pub struct RoutingFinding {
     /// Short target name for natural grammar ("UVA"), derived from the
     /// reviewed label, never from memory.
     pub target_name: String,
+    /// EventBaseline: the frozen route state at the event start (the
+    /// first observed route of the stream). Distinct from the
+    /// finding's pre-finding state (the route immediately before this
+    /// finding's first transition). Empty when the evidence is absent.
+    pub event_baseline_path_signature: String,
+    /// The related earlier change at this session, when the finding
+    /// was split from one (Session 44, Part 4).
+    pub earlier_change: Option<EarlierChange>,
     pub observer_site: String,
     pub observer_region: String,
     pub source_family: String,
@@ -1594,6 +1614,10 @@ pub fn build_findings(
         struct StreamRecord {
             stream: FindingStream,
             baseline: Vec<u32>,
+            /// EventBaseline: the frozen route at the event start (the
+            /// first observed route), independent of this finding's
+            /// segment projection.
+            event_baseline: Vec<u32>,
             changed: Option<Vec<u32>>,
             final_path: Option<Vec<u32>>,
             first_change: Option<String>,
@@ -1648,8 +1672,25 @@ pub fn build_findings(
                     None
                 }
             });
+            // EventBaseline: the frozen route at the event start —
+            // the first observed route of the full transition list
+            // (the first transition's before), falling back to the
+            // lifecycle baseline instance for announce-only streams.
+            let event_baseline = stream_transitions
+                .iter()
+                .find(|t| !t.before_path.is_empty())
+                .map(|t| t.before_path.clone())
+                .or_else(|| {
+                    if baseline.is_empty() {
+                        None
+                    } else {
+                        Some(baseline.clone())
+                    }
+                })
+                .unwrap_or_default();
             records.push(StreamRecord {
                 baseline: baseline.clone(),
+                event_baseline,
                 changed: changed.clone(),
                 final_path: final_path.clone(),
                 first_change: s.first_change_utc.clone(),
@@ -1755,6 +1796,7 @@ pub fn build_findings(
             StreamRecord {
                 stream,
                 baseline: baseline.clone(),
+                event_baseline: rec.event_baseline.clone(),
                 changed,
                 final_path,
                 first_change,
@@ -1775,14 +1817,16 @@ pub fn build_findings(
         let mut emit = |records: &[&StreamRecord],
                         effect_kind: &EffectKind,
                         end_state: &EndState,
-                        pi: usize|
-         -> () {
+                        pi: usize,
+                        earlier_change: Option<EarlierChange>|
+         -> String {
             let mut streams: Vec<FindingStream> = Vec::new();
             let mut exact_prefixes: Vec<String> = Vec::new();
             let mut evidence_refs: Vec<String> = Vec::new();
             let mut baseline_counts: Vec<Vec<u32>> = Vec::new();
             let mut changed_counts: Vec<Vec<u32>> = Vec::new();
             let mut final_counts: Vec<Vec<u32>> = Vec::new();
+            let mut event_baseline_counts: Vec<Vec<u32>> = Vec::new();
             let mut first_observed: Option<String> = None;
             let mut last_observed: Option<String> = None;
             let mut visibility_restored_at: Option<String> = None;
@@ -1802,6 +1846,9 @@ pub fn build_findings(
                 }
                 if let Some(f) = &rec.final_path {
                     final_counts.push(f.clone());
+                }
+                if !rec.event_baseline.is_empty() {
+                    event_baseline_counts.push(rec.event_baseline.clone());
                 }
                 if let Some(fc) = &rec.first_change {
                     if first_observed
@@ -1913,6 +1960,7 @@ pub fn build_findings(
                 // identifiers distinct (counts can themselves collide).
                 stable_id = format!("{stable_id}-{}prefixes-{pi}", exact_prefixes.len());
             }
+            let stable_id_out = stable_id.clone();
             findings.push(RoutingFinding {
                 stable_id,
                 target_label: target_label.to_string(),
@@ -1942,13 +1990,16 @@ pub fn build_findings(
                 observer_stream_count: exact_prefixes.len(),
                 distinct_prefixes: exact_prefixes.len(),
                 baseline_path_signature: most_frequent(&baseline_counts),
+                event_baseline_path_signature: most_frequent(&event_baseline_counts),
                 changed_path_signature: most_frequent(&changed_counts),
                 final_path_signature: most_frequent(&final_counts),
                 exact_prefixes,
                 evidence_refs,
                 scope_limit: scope_limit.to_string(),
                 streams,
+                earlier_change,
             });
+            stable_id_out
         };
         for (pi, part) in partitions.into_iter().enumerate() {
             // First Withdrawal per record (ordered evidence).
@@ -2024,7 +2075,38 @@ pub fn build_findings(
                     EndState::StillChangedAtWindowEnd
                 };
                 let pre_refs: Vec<&StreamRecord> = pre_records.iter().collect();
-                emit(&pre_refs, &kind, &end_state, pi);
+                let prepend_id = emit(&pre_refs, &kind, &end_state, pi, None);
+                // The earlier-change link (Session 44, Part 4): the
+                // withdrawal finding visibly links to the separate
+                // prepend finding; the two events are never merged.
+                let origin = target_origin_asns.first().copied();
+                let earlier_label = if let Some(o) = origin {
+                    let before_n = pre_records
+                        .iter()
+                        .map(|r| r.baseline.iter().filter(|a| **a == o).count())
+                        .max()
+                        .unwrap_or(0);
+                    let after_n = pre_records
+                        .iter()
+                        .map(|r| {
+                            r.changed
+                                .as_deref()
+                                .map(|c| c.iter().filter(|a| **a == o).count())
+                                .unwrap_or(0)
+                        })
+                        .max()
+                        .unwrap_or(0);
+                    let direction = if after_n < before_n {
+                        "reduced"
+                    } else {
+                        "increased"
+                    };
+                    format!(
+                        "origin prepending {direction} from AS{o}×{before_n} to AS{o}×{after_n} while the routes remained visible"
+                    )
+                } else {
+                    "the routes remained visible through an earlier change".to_string()
+                };
                 // The absence finding: withdrawal + return + later
                 // transitions (the settle stays in this chronology).
                 let abs_records: Vec<StreamRecord> = part
@@ -2036,9 +2118,18 @@ pub fn build_findings(
                     })
                     .collect();
                 let abs_refs: Vec<&StreamRecord> = abs_records.iter().collect();
-                emit(&abs_refs, &e.effect_kind, &e.end_state, pi);
+                emit(
+                    &abs_refs,
+                    &e.effect_kind,
+                    &e.end_state,
+                    pi,
+                    Some(EarlierChange {
+                        stable_id: prepend_id,
+                        label: earlier_label,
+                    }),
+                );
             } else {
-                emit(&part, &e.effect_kind, &e.end_state, pi);
+                emit(&part, &e.effect_kind, &e.end_state, pi, None);
             }
         }
     }
@@ -2181,8 +2272,38 @@ pub fn finding_statement(f: &RoutingFinding) -> String {
             format!("{} saw {} change AS path{}{}.", head, unit, before, after)
         }
         RoutingEffect::PrependingChanged => {
+            // The evidence-derived direction with the origin counts
+            // (Session 44, Part 5 marker: "AS225×7 → AS225×1").
+            let direction = f
+                .target_origin_asns
+                .first()
+                .map(|o| {
+                    let before_n = f
+                        .streams
+                        .iter()
+                        .map(|s| s.baseline_path.iter().filter(|a| **a == *o).count())
+                        .max()
+                        .unwrap_or(0);
+                    let after_n = f
+                        .streams
+                        .iter()
+                        .map(|s| {
+                            s.changed_path
+                                .as_deref()
+                                .map(|c| c.iter().filter(|a| **a == *o).count())
+                                .unwrap_or(0)
+                        })
+                        .max()
+                        .unwrap_or(0);
+                    if after_n != before_n {
+                        format!(" (AS{o}×{before_n} → AS{o}×{after_n})")
+                    } else {
+                        String::new()
+                    }
+                })
+                .unwrap_or_default();
             format!(
-                "{} saw {} change AS-path prepending while the routes remained visible.",
+                "{} saw {} change AS-path prepending while the routes remained visible{direction}.",
                 head, unit
             )
         }
@@ -2903,10 +3024,56 @@ pub fn route_chronology(f: &RoutingFinding, window_end: &str) -> RouteChronology
     let first_t = f.first_observed.as_deref().unwrap_or("");
     let mut steps: Vec<ChronologyStep> = Vec::new();
 
-    // 1. Baseline (the pre-change path).
-    if f.baseline_path_signature != "—" {
+    // 1. EventBaseline (the frozen route at the event start) and the
+    // PreFindingState (the route immediately before this finding's
+    // first transition). They are distinct states (Session 44,
+    // Part 1): the pre-finding route is never labeled "baseline" when
+    // the event baseline differs from it.
+    let event_sig =
+        if f.event_baseline_path_signature.is_empty() || f.event_baseline_path_signature == "—" {
+            f.baseline_path_signature.clone()
+        } else {
+            f.event_baseline_path_signature.clone()
+        };
+    if event_sig != "—" {
+        let split_baselines = event_sig != f.baseline_path_signature;
         steps.push(ChronologyStep {
-            label: "Baseline",
+            label: "Event baseline",
+            time: if split_baselines {
+                // The event baseline ended at the earlier event change
+                // (a separate finding); no until-claim is made here.
+                "observed at the event start".to_string()
+            } else if first_t.is_empty() {
+                "observed at the event start".to_string()
+            } else {
+                format!("until {} UTC", time(first_t))
+            },
+            path: Some(event_sig.clone()),
+            restoration: None,
+        });
+        if event_sig != f.baseline_path_signature && f.baseline_path_signature != "—" {
+            let pre_label = if matches!(
+                f.effect,
+                RoutingEffect::PrefixesTemporarilyAbsent | RoutingEffect::PrefixesWithdrawn
+            ) {
+                "Pre-withdrawal route"
+            } else {
+                "Pre-finding route"
+            };
+            steps.push(ChronologyStep {
+                label: pre_label,
+                time: if first_t.is_empty() {
+                    "observed before the change".to_string()
+                } else {
+                    format!("until {} UTC", time(first_t))
+                },
+                path: Some(f.baseline_path_signature.clone()),
+                restoration: None,
+            });
+        }
+    } else if f.baseline_path_signature != "—" {
+        steps.push(ChronologyStep {
+            label: "Event baseline",
             time: if first_t.is_empty() {
                 "observed before the change".to_string()
             } else {
@@ -2975,7 +3142,7 @@ pub fn route_chronology(f: &RoutingFinding, window_end: &str) -> RouteChronology
         };
         if !replacement_time.is_empty() {
             steps.push(ChronologyStep {
-                label: "First replacement",
+                label: "First route after return",
                 time: format!("from {} UTC", finding_time(replacement_time)),
                 path: Some(replacement_path),
                 restoration: Some("Visibility returned"),
@@ -3034,11 +3201,24 @@ pub fn route_chronology(f: &RoutingFinding, window_end: &str) -> RouteChronology
         } else {
             format!("at {} UTC", finding_time(t))
         };
+        // The "exact baseline" claim is only valid when the returned
+        // path equals the EventBaseline (Session 44, Part 1); a return
+        // of the pre-finding route is labeled as such.
+        let return_label = if event_sig == f.baseline_path_signature {
+            "Exact baseline return"
+        } else {
+            "Pre-finding route return"
+        };
+        let return_tag = if event_sig == f.baseline_path_signature {
+            "Exact baseline"
+        } else {
+            "Pre-finding route"
+        };
         steps.push(ChronologyStep {
-            label: "Exact baseline return",
+            label: return_label,
             time: range,
             path: Some(f.baseline_path_signature.clone()),
-            restoration: Some("Exact baseline"),
+            restoration: Some(return_tag),
         });
     }
     // 7. Intermediate/later changes from the per-prefix transition
@@ -3126,25 +3306,32 @@ pub fn route_chronology(f: &RoutingFinding, window_end: &str) -> RouteChronology
     // states).
     let class_rank = |label: &str| -> usize {
         match label {
-            "Baseline" => 0,
-            "Absent" => 1,
-            "First change" => 2,
-            "First replacement" => 3,
-            "Reviewed-plane return" => 4,
-            "Equivalent-route return" => 5,
-            "Exact baseline return" => 6,
-            "Later change" => 7,
-            "Event-window end" => 8,
-            "Analysis end" => 9,
-            _ => 10,
+            "Event baseline" => 0,
+            "Pre-finding route" | "Pre-withdrawal route" => 1,
+            "Absent" => 2,
+            "First change" => 3,
+            "First route after return" => 4,
+            "Reviewed-plane return" => 5,
+            "Equivalent-route return" => 6,
+            "Exact baseline return" | "Pre-finding route return" => 7,
+            "Later change" => 8,
+            "Event-window end" => 9,
+            "Analysis end" => 10,
+            _ => 11,
         }
     };
     let step_key = |step: &ChronologyStep| -> (i64, usize) {
+        // The event baseline precedes every step: when its time carries
+        // no clock (the event-start reference), it sorts first.
         let secs = step
             .time
             .split_whitespace()
             .find_map(parse_clock_seconds)
-            .unwrap_or(i64::MAX);
+            .unwrap_or(if step.label == "Event baseline" {
+                i64::MIN
+            } else {
+                i64::MAX
+            });
         (secs, class_rank(step.label))
     };
     steps.sort_by_key(step_key);
@@ -3252,7 +3439,20 @@ pub fn human_window_end_state(f: &RoutingFinding) -> String {
             if f.final_path_signature == "\u{2014}" {
                 "No route observed after restoration".to_string()
             } else if f.final_path_signature == f.baseline_path_signature {
-                "Exact baseline path present".to_string()
+                // The "exact baseline" claim requires EventBaseline
+                // equality (Session 44, Part 1); a final route that
+                // only matches the pre-finding state is labeled as
+                // such, never as the baseline.
+                if f.event_baseline_path_signature.is_empty()
+                    || f.event_baseline_path_signature == "\u{2014}"
+                    || f.event_baseline_path_signature == f.baseline_path_signature
+                {
+                    "Exact baseline path present".to_string()
+                } else {
+                    "Matches the pre-finding route, not the event baseline".to_string()
+                }
+            } else if f.final_path_signature == f.event_baseline_path_signature {
+                "Event baseline path present".to_string()
             } else {
                 "Visible on a changed path".to_string()
             }
@@ -3273,8 +3473,18 @@ pub fn human_analysis_end_state(f: &RoutingFinding) -> String {
             } else if f.final_path_signature == f.baseline_path_signature {
                 // The route state is the operator's primary fact
                 // (Session 43, Part 4); the quiet follow-up stays
-                // supplemental.
-                "Exact baseline path present \u{b7} no later change observed".to_string()
+                // supplemental. The "exact baseline" claim requires
+                // EventBaseline equality (Session 44, Part 1).
+                if f.event_baseline_path_signature.is_empty()
+                    || f.event_baseline_path_signature == "\u{2014}"
+                    || f.event_baseline_path_signature == f.baseline_path_signature
+                {
+                    "Exact baseline path present \u{b7} no later change observed".to_string()
+                } else {
+                    "Matches the pre-finding route, not the event baseline \u{b7} no later change observed".to_string()
+                }
+            } else if f.final_path_signature == f.event_baseline_path_signature {
+                "Event baseline path present \u{b7} no later change observed".to_string()
             } else {
                 "No later change observed".to_string()
             }
@@ -10191,6 +10401,8 @@ mod session40_tests {
     fn finding_fixture(effect: RoutingEffect) -> RoutingFinding {
         let mut f = RoutingFinding {
             stable_id: "rrc06-as4777-test".to_string(),
+            event_baseline_path_signature: "AS4777 AS64512 AS2603".to_string(),
+            earlier_change: None,
             target_label: "TARGET (AS2603)".to_string(),
             target_origin_asns: vec![2603],
             target_name: "TARGET".to_string(),
@@ -10359,9 +10571,9 @@ mod session41_tests {
         assert_eq!(
             labels,
             vec![
-                "Baseline",
+                "Event baseline",
                 "Absent",
-                "First replacement",
+                "First route after return",
                 "Exact baseline return",
                 "Event-window end",
                 "Analysis end"
@@ -10424,7 +10636,7 @@ mod session41_tests {
         let replacement = ch
             .steps
             .iter()
-            .position(|s| s.label == "First replacement")
+            .position(|s| s.label == "First route after return")
             .unwrap();
         assert!(
             absent < replacement,
@@ -11094,23 +11306,24 @@ mod session42_tests {
         assert_eq!(
             labels,
             vec![
-                "Baseline",
+                "Event baseline",
+                "Pre-withdrawal route",
                 "Absent",
-                "First replacement",
+                "First route after return",
                 "Later change",
                 "Event-window end",
                 "Analysis end"
             ]
         );
-        let absent = &ch.steps[1];
+        let absent = &ch.steps[2];
         assert_eq!(absent.time, "at 07:33:59 UTC");
-        let replacement = &ch.steps[2];
+        let replacement = &ch.steps[3];
         assert!(
             replacement.path.as_deref().unwrap_or("").contains("225×7"),
-            "first replacement is the x7 return: {:?}",
+            "first route after return is the x7 return: {:?}",
             replacement.path
         );
-        let later = &ch.steps[3];
+        let later = &ch.steps[4];
         assert!(later.path.as_deref().unwrap_or("").ends_with(" AS225"));
     }
 
@@ -11521,12 +11734,31 @@ pub fn load_finding_chronology_audit(
                 .find(|t| !t.after_path.is_empty())
                 .cloned()
         });
+        // Fractional seconds: whole-second diff plus the sub-second
+        // parts, so a 54 ms absence reads 0.054 (Session 44, Part 3).
+        let frac_secs = |iso: &str| -> f64 {
+            match iso.find('.') {
+                Some(dot) => {
+                    let digits: String = iso[dot + 1..]
+                        .chars()
+                        .take_while(|c| c.is_ascii_digit())
+                        .collect();
+                    let n = digits.len().min(9);
+                    format!("0.{}", &digits[..n]).parse::<f64>().unwrap_or(0.0)
+                }
+                None => 0.0,
+            }
+        };
         let absence_duration_secs = match (&wd, &first_returned) {
             (Some(i), Some(r)) => {
                 let start = parse_utc_seconds(&transitions[*i].timestamp);
                 let end = parse_utc_seconds(&r.timestamp);
                 match (start, end) {
-                    (Some(s), Some(e)) if e >= s => Some((e - s) as f64 / 1000.0),
+                    (Some(s), Some(e)) if e >= s => Some(
+                        (e - s) as f64
+                            + frac_secs(&r.timestamp)
+                            - frac_secs(&transitions[*i].timestamp),
+                    ),
                     _ => None,
                 }
             }
@@ -11574,4 +11806,192 @@ pub fn load_finding_chronology_audit(
         source: path.display().to_string(),
         prefixes,
     })
+}
+
+#[cfg(test)]
+mod session44_tests {
+    use super::finding_test_helpers::{absence_episode, episode, path_index_with};
+    use super::*;
+
+    /// UVA-shaped stream: event baseline AS225x7, reduction to x1,
+    /// withdrawal, x7 return, settle to x1.
+    fn uva_stream_index() -> LifecyclePathIndex {
+        let mut index = path_index_with(&[(
+            "route-views2",
+            "163.253.3.14",
+            "137.54.0.0/16",
+            &[64512, 40220, 225, 225, 225, 225, 225, 225, 225],
+            &[64512, 40220, 225],
+        )]);
+        let map = index.by_run.get_mut("EV").unwrap();
+        let ev = map
+            .get_mut(&(
+                "route-views2".into(),
+                "163.253.3.14".into(),
+                "137.54.0.0/16".into(),
+            ))
+            .unwrap();
+        ev.transitions = vec![
+            PathTransition {
+                timestamp: "2026-07-14T07:24:47Z".to_string(),
+                kind: "PathReplacement".to_string(),
+                before_path: vec![64512, 40220, 225, 225, 225, 225, 225, 225, 225],
+                after_path: vec![64512, 40220, 225],
+            },
+            PathTransition {
+                timestamp: "2026-07-14T07:33:59Z".to_string(),
+                kind: "Withdrawal".to_string(),
+                before_path: vec![64512, 40220, 225],
+                after_path: vec![],
+            },
+            PathTransition {
+                timestamp: "2026-07-14T07:33:59Z".to_string(),
+                kind: "Announcement".to_string(),
+                before_path: vec![],
+                after_path: vec![64512, 40220, 225, 225, 225, 225, 225, 225, 225],
+            },
+            PathTransition {
+                timestamp: "2026-07-14T07:36:00Z".to_string(),
+                kind: "PathReplacement".to_string(),
+                before_path: vec![64512, 40220, 225, 225, 225, 225, 225, 225, 225],
+                after_path: vec![64512, 40220, 225],
+            },
+        ];
+        ev.exact_baseline_restored_at = None;
+        index
+    }
+
+    fn build(eps: Vec<ObserverEpisode>, index: &LifecyclePathIndex) -> Vec<RoutingFinding> {
+        let mut run_events = std::collections::HashMap::new();
+        run_events.insert(1, "EV".to_string());
+        build_findings(
+            &eps,
+            index,
+            &AsnIdentityRegistry::default(),
+            "UVA via transit",
+            &[225],
+            "",
+            &run_events,
+            "2026-07-14",
+            "2026-07-14T08:56:00Z",
+        )
+    }
+
+    #[test]
+    fn event_baseline_and_pre_finding_state_are_distinct() {
+        // The UVA withdrawal finding: EventBaseline AS225x7 vs the
+        // PreFindingState AS225x1. The model must keep them distinct
+        // and the human labels must never conflate them.
+        let eps = vec![absence_episode(
+            1,
+            "routeviews/route-views2 peer 163.253.3.14",
+            "Eugene, Oregon, US",
+            "AMER",
+            64512,
+            RelationshipKind::Direct,
+            "2026-07-14T07:24:47Z",
+            "2026-07-14T07:33:59Z",
+            &["137.54.0.0/16"],
+        )];
+        let findings = build(eps, &uva_stream_index());
+        let absent = findings
+            .iter()
+            .find(|f| f.effect == RoutingEffect::PrefixesTemporarilyAbsent)
+            .expect("the absence finding");
+        assert_eq!(
+            absent.event_baseline_path_signature,
+            "AS64512 AS40220 AS225×7"
+        );
+        assert_eq!(absent.baseline_path_signature, "AS64512 AS40220 AS225");
+        assert_ne!(
+            absent.event_baseline_path_signature, absent.baseline_path_signature,
+            "the pre-finding state is distinct from the event baseline"
+        );
+        // The final AS225x1 route matches the pre-finding state, not
+        // the event baseline: no exact-baseline claim.
+        assert_eq!(
+            human_window_end_state(absent),
+            "Matches the pre-finding route, not the event baseline"
+        );
+        // The chronology names both states.
+        let ch = route_chronology(absent, "2026-07-14T07:56:00Z");
+        let labels: Vec<&str> = ch.steps.iter().map(|s| s.label).collect();
+        assert_eq!(
+            labels,
+            vec![
+                "Event baseline",
+                "Pre-withdrawal route",
+                "Absent",
+                "First route after return",
+                "Later change",
+                "Event-window end",
+                "Analysis end"
+            ]
+        );
+        assert_eq!(ch.steps[0].path.as_deref(), Some("AS64512 AS40220 AS225×7"));
+        assert_eq!(ch.steps[1].path.as_deref(), Some("AS64512 AS40220 AS225"));
+    }
+
+    #[test]
+    fn exact_baseline_claim_requires_event_baseline_equality() {
+        // When the event baseline equals the pre-finding route and the
+        // final route matches it, "Exact baseline path present" is
+        // correct; a final route that only matches the pre-finding
+        // state is never the exact baseline; a return to the event
+        // baseline is labeled as such.
+        let eps = vec![episode(
+            1,
+            EffectKind::PathReplacement,
+            "ris/rrc06 peer 192.0.2.1",
+            "Otemachi, Tokyo, Japan",
+            "APAC",
+            4777,
+            RelationshipKind::Indirect,
+            "2019-08-21T16:45:44Z",
+            "2019-08-21T17:02:07Z",
+            &["10.0.0.0/24"],
+        )];
+        let mut index = path_index_with(&[(
+            "rrc06",
+            "192.0.2.1",
+            "10.0.0.0/24",
+            &[4777, 64512, 2603],
+            &[4777, 22388, 2603],
+        )]);
+        let map = index.by_run.get_mut("EV").unwrap();
+        let ev = map
+            .get_mut(&("rrc06".into(), "192.0.2.1".into(), "10.0.0.0/24".into()))
+            .unwrap();
+        ev.final_path = Some(vec![4777, 64512, 2603]);
+        let mut run_events = std::collections::HashMap::new();
+        run_events.insert(1, "EV".to_string());
+        let mut findings = build_findings(
+            &eps,
+            &index,
+            &AsnIdentityRegistry::default(),
+            "TARGET (AS2603)",
+            &[2603],
+            "",
+            &run_events,
+            "2019-08-21",
+            "2019-08-21T18:00:00Z",
+        );
+        let f = &mut findings[0];
+        // Event baseline == pre-finding == final: exact baseline claim.
+        assert_eq!(f.event_baseline_path_signature, f.baseline_path_signature);
+        assert_eq!(human_window_end_state(f), "Exact baseline path present");
+        // A final route matching only the pre-finding state (event
+        // baseline differs): never the exact baseline.
+        f.event_baseline_path_signature = "AS4777 AS64512 AS2603".to_string();
+        f.baseline_path_signature = "AS4777 AS22388 AS2603".to_string();
+        f.final_path_signature = "AS4777 AS22388 AS2603".to_string();
+        assert_eq!(
+            human_window_end_state(f),
+            "Matches the pre-finding route, not the event baseline"
+        );
+        // A final route equal to the event baseline: labeled as the
+        // event baseline.
+        f.final_path_signature = "AS4777 AS64512 AS2603".to_string();
+        assert_eq!(human_window_end_state(f), "Event baseline path present");
+    }
 }

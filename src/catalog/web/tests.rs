@@ -2542,7 +2542,10 @@ async fn changed_event_first_screen_contains_before_after_route() {
         regex_path_in(block),
         "numeric before/after routes visible in the first viewport block"
     );
-    assert!(block.contains("Baseline"), "chronology step labels present");
+    assert!(
+        block.contains("Event baseline"),
+        "chronology step labels present"
+    );
     assert!(
         body.contains("wb-path-label\">Before"),
         "named before path retained under the identity notes"
@@ -3315,7 +3318,9 @@ async fn principal_card_contains_route_meaning_and_final_state() {
     let card_start = body.find("wb-principal").unwrap();
     let card = &body[card_start..card_start + 1800];
     assert!(
-        card.contains("disappeared") || card.contains("changed path"),
+        card.contains("withdrawn from this observer")
+            || card.contains("absent")
+            || card.contains("changed path"),
         "concrete route effect on the card"
     );
     assert!(
@@ -3382,11 +3387,15 @@ async fn route_sequence_contains_ordered_states() {
     assert_eq!(status, StatusCode::OK);
     let seq = body.find("wb-route-sequence").unwrap();
     let block = &body[seq..seq + 2500];
-    // The direct absence card's chronology: Baseline -> Absent ->
-    // First replacement -> Exact baseline return -> end states.
-    assert!(block.contains("Baseline"), "baseline step");
+    // The direct absence card's chronology: Event baseline -> Absent
+    // -> First route after return -> Exact baseline return -> end
+    // states.
+    assert!(block.contains("Event baseline"), "baseline step");
     assert!(block.contains("Absent"), "absence step");
-    assert!(block.contains("First replacement"), "replacement step");
+    assert!(
+        block.contains("First route after return"),
+        "replacement step"
+    );
     assert!(
         block.contains("Exact baseline return"),
         "exact-baseline step"
@@ -3394,9 +3403,9 @@ async fn route_sequence_contains_ordered_states() {
     assert!(block.contains("Event-window end"), "window-end step");
     assert!(block.contains("Analysis end"), "analysis-end step");
     // Absent state is rendered BETWEEN the baseline and replacement.
-    let baseline = block.find("Baseline").unwrap();
-    let absent = block.find("Absent").unwrap();
-    let replacement = block.find("First replacement").unwrap();
+    let baseline = block.find("Event baseline").unwrap();
+    let absent = block.find(">Absent<").unwrap();
+    let replacement = block.find("First route after return").unwrap();
     assert!(
         baseline < absent && absent < replacement,
         "absent state sits between baseline and replacement"
@@ -3541,9 +3550,9 @@ async fn uva_principal_card_explains_prepend_delta() {
     let card_start = body.find("wb-principal").unwrap();
     let card = &body[card_start..card_start + 2000];
     assert!(
-        card.contains("Before the withdrawal, the path contained AS225×1")
-            && card.contains("visibility returned on a path containing AS225×7"),
-        "ordered prepend pair on the UVA card"
+        card.contains("withdrawn from this observer for 54 ms")
+            && card.contains("returned on the event-baseline path containing AS225×7"),
+        "precise absence story on the UVA card"
     );
     assert!(
         card.contains("AS225×7") || card.contains("225×7"),
@@ -3701,14 +3710,20 @@ async fn real_uva_prepend_direction_matches_ordered_evidence() {
     }
     assert_eq!(status, StatusCode::OK);
     assert!(
-        body.contains("Before the withdrawal, the path contained AS225×1")
-            && body.contains("visibility returned on a path containing AS225×7"),
-        "ordered prepend pair rendered"
+        body.contains("withdrawn from this observer for 54 ms")
+            && body.contains("returned on the event-baseline path containing AS225×7"),
+        "precise absence story rendered"
+    );
+    assert!(
+        body.contains("matching the pre-withdrawal state but not the event baseline"),
+        "the final state is tied to the pre-withdrawal route, not the event baseline"
     );
     // The absence card must NOT state the reversed (7 -> 1) story.
     // (The separate prepending-changed findings legitimately describe
     // their own 7 -> 1 reduction, so scope to the absence card.)
-    let card_start = body.find("route-views2-163-253-3-14").unwrap();
+    let card_start = body
+        .find("id=\"finding-route-views2-163-253-3-14-temporarily-absent")
+        .unwrap();
     let card = &body[card_start..card_start + 3000];
     assert!(
         !card.contains("origin-AS prepending decreased from 7 to 1"),
@@ -3739,17 +3754,17 @@ async fn prose_and_route_sequence_agree() {
         seq.contains("AS22388 AS24489×4 AS24490"),
         "first-replacement path in the sequence carries the same ASNs"
     );
-    // UVA: the prepend pair matches the sequence steps.
+    // UVA: the absence prose matches the sequence steps.
     let (_, uva) = event_workbench("INC0299001").await;
     if !uva.is_empty() {
         assert!(
-            uva.contains("Before the withdrawal, the path contained AS225×1"),
-            "UVA card pair"
+            uva.contains("returned on the event-baseline path containing AS225×7"),
+            "UVA card return story"
         );
         let seq = &uva[uva.find("Route sequence").unwrap_or(uva.len())..uva.len()];
         assert!(
             seq.contains("AS40220 AS225×7"),
-            "UVA sequence first replacement is AS225x7"
+            "UVA sequence first route after return is AS225x7"
         );
     }
 }
@@ -3881,12 +3896,14 @@ fn single_prefix_restoration_uses_singular_language() {
         observer_stream_count: prefixes.len(),
         distinct_prefixes: prefixes.len(),
         baseline_path_signature: "AS64512 AS2603".to_string(),
+        event_baseline_path_signature: "AS64512 AS2603".to_string(),
         changed_path_signature: "AS64512 AS22388 AS2603".to_string(),
         final_path_signature: "AS64512 AS2603".to_string(),
         exact_prefixes: prefixes.iter().map(|s| s.prefix.clone()).collect(),
         evidence_refs: vec![],
         scope_limit: "".to_string(),
         streams: prefixes,
+        earlier_change: None,
     };
     let stream = |prefix: &str, restored: Option<&str>| FindingStream {
         prefix: prefix.to_string(),
@@ -4104,7 +4121,7 @@ async fn uva_first_change_is_not_labeled_absence_unless_state_is_absent() {
     // The 07:24:47 prepend reduction is a distinct "Prepending changed"
     // card; the withdrawal is the "Temporarily absent" card.
     let prepend = body
-        .find("163-253-3-14-prepending-changed")
+        .find("id=\"finding-route-views2-163-253-3-14-prepending-changed")
         .map(|i| window_at(&body, i, 700))
         .unwrap_or("");
     assert!(
@@ -4113,7 +4130,7 @@ async fn uva_first_change_is_not_labeled_absence_unless_state_is_absent() {
     );
     assert!(!prepend.contains("Temporarily absent"));
     let absent = body
-        .find("163-253-3-14-temporarily-absent")
+        .find("id=\"finding-route-views2-163-253-3-14-temporarily-absent")
         .map(|i| window_at(&body, i, 700))
         .unwrap_or("");
     assert!(
@@ -4139,7 +4156,7 @@ async fn uva_withdrawal_timestamp_matches_transition_evidence() {
         return;
     }
     let absent = body
-        .find("163-253-3-14-temporarily-absent")
+        .find("id=\"finding-route-views2-163-253-3-14-temporarily-absent")
         .map(|i| window_at(&body, i, 700))
         .unwrap_or("");
     assert!(
@@ -4175,7 +4192,7 @@ async fn uva_return_timestamp_follows_withdrawal() {
     let (_, body) = event_workbench("INC0299001").await;
     if !body.is_empty() {
         let absent_at = body.find(">Absent<").unwrap_or(0);
-        let replaced_at = body.find(">First replacement<").unwrap_or(0);
+        let replaced_at = body.find(">First route after return<").unwrap_or(0);
         assert!(absent_at < replaced_at, "absence precedes replacement");
     }
 }
@@ -4262,14 +4279,17 @@ async fn prose_route_sequence_and_audit_are_identical() {
         "withdrawal time rendered"
     );
     assert!(
-        body.contains("Before the withdrawal, the path contained AS225×1")
-            && body.contains("visibility returned on a path containing AS225×7"),
-        "ordered pair matches the audit transitions"
+        body.contains("returned on the event-baseline path containing AS225×7"),
+        "return story matches the audit transitions"
+    );
+    assert!(
+        body.contains("matching the pre-withdrawal state but not the event baseline"),
+        "final state wording matches the audit final paths"
     );
     // The 07:24:47 reduction is the prepend finding's first change,
     // not part of the absence chronology.
     let absent = body
-        .find("163-253-3-14-temporarily-absent")
+        .find("id=\"finding-route-views2-163-253-3-14-temporarily-absent")
         .map(|i| window_at(&body, i, 4000))
         .unwrap_or("");
     assert!(
@@ -4290,7 +4310,7 @@ async fn prepend_change_and_withdrawal_are_distinct_findings() {
     }
     assert_eq!(status, StatusCode::OK);
     let prepend = body
-        .find("163-253-3-14-prepending-changed")
+        .find("id=\"finding-route-views2-163-253-3-14-prepending-changed")
         .map(|i| window_at(&body, i, 900))
         .unwrap_or("");
     assert!(
@@ -4298,7 +4318,7 @@ async fn prepend_change_and_withdrawal_are_distinct_findings() {
         "the prepend finding covers the 11-prefix group"
     );
     let absent = body
-        .find("163-253-3-14-temporarily-absent")
+        .find("id=\"finding-route-views2-163-253-3-14-temporarily-absent")
         .map(|i| window_at(&body, i, 900))
         .unwrap_or("");
     assert!(
@@ -4319,7 +4339,7 @@ async fn prepend_finding_states_route_remained_visible() {
         return;
     }
     let prepend = body
-        .find("163-253-3-14-prepending-changed")
+        .find("id=\"finding-route-views2-163-253-3-14-prepending-changed")
         .map(|i| window_at(&body, i, 1400))
         .unwrap_or("");
     assert!(
@@ -4336,7 +4356,7 @@ async fn absence_finding_starts_at_withdrawal() {
         return;
     }
     let absent = body
-        .find("163-253-3-14-temporarily-absent")
+        .find("id=\"finding-route-views2-163-253-3-14-temporarily-absent")
         .map(|i| window_at(&body, i, 700))
         .unwrap_or("");
     assert!(
@@ -4356,7 +4376,7 @@ async fn absence_finding_does_not_use_earlier_prepend_timestamp() {
         return;
     }
     let absent = body
-        .find("163-253-3-14-temporarily-absent")
+        .find("id=\"finding-route-views2-163-253-3-14-temporarily-absent")
         .map(|i| window_at(&body, i, 4000))
         .unwrap_or("");
     assert!(
@@ -4377,11 +4397,11 @@ async fn related_findings_link_to_the_same_prefix_group() {
     }
     // Both findings' prefix drill-downs cover the same 11 prefixes.
     let prepend = body
-        .find("163-253-3-14-prepending-changed")
+        .find("id=\"finding-route-views2-163-253-3-14-prepending-changed")
         .map(|i| window_at(&body, i, 24000))
         .unwrap_or("");
     let absent = body
-        .find("163-253-3-14-temporarily-absent")
+        .find("id=\"finding-route-views2-163-253-3-14-temporarily-absent")
         .map(|i| window_at(&body, i, 24000))
         .unwrap_or("");
     for probe in ["128.143.0.0/16", "137.54.0.0/16", "199.111.224.0/19"] {
@@ -4462,4 +4482,157 @@ async fn analysis_end_summary_names_present_route_state() {
         body.contains("Analysis end: Exact baseline path present · no later change observed"),
         "the analysis-end summary names the present route state"
     );
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Session 44: baseline semantics (Parts 1-3).
+// ─────────────────────────────────────────────────────────────────────
+
+#[tokio::test]
+async fn pre_withdrawal_route_is_not_labeled_baseline() {
+    // The UVA withdrawal finding's ×1 pre-withdrawal route must never
+    // be labeled "Baseline": the sequence shows "Event baseline" (×7)
+    // and "Pre-withdrawal route" (×1) as distinct states.
+    let (status, body) = event_workbench("INC0299001").await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    let absent = body
+        .find("id=\"finding-route-views2-163-253-3-14-temporarily-absent")
+        .map(|i| window_at(&body, i, 6000))
+        .unwrap_or("");
+    assert!(
+        absent.contains(">Pre-withdrawal route<"),
+        "the pre-withdrawal route is a distinct labeled state"
+    );
+    assert!(
+        !absent.contains(">Baseline<"),
+        "the pre-finding route is never labeled Baseline"
+    );
+}
+
+#[tokio::test]
+async fn final_pre_finding_route_is_not_exact_event_baseline() {
+    // The final AS225×1 state matches the pre-withdrawal route, not
+    // the AS225×7 event baseline: no "exact baseline path present"
+    // claim on the withdrawal finding.
+    let (status, body) = event_workbench("INC0299001").await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    let absent = body
+        .find("id=\"finding-route-views2-163-253-3-14-temporarily-absent")
+        .map(|i| window_at(&body, i, 6000))
+        .unwrap_or("");
+    assert!(
+        absent.contains("matches the pre-finding route, not the event baseline")
+            || absent.contains("matching the pre-withdrawal state but not the event baseline"),
+        "final state tied to the pre-withdrawal route"
+    );
+    assert!(
+        !absent.contains("exact baseline path present"),
+        "no exact-baseline claim for the AS225×1 final state"
+    );
+}
+
+#[tokio::test]
+async fn uva_event_baseline_is_as225_times_seven() {
+    let (status, body) = event_workbench("INC0299001").await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    let absent = body
+        .find("id=\"finding-route-views2-163-253-3-14-temporarily-absent")
+        .map(|i| window_at(&body, i, 6000))
+        .unwrap_or("");
+    assert!(
+        absent.contains("Event baseline") && absent.contains("AS40220 AS225×7"),
+        "the event baseline is the AS225×7 route"
+    );
+}
+
+#[tokio::test]
+async fn uva_pre_withdrawal_state_is_as225_times_one() {
+    let (status, body) = event_workbench("INC0299001").await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    let absent = body
+        .find("id=\"finding-route-views2-163-253-3-14-temporarily-absent")
+        .map(|i| window_at(&body, i, 6000))
+        .unwrap_or("");
+    assert!(
+        absent.contains("Pre-withdrawal route") && absent.contains("AS40220 AS225"),
+        "the pre-withdrawal route is the AS225×1 state"
+    );
+}
+
+#[tokio::test]
+async fn uva_return_first_matches_event_baseline() {
+    let (status, body) = event_workbench("INC0299001").await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    assert!(
+        body.contains("returned on the event-baseline path containing AS225×7"),
+        "the first route after return matches the event baseline"
+    );
+    let absent = body
+        .find("id=\"finding-route-views2-163-253-3-14-temporarily-absent")
+        .map(|i| window_at(&body, i, 6000))
+        .unwrap_or("");
+    assert!(
+        absent.contains("First route after return") && absent.contains("AS40220 AS225×7"),
+        "sequence first-route step carries the event-baseline path"
+    );
+}
+
+#[tokio::test]
+async fn uva_analysis_final_matches_pre_withdrawal_not_event_baseline() {
+    let (status, body) = event_workbench("INC0299001").await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    let absent = body
+        .find("id=\"finding-route-views2-163-253-3-14-temporarily-absent")
+        .map(|i| window_at(&body, i, 6000))
+        .unwrap_or("");
+    assert!(
+        absent.contains("Event-window end") && absent.contains("AS40220 AS225"),
+        "event-window final is the ×1 settle"
+    );
+    assert!(
+        absent.contains("Analysis end") && absent.contains("AS40220 AS225"),
+        "analysis final is the ×1 settle"
+    );
+    assert!(
+        absent.contains("matching the pre-withdrawal state but not the event baseline"),
+        "final ×1 is the pre-withdrawal state, not the event baseline"
+    );
+}
+
+#[tokio::test]
+async fn uva_absence_duration_uses_subsecond_evidence() {
+    let audit = chronology_audit();
+    let p = audit["prefixes"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|p| p["prefix"] == "128.143.0.0/16")
+        .unwrap();
+    let d = p["absence_duration_secs"].as_f64().unwrap();
+    assert!(d > 0.0 && d < 1.0, "sub-second absence per the audit: {d}");
+    let (_, body) = event_workbench("INC0299001").await;
+    if !body.is_empty() {
+        assert!(
+            body.contains("withdrawn from this observer for 54 ms"),
+            "precise sub-second duration rendered"
+        );
+    }
 }

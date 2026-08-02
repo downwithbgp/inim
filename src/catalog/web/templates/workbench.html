@@ -170,6 +170,9 @@
   </div>
   <p class="wb-finding-meaning">{{ f.compact_meaning }}</p>
   <p class="wb-finding-final">{{ f.final_state_line }}</p>
+  {% if f.earlier_change.is_some() %}
+  <p class="wb-earlier-change"><a href="#finding-{{ f.earlier_change.as_ref().unwrap().stable_id }}">Earlier change: {{ f.earlier_change.as_ref().unwrap().label }}</a></p>
+  {% endif %}
   <p class="wb-prefix-preview">
     {% if f.preview_prefixes.is_empty() %}{% else %}
     <span class="wb-mono">{{ f.preview_prefixes | join(", ") }}</span>
@@ -292,6 +295,9 @@
     <span class="wb-change">{{ f.change }}</span>
   </div>
   <p class="wb-finding-statement">{{ f.statement }}</p>
+  {% if f.earlier_change.is_some() %}
+  <p class="wb-earlier-change"><a href="#finding-{{ f.earlier_change.as_ref().unwrap().stable_id }}">Earlier change: {{ f.earlier_change.as_ref().unwrap().label }}</a></p>
+  {% endif %}
   <details class="wb-prefix-drilldown" id="prefixes-{{ f.stable_id }}"{% if f.prefixes_open %} open{% endif %}>
     <summary>Prefixes ({{ f.exact_prefixes.len() }}) ▸</summary>
     <div class="wb-scroll">
