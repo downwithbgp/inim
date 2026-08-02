@@ -100,13 +100,9 @@ def main() -> int:
         if e["category"] != "Historical decision record" and not e["current"]:
             problems.append(f"{e['path']}: non-historical record marked historical")
 
-    changed = set(
-        git(["diff", "--name-only", AUDIT_START, "HEAD"]).splitlines()
-    )
     # The rendered audit is deterministic: review state is a property of
-    # the inventory, not of git history. (The changed-since list above is
-    # kept only for the completion report.)
-    del changed
+    # the inventory, not of git history. No history access is needed, so
+    # the render also works from a shallow CI checkout.
 
     counts = Counter(e["category"] for e in inventory)
     lines = []
