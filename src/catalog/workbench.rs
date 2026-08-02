@@ -1645,7 +1645,7 @@ pub fn finding_statement(f: &RoutingFinding) -> String {
                         times.iter().min().copied().unwrap_or(t),
                         times.iter().max().copied().unwrap_or(t),
                     );
-                    if min != max {
+                    if finding_time(min) != finding_time(max) {
                         s.push_str(&format!(
                             " The affected routes returned toward their earlier path state between {} and {} UTC.",
                             finding_time(min),
