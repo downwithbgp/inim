@@ -9,14 +9,12 @@ record is the operator-authored After Action Report:
 - **Redistribution status:** Unknown — the PDF must not enter the crate
   package until redistribution rights are explicitly established.
 
-The local PDF was **not available** at import time. The document record is
-metadata-only; attach the file later with:
-
-```
-inim catalog document import --db data/inim.sqlite \
-    --file /path/to/MANLAN-20190821-Postmortem.pdf \
-    --source-url https://docs.globalnoc.iu.edu/uploads/c5/88/c5881bec35cb83807dd4b0a7ee32effe/MANLAN-20190821-Postmortem.pdf
-```
+The local PDF was **not available** at import time; the document record was
+created metadata-only, and the file was attached in a later local import
+(SHA-256 verified, 15 pages, catalog-relative storage under
+`data/documents/d29df26a2699/`). The PDF itself is **not in this
+repository** and must not enter the crate package until redistribution
+rights are explicitly established.
 
 ## What this directory contains
 
@@ -35,8 +33,11 @@ inim catalog document import --db data/inim.sqlite \
 
 ## Status (honest by design)
 
-- **Document**: the AAR PDF is attached (SHA-256 verified, 15 pages,
-  catalog-relative storage under `data/documents/d29df26a2699/`).
+- **Document**: the AAR PDF record is attached to the local catalog
+  (SHA-256 verified, 15 pages, catalog-relative storage under
+  `data/documents/d29df26a2699/`); the PDF itself is not in this
+  repository. The source tickets and the AAR provide the **operator
+  evidence**; public BGP evidence is separate and observer-specific.
 - **Target research**: reviewed (2026-08-01) in `target-research.json` —
   6 HistoricallyReviewed (NORDUnet AS2603, ESnet AS293, GÉANT AS21320,
   CANARIE AS6509, TWAREN AS7539, SINET AS2907 — AS9264 positively
@@ -56,23 +57,41 @@ inim catalog document import --db data/inim.sqlite \
   path replacements, full baseline return by 17:02:19Z. See
   `pilot/PILOT-SELECTION.md` and `pilot/pilot-result.json`. The pilot is a
   **single-target, single-collector, bounded-window** result — it is NOT a
-  complete MAN LAN incident verdict.
+  complete MAN LAN incident verdict. The **operator incident horizon**
+  (the AAR's full timeline, 15:33–20:48) and the **pilot horizon**
+  (16:00–17:30 UTC) are distinct and never conflated.
 - **Full incident-wide BGP analysis**: **not executed**. No whole-incident
   public-BGP conclusion exists.
 
-- **RIS collector selection (Session 34)**: metadata + RIB preflight of
+- **RIS collector selection**: metadata + RIB preflight of
   18 historically available collectors; only rrc00, rrc06, rrc15 had
   AS2603-origin routes with AS11537 in path at the pre-window baseline.
   Rejected collectors recorded with reasons in
   `pilot/ris-collector-selection.md`.
-- **RIS pilots (Session 34, Complete)**: three independent runs, same
+- **RIS pilots (Complete)**: three independent runs, same
   reviewed target and window as the RouteViews pilot — rrc00 (11/11
   streams unchanged), rrc06 (12/12 departed AS11537 transit via path
   replacement 16:45:44Z, returned to baseline by 17:02:38Z, no absence),
-  rrc15 (13/24 departed transit 16:35:38–16:45:20Z and returned; 11/24
-  unchanged). Each run keeps its own evidence; no merged verdict.
-  Per-collector records: `pilot/ris-pilot-rrc00.json`,
+  rrc15 (13/24 departed transit 16:35:38–16:45:20Z; the in-window
+  exact-baseline return (17:03:32Z) and the cooldown re-change
+  (17:52:16Z, no restoration before the 18:30 analysis end) are both
+  retained; 11/24 unchanged). Each run keeps its own evidence; no merged
+  verdict. Per-collector records: `pilot/ris-pilot-rrc00.json`,
   `pilot/ris-pilot-rrc06.json`, `pilot/ris-pilot-rrc15.json`.
+- **Observation classes stay distinct**: route-views2 is a **direct
+  R&E** observation (peer AS11537), the RIS collectors observe
+  AS11537-in-path routes **indirectly**, and the direct **I2PX** plane
+  was **unavailable** at the selected observers (no qualifying
+  baseline). A direct R&E observation is never relabeled as an I2PX
+  observation.
+- **RRC11 historical audit**: the 2019-08-21 RRC11 baseline had **no
+  direct AS11164 session** in the reviewed 2019 peer table (39 sessions,
+  zero with peer ASN 11164), so the direct peering-plane pilot was
+  blocked (`blocked-no-direct-session`); see `pilot/rrc11-audit-2019.md`
+  and `pilot/rrc11-pex-pilot-decision.md`.
+- **No mechanism conclusion**: the pilot makes **no traffic-loss and no
+  Layer-2 mechanism conclusion**; BGP evidence alone cannot establish
+  either.
 - **Reviewed interpretations**: `pilot/ticket-reviews.json` (ten
   tickets, reviewed roles + AAR-cited provenance, 13 reviewed edges).
 - **Cross-observer comparison**: the RouteViews pilot and the three RIS
@@ -84,7 +103,7 @@ inim catalog document import --db data/inim.sqlite \
 The AAR lists multiple contributors; this data file does not reproduce
 contributor names in the primary UI.
 
-## Visual review (Session 32)
+## Visual review
 
 `scripts/screenshot-review.sh` captures fixed-viewport screenshots of the
 deterministic demo catalog (loopback only) to `tmp/ui-review/` (gitignored,
