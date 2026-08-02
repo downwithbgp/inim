@@ -168,8 +168,15 @@ fn source_sha(local_path: &Path) -> Result<String, String> {
     let file = std::fs::File::open(local_path)
         .map_err(|e| format!("cannot open {}: {e}", local_path.display()))?;
     let mut reader = std::io::BufReader::new(file);
-    std::io::copy(&mut reader, &mut hasher)
-        .map_err(|e| format!("cannot hash {}: {e}", local_path.display()))?;
+    let mut buf = [0u8; 64 * 1024];
+    loop {
+        let n = std::io::Read::read(&mut reader, &mut buf)
+            .map_err(|e| format!("cannot hash {}: {e}", local_path.display()))?;
+        if n == 0 {
+            break;
+        }
+        hasher.update(&buf[..n]);
+    }
     Ok(hasher
         .finalize()
         .iter()

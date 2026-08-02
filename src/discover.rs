@@ -459,10 +459,18 @@ fn compute_sha256(path: &Path) -> Result<String, InimArchiveError> {
         reason: e.to_string(),
     })?;
     let mut hasher = Sha256::new();
-    std::io::copy(&mut file, &mut hasher).map_err(|e| InimArchiveError::CacheError {
-        path: path.to_string_lossy().to_string(),
-        reason: e.to_string(),
-    })?;
+    let mut buf = [0u8; 64 * 1024];
+    loop {
+        let n =
+            std::io::Read::read(&mut file, &mut buf).map_err(|e| InimArchiveError::CacheError {
+                path: path.to_string_lossy().to_string(),
+                reason: e.to_string(),
+            })?;
+        if n == 0 {
+            break;
+        }
+        hasher.update(&buf[..n]);
+    }
     Ok(bytes_to_hex(&hasher.finalize()[..]))
 }
 
