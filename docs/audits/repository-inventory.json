@@ -2694,5 +2694,21 @@
   "authoritative": "dated curl checks of documented external URLs",
   "generated": false,
   "current": true
+ },
+ {
+  "path": "scripts/audit-docs.sh",
+  "category": "Script or developer tool",
+  "audience": "maintainers",
+  "authoritative": "the command it wraps + its inputs",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "scripts/audit_docs.py",
+  "category": "Script or developer tool",
+  "audience": "maintainers",
+  "authoritative": "the command it wraps + its inputs",
+  "generated": false,
+  "current": true
  }
 ]

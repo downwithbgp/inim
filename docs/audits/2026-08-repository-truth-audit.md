@@ -24,7 +24,7 @@ This audit verifies that every tracked file is classified, that every current st
 
 ## Summary
 
-Tracked files: **337** · inventory entries: **337**
+Tracked files: **339** · inventory entries: **339**
 
 | Category | Files |
 |---|---|
@@ -33,7 +33,7 @@ Tracked files: **337** · inventory entries: **337**
 | Configuration | 22 |
 | Reviewed case-study interpretation | 22 |
 | Historical decision record | 22 |
-| Script or developer tool | 19 |
+| Script or developer tool | 21 |
 | Template or stylesheet | 16 |
 | Normative current documentation | 15 |
 | Test fixture | 11 |
@@ -236,6 +236,8 @@ Tracked files: **337** · inventory entries: **337**
 | `manifests/INC0299001.json` | Configuration | maintainers | reviewed operator configuration | no | current | reviewed in this audit | none | reviewed in this audit |
 | `manifests/INC0301970.json` | Configuration | maintainers | reviewed operator configuration | no | current | reviewed in this audit | none | reviewed in this audit |
 | `manifests/INC0302574.json` | Configuration | maintainers | reviewed operator configuration | no | current | reviewed in this audit | none | reviewed in this audit |
+| `scripts/audit-docs.sh` | Script or developer tool | maintainers | the command it wraps + its inputs | no | current | comments and usage strings audited in this audit | none | reviewed in this audit |
+| `scripts/audit_docs.py` | Script or developer tool | maintainers | the command it wraps + its inputs | no | current | comments and usage strings audited in this audit | none | reviewed in this audit |
 | `scripts/audit_pilot_absence.py` | Script or developer tool | maintainers | the command it wraps + its inputs | no | current | comments and usage strings audited in this audit | none | reviewed in this audit |
 | `scripts/bench_parse_scaling.sh` | Script or developer tool | maintainers | the command it wraps + its inputs | no | current | comments and usage strings audited in this audit | none | reviewed in this audit |
 | `scripts/build-cross-observer-matrix.py` | Script or developer tool | maintainers | the command it wraps + its inputs | no | current | comments and usage strings audited in this audit | none | reviewed in this audit |
