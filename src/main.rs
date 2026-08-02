@@ -111,7 +111,12 @@ enum Commands {
     /// local event catalog.
     #[command(subcommand)]
     Catalog(CatalogCommands),
-    /// Serve the read-only localhost catalog web UI.
+    /// Serve the localhost catalog web UI (read-only by default).
+    ///
+    /// Mutates the catalog only when --enable-writes is set. Write mode
+    /// is unauthenticated and intended for trusted local use; it never
+    /// executes analysis (a separate `inim worker` process executes
+    /// queued jobs).
     Serve {
         /// Catalog database path.
         #[arg(long, value_name = "PATH")]
@@ -128,6 +133,17 @@ enum Commands {
         /// Explicitly allow a non-loopback bind (no authentication).
         #[arg(long)]
         allow_non_loopback: bool,
+
+        /// Enable local catalog mutations (queue/cancel/retry/plan
+        /// edits) with CSRF protection. No analysis runs in this
+        /// process.
+        #[arg(long)]
+        enable_writes: bool,
+
+        /// Extra explicit acknowledgement required for write mode on a
+        /// non-loopback bind (write mode is unauthenticated).
+        #[arg(long)]
+        allow_unauthenticated_writes: bool,
     },
     /// Analyze a single operational event against BGP observations.
     ///
@@ -592,7 +608,17 @@ fn run(cli: &Cli) -> i32 {
             root,
             bind,
             allow_non_loopback,
-        } => cmd_serve(&mut std::io::stdout(), db, root, bind, *allow_non_loopback),
+            enable_writes,
+            allow_unauthenticated_writes,
+        } => cmd_serve(
+            &mut std::io::stdout(),
+            db,
+            root,
+            bind,
+            *allow_non_loopback,
+            *enable_writes,
+            *allow_unauthenticated_writes,
+        ),
         Commands::Analyze {
             event,
             manifest,
@@ -1627,6 +1653,8 @@ fn cmd_serve(
     root: &std::path::Path,
     bind: &str,
     allow_non_loopback: bool,
+    enable_writes: bool,
+    allow_unauthenticated_writes: bool,
 ) -> i32 {
     if let Err(e) = inim::catalog::web::server::validate_bind(bind, allow_non_loopback) {
         let _ = writeln!(stdout, "error: {e}");
@@ -1645,6 +1673,8 @@ fn cmd_serve(
         root,
         bind,
         allow_non_loopback,
+        enable_writes,
+        allow_unauthenticated_writes,
         version,
     )) {
         Ok(()) => EXIT_SUCCESS,

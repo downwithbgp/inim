@@ -30,7 +30,8 @@ fn setup_app() -> Option<(tempfile::TempDir, axum::Router)> {
         .unwrap();
     drop(conn);
     let state: Arc<inim::catalog::web::AppState> =
-        inim::catalog::web::server::build_state(&path, std::path::Path::new("."), "0.1.0").unwrap();
+        inim::catalog::web::server::build_state(&path, std::path::Path::new("."), "0.1.0", false)
+            .unwrap();
     Some((dbdir, inim::catalog::web::server::build_app(state)))
 }
 

@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block title %}Analysis plan — {{ event_id }}{% endblock %}
+{% block content %}
+<h2>Analysis plan — {{ event_id }}</h2>
+<p class="muted">{{ title }}{% if !lifecycle.is_empty() %} · lifecycle: {{ lifecycle }}{% endif %}</p>
+
+{% if let Some(revised) = plan_revision_id %}
+<p class="ok">Plan revision {{ revised }} is current. Plan status: <strong>{{ plan_status }}</strong>
+{% if !block_reason.is_empty() %} — {{ block_reason }}{% endif %}</p>
+{% else %}
+<p class="muted">No plan revision exists yet for this event.</p>
+{% endif %}
+
+{% if plan_hash.is_some() %}
+<p class="muted">Canonical plan hash: <code>{{ plan_hash.as_deref().unwrap_or("") }}</code></p>
+{% endif %}
+
+<div class="panel">
+<h3>Reviewed input</h3>
+<table>
+{% for row in reviewed %}
+  <tr><th>{{ row.label }}</th><td>{{ row.value }}</td></tr>
+{% endfor %}
+</table>
+<p class="muted">Reviewed input comes only from reviewed manifests. The software never derives it.</p>
+</div>
+
+<div class="panel">
+<h3>Derived execution plan</h3>
+<table>
+{% for row in derived %}
+  <tr><th>{{ row.label }}</th><td>{{ row.value }}</td></tr>
+{% endfor %}
+</table>
+<p class="muted">Derived values are software-computed execution inputs; archive counts are estimates until the worker performs discovery.</p>
+</div>
+
+{% if !unresolved.is_empty() %}
+<div class="panel">
+<h3>Unresolved requirements</h3>
+<ul class="flat">
+{% for u in unresolved %}
+  <li class="err">{{ u }}</li>
+{% endfor %}
+</ul>
+{% if !warnings.is_empty() %}
+<ul class="flat">
+{% for w in warnings %}
+  <li class="muted">{{ w }}</li>
+{% endfor %}
+</ul>
+{% endif %}
+</div>
+{% endif %}
+
+{% if ready_to_queue %}
+<p class="ok">Ready to analyze.</p>
+{% if writes_enabled %}
+{% if let Some(plan_id) = plan_revision_id %}
+<form method="post" action="/analysis-plans/{{ plan_id }}/queue">
+  <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+  <button type="submit">Queue analysis</button>
+</form>
+{% endif %}
+{% else %}
+<p class="muted">Write mode is disabled; start the server with <code>--enable-writes</code> to queue.</p>
+{% endif %}
+{% else %}
+<p class="muted">This plan is not queueable until the unresolved requirements are reviewed.</p>
+{% endif %}
+
+{% if writes_enabled %}
+<div class="panel">
+<h3>Edit plan (creates a new immutable revision)</h3>
+<form method="post" action="/events/{{ event_id }}/analysis-plan">
+  <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+  <p><label for="f_source_family">Source family</label><br>
+  <input id="f_source_family" name="source_family" value="{{ editable.source_family }}"></p>
+  <p><label for="f_collectors">Collectors (comma separated)</label><br>
+  <input id="f_collectors" name="collectors" value="{{ editable.collectors }}"></p>
+  <p><label for="f_warmup">Warmup (minutes)</label><br>
+  <input id="f_warmup" name="warmup_minutes" type="number" value="{{ editable.warmup_minutes }}"></p>
+  <p><label for="f_cooldown">Cooldown (minutes)</label><br>
+  <input id="f_cooldown" name="cooldown_minutes" type="number" value="{{ editable.cooldown_minutes }}"></p>
+  <p><label for="f_start">Analysis start (RFC3339)</label><br>
+  <input id="f_start" name="analysis_start" value="{{ editable.analysis_start }}"></p>
+  <p><label for="f_end">Analysis end (RFC3339)</label><br>
+  <input id="f_end" name="analysis_end" value="{{ editable.analysis_end }}"></p>
+  <p><label for="f_note">Analyst note</label><br>
+  <textarea id="f_note" name="analyst_note" rows="2" cols="60"></textarea></p>
+  <fieldset>
+    <legend>Origin ASN entry</legend>
+    <p class="muted">Free-form ASN entry is <strong>candidate only</strong>: it marks the plan NeedsReview and it cannot be queued until reviewed.</p>
+    <p><label for="f_asns">Free-form origin ASNs (comma separated)</label><br>
+    <input id="f_asns" name="free_form_origin_asns" placeholder="64500, 64510"></p>
+  </fieldset>
+  <p><button type="submit">Create new plan revision</button></p>
+</form>
+</div>
+{% endif %}
+
+{% if !editable.analyst_notes.is_empty() %}
+<div class="panel">
+<h3>Analyst notes</h3>
+<ul class="flat">
+{% for n in editable.analyst_notes %}
+  <li>{{ n }}</li>
+{% endfor %}
+</ul>
+</div>
+{% endif %}
+
+<p><a href="/events/{{ event_id }}">Back to event</a></p>
+{% endblock %}

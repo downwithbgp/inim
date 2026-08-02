@@ -9,6 +9,7 @@ use serde::Serialize;
 
 use crate::catalog::db;
 use crate::catalog::domain::*;
+use crate::catalog::jobs::JobState;
 use crate::catalog::status::{self, CatalogStatus};
 use crate::catalog::web::handlers::EventListFilters;
 use crate::catalog::web::SharedState;
@@ -257,6 +258,13 @@ pub struct DashboardView {
     pub latest_sync: String,
     pub latest_completed: String,
     pub by_status: Vec<(String, usize)>,
+    pub jobs_queued: i64,
+    pub jobs_running: i64,
+    pub jobs_failed: i64,
+    pub jobs_completed: i64,
+    pub workers_online: i64,
+    pub workers_stale: i64,
+    pub writes_enabled: bool,
 }
 
 #[derive(Template)]
@@ -297,6 +305,14 @@ pub struct EventDetailView {
     pub snapshots: Vec<SnapshotView>,
     pub manifests: Vec<ManifestView>,
     pub runs: Vec<RunRowView>,
+    /// Workflow status line: Prepare analysis / Analysis planning
+    /// blocked / Ready to queue / Analysis running / Open workbench /
+    /// Latest execution failed.
+    pub workflow_status: String,
+    pub workflow_link: String,
+    pub workflow_detail: String,
+    pub active_job_id: Option<String>,
+    pub completed_run_id: Option<i64>,
 }
 
 pub struct SnapshotView {
@@ -425,6 +441,15 @@ pub fn load_dashboard(conn: &rusqlite::Connection) -> Result<DashboardView, Stri
         ("Failed".to_string(), count(CatalogStatus::Failed)),
         ("Stale".to_string(), count(CatalogStatus::Stale)),
     ];
+    let job_counts = crate::catalog::jobs::service::counts(conn).unwrap_or_default();
+    let workers = crate::catalog::jobs::service::list_workers(conn, 60).unwrap_or_default();
+    let (workers_online, workers_stale) =
+        workers
+            .iter()
+            .fold((0i64, 0i64), |(on, st), (_, f)| match f {
+                crate::catalog::jobs::service::WorkerFreshness::Online => (on + 1, st),
+                crate::catalog::jobs::service::WorkerFreshness::Stale => (on, st + 1),
+            });
     Ok(DashboardView {
         total_events: total,
         open_events: open,
@@ -437,6 +462,13 @@ pub fn load_dashboard(conn: &rusqlite::Connection) -> Result<DashboardView, Stri
         latest_sync,
         latest_completed,
         by_status,
+        jobs_queued: job_counts.queued,
+        jobs_running: job_counts.running,
+        jobs_failed: job_counts.failed,
+        jobs_completed: job_counts.completed,
+        workers_online,
+        workers_stale,
+        writes_enabled: false,
     })
 }
 
@@ -633,6 +665,11 @@ pub fn load_event_detail(
         })
         .collect();
 
+    // ── Job-workflow status (Part 22) ─────────────────────────────
+    // Plan status, job status, and run status stay visually distinct.
+    let (workflow_status, workflow_link, workflow_detail, active_job_id, completed_run_id) =
+        workflow_status_for(conn, event.id, &st, &result)?;
+
     Ok(Some(EventDetailView {
         event,
         status: st.as_str().to_string(),
@@ -647,7 +684,100 @@ pub fn load_event_detail(
         snapshots: snapshot_views,
         manifests: manifest_views,
         runs: run_rows,
+        workflow_status,
+        workflow_link,
+        workflow_detail,
+        active_job_id,
+        completed_run_id,
     }))
+}
+
+/// The event-page workflow line: status text, link, detail, active job
+/// id (when any), completed run id (when any).
+type WorkflowStatus = (String, String, String, Option<String>, Option<i64>);
+
+/// Compute the event-page workflow line. Plan status, job status, and
+/// run status are separate concepts; the line shows the LATEST relevant
+/// state without hiding history (multiple plan revisions, jobs, and
+/// runs remain visible in their own sections).
+fn workflow_status_for(
+    conn: &rusqlite::Connection,
+    event_id: i64,
+    _st: &CatalogStatus,
+    latest_verdict: &Option<String>,
+) -> Result<WorkflowStatus, String> {
+    use crate::catalog::jobs::service::{latest_manifest_revision, latest_plan};
+    let plan = latest_plan(conn, event_id)?;
+    let jobs = match &plan {
+        Some(p) => crate::catalog::jobs::service::list(
+            conn,
+            &crate::catalog::jobs::service::JobFilter {
+                state: None,
+                plan_revision_id: Some(p.id),
+            },
+        )?,
+        None => Vec::new(),
+    };
+    let active = jobs.iter().find(|j| j.state.is_active());
+    let latest = jobs.first();
+    let completed = jobs.iter().find(|j| j.completed_run_id.is_some());
+    if let Some(job) = active {
+        return Ok((
+            format!("Analysis running ({})", job.state.as_str()),
+            format!("/analysis-jobs/{}", job.id),
+            "execution state; the workbench is derived from completed runs only".to_string(),
+            Some(job.id.clone()),
+            completed.and_then(|j| j.completed_run_id),
+        ));
+    }
+    if let Some(run_id) = completed.and_then(|j| j.completed_run_id) {
+        return Ok((
+            "Open workbench".to_string(),
+            format!("/events/{event_id}/workbench"),
+            format!(
+                "completed run {run_id}; verdict: {}",
+                latest_verdict.as_deref().unwrap_or("—")
+            ),
+            None,
+            Some(run_id),
+        ));
+    }
+    if let Some(job) = latest {
+        if job.state == JobState::Failed {
+            return Ok((
+                "Latest execution failed".to_string(),
+                format!("/analysis-jobs/{}", job.id),
+                format!(
+                    "{}: {}",
+                    job.error_code
+                        .clone()
+                        .unwrap_or_else(|| "error".to_string()),
+                    job.error_summary.clone().unwrap_or_default()
+                ),
+                None,
+                None,
+            ));
+        }
+    }
+    let _ = latest_manifest_revision(conn, event_id)?;
+    let (status, link, detail) = match plan {
+        Some(p) if p.status == "Ready" => (
+            "Ready to queue".to_string(),
+            format!("/events/{event_id}/analysis-plan"),
+            "reviewed plan is ready; queue it for the worker".to_string(),
+        ),
+        Some(_) => (
+            "Analysis planning blocked".to_string(),
+            format!("/events/{event_id}/analysis-plan"),
+            "review the plan to see the exact blocker reasons".to_string(),
+        ),
+        None => (
+            "Prepare analysis".to_string(),
+            format!("/events/{event_id}/analysis-plan"),
+            "no plan revision exists yet".to_string(),
+        ),
+    };
+    Ok((status, link, detail, None, None))
 }
 
 #[derive(Serialize)]
@@ -5384,3 +5514,10 @@ impl<'a> CountingConnection<'a> {
         out
     }
 }
+
+// ── Job-workflow view models (jobs_view.rs) ─────────────────────────
+
+pub use crate::catalog::web::jobs_view::{
+    api_job_detail, api_jobs_index, api_plan_detail, edit_plan_revision, load_job_detail,
+    load_jobs_index, load_plan_review, JobDetailView, JobsIndexView, PlanReviewView,
+};

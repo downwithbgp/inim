@@ -33,3 +33,19 @@
 </ul>
 </div>
 {% endblock %}
+
+<div class="panel">
+<h2>Analysis jobs</h2>
+<table>
+  <tr><th>Queued analyses</th><td>{{ jobs_queued }}</td><td><a href="/analysis-jobs">jobs</a></td></tr>
+  <tr><th>Running analyses</th><td>{{ jobs_running }}</td></tr>
+  <tr><th>Failed analyses</th><td>{{ jobs_failed }}</td></tr>
+  <tr><th>Completed analyses</th><td>{{ jobs_completed }}</td></tr>
+  <tr><th>Workers online</th><td>{{ workers_online }}</td></tr>
+  <tr><th>Workers stale</th><td>{{ workers_stale }}</td></tr>
+</table>
+{% if !latest_completed.is_empty() %}
+<p>Most recent completed analysis: <a href="/analysis-jobs">{{ latest_completed }}</a></p>
+{% endif %}
+<p class="muted">Worker presence is freshness-based; no worker observed is not a health problem.</p>
+</div>

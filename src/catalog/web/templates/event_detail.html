@@ -5,6 +5,14 @@
 <p class="muted">{{ title }}</p>
 
 <div class="panel">
+<h3>Analysis workflow</h3>
+<p><a href="{{ workflow_link }}">{{ workflow_status }}</a>{% if !workflow_detail.is_empty() %} — {{ workflow_detail }}{% endif %}</p>
+{% if active_job_id.is_some() %}
+<p class="muted">An active job does not create a workbench; the workbench is derived from completed runs only.</p>
+{% endif %}
+</div>
+
+<div class="panel">
 <table>
   <tr><th>Status</th><td>{% if status == "Stale" %}<span class="tag stale">{{ status }}</span>{% elif status == "Blocked" %}<span class="tag blocked">{{ status }}</span>{% else %}<span class="tag">{{ status }}</span>{% endif %}</td></tr>
   <tr><th>Lifecycle</th><td>{{ lifecycle }}</td></tr>

@@ -38,6 +38,7 @@ pub fn build_state(
     db_path: &Path,
     catalog_root: &Path,
     software_version: &str,
+    writes_enabled: bool,
 ) -> Result<Arc<AppState>, String> {
     let conn = if db_path.exists() {
         super::super::db::open_catalog(db_path)?
@@ -52,6 +53,8 @@ pub fn build_state(
         db: Mutex::new(conn),
         catalog_root: catalog_root.to_path_buf(),
         software_version: software_version.to_string(),
+        writes_enabled,
+        csrf_token: super::generate_csrf_token(),
     }))
 }
 
@@ -60,28 +63,43 @@ pub fn build_app(state: Arc<AppState>) -> Router {
     super::build_router(state)
 }
 
-/// Run the web server with graceful shutdown on Ctrl-C.
+/// Run the web server with graceful shutdown on Ctrl-C / SIGTERM.
 pub async fn serve(
     db_path: &Path,
     catalog_root: &Path,
     bind: &str,
     allow_non_loopback: bool,
+    enable_writes: bool,
+    allow_unauthenticated_writes: bool,
     software_version: &str,
 ) -> Result<(), String> {
     let addr = validate_bind(bind, allow_non_loopback)?;
     if !addr.ip().is_loopback() {
-        eprintln!(
-            "WARNING: binding to {addr} (non-loopback). The initial application has no authentication."
-        );
+        if enable_writes && !allow_unauthenticated_writes {
+            return Err(
+                "refusing to enable writes on a non-loopback bind: write mode is unauthenticated \
+                 and intended for trusted local use only; pass --allow-unauthenticated-writes to \
+                 acknowledge this explicitly"
+                    .to_string(),
+            );
+        }
+        eprintln!("WARNING: binding to {addr} (non-loopback). There is no authentication.");
     }
-    let state = build_state(db_path, catalog_root, software_version)?;
+    let state = build_state(db_path, catalog_root, software_version, enable_writes)?;
     let app = build_app(state);
     let listener = tokio::net::TcpListener::bind(addr)
         .await
         .map_err(|e| format!("cannot bind {addr}: {e}"))?;
-    eprintln!(
-        "inim catalog web UI listening on http://{addr} (read-only, no analysis on request path)"
-    );
+    if enable_writes {
+        eprintln!(
+            "inim catalog web UI listening on http://{addr} (WRITE MODE ENABLED: unauthenticated \
+             local mutations with CSRF; no analysis on request path)"
+        );
+    } else {
+        eprintln!(
+            "inim catalog web UI listening on http://{addr} (read-only, no analysis on request path)"
+        );
+    }
     axum::serve(listener, app)
         .with_graceful_shutdown(shutdown_signal())
         .await
@@ -89,7 +107,23 @@ pub async fn serve(
 }
 
 async fn shutdown_signal() {
-    let _ = tokio::signal::ctrl_c().await;
+    // SIGINT and SIGTERM both stop accepting requests and finish
+    // in-flight short mutations; the web process never owns worker
+    // execution, so no job state is touched here.
+    let ctrl_c = tokio::signal::ctrl_c();
+    #[cfg(unix)]
+    {
+        let mut term = tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())
+            .expect("cannot install SIGTERM handler");
+        tokio::select! {
+            _ = ctrl_c => {}
+            _ = term.recv() => {}
+        }
+    }
+    #[cfg(not(unix))]
+    {
+        let _ = ctrl_c.await;
+    }
 }
 
 #[cfg(test)]
