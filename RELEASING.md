@@ -60,7 +60,7 @@ Inspect the packaged contents:
 ```sh
 cargo package
 # locate target/package/inim-0.1.0.crate
-mkdir -p /tmp/inim-pkg && cd /tmp/inim-pkg
+mkdir -p tmp/inim-pkg && cd tmp/inim-pkg
 tar xzf <path-to>.crate
 cd inim-0.1.0
 cargo test
@@ -77,7 +77,7 @@ cargo clippy --all-targets --all-features -- -D warnings
    publication is enabled by default).
 3. Create and push the git tag `v0.1.0` only when explicitly requested.
 
-## Screenshot review workflow (Session 32)
+## Screenshot review workflow
 
 - Run `scripts/screenshot-review.sh` (requires an installed Playwright
   chromium; loopback only; deterministic demo catalog at
@@ -89,7 +89,7 @@ cargo clippy --all-targets --all-features -- -D warnings
   (`cargo package --list`), and that no browser dependency enters the Rust
   runtime graph.
 
-## Corpus packaging (Session 33)
+## Corpus packaging
 
 - The downloaded corpus (public ticket snapshots acquired by
   `inim catalog sync grnoc` into the local database) is **excluded
