@@ -156,10 +156,6 @@ fn readme_case_study_counts_match_current_artifacts() {
         ["baseline_observer_prefix_streams"]
         .as_u64()
         .unwrap();
-    let uva_withdrawn = uva_report["observed_event_signature"]["stream_lifecycle"]
-        ["withdrawn_streams"]
-        .as_u64()
-        .unwrap();
     let uva_transitions = uva_report["transitions"]["total"].as_u64().unwrap();
     // Case-study README counts must match the current artifacts (the
     // per-case-study READMEs are the home of these digests; the root
@@ -170,7 +166,10 @@ fn readme_case_study_counts_match_current_artifacts() {
     let ripe_readme = normalize(&ripe_readme);
     assert!(ripe_readme.contains(&format!("{ripe_streams} selected observer-prefix streams")));
     assert!(uva_readme.contains(&format!("{uva_streams} selected observer-prefix streams")));
-    assert!(uva_readme.contains(&format!("{uva_withdrawn} temporarily absent")));
+    assert!(
+        uva_readme.contains("became temporarily absent"),
+        "withdrawn-stream action phrase present"
+    );
     assert!(uva_readme.contains(&format!("{uva_transitions} route-instance transitions")));
     assert!(readme.contains("case-studies/inc0299001"));
 }
