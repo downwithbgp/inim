@@ -1448,6 +1448,30 @@ async fn temporary_absence_with_restoration_has_restored_end_state() {
 }
 
 #[tokio::test]
+async fn false_prepend_link_is_not_rendered() {
+    // Part 0 (Session 45): the MAN LAN direct-absence finding must not
+    // render an earlier-change link claiming origin prepending when the
+    // canonical evidence holds no origin prepend delta (equal occurrence
+    // counts). A related route transition alone is not a prepend change.
+    let (status, body) = manlan_workbench().await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    for chunk in body.split("wb-earlier-change").skip(1) {
+        let link = chunk.split("</p>").next().unwrap_or("");
+        assert!(
+            !link.contains("prepending"),
+            "false prepend earlier-change link rendered: {link}"
+        );
+    }
+    assert!(
+        !body.contains("AS2603×1 to AS2603×1"),
+        "equal-count prepend claim rendered"
+    );
+}
+
+#[tokio::test]
 async fn case_study_pilot_has_no_incident_wide_verdict() {
     let (status, body) = manlan_workbench().await;
     if body.is_empty() {

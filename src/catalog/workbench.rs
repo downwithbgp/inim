@@ -2076,36 +2076,38 @@ pub fn build_findings(
                 };
                 let pre_refs: Vec<&StreamRecord> = pre_records.iter().collect();
                 let prepend_id = emit(&pre_refs, &kind, &end_state, pi, None);
-                // The earlier-change link (Session 44, Part 4): the
-                // withdrawal finding visibly links to the separate
-                // prepend finding; the two events are never merged.
-                let origin = target_origin_asns.first().copied();
-                let earlier_label = if let Some(o) = origin {
-                    let before_n = pre_records
-                        .iter()
-                        .map(|r| r.baseline.iter().filter(|a| **a == o).count())
-                        .max()
-                        .unwrap_or(0);
-                    let after_n = pre_records
-                        .iter()
-                        .map(|r| {
-                            r.changed
-                                .as_deref()
-                                .map(|c| c.iter().filter(|a| **a == o).count())
-                                .unwrap_or(0)
-                        })
-                        .max()
-                        .unwrap_or(0);
-                    let direction = if after_n < before_n {
-                        "reduced"
+                // The earlier-change link: the withdrawal finding links
+                // to the separate prepend finding only when the canonical
+                // pre-withdrawal transition is a real prepend delta on the
+                // target origin. A related route transition alone is not
+                // a prepend change, and equal occurrence counts are not
+                // a delta. Counts come from the canonical transition
+                // (the homogeneous pre-withdrawal shape), never from
+                // per-record max projections that can hide a delta.
+                let earlier_change = if kind == EffectKind::PrependChange {
+                    if let Some(o) = target_origin_asns.first().copied() {
+                        let before_n = shape[0].1.iter().filter(|a| **a == o).count();
+                        let after_n = shape[0].2.iter().filter(|a| **a == o).count();
+                        if before_n != after_n {
+                            let direction = if after_n < before_n {
+                                "reduced"
+                            } else {
+                                "increased"
+                            };
+                            Some(EarlierChange {
+                                stable_id: prepend_id,
+                                label: format!(
+                                    "origin prepending {direction} from AS{o}×{before_n} to AS{o}×{after_n} while the routes remained visible"
+                                ),
+                            })
+                        } else {
+                            None
+                        }
                     } else {
-                        "increased"
-                    };
-                    format!(
-                        "origin prepending {direction} from AS{o}×{before_n} to AS{o}×{after_n} while the routes remained visible"
-                    )
+                        None
+                    }
                 } else {
-                    "the routes remained visible through an earlier change".to_string()
+                    None
                 };
                 // The absence finding: withdrawal + return + later
                 // transitions (the settle stays in this chronology).
@@ -2118,16 +2120,7 @@ pub fn build_findings(
                     })
                     .collect();
                 let abs_refs: Vec<&StreamRecord> = abs_records.iter().collect();
-                emit(
-                    &abs_refs,
-                    &e.effect_kind,
-                    &e.end_state,
-                    pi,
-                    Some(EarlierChange {
-                        stable_id: prepend_id,
-                        label: earlier_label,
-                    }),
-                );
+                emit(&abs_refs, &e.effect_kind, &e.end_state, pi, earlier_change);
             } else {
                 emit(&part, &e.effect_kind, &e.end_state, pi, None);
             }
@@ -11166,7 +11159,7 @@ mod session42_tests {
 
     /// Build an index entry with an explicit per-prefix transition
     /// list: (kind, timestamp, before, after).
-    fn path_index_with_transitions(
+    pub(super) fn path_index_with_transitions(
         collector: &str,
         peer: &str,
         prefix: &str,
@@ -11992,5 +11985,229 @@ mod session44_tests {
         // event baseline.
         f.final_path_signature = "AS4777 AS64512 AS2603".to_string();
         assert_eq!(human_window_end_state(f), "Event baseline path present");
+    }
+}
+/// Part 0 (Session 45): the earlier-change link between an absence
+/// finding and the separate visible prepend finding must be grounded in
+/// canonical transition semantics. A prepend-change relationship is
+/// displayed only when the canonical pre-withdrawal transition is a real
+/// prepend delta on the target origin: before occurrence count differs
+/// from after occurrence count. A related route transition alone is not
+/// a prepend change, and equal occurrence counts are not a delta.
+#[cfg(test)]
+mod prepend_link_tests {
+    use super::finding_test_helpers::absence_episode;
+    use super::session42_tests::path_index_with_transitions;
+    use super::*;
+
+    fn run_findings(
+        eps: &[ObserverEpisode],
+        index: &LifecyclePathIndex,
+        target_label: &str,
+        origins: &[u32],
+    ) -> Vec<RoutingFinding> {
+        let mut run_events = std::collections::HashMap::new();
+        run_events.insert(1, "EV".to_string());
+        build_findings(
+            eps,
+            index,
+            &AsnIdentityRegistry::default(),
+            target_label,
+            origins,
+            "",
+            &run_events,
+            "2019-08-21",
+            "2019-08-21T18:00:00Z",
+        )
+    }
+
+    fn manlan_absence(prefix: &str) -> ObserverEpisode {
+        absence_episode(
+            1,
+            "routeviews/route-views2 peer 163.253.3.14",
+            "Eugene, Oregon, US",
+            "AMER",
+            64512,
+            RelationshipKind::Direct,
+            "2019-08-21T16:45:25Z",
+            "2019-08-21T16:50:00Z",
+            &[prefix],
+        )
+    }
+
+    #[test]
+    fn equal_prepend_counts_are_not_a_prepend_change() {
+        // MAN LAN defect shape: the pre-withdrawal transition is a real
+        // prepend delta on a TRANSIT ASN (AS40220 1->2) while the target
+        // origin AS2603 stays 1->1. Equal origin counts are not an
+        // origin-prepend change: the absence finding must carry no
+        // earlier-change link claiming one.
+        let eps = vec![manlan_absence("158.38.0.0/16")];
+        let index = path_index_with_transitions(
+            "route-views2",
+            "163.253.3.14",
+            "158.38.0.0/16",
+            &[64512, 40220, 2603],
+            &[64512, 40220, 40220, 2603],
+            &[
+                (
+                    "PathReplacement",
+                    "2019-08-21T16:45:25Z",
+                    &[64512, 40220, 2603],
+                    &[64512, 40220, 40220, 2603],
+                ),
+                (
+                    "Withdrawal",
+                    "2019-08-21T16:46:00Z",
+                    &[64512, 40220, 40220, 2603],
+                    &[],
+                ),
+                (
+                    "Announcement",
+                    "2019-08-21T16:47:00Z",
+                    &[],
+                    &[64512, 40220, 40220, 2603],
+                ),
+            ],
+        );
+        let findings = run_findings(&eps, &index, "TARGET (AS2603)", &[2603]);
+        assert_eq!(findings.len(), 2, "prepend + absence are separate findings");
+        let prepend = findings
+            .iter()
+            .find(|f| f.effect == RoutingEffect::PrependingChanged)
+            .expect("the transit prepend delta is still classified as prepending");
+        assert!(!prepend.streams[0].withdrawn);
+        let absent = findings
+            .iter()
+            .find(|f| f.effect == RoutingEffect::PrefixesTemporarilyAbsent)
+            .expect("the absence finding");
+        assert!(
+            absent.earlier_change.is_none(),
+            "equal origin counts must not produce an earlier prepend link"
+        );
+        for f in &findings {
+            if let Some(ec) = &f.earlier_change {
+                assert!(
+                    !ec.label.contains("prepending"),
+                    "no prepend claim when the origin count is unchanged: {}",
+                    ec.label
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn origin_prepend_language_requires_actual_origin_delta() {
+        // UVA shape: the canonical pre-withdrawal transition is a real
+        // origin prepend delta (AS225 x7 -> x1). The earlier-change link
+        // is kept and uses the exact canonical counts.
+        let eps = vec![absence_episode(
+            1,
+            "routeviews/route-views2 peer 163.253.3.14",
+            "Eugene, Oregon, US",
+            "AMER",
+            64512,
+            RelationshipKind::Direct,
+            "2026-07-14T07:24:47Z",
+            "2026-07-14T07:56:00Z",
+            &["137.54.0.0/16"],
+        )];
+        let index = path_index_with_transitions(
+            "route-views2",
+            "163.253.3.14",
+            "137.54.0.0/16",
+            &[64512, 40220, 225, 225, 225, 225, 225, 225, 225],
+            &[64512, 40220, 225],
+            &[
+                (
+                    "PathReplacement",
+                    "2026-07-14T07:24:47Z",
+                    &[64512, 40220, 225, 225, 225, 225, 225, 225, 225],
+                    &[64512, 40220, 225],
+                ),
+                (
+                    "Withdrawal",
+                    "2026-07-14T07:33:59Z",
+                    &[64512, 40220, 225],
+                    &[],
+                ),
+                (
+                    "Announcement",
+                    "2026-07-14T07:33:59Z",
+                    &[],
+                    &[64512, 40220, 225, 225, 225, 225, 225, 225, 225],
+                ),
+            ],
+        );
+        let findings = run_findings(&eps, &index, "UVA via transit", &[225]);
+        assert_eq!(findings.len(), 2);
+        let absent = findings
+            .iter()
+            .find(|f| f.effect == RoutingEffect::PrefixesTemporarilyAbsent)
+            .expect("the absence finding");
+        let ec = absent
+            .earlier_change
+            .as_ref()
+            .expect("a real origin delta keeps the earlier-change link");
+        assert_eq!(
+            ec.label,
+            "origin prepending reduced from AS225×7 to AS225×1 while the routes remained visible"
+        );
+        assert!(
+            ec.stable_id.contains("prepending-changed"),
+            "the link points at the prepend finding: {}",
+            ec.stable_id
+        );
+    }
+
+    #[test]
+    fn related_finding_link_uses_canonical_transition_semantics() {
+        // A material path replacement (transit ASN swapped) that also
+        // changes the origin count is NOT a prepend change: no
+        // earlier-change link may be created merely because a related
+        // route transition exists before the withdrawal.
+        let eps = vec![manlan_absence("158.38.13.0/24")];
+        let index = path_index_with_transitions(
+            "route-views2",
+            "163.253.3.14",
+            "158.38.13.0/24",
+            &[64512, 40220, 2603, 2603, 2603],
+            &[64512, 22388, 2603],
+            &[
+                (
+                    "PathReplacement",
+                    "2019-08-21T16:45:25Z",
+                    &[64512, 40220, 2603, 2603, 2603],
+                    &[64512, 22388, 2603],
+                ),
+                (
+                    "Withdrawal",
+                    "2019-08-21T16:46:00Z",
+                    &[64512, 22388, 2603],
+                    &[],
+                ),
+                (
+                    "Announcement",
+                    "2019-08-21T16:47:00Z",
+                    &[],
+                    &[64512, 22388, 2603],
+                ),
+            ],
+        );
+        let findings = run_findings(&eps, &index, "TARGET (AS2603)", &[2603]);
+        assert_eq!(findings.len(), 2, "split still emits two findings");
+        let absent = findings
+            .iter()
+            .find(|f| f.effect == RoutingEffect::PrefixesTemporarilyAbsent)
+            .expect("the absence finding");
+        assert!(
+            absent.earlier_change.is_none(),
+            "a path replacement is not a prepend change: {:?}",
+            absent.earlier_change
+        );
+        // Control: with a canonical PrependChange transition the link IS
+        // kept (origin_prepend_language_requires_actual_origin_delta),
+        // so link presence tracks the transition classification, not the
+        // bare existence of a related transition.
     }
 }
