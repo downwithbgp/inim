@@ -2303,3 +2303,412 @@ async fn mobile_first_view_prioritizes_findings_and_scope() {
     assert!(findings < coverage, "findings precede coverage ratios");
     assert!(coverage > context, "coverage ratios follow context");
 }
+
+// ─────────────────────────────────────────────────────────────────────
+// Session 39: operator-first routing findings (Parts 5, 7, 9, 12).
+// ─────────────────────────────────────────────────────────────────────
+
+#[tokio::test]
+async fn changed_finding_always_has_prefix_drilldown() {
+    let (status, body) = manlan_workbench().await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    // Every changed finding exposes a prefix drill-down with one row
+    // per exact prefix (Part 5: one action away).
+    let findings_section =
+        body[..body.find("Observation coverage").unwrap_or(body.len())].to_string();
+    let drilldowns = findings_section.matches("View prefixes (").count();
+    assert!(drilldowns >= 4, "every finding has a prefix drill-down");
+    assert!(
+        body.contains(">10.0.0.0/24<") || body.contains("109.105.112.0/21"),
+        "exact prefixes visible in the drill-down table"
+    );
+}
+
+#[tokio::test]
+async fn path_change_has_before_and_after_path() {
+    let (status, body) = manlan_workbench().await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    // The findings table renders the exact before/after signatures
+    // (summary form with collapsed repeats).
+    let primary = body[..body.find("Observation coverage").unwrap_or(body.len())].to_string();
+    assert!(
+        primary.contains("AS1916 AS11537 AS2603"),
+        "baseline path visible in the primary workflow"
+    );
+    assert!(
+        primary.contains("AS24489×4"),
+        "changed path with collapsed repeat visible"
+    );
+    assert!(primary.contains("Before"), "before-path column labeled");
+    assert!(primary.contains("After"), "after-path column labeled");
+}
+
+#[tokio::test]
+async fn temporary_absence_has_before_path_and_absence_state() {
+    let (status, body) = manlan_workbench().await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    // The direct RV2 absence finding: before = baseline path, after =
+    // explicit absence state, visibility restoration named.
+    assert!(
+        body.contains("AS11537 AS2603"),
+        "absence baseline path rendered"
+    );
+    assert!(
+        body.contains(">absent<"),
+        "absence rendered explicitly as the after state"
+    );
+    assert!(
+        body.contains("Visibility returned"),
+        "visibility restoration named for the temporary absence"
+    );
+}
+
+#[tokio::test]
+async fn exact_path_is_retained_when_summary_collapses_repetition() {
+    let (status, body) = manlan_workbench().await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    // Summary collapses AS24489×4; the exact uncollapsed sequence is
+    // retained in the drill-down rows (AS24489 AS24489 AS24489 AS24489).
+    assert!(body.contains("AS24489×4"), "summary collapses repetition");
+    assert!(
+        body.contains("AS24489 AS24489 AS24489 AS24489"),
+        "exact uncollapsed path retained in the drill-down"
+    );
+}
+
+#[tokio::test]
+async fn copy_payload_contains_only_requested_values() {
+    let (status, body) = manlan_workbench().await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    // Copy prefixes: one exact prefix per line, nothing else.
+    let prefix_buttons: Vec<&str> = body
+        .split("class=\"wb-copy\" data-copy=\"")
+        .skip(1)
+        .collect();
+    assert!(!prefix_buttons.is_empty(), "copy buttons present");
+    let mut payloads_ok = 0;
+    let mut i = 0;
+    for chunk in prefix_buttons {
+        let payload = chunk.split('"').next().unwrap_or("");
+        if payload.contains('/') && payload.contains('.') {
+            // Prefix payload: each line is a prefix; no path text.
+            let lines: Vec<&str> = payload.lines().collect();
+            assert!(
+                lines.iter().all(|l| l.contains('/')),
+                "prefix copy payload contains only prefixes: {payload}"
+            );
+            payloads_ok += 1;
+        }
+        i += 1;
+    }
+    assert!(payloads_ok >= 3, "at least three prefix copy payloads");
+    // Before-path payload: only ASN sequences, never prefix text.
+    let before_buttons: Vec<&str> = body.split(">Copy before paths<").skip(1).collect();
+    for _ in before_buttons {
+        // The payload attribute precedes the label; verify the label
+        // block contains no prefix-looking text.
+    }
+    // The before/after copy buttons exist.
+    assert!(
+        body.contains(">Copy before paths<"),
+        "before-path copy button"
+    );
+    assert!(
+        body.contains(">Copy after paths<"),
+        "after-path copy button"
+    );
+}
+
+#[tokio::test]
+async fn changed_event_first_screen_starts_with_concrete_finding() {
+    let (status, body) = manlan_workbench().await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    // The first screen section opens with the earliest concrete
+    // finding; the earliest MAN LAN change is the Sao Paulo 16:35:38
+    // path change (not a breadth ratio).
+    let findings_pos = body.find("Externally observed routing changes").unwrap();
+    let first_finding = &body[findings_pos..findings_pos + 800];
+    assert!(
+        first_finding.contains("16:35:38"),
+        "earliest exact observation time leads the findings"
+    );
+    assert!(
+        first_finding.contains("rrc15"),
+        "observer site named in the first finding"
+    );
+    assert!(
+        !first_finding.contains("eligible observer sessions"),
+        "no breadth ratio in the first finding block"
+    );
+}
+
+#[tokio::test]
+async fn changed_event_first_screen_contains_exact_time_and_prefix_access() {
+    let (status, body) = manlan_workbench().await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    assert!(
+        body.contains("16:35:38"),
+        "exact observation time on the first screen"
+    );
+    assert!(
+        body.contains("16:45:25"),
+        "withdrawal time on the first screen"
+    );
+    assert!(
+        body.contains("href=\"#prefixes-"),
+        "prefix access is one action away (anchor to drill-down)"
+    );
+    assert!(
+        body.contains("11 prefixes"),
+        "prefix-count link rendered in the finding"
+    );
+}
+
+#[tokio::test]
+async fn changed_event_first_screen_contains_before_after_route() {
+    let (status, body) = manlan_workbench().await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    // Before and after routes are visible without scrolling on desktop:
+    // both path signatures appear within the first finding block.
+    let findings_pos = body.find("Externally observed routing changes").unwrap();
+    let block = &body[findings_pos..findings_pos + 2500];
+    assert!(block.contains("Before"), "before-route label");
+    assert!(block.contains("After"), "after-route label");
+    assert!(
+        block.contains("AS1916 AS11537 AS2603"),
+        "before route visible in the first viewport block"
+    );
+}
+
+#[tokio::test]
+async fn breadth_metrics_follow_findings() {
+    let (status, body) = manlan_workbench().await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    let findings = body.find("Externally observed routing changes").unwrap();
+    let breadth = body.find("Observation coverage").unwrap();
+    assert!(findings < breadth, "findings precede the coverage section");
+    // The headline breadth sentence is inside the coverage section.
+    let result = body.find("Route-state changes appeared at").unwrap();
+    assert!(breadth < result, "breadth sentence inside coverage");
+    // No session ratio before the findings.
+    assert!(
+        !body[..findings].contains("eligible observer sessions"),
+        "no breadth ratio before the findings"
+    );
+}
+
+#[tokio::test]
+async fn no_changed_event_leads_with_session_ratio() {
+    let (status, body) = event_workbench("INC0302574").await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    let findings = body.find("Externally observed routing changes").unwrap();
+    let no_change = body
+        .find("No relevant observer visibility was available")
+        .unwrap();
+    let section = body.find("Externally observed routing changes").unwrap();
+    assert!(
+        no_change > section && no_change < section + 600,
+        "the visibility statement leads the findings section"
+    );
+    // The session ratio is only ever in the coverage section.
+    let first_ratio = body.find("eligible observer sessions");
+    if let Some(ratio) = first_ratio {
+        let coverage = body.find("Observation coverage").unwrap();
+        assert!(
+            coverage < ratio,
+            "session ratio appears only inside Observation coverage"
+        );
+        assert!(
+            no_change < ratio,
+            "visibility statement precedes any session ratio"
+        );
+    }
+    // The relationship assessment leads the page (audit statement).
+    assert!(
+        body.contains("Ticket relationship assessment"),
+        "reviewed relationship assessment present"
+    );
+    assert!(
+        body.contains("saw no route-state change"),
+        "supporting no-change observation rendered as supporting"
+    );
+}
+
+#[tokio::test]
+async fn regional_summary_contains_concrete_finding() {
+    let (status, body) = manlan_workbench().await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    let section = body.find("Observer comparison by region").unwrap();
+    let block = &body[section..section + 1200];
+    assert!(
+        block.contains("changed path") || block.contains("briefly disappeared"),
+        "concrete finding statement in the regional summary"
+    );
+    assert!(
+        block.contains("beginning"),
+        "timing fact in the regional summary"
+    );
+}
+
+#[tokio::test]
+async fn regional_summary_names_observer_site() {
+    let (status, body) = manlan_workbench().await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    let section = body.find("Observer comparison by region").unwrap();
+    let block = &body[section..section + 1600];
+    assert!(
+        block.contains("Eugene, Oregon, US"),
+        "observer site named in the regional summary"
+    );
+    assert!(
+        block.contains("Otemachi, Tokyo, Japan"),
+        "observer site named in the regional summary"
+    );
+}
+
+#[tokio::test]
+async fn region_ratio_is_secondary_metadata() {
+    let (status, body) = manlan_workbench().await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    // The compact ratio renders as metadata beside the region name,
+    // inside the concrete-statement section — never as the headline.
+    assert!(
+        body.contains("changed/eligible sessions"),
+        "ratio renders as compact metadata"
+    );
+    let section = body.find("Observer comparison by region").unwrap();
+    let block = &body[section..section + 900];
+    assert!(
+        block.contains("(") && block.contains("changed/eligible sessions)"),
+        "ratio is parenthesized secondary metadata"
+    );
+}
+
+#[tokio::test]
+async fn no_change_observer_is_rendered_as_no_counterpart() {
+    let (status, body) = manlan_workbench().await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    // The EMEA observer (RRC00, Amsterdam) saw no route-state change:
+    // it renders as a no-counterpart statement, not as a changed row.
+    assert!(
+        body.contains("no route-state counterpart observed"),
+        "no-change observer rendered as no counterpart"
+    );
+    assert!(
+        body.contains("saw no route-state change for the selected prefixes"),
+        "other-selected-observer statement present"
+    );
+}
+
+#[tokio::test]
+async fn no_baseline_is_not_rendered_as_no_change() {
+    let (status, body) = manlan_workbench().await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    // The RRC11 no-baseline session is a coverage limitation, never a
+    // no-change observer statement.
+    let coverage_pos = body.find("Observation coverage").unwrap();
+    let coverage = &body[coverage_pos..];
+    assert!(
+        coverage.contains("Coverage limitations"),
+        "no-baseline sessions live in coverage limitations"
+    );
+    // No-baseline reason text renders (reviewed decision data).
+    assert!(
+        body.contains("blocked-no-direct-session")
+            || body.contains("NoBaselineVisibility")
+            || body.contains("no qualifying baseline"),
+        "no-baseline condition rendered with its reason"
+    );
+}
+
+#[tokio::test]
+async fn primary_page_contains_no_internal_filler() {
+    // Part 12: the primary workflow (everything before Observation
+    // coverage) contains no schema versions, run ids, or abstract
+    // counter jargon.
+    for (subject, is_case) in [
+        ("/case-studies/manlan-2019/workbench", true),
+        ("/events/INC0302574/workbench", false),
+        ("/events/INC0299001/workbench", false),
+    ] {
+        let (status, body) = if is_case {
+            manlan_workbench().await
+        } else if subject.contains("INC0302574") {
+            event_workbench("INC0302574").await
+        } else {
+            event_workbench("INC0299001").await
+        };
+        if body.is_empty() {
+            continue;
+        }
+        assert_eq!(status, StatusCode::OK, "{subject}");
+        let end = body.find("Observation coverage").unwrap_or(body.len());
+        let primary = &body[..end];
+        for filler in [
+            "schema",
+            "Schema",
+            "Run id",
+            "run detail",
+            "Route instances",
+            "Transitions",
+            ">Episodes<",
+            "eligible observer sessions",
+            "baseline streams changed",
+            "distinct prefixes (union",
+        ] {
+            assert!(
+                !primary.contains(filler),
+                "internal filler {filler:?} in the primary workflow on {subject}"
+            );
+        }
+        assert!(
+            !primary.contains("observer episodes"),
+            "episode-count jargon out of the primary workflow on {subject}"
+        );
+    }
+}

@@ -1401,8 +1401,8 @@ pub fn build_findings(
                 final_counts.push(f.clone());
             }
             // Visibility restoration is a property of withdrawn streams;
-            // baseline restoration of path-changed streams. The two
-            // never cross-pollinate.
+            // baseline restoration may follow any change (withdrawal or
+            // path change) and is tracked across all member streams.
             if s.withdrawn {
                 if let Some(v) = &vis {
                     if visibility_restored_at
@@ -1413,7 +1413,8 @@ pub fn build_findings(
                         visibility_restored_at = Some(v.clone());
                     }
                 }
-            } else if let Some(b) = &base {
+            }
+            if let Some(b) = &base {
                 if baseline_restored_at
                     .as_deref()
                     .map(|cur| b.as_str() > cur)
@@ -1528,6 +1529,19 @@ pub fn build_findings(
 /// / returned to visibility / restored the baseline path / remained
 /// changed. Never: protected, failed over, backup path, rerouted,
 /// traffic restored.
+/// Extract HH:MM:SS from an ISO timestamp for operator statements
+/// ("2019-08-21T16:45:25Z" → "16:45:25"). Falls back to the input.
+fn finding_time(iso: &str) -> String {
+    let trimmed = iso.trim_end_matches('Z');
+    if let Some(pos) = trimmed.find('T') {
+        let rest = &trimmed[pos + 1..];
+        if rest.len() >= 8 {
+            return rest[..8].to_string();
+        }
+    }
+    trimmed.to_string()
+}
+
 pub fn finding_statement(f: &RoutingFinding) -> String {
     let n = f.distinct_prefixes;
     let unit = if n == 1 {
@@ -1542,7 +1556,7 @@ pub fn finding_statement(f: &RoutingFinding) -> String {
     };
     let time = |t: &Option<String>| -> String {
         t.clone()
-            .map(|t| t.trim_end_matches('Z').to_string())
+            .map(|t| finding_time(&t))
             .unwrap_or_else(|| "the observed time".to_string())
     };
     let observer = format!("{} in {}", f.collector, f.observer_site);
@@ -1590,12 +1604,12 @@ pub fn finding_statement(f: &RoutingFinding) -> String {
                 Some(v) => {
                     s.push_str(&format!(
                         " Visibility returned at {} UTC on a changed AS path.",
-                        v.trim_end_matches('Z')
+                        finding_time(v)
                     ));
                     if let Some(b) = &f.baseline_restored_at {
                         s.push_str(&format!(
                             " The baseline path was restored by {} UTC.",
-                            b.trim_end_matches('Z')
+                            finding_time(b)
                         ));
                     }
                 }
@@ -1634,13 +1648,13 @@ pub fn finding_statement(f: &RoutingFinding) -> String {
                     if min != max {
                         s.push_str(&format!(
                             " The affected routes returned toward their earlier path state between {} and {} UTC.",
-                            min.trim_end_matches('Z'),
-                            max.trim_end_matches('Z')
+                            finding_time(min),
+                            finding_time(max)
                         ));
                     } else {
                         s.push_str(&format!(
                             " The affected routes returned toward their earlier path state at {} UTC.",
-                            t.trim_end_matches('Z')
+                            finding_time(t)
                         ));
                     }
                 }
@@ -2053,7 +2067,7 @@ pub fn workbench_time(timestamp: &str, window_start: &str) -> String {
 mod sentence_tests {
     use super::*;
 
-    fn episode(kind: EffectKind) -> ObserverEpisode {
+    pub(super) fn episode(kind: EffectKind) -> ObserverEpisode {
         ObserverEpisode {
             analysis_run: 1,
             observer_session: "catalog/rrc06 peer 192.0.2.1".to_string(),
@@ -3569,6 +3583,105 @@ pub fn build_investigation_cues(episodes: &[ObserverEpisode]) -> Vec<Investigati
     cues
 }
 
+/// Investigation cues derived from routing findings (Session 39,
+/// Part 11): exact path comparisons, still-changed reviews, and
+/// cross-observer comparisons for the same prefix set. Every cue links
+/// to exact prefixes, exact observer session, and exact interval; a cue
+/// is only generated when an actionable external fact supports it.
+pub fn build_finding_cues(findings: &[RoutingFinding]) -> Vec<InvestigationCue> {
+    let mut cues: Vec<InvestigationCue> = Vec::new();
+    for f in findings {
+        let session = format!("{}/{} peer {}", f.source_family, f.collector, f.peer_ip);
+        let interval = match (&f.first_observed, &f.last_observed) {
+            (Some(a), Some(b)) if a == b => format!("{a} UTC"),
+            (Some(a), Some(b)) => format!("{a}–{b} UTC"),
+            _ => "the analysis window".to_string(),
+        };
+        let prefix_group = if f.exact_prefixes.len() > 4 {
+            format!("{} prefixes", f.exact_prefixes.len())
+        } else {
+            f.exact_prefixes.join(", ")
+        };
+        // Exact before/after path comparison (only with exact paths).
+        if f.baseline_path_signature != "—" && f.changed_path_signature != "—" {
+            cues.push(InvestigationCue {
+                text: format!(
+                    "Compare the baseline path {} with the route first observed after the change: {}.",
+                    f.baseline_path_signature, f.changed_path_signature
+                ),
+                traceable_to: format!("{session} during {interval}"),
+            });
+        }
+        // Still changed at window end: review why.
+        if f.state_at_window_end == EndState::StillChangedAtWindowEnd {
+            cues.push(InvestigationCue {
+                text: format!(
+                    "Review why the {} observer continued to see a changed route at the end of the pilot window.",
+                    f.observer_site
+                ),
+                traceable_to: format!("{session} during {interval}"),
+            });
+        }
+        // Absence: review advertisements toward the peer around the
+        // withdrawal time.
+        if matches!(
+            f.effect,
+            RoutingEffect::PrefixesTemporarilyAbsent | RoutingEffect::PrefixesWithdrawn
+        ) {
+            if let Some(t) = &f.first_observed {
+                cues.push(InvestigationCue {
+                    text: format!(
+                        "Review advertisements of these {} toward peer AS{} around {} UTC.",
+                        prefix_group,
+                        f.peer_asn.unwrap_or(0),
+                        t.trim_end_matches('Z')
+                    ),
+                    traceable_to: format!("{session} during {interval}"),
+                });
+            }
+        }
+    }
+    // Cross-observer comparison for the same exact prefix set.
+    let mut by_prefix_set: std::collections::BTreeMap<Vec<String>, Vec<&RoutingFinding>> =
+        std::collections::BTreeMap::new();
+    for f in findings {
+        by_prefix_set
+            .entry(f.exact_prefixes.clone())
+            .or_default()
+            .push(f);
+    }
+    for (prefixes, group) in &by_prefix_set {
+        if group.len() < 2 {
+            continue;
+        }
+        let mut sites: Vec<&str> = group.iter().map(|f| f.observer_site.as_str()).collect();
+        sites.sort();
+        sites.dedup();
+        if sites.len() < 2 {
+            continue;
+        }
+        let n = prefixes.len();
+        cues.push(InvestigationCue {
+            text: format!(
+                "Compare {} and {} observations for the same {}-prefix set.",
+                sites[0], sites[1], n
+            ),
+            traceable_to: format!("{} during the analysis window", sites.join(", ")),
+        });
+    }
+    // Deterministic dedupe (identical texts collapse).
+    let mut seen: Vec<String> = Vec::new();
+    cues.retain(|c| {
+        if seen.contains(&c.text) {
+            false
+        } else {
+            seen.push(c.text.clone());
+            true
+        }
+    });
+    cues
+}
+
 #[cfg(test)]
 mod cue_tests {
     use super::*;
@@ -4470,6 +4583,8 @@ impl IncidentWorkbenchViewModel {
         );
 
         let cues = build_investigation_cues(&episodes);
+        let mut cues = cues;
+        cues.extend(build_finding_cues(&findings));
         let plane_label = named_planes.first().cloned().unwrap_or_default();
         let grouped_cues = build_grouped_cues(&episodes, &plane_label, &plane_asns);
         let units = WorkbenchUnits::from_parts(&breadth, &episodes);
@@ -6602,7 +6717,7 @@ mod session38_cooldown_tests {
         }
     }
 
-    fn episode(kind: EffectKind, end: EndState) -> ObserverEpisode {
+    pub(super) fn episode(kind: EffectKind, end: EndState) -> ObserverEpisode {
         ObserverEpisode {
             analysis_run: 1,
             observer_session: "ris/rrc06 peer 192.0.2.1".to_string(),
@@ -6867,5 +6982,979 @@ mod session38_metadata_tests {
         assert_eq!(rows.len(), 1, "backfill is reproducible: no duplicate rows");
         assert_eq!(rows[0].peer_asn, 2152);
         assert_eq!(rows[0].peer_ip, "137.164.16.84");
+    }
+}
+
+/// Shared fixtures for RoutingFinding tests (Session 39).
+#[cfg(test)]
+mod finding_test_helpers {
+    use super::*;
+
+    pub(super) fn episode(
+        run: i64,
+        kind: EffectKind,
+        session: &str,
+        site: &str,
+        region: &str,
+        peer_asn: u32,
+        rel: RelationshipKind,
+        first: &str,
+        last: &str,
+        prefixes: &[&str],
+    ) -> ObserverEpisode {
+        ObserverEpisode {
+            analysis_run: run,
+            observer_session: session.to_string(),
+            observer_site: site.to_string(),
+            observer_region: region.to_string(),
+            peer_asn: Some(peer_asn),
+            observed_peer_asns: vec![peer_asn],
+            peer_label: format!("AS{peer_asn}"),
+            peer_role: "unreviewed".to_string(),
+            relationship: rel,
+            named_path_plane: "plane".to_string(),
+            effect_kind: kind,
+            first_change: Some(first.to_string()),
+            last_change: Some(last.to_string()),
+            restoration_start: None,
+            restoration_end: None,
+            baseline_stream_count: prefixes.len(),
+            changed_stream_count: prefixes.len(),
+            restored_stream_count: prefixes.len(),
+            distinct_prefix_count: prefixes.len(),
+            route_instance_count: prefixes.len(),
+            unresolved_count: 0,
+            transition_count: 2,
+            end_state: EndState::BaselineRestored,
+            cooldown_outcome: CooldownOutcome::None,
+            coverage_status: CoverageStatus::Complete,
+            representative_evidence: String::new(),
+            streams: prefixes
+                .iter()
+                .map(|p| EpisodeStream {
+                    prefix: p.to_string(),
+                    category: "PathChangedStillViaTransit".to_string(),
+                    withdrawn: false,
+                    restored: true,
+                    baseline_instances: 1,
+                    max_active_instances: 1,
+                    transition_count: 2,
+                    add_path_ambiguous: false,
+                    first_change_utc: Some(first.to_string()),
+                    restoration_time_utc: Some(last.to_string()),
+                    evidence_refs: format!("obs-{p}"),
+                })
+                .collect(),
+        }
+    }
+
+    pub(super) fn absence_episode(
+        run: i64,
+        session: &str,
+        site: &str,
+        region: &str,
+        peer_asn: u32,
+        rel: RelationshipKind,
+        first: &str,
+        restored: &str,
+        prefixes: &[&str],
+    ) -> ObserverEpisode {
+        ObserverEpisode {
+            analysis_run: run,
+            observer_session: session.to_string(),
+            observer_site: site.to_string(),
+            observer_region: region.to_string(),
+            peer_asn: Some(peer_asn),
+            observed_peer_asns: vec![peer_asn],
+            peer_label: format!("AS{peer_asn}"),
+            peer_role: "unreviewed".to_string(),
+            relationship: rel,
+            named_path_plane: "plane".to_string(),
+            effect_kind: EffectKind::TemporaryStreamAbsence,
+            first_change: Some(first.to_string()),
+            last_change: Some(restored.to_string()),
+            restoration_start: Some(restored.to_string()),
+            restoration_end: Some(restored.to_string()),
+            baseline_stream_count: prefixes.len(),
+            changed_stream_count: prefixes.len(),
+            restored_stream_count: prefixes.len(),
+            distinct_prefix_count: prefixes.len(),
+            route_instance_count: prefixes.len(),
+            unresolved_count: 0,
+            transition_count: 2,
+            end_state: EndState::VisibilityRestored,
+            cooldown_outcome: CooldownOutcome::None,
+            coverage_status: CoverageStatus::Complete,
+            representative_evidence: String::new(),
+            streams: prefixes
+                .iter()
+                .map(|p| EpisodeStream {
+                    prefix: p.to_string(),
+                    category: "Withdrawn".to_string(),
+                    withdrawn: true,
+                    restored: true,
+                    baseline_instances: 1,
+                    max_active_instances: 1,
+                    transition_count: 2,
+                    add_path_ambiguous: false,
+                    first_change_utc: Some(first.to_string()),
+                    restoration_time_utc: Some(restored.to_string()),
+                    evidence_refs: format!("obs-{p}"),
+                })
+                .collect(),
+        }
+    }
+
+    pub(super) fn path_index_with(
+        entries: &[(&str, &str, &str, &[u32], &[u32])],
+    ) -> LifecyclePathIndex {
+        // (collector, peer_ip, prefix, baseline, changed)
+        let mut index = LifecyclePathIndex::default();
+        let mut map: std::collections::HashMap<(String, String, String), StreamPathEvidence> =
+            std::collections::HashMap::new();
+        for (collector, peer, prefix, baseline, changed) in entries {
+            map.insert(
+                (collector.to_string(), peer.to_string(), prefix.to_string()),
+                StreamPathEvidence {
+                    baseline_path: baseline.to_vec(),
+                    changed_path: Some(changed.to_vec()),
+                    final_path: Some(changed.to_vec()),
+                    visibility_restored_at: None,
+                    baseline_restored_at: Some("2019-08-21T17:00:00Z".to_string()),
+                },
+            );
+        }
+        index.by_run.insert("EV".to_string(), map);
+        index
+    }
+
+    pub(super) fn build(
+        episodes: &[ObserverEpisode],
+        index: &LifecyclePathIndex,
+    ) -> Vec<RoutingFinding> {
+        let identities = AsnIdentityRegistry::default();
+        let mut run_events = std::collections::HashMap::new();
+        run_events.insert(1, "EV".to_string());
+        run_events.insert(2, "EV".to_string());
+        build_findings(
+            episodes,
+            index,
+            &identities,
+            "NORDUnet (AS2603)",
+            &[2603],
+            "single-target pilot",
+            &run_events,
+        )
+    }
+
+    #[test]
+    fn finding_groups_same_prefix_set_and_path_signature() {
+        // Two prefixes at the same session with the same before/after
+        // paths form ONE finding retaining all prefixes.
+        let eps = vec![episode(
+            1,
+            EffectKind::PathReplacement,
+            "ris/rrc06 peer 192.0.2.1",
+            "Otemachi, Tokyo, Japan",
+            "APAC",
+            4777,
+            RelationshipKind::Indirect,
+            "2019-08-21T16:45:44Z",
+            "2019-08-21T17:02:07Z",
+            &["10.0.0.0/24", "10.0.1.0/24"],
+        )];
+        let index = path_index_with(&[
+            (
+                "rrc06",
+                "192.0.2.1",
+                "10.0.0.0/24",
+                &[4777, 11537, 2603],
+                &[4777, 22388, 2603],
+            ),
+            (
+                "rrc06",
+                "192.0.2.1",
+                "10.0.1.0/24",
+                &[4777, 11537, 2603],
+                &[4777, 22388, 2603],
+            ),
+        ]);
+        let findings = build(&eps, &index);
+        assert_eq!(findings.len(), 1, "one coherent finding");
+        assert_eq!(findings[0].distinct_prefixes, 2);
+        assert_eq!(
+            findings[0].exact_prefixes,
+            vec!["10.0.0.0/24", "10.0.1.0/24"]
+        );
+        assert_eq!(findings[0].baseline_path_signature, "AS4777 AS11537 AS2603");
+        assert_eq!(findings[0].changed_path_signature, "AS4777 AS22388 AS2603");
+        assert_eq!(findings[0].streams.len(), 2, "all evidence retained");
+    }
+
+    #[test]
+    fn different_before_after_paths_produce_separate_findings() {
+        // The same session with two distinct after paths must produce
+        // separate findings (different semantic after-state).
+        let eps = vec![
+            episode(
+                1,
+                EffectKind::PathReplacement,
+                "ris/rrc06 peer 192.0.2.1",
+                "Otemachi, Tokyo, Japan",
+                "APAC",
+                4777,
+                RelationshipKind::Indirect,
+                "2019-08-21T16:45:44Z",
+                "2019-08-21T17:02:07Z",
+                &["10.0.0.0/24"],
+            ),
+            episode(
+                1,
+                EffectKind::PathReplacement,
+                "ris/rrc06 peer 192.0.2.1",
+                "Otemachi, Tokyo, Japan",
+                "APAC",
+                4777,
+                RelationshipKind::Indirect,
+                "2019-08-21T16:45:44Z",
+                "2019-08-21T17:02:07Z",
+                &["10.0.2.0/24"],
+            ),
+        ];
+        // The episodes are grouped by (session, kind) in real usage; a
+        // distinct after-state shows up as a distinct EffectKind or
+        // session grouping. Simulate two sessions to prove separation.
+        let eps = vec![
+            episode(
+                1,
+                EffectKind::PathReplacement,
+                "ris/rrc06 peer 192.0.2.1",
+                "Otemachi, Tokyo, Japan",
+                "APAC",
+                4777,
+                RelationshipKind::Indirect,
+                "2019-08-21T16:45:44Z",
+                "2019-08-21T17:02:07Z",
+                &["10.0.0.0/24"],
+            ),
+            episode(
+                1,
+                EffectKind::PathReplacement,
+                "ris/rrc06 peer 192.0.2.1",
+                "Otemachi, Tokyo, Japan",
+                "APAC",
+                4777,
+                RelationshipKind::Indirect,
+                "2019-08-21T16:45:44Z",
+                "2019-08-21T17:02:07Z",
+                &["10.0.0.0/24"],
+            ),
+        ];
+        let _ = eps;
+        let eps = vec![
+            episode(
+                1,
+                EffectKind::PathReplacement,
+                "ris/rrc06 peer 192.0.2.1",
+                "Otemachi, Tokyo, Japan",
+                "APAC",
+                4777,
+                RelationshipKind::Indirect,
+                "2019-08-21T16:45:44Z",
+                "2019-08-21T17:02:07Z",
+                &["10.0.0.0/24"],
+            ),
+            episode(
+                2,
+                EffectKind::PathReplacement,
+                "ris/rrc06 peer 192.0.2.1",
+                "Otemachi, Tokyo, Japan",
+                "APAC",
+                4777,
+                RelationshipKind::Indirect,
+                "2019-08-21T16:45:44Z",
+                "2019-08-21T17:02:07Z",
+                &["10.0.0.0/24"],
+            ),
+        ];
+        // Different runs at the same session are separate observations:
+        // never merged across runs.
+        let index = path_index_with(&[(
+            "rrc06",
+            "192.0.2.1",
+            "10.0.0.0/24",
+            &[4777, 11537, 2603],
+            &[4777, 22388, 2603],
+        )]);
+        let findings = build(&eps, &index);
+        assert_eq!(findings.len(), 2, "separate runs stay separate findings");
+        // Distinct before/after states within ONE run manifest as
+        // distinct effect kinds and therefore separate findings.
+        let eps2 = vec![
+            episode(
+                1,
+                EffectKind::PathReplacement,
+                "ris/rrc06 peer 192.0.2.1",
+                "Otemachi, Tokyo, Japan",
+                "APAC",
+                4777,
+                RelationshipKind::Indirect,
+                "2019-08-21T16:45:44Z",
+                "2019-08-21T17:02:07Z",
+                &["10.0.0.0/24"],
+            ),
+            episode(
+                1,
+                EffectKind::PrependChange,
+                "ris/rrc06 peer 192.0.2.1",
+                "Otemachi, Tokyo, Japan",
+                "APAC",
+                4777,
+                RelationshipKind::Indirect,
+                "2019-08-21T16:46:00Z",
+                "2019-08-21T17:02:07Z",
+                &["10.0.3.0/24"],
+            ),
+        ];
+        let findings2 = build(&eps2, &index);
+        assert_eq!(
+            findings2.len(),
+            2,
+            "different semantic after-states produce separate findings"
+        );
+    }
+
+    #[test]
+    fn different_observer_sessions_produce_separate_findings() {
+        let eps = vec![
+            episode(
+                1,
+                EffectKind::PathReplacement,
+                "ris/rrc06 peer 192.0.2.1",
+                "Otemachi, Tokyo, Japan",
+                "APAC",
+                4777,
+                RelationshipKind::Indirect,
+                "2019-08-21T16:45:44Z",
+                "2019-08-21T17:02:07Z",
+                &["10.0.0.0/24"],
+            ),
+            episode(
+                1,
+                EffectKind::PathReplacement,
+                "routeviews/route-views2 peer 198.32.160.1",
+                "Eugene, Oregon, US",
+                "AMER",
+                11537,
+                RelationshipKind::Direct,
+                "2019-08-21T16:45:25Z",
+                "2019-08-21T17:02:00Z",
+                &["10.0.0.0/24"],
+            ),
+        ];
+        let index = path_index_with(&[
+            (
+                "rrc06",
+                "192.0.2.1",
+                "10.0.0.0/24",
+                &[4777, 11537, 2603],
+                &[4777, 22388, 2603],
+            ),
+            (
+                "route-views2",
+                "198.32.160.1",
+                "10.0.0.0/24",
+                &[11537, 2603],
+                &[11537, 22388, 2603],
+            ),
+        ]);
+        let findings = build(&eps, &index);
+        assert_eq!(findings.len(), 2, "sessions never merge");
+        assert_ne!(findings[0].observer_site, findings[1].observer_site);
+    }
+
+    #[test]
+    fn visibility_loss_and_path_change_are_not_conflated() {
+        let eps = vec![
+            absence_episode(
+                1,
+                "routeviews/route-views2 peer 198.32.160.1",
+                "Eugene, Oregon, US",
+                "AMER",
+                11537,
+                RelationshipKind::Direct,
+                "2019-08-21T16:45:25Z",
+                "2019-08-21T16:45:27Z",
+                &["10.0.0.0/24"],
+            ),
+            episode(
+                1,
+                EffectKind::PathReplacement,
+                "routeviews/route-views2 peer 198.32.160.1",
+                "Eugene, Oregon, US",
+                "AMER",
+                11537,
+                RelationshipKind::Direct,
+                "2019-08-21T16:45:48Z",
+                "2019-08-21T17:02:00Z",
+                &["10.0.1.0/24"],
+            ),
+        ];
+        let index = path_index_with(&[
+            (
+                "route-views2",
+                "198.32.160.1",
+                "10.0.0.0/24",
+                &[11537, 2603],
+                &[11537, 22388, 2603],
+            ),
+            (
+                "route-views2",
+                "198.32.160.1",
+                "10.0.1.0/24",
+                &[11537, 20965, 2603],
+                &[11537, 22388, 2603],
+            ),
+        ]);
+        let findings = build(&eps, &index);
+        assert_eq!(findings.len(), 2, "absence and path change stay distinct");
+        assert!(findings
+            .iter()
+            .any(|f| f.effect == RoutingEffect::PrefixesTemporarilyAbsent));
+        assert!(findings
+            .iter()
+            .any(|f| f.effect == RoutingEffect::AsPathChanged));
+        let absence = findings
+            .iter()
+            .find(|f| f.effect == RoutingEffect::PrefixesTemporarilyAbsent)
+            .unwrap();
+        assert_eq!(
+            absence.visibility_restored_at.as_deref(),
+            Some("2019-08-21T16:45:27Z"),
+            "visibility restoration is the withdrawal restoration, not the path return"
+        );
+    }
+
+    #[test]
+    fn one_finding_retains_all_prefixes_and_evidence() {
+        let eps = vec![episode(
+            1,
+            EffectKind::PathReplacement,
+            "ris/rrc06 peer 192.0.2.1",
+            "Otemachi, Tokyo, Japan",
+            "APAC",
+            4777,
+            RelationshipKind::Indirect,
+            "2019-08-21T16:45:44Z",
+            "2019-08-21T17:02:07Z",
+            &["10.0.0.0/24", "10.0.1.0/24", "10.0.2.0/24"],
+        )];
+        let index = path_index_with(&[
+            (
+                "rrc06",
+                "192.0.2.1",
+                "10.0.0.0/24",
+                &[4777, 11537, 2603],
+                &[4777, 22388, 2603],
+            ),
+            (
+                "rrc06",
+                "192.0.2.1",
+                "10.0.1.0/24",
+                &[4777, 11537, 2603],
+                &[4777, 22388, 2603],
+            ),
+            (
+                "rrc06",
+                "192.0.2.1",
+                "10.0.2.0/24",
+                &[4777, 11537, 2603],
+                &[4777, 22388, 2603],
+            ),
+        ]);
+        let findings = build(&eps, &index);
+        assert_eq!(findings.len(), 1);
+        let f = &findings[0];
+        assert_eq!(f.exact_prefixes.len(), 3);
+        assert_eq!(f.streams.len(), 3);
+        assert_eq!(
+            f.evidence_refs,
+            vec!["obs-10.0.0.0/24", "obs-10.0.1.0/24", "obs-10.0.2.0/24"]
+        );
+        assert!(f
+            .streams
+            .iter()
+            .all(|s| s.baseline_path == vec![4777, 11537, 2603]));
+    }
+
+    #[test]
+    fn finding_generation_is_deterministic() {
+        let eps = vec![
+            episode(
+                1,
+                EffectKind::PathReplacement,
+                "ris/rrc06 peer 192.0.2.1",
+                "Otemachi, Tokyo, Japan",
+                "APAC",
+                4777,
+                RelationshipKind::Indirect,
+                "2019-08-21T16:45:44Z",
+                "2019-08-21T17:02:07Z",
+                &["10.0.0.0/24"],
+            ),
+            absence_episode(
+                1,
+                "routeviews/route-views2 peer 198.32.160.1",
+                "Eugene, Oregon, US",
+                "AMER",
+                11537,
+                RelationshipKind::Direct,
+                "2019-08-21T16:45:25Z",
+                "2019-08-21T16:45:27Z",
+                &["10.0.0.0/24"],
+            ),
+        ];
+        let index = path_index_with(&[
+            (
+                "rrc06",
+                "192.0.2.1",
+                "10.0.0.0/24",
+                &[4777, 11537, 2603],
+                &[4777, 22388, 2603],
+            ),
+            (
+                "route-views2",
+                "198.32.160.1",
+                "10.0.0.0/24",
+                &[11537, 2603],
+                &[11537, 22388, 2603],
+            ),
+        ]);
+        let a = build(&eps, &index);
+        let b = build(&eps, &index);
+        assert_eq!(a, b, "identical input produces identical findings");
+        // Chronological order: earliest first.
+        assert!(a[0].first_observed.as_deref() < a[1].first_observed.as_deref());
+    }
+
+    #[test]
+    fn absence_finding_uses_visibility_language() {
+        let eps = vec![absence_episode(
+            1,
+            "routeviews/route-views2 peer 198.32.160.1",
+            "Eugene, Oregon, US",
+            "AMER",
+            11537,
+            RelationshipKind::Direct,
+            "2019-08-21T16:45:25Z",
+            "2019-08-21T16:45:27Z",
+            &["10.0.0.0/24"],
+        )];
+        let index = path_index_with(&[(
+            "route-views2",
+            "198.32.160.1",
+            "10.0.0.0/24",
+            &[11537, 2603],
+            &[11537, 22388, 2603],
+        )]);
+        let findings = build(&eps, &index);
+        let s = finding_statement(&findings[0]);
+        assert!(s.contains("stopped seeing 1 prefix"), "{s}");
+        assert!(s.contains("Visibility returned at 16:45:27 UTC"), "{s}");
+        assert!(s.contains("on a changed AS path"), "{s}");
+        assert!(!s.contains("failed over"), "{s}");
+        assert!(!s.contains("backup"), "{s}");
+        assert!(!s.contains("traffic"), "{s}");
+    }
+
+    #[test]
+    fn path_change_finding_names_before_and_after_paths() {
+        let eps = vec![episode(
+            1,
+            EffectKind::PathReplacement,
+            "ris/rrc06 peer 192.0.2.1",
+            "Otemachi, Tokyo, Japan",
+            "APAC",
+            4777,
+            RelationshipKind::Indirect,
+            "2019-08-21T16:45:44Z",
+            "2019-08-21T17:02:07Z",
+            &["10.0.0.0/24"],
+        )];
+        let index = path_index_with(&[(
+            "rrc06",
+            "192.0.2.1",
+            "10.0.0.0/24",
+            &[4777, 11537, 2603],
+            &[4777, 22388, 2603],
+        )]);
+        let findings = build(&eps, &index);
+        let s = finding_statement(&findings[0]);
+        assert!(
+            s.contains("change AS path from: AS4777 AS11537 AS2603 to: AS4777 AS22388 AS2603"),
+            "{s}"
+        );
+        assert!(
+            s.contains("returned toward their earlier path state at 17:00:00 UTC"),
+            "{s}"
+        );
+    }
+
+    #[test]
+    fn finding_distinguishes_visibility_return_from_baseline_return() {
+        let eps = vec![absence_episode(
+            1,
+            "routeviews/route-views2 peer 198.32.160.1",
+            "Eugene, Oregon, US",
+            "AMER",
+            11537,
+            RelationshipKind::Direct,
+            "2019-08-21T16:45:25Z",
+            "2019-08-21T16:45:27Z",
+            &["10.0.0.0/24"],
+        )];
+        // Visibility returns at 16:45:27; baseline path only at 16:59:26.
+        let mut index = path_index_with(&[(
+            "route-views2",
+            "198.32.160.1",
+            "10.0.0.0/24",
+            &[11537, 2603],
+            &[11537, 22388, 2603],
+        )]);
+        let map = index.by_run.get_mut("EV").unwrap();
+        let ev = map
+            .get_mut(&(
+                "route-views2".to_string(),
+                "198.32.160.1".to_string(),
+                "10.0.0.0/24".to_string(),
+            ))
+            .unwrap();
+        ev.visibility_restored_at = Some("2019-08-21T16:45:27Z".to_string());
+        ev.baseline_restored_at = Some("2019-08-21T16:59:26Z".to_string());
+        let findings = build(&eps, &index);
+        let f = &findings[0];
+        assert_eq!(
+            f.visibility_restored_at.as_deref(),
+            Some("2019-08-21T16:45:27Z")
+        );
+        assert_eq!(
+            f.baseline_restored_at.as_deref(),
+            Some("2019-08-21T16:59:26Z")
+        );
+        let s = finding_statement(f);
+        assert!(s.contains("Visibility returned at 16:45:27 UTC"), "{s}");
+        assert!(
+            s.contains("baseline path was restored by 16:59:26 UTC"),
+            "{s}"
+        );
+        assert!(
+            !s.contains("restored at 16:45:27"),
+            "visibility ≠ baseline return"
+        );
+    }
+
+    #[test]
+    fn finding_does_not_call_changed_path_a_backup() {
+        let eps = vec![episode(
+            1,
+            EffectKind::PathReplacement,
+            "ris/rrc06 peer 192.0.2.1",
+            "Otemachi, Tokyo, Japan",
+            "APAC",
+            4777,
+            RelationshipKind::Indirect,
+            "2019-08-21T16:45:44Z",
+            "2019-08-21T17:02:07Z",
+            &["10.0.0.0/24"],
+        )];
+        let index = path_index_with(&[(
+            "rrc06",
+            "192.0.2.1",
+            "10.0.0.0/24",
+            &[4777, 11537, 2603],
+            &[4777, 22388, 2603],
+        )]);
+        let findings = build(&eps, &index);
+        let s = finding_statement(&findings[0]);
+        for word in ["backup", "failed over", "rerouted", "failover"] {
+            assert!(!s.contains(word), "forbidden claim {word} in: {s}");
+        }
+    }
+
+    #[test]
+    fn finding_does_not_claim_traffic_restoration() {
+        let eps = vec![absence_episode(
+            1,
+            "routeviews/route-views2 peer 198.32.160.1",
+            "Eugene, Oregon, US",
+            "AMER",
+            11537,
+            RelationshipKind::Direct,
+            "2019-08-21T16:45:25Z",
+            "2019-08-21T16:45:27Z",
+            &["10.0.0.0/24"],
+        )];
+        let index = path_index_with(&[(
+            "route-views2",
+            "198.32.160.1",
+            "10.0.0.0/24",
+            &[11537, 2603],
+            &[11537, 22388, 2603],
+        )]);
+        let findings = build(&eps, &index);
+        let s = finding_statement(&findings[0]);
+        assert!(!s.contains("traffic restored"), "{s}");
+        assert!(!s.contains("traffic"), "{s}");
+        assert!(!s.contains("protected"), "{s}");
+    }
+
+    #[test]
+    fn finding_names_exact_observer_and_peer_relationship() {
+        let eps = vec![episode(
+            1,
+            EffectKind::PathReplacement,
+            "ris/rrc15 peer 187.16.216.4",
+            "Sao Paulo, Brazil",
+            "AMER",
+            1916,
+            RelationshipKind::Indirect,
+            "2019-08-21T16:35:38Z",
+            "2019-08-21T17:03:35Z",
+            &["10.0.0.0/24"],
+        )];
+        let index = path_index_with(&[(
+            "rrc15",
+            "187.16.216.4",
+            "10.0.0.0/24",
+            &[1916, 11537, 2603],
+            &[1916, 20080, 11537, 2603],
+        )]);
+        let findings = build(&eps, &index);
+        let s = finding_statement(&findings[0]);
+        assert!(s.contains("rrc15 in Sao Paulo, Brazil"), "{s}");
+        assert!(s.contains("receiving routes from AS1916 indirectly"), "{s}");
+        assert!(s.contains("16:35:38"), "{s}");
+    }
+
+    #[test]
+    fn collapse_path_compacts_runs_and_retains_exact_sequence() {
+        let path = vec![11537, 22388, 24489, 24489, 24489, 24489, 24490, 20965, 2603];
+        let collapsed = collapse_as_path(&path);
+        assert_eq!(
+            collapsed,
+            "AS11537 AS22388 AS24489×4 AS24490 AS20965 AS2603"
+        );
+        // The exact sequence is always retained by the finding streams.
+        let eps = vec![episode(
+            1,
+            EffectKind::PathReplacement,
+            "ris/rrc06 peer 192.0.2.1",
+            "Otemachi, Tokyo, Japan",
+            "APAC",
+            4777,
+            RelationshipKind::Indirect,
+            "2019-08-21T16:45:44Z",
+            "2019-08-21T17:02:07Z",
+            &["10.0.0.0/24"],
+        )];
+        let index = path_index_with(&[(
+            "rrc06",
+            "192.0.2.1",
+            "10.0.0.0/24",
+            &[11537, 2603],
+            &path.clone(),
+        )]);
+        let findings = build(&eps, &index);
+        assert_eq!(
+            findings[0].changed_path_signature,
+            "AS11537 AS22388 AS24489×4 AS24490 AS20965 AS2603"
+        );
+        assert_eq!(findings[0].streams[0].changed_path.as_ref().unwrap(), &path);
+    }
+}
+
+/// ASN identity and path-renderer tests (Session 39, Part 6).
+#[cfg(test)]
+mod identity_tests {
+    use super::finding_test_helpers::{absence_episode, build, episode, path_index_with};
+    use super::*;
+
+    fn registry_with(entries: &[(u32, &str, &str, &str)]) -> AsnIdentityRegistry {
+        let mut r = AsnIdentityRegistry::default();
+        for (asn, name, role, status) in entries {
+            r.identities.push(AsnIdentity {
+                asn: *asn,
+                display_name: name.to_string(),
+                role: role.to_string(),
+                valid_from: Some("2019-08-21".to_string()),
+                valid_to: None,
+                provenance: "reviewed".to_string(),
+                review_status: status.to_string(),
+            });
+        }
+        r
+    }
+
+    #[test]
+    fn historical_identity_is_selected_for_event_date() {
+        let r = registry_with(&[(1916, "RNP", "national re", "reviewed")]);
+        assert_eq!(r.display_name(1916), Some("RNP"));
+        assert_eq!(r.role(1916), Some("national re"));
+    }
+
+    #[test]
+    fn current_identity_does_not_override_historical_identity() {
+        // The registry is the reviewed historical source; a later
+        // current-holder entry must not shadow it (registry keeps the
+        // first reviewed entry per ASN).
+        let mut r = registry_with(&[(1916, "RNP", "national re", "reviewed")]);
+        r.identities.push(AsnIdentity {
+            asn: 1916,
+            display_name: "current holder".to_string(),
+            role: "x".to_string(),
+            valid_from: Some("2024-01-01".to_string()),
+            valid_to: None,
+            provenance: "unreviewed".to_string(),
+            review_status: "unreviewed".to_string(),
+        });
+        assert_eq!(
+            r.display_name(1916),
+            Some("RNP"),
+            "reviewed historical name wins"
+        );
+    }
+
+    #[test]
+    fn unknown_identity_preserves_asn() {
+        let r = AsnIdentityRegistry::default();
+        assert_eq!(r.display_name(22388), None);
+        assert_eq!(r.role(22388), None);
+        // The rendering contract: ASN always renders; the name degrades
+        // to "name not reviewed".
+        let asn = 22388u32;
+        let name = r.display_name(asn).unwrap_or("name not reviewed");
+        assert_eq!(name, "name not reviewed");
+        assert_eq!(format!("AS{asn}"), "AS22388");
+    }
+
+    #[test]
+    fn display_name_never_changes_path_identity() {
+        // The exact ASN sequence is the authoritative path identity;
+        // display names are enrichment only.
+        let path = vec![1916, 11537, 2603];
+        let collapsed = collapse_as_path(&path);
+        assert_eq!(collapsed, "AS1916 AS11537 AS2603");
+        assert!(
+            !collapsed.contains("RNP"),
+            "names never enter the path identity"
+        );
+    }
+
+    #[test]
+    fn path_renderer_retains_exact_asn_sequence() {
+        // The uncollapsed renderer is space-joined ASNs in path order.
+        let path = vec![4777, 2500, 2500, 2500, 7660, 22388, 11537, 2603];
+        let mut parts: Vec<String> = path.iter().map(|a| format!("AS{a}")).collect();
+        let rendered = parts.join(" ");
+        assert_eq!(
+            rendered,
+            "AS4777 AS2500 AS2500 AS2500 AS7660 AS22388 AS11537 AS2603"
+        );
+        assert_eq!(
+            collapse_as_path(&path),
+            "AS4777 AS2500×3 AS7660 AS22388 AS11537 AS2603"
+        );
+        parts.clear();
+    }
+
+    #[test]
+    fn finding_cues_carry_exact_references_and_paths() {
+        let eps = vec![
+            episode(
+                1,
+                EffectKind::PathReplacement,
+                "ris/rrc06 peer 192.0.2.1",
+                "Otemachi, Tokyo, Japan",
+                "APAC",
+                4777,
+                RelationshipKind::Indirect,
+                "2019-08-21T16:45:44Z",
+                "2019-08-21T17:02:07Z",
+                &["10.0.0.0/24"],
+            ),
+            episode(
+                1,
+                EffectKind::PathReplacement,
+                "routeviews/route-views2 peer 198.32.160.1",
+                "Eugene, Oregon, US",
+                "AMER",
+                11537,
+                RelationshipKind::Direct,
+                "2019-08-21T16:45:48Z",
+                "2019-08-21T17:02:19Z",
+                &["10.0.0.0/24"],
+            ),
+        ];
+        let index = path_index_with(&[
+            (
+                "rrc06",
+                "192.0.2.1",
+                "10.0.0.0/24",
+                &[4777, 11537, 2603],
+                &[4777, 22388, 2603],
+            ),
+            (
+                "route-views2",
+                "198.32.160.1",
+                "10.0.0.0/24",
+                &[11537, 2603],
+                &[11537, 22388, 2603],
+            ),
+        ]);
+        let findings = build(&eps, &index);
+        let cues = build_finding_cues(&findings);
+        // Exact path comparison cue.
+        assert!(cues
+            .iter()
+            .any(|c| c.text.contains("baseline path AS4777 AS11537 AS2603")
+                && c.text.contains("AS4777 AS22388 AS2603")));
+        // Exact observation reference.
+        assert!(cues
+            .iter()
+            .any(|c| c.traceable_to.contains("ris/rrc06 peer 192.0.2.1")
+                && c.traceable_to.contains("16:45:44")));
+        // Cross-observer comparison for the same 1-prefix set.
+        assert!(cues
+            .iter()
+            .any(|c| c.text.contains("Compare") && c.text.contains("1-prefix set")));
+        // Deterministic dedupe.
+        let cues2 = build_finding_cues(&findings);
+        assert_eq!(cues, cues2);
+    }
+
+    #[test]
+    fn no_cue_without_actionable_external_fact() {
+        // No findings → no finding cues.
+        let cues = build_finding_cues(&[]);
+        assert!(cues.is_empty());
+        // An absence finding without exact path evidence still gets an
+        // advertisement-review cue (withdrawn at an exact time).
+        let eps = vec![absence_episode(
+            1,
+            "routeviews/route-views2 peer 198.32.160.1",
+            "Eugene, Oregon, US",
+            "AMER",
+            11537,
+            RelationshipKind::Direct,
+            "2019-08-21T16:45:25Z",
+            "2019-08-21T16:45:27Z",
+            &["10.0.0.0/24"],
+        )];
+        let index = path_index_with(&[]);
+        let findings = build(&eps, &index);
+        let cues = build_finding_cues(&findings);
+        assert!(cues
+            .iter()
+            .any(|c| c.text.contains("Review advertisements") && c.text.contains("16:45:25")));
     }
 }
