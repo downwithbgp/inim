@@ -448,11 +448,14 @@ pub fn derive_cooldown_outcome(
         return CooldownOutcome::None;
     }
     let session = session_key_of(&episode.observer_session);
+    let episode_prefixes: std::collections::BTreeSet<&str> =
+        episode.streams.iter().map(|s| s.prefix.as_str()).collect();
     let in_cooldown: Vec<&RunTransitionRecord> = transitions
         .iter()
         .filter(|t| {
             t.collector == session.collector
                 && t.peer_ip == session.peer_ip
+                && episode_prefixes.contains(t.prefix.as_str())
                 && t.occurred_utc.as_str() > window_end
                 && t.occurred_utc.as_str() <= analysis_end
         })
@@ -512,6 +515,7 @@ pub fn build_episodes(
         session_peers,
         named_path_plane,
         &[],
+        "",
     )
 }
 
@@ -526,6 +530,7 @@ pub fn build_episodes_with_metadata(
     session_peers: &BTreeMap<(String, String), (u32, String, String, RelationshipKind)>,
     named_path_plane: &str,
     metadata: &[crate::catalog::domain::ObserverSessionMetadata],
+    window_end: &str,
 ) -> Vec<ObserverEpisode> {
     // Group streams by session + kind.
     let mut groups: BTreeMap<(String, String, EffectKind), Vec<&StreamLifecycleSummary>> =
@@ -555,9 +560,20 @@ pub fn build_episodes_with_metadata(
         // fact, independent of reviewed organization labels. Multiple
         // distinct observations for one session mean ambiguity.
         let observed_asns: Vec<u32> = {
+            // Time-scoped lookup (Part 5): only observations whose RIB
+            // evidence predates the run's window end apply; the address
+            // family of the session key is part of the match. Later
+            // backfills with a different ASN in the same span produce
+            // explicit ambiguity instead of silently overwriting.
+            let af = address_family_of(&peer_ip);
             let mut seen: Vec<u32> = metadata
                 .iter()
-                .filter(|m| m.collector == collector && m.peer_ip == peer_ip)
+                .filter(|m| {
+                    m.collector == collector
+                        && m.peer_ip == peer_ip
+                        && m.address_family == af
+                        && m.valid_from.as_str() <= window_end
+                })
                 .map(|m| m.peer_asn)
                 .collect();
             seen.sort_unstable();
@@ -917,8 +933,10 @@ pub fn render_timeline_svg(lanes: &[TimelineLane], anchors: &[TimelineMarker]) -
     const TOP: f64 = 24.0;
 
     let mut out = String::new();
+    // +28 focus-group offset above the lanes, +32 for the legend.
     let height = TOP
         + if anchors.is_empty() { 0.0 } else { CONTEXT_H }
+        + 28.0
         + (lanes.len() as f64) * LANE_H
         + 40.0;
     out.push_str(&format!(
@@ -1950,6 +1968,8 @@ pub struct RegionObservationSummary {
     pub changed_stream_keys: std::collections::BTreeSet<(String, String)>,
     #[serde(skip)]
     pub changed_prefix_set: std::collections::BTreeSet<String>,
+    #[serde(skip)]
+    pub transition_sessions: std::collections::BTreeSet<SessionKey>,
 }
 
 /// Build regional breadth summaries from episodes.
@@ -1983,15 +2003,19 @@ pub fn regional_breadth(
         if changed {
             if !r.changed_session_keys.contains(&key) {
                 r.changed_observer_sessions += 1;
-                r.changed_session_keys.insert(key);
+                r.changed_session_keys.insert(key.clone());
             }
         } else if !r.unchanged_session_keys.contains(&key) {
             r.unchanged_observer_sessions += 1;
-            r.unchanged_session_keys.insert(key);
+            r.unchanged_session_keys.insert(key.clone());
         }
         r.episode_count += 1;
         r.baseline_streams += ep.baseline_stream_count;
-        r.transition_count += ep.transition_count;
+        // Transitions are a session-level fact: count them once per
+        // unique session, never multiplied by the episode count.
+        if r.transition_sessions.insert(key.clone()) {
+            r.transition_count += ep.transition_count;
+        }
         // Streams and prefixes are counted on the episode's member
         // streams: unique (collector, peer, prefix) keys and the union
         // of prefixes, independent of peer identity.
@@ -2049,7 +2073,17 @@ pub fn regional_breadth(
     // changed_prefixes = the region's prefix union.
     let mut out: Vec<RegionObservationSummary> = by_region.into_values().collect();
     for r in &mut out {
-        r.eligible_observer_sessions = r.changed_observer_sessions + r.unchanged_observer_sessions;
+        // A session that produced BOTH changed and unchanged episodes is
+        // one eligible session: union of the two session-key sets.
+        let eligible: std::collections::BTreeSet<SessionKey> = r
+            .changed_session_keys
+            .union(&r.unchanged_session_keys)
+            .cloned()
+            .collect();
+        r.eligible_observer_sessions = eligible.len();
+        // A session with ANY changed episode is a changed session;
+        // unchanged = eligible sessions without changed episodes.
+        r.unchanged_observer_sessions = r.eligible_observer_sessions - r.changed_observer_sessions;
         r.changed_prefixes = r.changed_prefix_set.len();
     }
     out
@@ -2075,6 +2109,7 @@ fn empty_region(region: &str) -> RegionObservationSummary {
         unchanged_session_keys: std::collections::BTreeSet::new(),
         changed_stream_keys: std::collections::BTreeSet::new(),
         changed_prefix_set: std::collections::BTreeSet::new(),
+        transition_sessions: std::collections::BTreeSet::new(),
     }
 }
 
@@ -2160,10 +2195,12 @@ mod breadth_tests {
         ];
         let rows = regional_breadth(&episodes, &[], &[]);
         let amer = rows.iter().find(|r| r.region == "AMER").unwrap();
-        assert_eq!(amer.eligible_observer_sessions, 2, "denominator visible");
+        // One session produced both a changed and an unchanged episode:
+        // it is ONE eligible session and counts as changed (Session 38
+        // denominator fix).
+        assert_eq!(amer.eligible_observer_sessions, 1, "denominator visible");
         assert_eq!(amer.changed_observer_sessions, 1);
-        assert_eq!(amer.unchanged_observer_sessions, 1);
-        // changed / eligible renders as 1/2, never as a bare count.
+        assert_eq!(amer.unchanged_observer_sessions, 0);
         assert!(amer.changed_observer_sessions <= amer.eligible_observer_sessions);
     }
 
@@ -3179,7 +3216,7 @@ pub fn render_observed_result(vm: &IncidentWorkbenchViewModel) -> String {
 
 /// Reviewed ticket-relationship audit (Session 38, Part 8).
 ///
-/// Loaded from the reviewed audit artifact (`manifests/{event_id}-
+/// Loaded from the reviewed audit artifact (`out/{event_id}/
 /// relationship-audit.json`, runtime data). When present, the ticket's
 /// assessment uses ONLY relationship-relevant evidence: a qualifying
 /// observer for the named relationship, or an explicit insufficiency
@@ -3550,6 +3587,7 @@ impl IncidentWorkbenchViewModel {
                 &context.session_peers,
                 &plane_label,
                 &context.session_metadata,
+                &meta.window_end,
             );
             for ep in eps.iter_mut() {
                 ep.representative_evidence = render_episode_sentence(ep);
@@ -4435,6 +4473,7 @@ mod text_report_tests {
                 unchanged_session_keys: std::collections::BTreeSet::new(),
                 changed_stream_keys: std::collections::BTreeSet::new(),
                 changed_prefix_set: std::collections::BTreeSet::new(),
+                transition_sessions: std::collections::BTreeSet::new(),
             }],
             timeline: vec![],
             operator_anchors: vec![],
@@ -5694,7 +5733,19 @@ mod session38_cooldown_tests {
             cooldown_outcome: CooldownOutcome::None,
             coverage_status: CoverageStatus::Complete,
             representative_evidence: String::new(),
-            streams: Vec::new(),
+            streams: vec![EpisodeStream {
+                prefix: "198.51.100.0/24".to_string(),
+                category: "DepartedTransitPath".to_string(),
+                withdrawn: false,
+                restored: false,
+                baseline_instances: 1,
+                max_active_instances: 1,
+                transition_count: 2,
+                add_path_ambiguous: false,
+                first_change_utc: Some("2019-08-21T16:45:25Z".to_string()),
+                restoration_time_utc: None,
+                evidence_refs: "[]".to_string(),
+            }],
         }
     }
 

@@ -329,3 +329,20 @@ all raw archives already local.
 - **Restoration and end states** derive from the immutable
   lifecycle.json per-stream `restoration_time` evidence; no
   presentation field fabricates or extrapolates a restoration.
+
+## Session 38 — relationship audit and session metadata
+
+- **`out/INC0302574/relationship-audit.json`** (new, reviewed):
+  event-date (2026-07-30) RIS baseline inventories at RRC11 and RRC14
+  (bview SHAs recorded): the direct AS11164 sessions existed at both
+  collectors (IPv4 + IPv6 each), but zero AS3333-origin routes were
+  visible through them and no AS3333-origin path contained AS11164.
+  Decision `insufficient-visibility`; the existing AS11537 run is
+  classified `supporting-re-plane`. The current RIS peer lists are
+  supporting context only — the event-date bview peer table is
+  authoritative.
+- **`observer_session_metadata`** (V9 migration): observed peer ASNs
+  from baseline RIB evidence, time-scoped, with source archive + SHA;
+  populated by `inim catalog session-metadata-backfill` (UVA's four
+  peers from the cached 2026-07-14 RouteViews RIB: AS2152, AS11537,
+  AS293, AS7660).

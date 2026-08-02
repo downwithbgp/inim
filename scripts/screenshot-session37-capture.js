@@ -40,7 +40,9 @@ const lines = fs.readFileSync(0, 'utf8').trim().split('\n').filter(Boolean);
   const browser = await chromium.launch();
   let failed = false;
   for (const line of lines) {
-    const [name, url, w, h, marker] = line.split('|');
+    const parts = line.split('|');
+    const [name, url, w, h, marker] = parts;
+    const fullPage = parts.length > 5 ? parts[5] === 'full' : true;
     const width = parseInt(w, 10);
     const height = parseInt(h, 10);
     const outFile = path.join(OUT_DIR, `${name}-${width}x${height}.png`);
@@ -66,7 +68,7 @@ const lines = fs.readFileSync(0, 'utf8').trim().split('\n').filter(Boolean);
         await context.close();
         continue;
       }
-      await page.screenshot({ path: outFile, fullPage: true });
+      await page.screenshot({ path: outFile, fullPage });
       console.log(`${name}|${outFile}|${width}|${height}`);
     } catch (err) {
       console.error(`FAILED: ${name} — ${err.message}`);

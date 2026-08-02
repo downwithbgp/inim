@@ -542,9 +542,12 @@ pub fn backfill_session_metadata(
             source_archive: row.rib_source.clone(),
             source_sha256: row.rib_source_sha.clone(),
         };
-        let id = crate::catalog::store::insert_session_metadata(conn, &metadata)?;
-        let _ = id;
-        inserted += 1;
+        let before = crate::catalog::store::list_session_metadata(conn)?.len();
+        crate::catalog::store::insert_session_metadata(conn, &metadata)?;
+        let after = crate::catalog::store::list_session_metadata(conn)?.len();
+        if after > before {
+            inserted += 1;
+        }
     }
     Ok(inserted)
 }

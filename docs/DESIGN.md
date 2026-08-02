@@ -551,3 +551,84 @@ renders in ~16–23 ms median (target: <100 ms median, <250 ms worst).
   and distinct-state hash checks. Eight captures at 1440×900, 1280×800,
   390×844; the harness fails on missing markers, duplicate hashes, or
   width mismatches.
+
+## Session 38 — workbench units, timeline context, I2PX case validity
+
+### Counting units (Parts 1–3)
+
+- **ObserverSessionKey** = (source family, collector, peer IP, address
+  family derived from the peer IP literal). Regional breadth counts
+  UNIQUE session keys for eligible/changed/unchanged — episodes never
+  inflate the session denominator (UVA: 7 episodes → 4 sessions; MAN
+  LAN: 10 sessions).
+- **Streams** keep the peer dimension ((collector, peer, prefix));
+  **distinct prefixes** are set unions per region and across regions
+  (MAN LAN: 58 changed streams → 12 distinct prefixes; UVA: 48 streams
+  → 12). Regional unions are never summed into a global count.
+- **Route instances** include ADD-PATH instances
+  (max_active_instances); **transitions** come from the run transition
+  index (0 when the artifact is absent — never guessed).
+- The VM exposes a machine-readable `units` block
+  (session/episode/stream/prefix/route-instance/transition counts) in
+  the page, the JSON API (`/api/v1/events/{id}/workbench`,
+  `/api/v1/case-studies/{slug}/workbench`), and the text report.
+
+### Coverage reasons (Part 4)
+
+Excluded sessions carry a `CoverageReason`:
+EligibleWithBaseline / SessionPresentNoTargetBaseline /
+RequiredSessionAbsent / PredicateNotMatched / ArchiveIncomplete /
+UnsupportedSource, plus the exact preflight evidence detail. RRC11's
+I2PX pilot exclusion is `RequiredSessionAbsent` ("no direct session in
+the historical baseline"), distinct from "session present, no target
+baseline"; excluded sessions never enter the eligible denominator.
+
+### Observed peer-session metadata (Part 5)
+
+`observer_session_metadata` (V9): observed peer ASN per (collector,
+peer IP, address family), time-scoped by the RIB timestamp, with the
+source archive and SHA. `inim catalog session-metadata-backfill
+--cache DIR:FAMILY --date YYYYMMDD` records observations from cached
+baseline RIBs (idempotent). The workbench renders the observed ASN as a
+protocol fact ("ASxxxx · organization unclassified · role unclassified")
+or explicit ambiguity; it is distinct from reviewed organization labels
+and never part of RouteKey identity. UVA's four peers were backfilled
+from the cached 2026-07-14 RouteViews RIB (AS2152, AS11537, AS293,
+AS7660).
+
+### Timeline context strip (Part 6)
+
+The SVG now has an **Operator context** strip whose axis spans the
+anchors' exact extent (15:33–20:48) and a **BGP focus** timeline
+(16:00–17:30) holding the observer lanes plus only the in-window
+anchor. Off-window operator events are never clamped onto the focus
+axis; lane labels carry the peer ASN ("rrc15 / AS1916 · AMER"); lane
+baselines are strictly horizontal.
+
+### Window-end vs cooldown (Part 7)
+
+Episodes separate `state_at_event_window_end` (EndState) from
+`cooldown_outcome` (analysis_end = window end + cooldown minutes):
+RestoredAt / StillChangingBeforeAnalysisEnd /
+NoRestorationBeforeAnalysisEnd. MAN LAN rrc15: still changed at window
+end; path replacements continued at 17:52:16 with no restoration before
+18:30. The regional column is named **LAST IN-WINDOW RESTORATION**.
+
+### INC0302574 I2PX relationship audit (Part 8)
+
+Event-date RIS baselines (bview.20260730.0000.gz, RRC11 + RRC14 — the
+collectors with direct AS11164 peers per current peer lists) show the
+direct sessions existed but carried zero AS3333-origin routes, and no
+AS3333-origin path contained AS11164. Reviewed audit artifact
+`out/INC0302574/relationship-audit.json` records the bview SHAs, the
+four direct sessions, and the visibility counts; decision
+`insufficient-visibility`. The workbench assessment uses only
+relationship-relevant evidence; the existing AS11537 run is classified
+`supporting-re-plane`; page and API agree.
+
+### Compact header (Part 9)
+
+Observed result and scope lead; secondary metadata collapses under
+"Event context" (collapsed on mobile by progressive enhancement);
+linked tickets show a count with a "View tickets" toggle; header times
+are human ranges (exact ISO stays in details and the API).

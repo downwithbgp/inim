@@ -25,7 +25,7 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
 DB="${UI_REVIEW_DB:-data/inim.sqlite}"
-OUT=tmp/ui-review/session-37
+OUT=tmp/ui-review/session-38
 PORT="${UI_REVIEW_PORT:-8189}"
 BIND="127.0.0.1:$PORT"
 mkdir -p "$OUT"
@@ -57,16 +57,24 @@ for _ in $(seq 1 30); do
   sleep 0.3
 done
 
-# name|url|width|height|marker
+# name|url|width|height|marker|fullpage
+# Session 38 captures: corrected units, timeline context strip, I2PX
+# assessment, mobile first view; true viewport-only (non-full-page)
+# first-screen captures at all three viewports.
 cat >"$OUT/captures.txt" <<EOF
-manlan-first|http://$BIND/case-studies/manlan-2019/workbench|1440|900|Route-state changes appeared at
-manlan-changed-table|http://$BIND/case-studies/manlan-2019/workbench?changed=1|1440|900|wb-episode-row wb-changed
-manlan-expanded-absence|http://$BIND/case-studies/manlan-2019/workbench?episode=3|1440|900|<details class="wb-episode-details" open
-manlan-prefix-drilldown|http://$BIND/case-studies/manlan-2019/workbench?prefixes=3|1440|900|<details class="wb-prefix-drilldown" open
-manlan-timeline|http://$BIND/case-studies/manlan-2019/workbench?view=timeline|1440|900|wb-timeline-svg
-ripe-no-change|http://$BIND/events/INC0302574/workbench|1280|800|No route-state change at 4 of 4 eligible observer sessions
-uva-partial-impact|http://$BIND/events/INC0299001/workbench|1280|800|Route-state changes at 7 of 7 eligible observer sessions
-manlan-mobile-first|http://$BIND/case-studies/manlan-2019/workbench|390|844|Route-state changes appeared at
+manlan-first|http://$BIND/case-studies/manlan-2019/workbench|1440|900|Route-state changes appeared at|full
+manlan-first-viewport|http://$BIND/case-studies/manlan-2019/workbench|1440|900|Route-state changes appeared at|viewport
+manlan-timeline-context|http://$BIND/case-studies/manlan-2019/workbench?view=timeline|1440|900|tl-context|full
+manlan-cooldown|http://$BIND/case-studies/manlan-2019/workbench|1280|800|Still changing at 17:52:16 UTC|full
+manlan-changed-table|http://$BIND/case-studies/manlan-2019/workbench?changed=1|1440|900|wb-episode-row wb-changed|full
+manlan-expanded-absence|http://$BIND/case-studies/manlan-2019/workbench?episode=3|1440|900|<details class="wb-episode-details" open|full
+manlan-prefix-drilldown|http://$BIND/case-studies/manlan-2019/workbench?prefixes=3|1440|900|<details class="wb-prefix-drilldown" open|full
+ripe-i2px-assessment|http://$BIND/events/INC0302574/workbench|1280|800|Insufficient public-collector visibility for the named I2PX relationship|full
+ripe-viewport|http://$BIND/events/INC0302574/workbench|1280|800|Insufficient public-collector visibility for the named I2PX relationship|viewport
+uva-corrected-breadth|http://$BIND/events/INC0299001/workbench|1280|800|4 of 4 eligible observer sessions|full
+uva-viewport|http://$BIND/events/INC0299001/workbench|1280|800|Route-state changes at 4 of 4 eligible observer sessions|viewport
+manlan-mobile-first|http://$BIND/case-studies/manlan-2019/workbench|390|844|Route-state changes appeared at|full
+manlan-mobile-viewport|http://$BIND/case-studies/manlan-2019/workbench|390|844|Route-state changes appeared at|viewport
 EOF
 
 node "$ROOT/scripts/screenshot-session37-capture.js" "$OUT" <"$OUT/captures.txt" \
@@ -122,7 +130,7 @@ for a in "${!HASHES[@]}"; do
 done
 
 if [ "$FAILED" -ne 0 ]; then
-  echo "session-37 screenshot harness FAILED (see $OUT/)" >&2
+  echo "session-38 screenshot harness FAILED (see $OUT/)" >&2
   exit 1
 fi
-echo "session-37 screenshot set written to $OUT/ (${#HASHES[@]} captures, all distinct)"
+echo "session-38 screenshot set written to $OUT/ (${#HASHES[@]} captures, all distinct)"

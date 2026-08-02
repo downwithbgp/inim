@@ -29,17 +29,26 @@ and what the result does not prove.
 
 ### Case study: RIPE via NYIIX (INC0302574)
 
-- redundant-attachment expectation
-- 19 selected observer-prefix streams
-- no route-state change observed
-- consistent with expectation
-- observer-scoped limitation: the negative finding does not prove
+- ticket relationship: direct I2PX peer via NYIIX (the ticket does not
+  name the R&E plane)
+- event-date (2026-07-30) RIS baselines at RRC11/RRC14: the direct
+  AS11164 sessions existed, but zero AS3333-origin routes were visible
+  through them and no AS3333-origin path contained AS11164
+- **I2PX relationship: insufficient public-collector visibility**
+  (reviewed audit; the relationship cannot be assessed with
+  public-collector evidence)
+- supporting R&E-plane observation (origin AS3333 via the reviewed R&E
+  predicate at RouteViews): 19 selected observer-prefix streams, no
+  route-state change observed — classified as supporting, never primary
+- observer-scoped limitation: the negative R&E finding does not prove
   physical redundancy
 
 ### Case study: UVA via Internet2 (INC0299001)
 
 - participant-unavailability expectation
-- 48 selected observer-prefix streams
+- 4 unique observer sessions (RouteViews peers, observed ASNs from the
+  event-date RIB), 7 observer episodes, 48 selected observer-prefix streams,
+  12 distinct prefixes (union across peers)
 - 13 temporarily absent and later returned
 - heterogeneous changes among the remainder (22 prepend-only, 11
   material changes retaining the reviewed transit, 2 departing it)
