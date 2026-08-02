@@ -45,8 +45,6 @@
   {% endfor %}
   </ul>
   {% endif %}
-  <h3 class="wb-section">Assessment</h3>
-  <p class="wb-novis-assessment">{{ vm.relationship_audit.as_ref().unwrap().assessment }}</p>
   <details class="wb-collapsed">
     <summary>Supporting R&amp;E observation ({{ no_change_statements.len() }}) ▸</summary>
     <p class="wb-note">{{ no_change_statements.len() }} selected RouteViews session{% if no_change_statements.len() == 1 %}{% else %}s{% endif %} showed no route-state change. This does not assess the named relationship.</p>
@@ -176,7 +174,6 @@
     {% if f.preview_prefixes.is_empty() %}{% else %}
     <span class="wb-mono">{{ f.preview_prefixes | join(", ") }}</span>
     {% if f.hidden_prefix_count > 0 %}<span class="muted">+{{ f.hidden_prefix_count }} more</span>{% endif %}
-    · <a href="#prefixes-{{ f.stable_id }}">view all {{ f.prefix_count }}</a>
     {% endif %}
   </p>
   <p class="wb-finding-links">
@@ -245,7 +242,7 @@
     </details>
   </p>
   <details class="wb-prefix-drilldown" id="prefixes-{{ f.stable_id }}"{% if f.prefixes_open %} open{% endif %}>
-    <summary>View prefixes ({{ f.exact_prefixes.len() }})</summary>
+    <summary>Prefixes ({{ f.exact_prefixes.len() }}) ▸</summary>
     <div class="wb-scroll">
     <table class="wb-table wb-finding-prefixes">
       <thead><tr>
@@ -296,7 +293,7 @@
   </div>
   <p class="wb-finding-statement">{{ f.statement }}</p>
   <details class="wb-prefix-drilldown" id="prefixes-{{ f.stable_id }}"{% if f.prefixes_open %} open{% endif %}>
-    <summary>View prefixes ({{ f.exact_prefixes.len() }})</summary>
+    <summary>Prefixes ({{ f.exact_prefixes.len() }}) ▸</summary>
     <div class="wb-scroll">
     <table class="wb-table wb-finding-prefixes">
       <thead><tr>
@@ -344,6 +341,9 @@
     <div><dt>Lifecycle</dt><dd>{{ vm.lifecycle }}</dd></div>
     {% if !vm.expectation_assessment.is_empty() && !no_visibility_page %}
     <div><dt>Expectation assessment</dt><dd>{{ vm.expectation_assessment }}</dd></div>
+    {% endif %}
+    {% if no_visibility_page && vm.relationship_audit.is_some() %}
+    <div><dt>Relationship assessment</dt><dd>{{ vm.relationship_audit.as_ref().unwrap().assessment }}</dd></div>
     {% endif %}
     {% if !vm.linked_tickets.is_empty() %}
     <div><dt>Linked source tickets</dt><dd>{{ linked_ticket_count }}
@@ -599,6 +599,7 @@
   </div>
 </details>
 
+{% if !no_visibility_page %}
 <details class="wb-episode-detail">
   <summary>Observer episodes — internal detail ({{ episodes.len() }}{% if !unchanged_episodes.is_empty() %} + {{ unchanged_episodes.len() }} unchanged{% endif %})</summary>
   <div class="wb-scroll">
@@ -714,6 +715,7 @@
   </table>
   </div>
 </details>
+{% endif %}
 
 <script>
 /* Progressive enhancement only: column sorting + mobile event-context

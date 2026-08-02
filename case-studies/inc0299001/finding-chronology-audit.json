@@ -1,0 +1,1613 @@
+{
+  "event_id": "INC0299001",
+  "session": "route-views2 peer 163.253.3.14",
+  "source": "case-studies/inc0299001/out/INC0299001/lifecycle.json",
+  "prefixes": [
+    {
+      "prefix": "128.143.0.0/16",
+      "transitions": [
+        {
+          "timestamp": "2026-07-14T07:24:47.679275035Z",
+          "kind": "PathReplacement",
+          "phase": "Event",
+          "before_path": [
+            11537,
+            40220,
+            225,
+            225,
+            225,
+            225,
+            225,
+            225,
+            225
+          ],
+          "after_path": [
+            11537,
+            40220,
+            225
+          ],
+          "element_sequence": [
+            11537,
+            40220,
+            225
+          ],
+          "observation_id": 136,
+          "archive_sha256": "ccb94a214c8d2f2282a02c9465e661771cc18a06ec600d5d0ee0e0e846fb0e75"
+        },
+        {
+          "timestamp": "2026-07-14T07:33:59.462019920Z",
+          "kind": "Withdrawal",
+          "phase": "Event",
+          "before_path": [
+            11537,
+            40220,
+            225
+          ],
+          "after_path": [],
+          "element_sequence": [],
+          "observation_id": 213,
+          "archive_sha256": "4f14acfa8e4c304b9793a6adf43ff54429718e7349497880cc32a140ec4d06c6"
+        },
+        {
+          "timestamp": "2026-07-14T07:33:59.516258955Z",
+          "kind": "Announcement",
+          "phase": "Event",
+          "before_path": [],
+          "after_path": [
+            11537,
+            40220,
+            225,
+            225,
+            225,
+            225,
+            225,
+            225,
+            225
+          ],
+          "element_sequence": [
+            11537,
+            40220,
+            225,
+            225,
+            225,
+            225,
+            225,
+            225,
+            225
+          ],
+          "observation_id": 224,
+          "archive_sha256": "4f14acfa8e4c304b9793a6adf43ff54429718e7349497880cc32a140ec4d06c6"
+        },
+        {
+          "timestamp": "2026-07-14T07:36:00.455272912Z",
+          "kind": "PathReplacement",
+          "phase": "Event",
+          "before_path": [
+            11537,
+            40220,
+            225,
+            225,
+            225,
+            225,
+            225,
+            225,
+            225
+          ],
+          "after_path": [
+            11537,
+            40220,
+            225
+          ],
+          "element_sequence": [
+            11537,
+            40220,
+            225
+          ],
+          "observation_id": 293,
+          "archive_sha256": "4f14acfa8e4c304b9793a6adf43ff54429718e7349497880cc32a140ec4d06c6"
+        }
+      ],
+      "baseline_route": [
+        11537,
+        40220,
+        225,
+        225,
+        225,
+        225,
+        225,
+        225,
+        225
+      ],
+      "withdrawal_timestamp": "2026-07-14T07:33:59.462019920Z",
+      "absence_duration_secs": 0.0,
+      "first_returned_path": [
+        11537,
+        40220,
+        225,
+        225,
+        225,
+        225,
+        225,
+        225,
+        225
+      ],
+      "event_window_final_path": [
+        11537,
+        40220,
+        225
+      ],
+      "analysis_final_path": [
+        11537,
+        40220,
+        225
+      ]
+    },
+    {
+      "prefix": "137.54.0.0/16",
+      "transitions": [
+        {
+          "timestamp": "2026-07-14T07:24:47.679275035Z",
+          "kind": "PathReplacement",
+          "phase": "Event",
+          "before_path": [
+            11537,
+            40220,
+            225,
+            225,
+            225,
+            225,
+            225,
+            225,
+            225
+          ],
+          "after_path": [
+            11537,
+            40220,
+            225
+          ],
+          "element_sequence": [
+            11537,
+            40220,
+            225
+          ],
+          "observation_id": 134,
+          "archive_sha256": "ccb94a214c8d2f2282a02c9465e661771cc18a06ec600d5d0ee0e0e846fb0e75"
+        },
+        {
+          "timestamp": "2026-07-14T07:33:59.462019920Z",
+          "kind": "Withdrawal",
+          "phase": "Event",
+          "before_path": [
+            11537,
+            40220,
+            225
+          ],
+          "after_path": [],
+          "element_sequence": [],
+          "observation_id": 211,
+          "archive_sha256": "4f14acfa8e4c304b9793a6adf43ff54429718e7349497880cc32a140ec4d06c6"
+        },
+        {
+          "timestamp": "2026-07-14T07:33:59.516258955Z",
+          "kind": "Announcement",
+          "phase": "Event",
+          "before_path": [],
+          "after_path": [
+            11537,
+            40220,
+            225,
+            225,
+            225,
+            225,
+            225,
+            225,
+            225
+          ],
+          "element_sequence": [
+            11537,
+            40220,
+            225,
+            225,
+            225,
+            225,
+            225,
+            225,
+            225
+          ],
+          "observation_id": 223,
+          "archive_sha256": "4f14acfa8e4c304b9793a6adf43ff54429718e7349497880cc32a140ec4d06c6"
+        },
+        {
+          "timestamp": "2026-07-14T07:36:00.455272912Z",
+          "kind": "PathReplacement",
+          "phase": "Event",
+          "before_path": [
+            11537,
+            40220,
+            225,
+            225,
+            225,
+            225,
+            225,
+            225,
+            225
+          ],
+          "after_path": [
+            11537,
+            40220,
+            225
+          ],
+          "element_sequence": [
+            11537,
+            40220,
+            225
+          ],
+          "observation_id": 291,
+          "archive_sha256": "4f14acfa8e4c304b9793a6adf43ff54429718e7349497880cc32a140ec4d06c6"
+        }
+      ],
+      "baseline_route": [
+        11537,
+        40220,
+        225,
+        225,
+        225,
+        225,
+        225,
+        225,
+        225
+      ],
+      "withdrawal_timestamp": "2026-07-14T07:33:59.462019920Z",
+      "absence_duration_secs": 0.0,
+      "first_returned_path": [
+        11537,
+        40220,
+        225,
+        225,
+        225,
+        225,
+        225,
+        225,
+        225
+      ],
+      "event_window_final_path": [
+        11537,
+        40220,
+        225
+      ],
+      "analysis_final_path": [
+        11537,
+        40220,
+        225
+      ]
+    },
+    {
+      "prefix": "137.54.122.0/23",
+      "transitions": [
+        {
+          "timestamp": "2026-07-14T07:24:47.679275035Z",
+          "kind": "Announcement",
+          "phase": "Event",
+          "before_path": [],
+          "after_path": [
+            11537,
+            40220,
+            225
+          ],
+          "element_sequence": [
+            11537,
+            40220,
+            225
+          ],
+          "observation_id": 135,
+          "archive_sha256": "ccb94a214c8d2f2282a02c9465e661771cc18a06ec600d5d0ee0e0e846fb0e75"
+        },
+        {
+          "timestamp": "2026-07-14T07:33:59.462019920Z",
+          "kind": "Withdrawal",
+          "phase": "Event",
+          "before_path": [
+            11537,
+            40220,
+            225
+          ],
+          "after_path": [],
+          "element_sequence": [],
+          "observation_id": 212,
+          "archive_sha256": "4f14acfa8e4c304b9793a6adf43ff54429718e7349497880cc32a140ec4d06c6"
+        },
+        {
+          "timestamp": "2026-07-14T07:36:00.455272912Z",
+          "kind": "Announcement",
+          "phase": "Event",
+          "before_path": [],
+          "after_path": [
+            11537,
+            40220,
+            225
+          ],
+          "element_sequence": [
+            11537,
+            40220,
+            225
+          ],
+          "observation_id": 292,
+          "archive_sha256": "4f14acfa8e4c304b9793a6adf43ff54429718e7349497880cc32a140ec4d06c6"
+        }
+      ],
+      "baseline_route": [
+        11537,
+        40220,
+        225
+      ],
+      "withdrawal_timestamp": "2026-07-14T07:33:59.462019920Z",
+      "absence_duration_secs": 0.121,
+      "first_returned_path": [
+        11537,
+        40220,
+        225
+      ],
+      "event_window_final_path": [
+        11537,
+        40220,
+        225
+      ],
+      "analysis_final_path": [
+        11537,
+        40220,
+        225
+      ]
+    },
+    {
+      "prefix": "192.131.232.0/24",
+      "transitions": [
+        {
+          "timestamp": "2026-07-14T07:25:17.678420066Z",
+          "kind": "PathReplacement",
+          "phase": "Event",
+          "before_path": [
+            11537,
+            40220,
+            225,
+            225,
+            225,
+            225,
+            225,
+            225,
+            225
+          ],
+          "after_path": [
+            11537,
+            40220,
+            225
+          ],
+          "element_sequence": [
+            11537,
+            40220,
+            225
+          ],
+          "observation_id": 150,
+          "archive_sha256": "ccb94a214c8d2f2282a02c9465e661771cc18a06ec600d5d0ee0e0e846fb0e75"
+        },
+        {
+          "timestamp": "2026-07-14T07:33:59.462019920Z",
+          "kind": "Withdrawal",
+          "phase": "Event",
+          "before_path": [
+            11537,
+            40220,
+            225
+          ],
+          "after_path": [],
+          "element_sequence": [],
+          "observation_id": 206,
+          "archive_sha256": "4f14acfa8e4c304b9793a6adf43ff54429718e7349497880cc32a140ec4d06c6"
+        },
+        {
+          "timestamp": "2026-07-14T07:33:59.516063928Z",
+          "kind": "Announcement",
+          "phase": "Event",
+          "before_path": [],
+          "after_path": [
+            11537,
+            40220,
+            225,
+            225,
+            225,
+            225,
+            225,
+            225,
+            225
+          ],
+          "element_sequence": [
+            11537,
+            40220,
+            225,
+            225,
+            225,
+            225,
+            225,
+            225,
+            225
+          ],
+          "observation_id": 215,
+          "archive_sha256": "4f14acfa8e4c304b9793a6adf43ff54429718e7349497880cc32a140ec4d06c6"
+        },
+        {
+          "timestamp": "2026-07-14T07:36:30.456653118Z",
+          "kind": "PathReplacement",
+          "phase": "Event",
+          "before_path": [
+            11537,
+            40220,
+            225,
+            225,
+            225,
+            225,
+            225,
+            225,
+            225
+          ],
+          "after_path": [
+            11537,
+            40220,
+            225
+          ],
+          "element_sequence": [
+            11537,
+            40220,
+            225
+          ],
+          "observation_id": 304,
+          "archive_sha256": "4f14acfa8e4c304b9793a6adf43ff54429718e7349497880cc32a140ec4d06c6"
+        }
+      ],
+      "baseline_route": [
+        11537,
+        40220,
+        225,
+        225,
+        225,
+        225,
+        225,
+        225,
+        225
+      ],
+      "withdrawal_timestamp": "2026-07-14T07:33:59.462019920Z",
+      "absence_duration_secs": 0.0,
+      "first_returned_path": [
+        11537,
+        40220,
+        225,
+        225,
+        225,
+        225,
+        225,
+        225,
+        225
+      ],
+      "event_window_final_path": [
+        11537,
+        40220,
+        225
+      ],
+      "analysis_final_path": [
+        11537,
+        40220,
+        225
+      ]
+    },
+    {
+      "prefix": "192.33.115.0/24",
+      "transitions": [
+        {
+          "timestamp": "2026-07-14T07:25:17.678420066Z",
+          "kind": "PathReplacement",
+          "phase": "Event",
+          "before_path": [
+            11537,
+            40220,
+            225,
+            225,
+            225,
+            225,
+            225,
+            225,
+            225
+          ],
+          "after_path": [
+            11537,
+            40220,
+            225
+          ],
+          "element_sequence": [
+            11537,
+            40220,
+            225
+          ],
+          "observation_id": 152,
+          "archive_sha256": "ccb94a214c8d2f2282a02c9465e661771cc18a06ec600d5d0ee0e0e846fb0e75"
+        },
+        {
+          "timestamp": "2026-07-14T07:33:59.462019920Z",
+          "kind": "Withdrawal",
+          "phase": "Event",
+          "before_path": [
+            11537,
+            40220,
+            225
+          ],
+          "after_path": [],
+          "element_sequence": [],
+          "observation_id": 210,
+          "archive_sha256": "4f14acfa8e4c304b9793a6adf43ff54429718e7349497880cc32a140ec4d06c6"
+        },
+        {
+          "timestamp": "2026-07-14T07:33:59.516063928Z",
+          "kind": "Announcement",
+          "phase": "Event",
+          "before_path": [],
+          "after_path": [
+            11537,
+            40220,
+            225,
+            225,
+            225,
+            225,
+            225,
+            225,
+            225
+          ],
+          "element_sequence": [
+            11537,
+            40220,
+            225,
+            225,
+            225,
+            225,
+            225,
+            225,
+            225
+          ],
+          "observation_id": 217,
+          "archive_sha256": "4f14acfa8e4c304b9793a6adf43ff54429718e7349497880cc32a140ec4d06c6"
+        },
+        {
+          "timestamp": "2026-07-14T07:36:30.456653118Z",
+          "kind": "PathReplacement",
+          "phase": "Event",
+          "before_path": [
+            11537,
+            40220,
+            225,
+            225,
+            225,
+            225,
+            225,
+            225,
+            225
+          ],
+          "after_path": [
+            11537,
+            40220,
+            225
+          ],
+          "element_sequence": [
+            11537,
+            40220,
+            225
+          ],
+          "observation_id": 306,
+          "archive_sha256": "4f14acfa8e4c304b9793a6adf43ff54429718e7349497880cc32a140ec4d06c6"
+        }
+      ],
+      "baseline_route": [
+        11537,
+        40220,
+        225,
+        225,
+        225,
+        225,
+        225,
+        225,
+        225
+      ],
+      "withdrawal_timestamp": "2026-07-14T07:33:59.462019920Z",
+      "absence_duration_secs": 0.0,
+      "first_returned_path": [
+        11537,
+        40220,
+        225,
+        225,
+        225,
+        225,
+        225,
+        225,
+        225
+      ],
+      "event_window_final_path": [
+        11537,
+        40220,
+        225
+      ],
+      "analysis_final_path": [
+        11537,
+        40220,
+        225
+      ]
+    },
+    {
+      "prefix": "192.33.117.0/24",
+      "transitions": [
+        {
+          "timestamp": "2026-07-14T07:25:17.678420066Z",
+          "kind": "PathReplacement",
+          "phase": "Event",
+          "before_path": [
+            11537,
+            40220,
+            225,
+            225,
+            225,
+            225,
+            225,
+            225,
+            225
+          ],
+          "after_path": [
+            11537,
+            40220,
+            225
+          ],
+          "element_sequence": [
+            11537,
+            40220,
+            225
+          ],
+          "observation_id": 151,
+          "archive_sha256": "ccb94a214c8d2f2282a02c9465e661771cc18a06ec600d5d0ee0e0e846fb0e75"
+        },
+        {
+          "timestamp": "2026-07-14T07:33:59.462019920Z",
+          "kind": "Withdrawal",
+          "phase": "Event",
+          "before_path": [
+            11537,
+            40220,
+            225
+          ],
+          "after_path": [],
+          "element_sequence": [],
+          "observation_id": 209,
+          "archive_sha256": "4f14acfa8e4c304b9793a6adf43ff54429718e7349497880cc32a140ec4d06c6"
+        },
+        {
+          "timestamp": "2026-07-14T07:33:59.516063928Z",
+          "kind": "Announcement",
+          "phase": "Event",
+          "before_path": [],
+          "after_path": [
+            11537,
+            40220,
+            225,
+            225,
+            225,
+            225,
+            225,
+            225,
+            225
+          ],
+          "element_sequence": [
+            11537,
+            40220,
+            225,
+            225,
+            225,
+            225,
+            225,
+            225,
+            225
+          ],
+          "observation_id": 216,
+          "archive_sha256": "4f14acfa8e4c304b9793a6adf43ff54429718e7349497880cc32a140ec4d06c6"
+        },
+        {
+          "timestamp": "2026-07-14T07:36:30.456653118Z",
+          "kind": "PathReplacement",
+          "phase": "Event",
+          "before_path": [
+            11537,
+            40220,
+            225,
+            225,
+            225,
+            225,
+            225,
+            225,
+            225
+          ],
+          "after_path": [
+            11537,
+            40220,
+            225
+          ],
+          "element_sequence": [
+            11537,
+            40220,
+            225
+          ],
+          "observation_id": 305,
+          "archive_sha256": "4f14acfa8e4c304b9793a6adf43ff54429718e7349497880cc32a140ec4d06c6"
+        }
+      ],
+      "baseline_route": [
+        11537,
+        40220,
+        225,
+        225,
+        225,
+        225,
+        225,
+        225,
+        225
+      ],
+      "withdrawal_timestamp": "2026-07-14T07:33:59.462019920Z",
+      "absence_duration_secs": 0.0,
+      "first_returned_path": [
+        11537,
+        40220,
+        225,
+        225,
+        225,
+        225,
+        225,
+        225,
+        225
+      ],
+      "event_window_final_path": [
+        11537,
+        40220,
+        225
+      ],
+      "analysis_final_path": [
+        11537,
+        40220,
+        225
+      ]
+    },
+    {
+      "prefix": "192.35.48.0/24",
+      "transitions": [
+        {
+          "timestamp": "2026-07-14T07:25:17.678615093Z",
+          "kind": "PathReplacement",
+          "phase": "Event",
+          "before_path": [
+            11537,
+            40220,
+            225,
+            225,
+            225,
+            225,
+            225,
+            225,
+            225
+          ],
+          "after_path": [
+            11537,
+            40220,
+            225
+          ],
+          "element_sequence": [
+            11537,
+            40220,
+            225
+          ],
+          "observation_id": 157,
+          "archive_sha256": "ccb94a214c8d2f2282a02c9465e661771cc18a06ec600d5d0ee0e0e846fb0e75"
+        },
+        {
+          "timestamp": "2026-07-14T07:33:59.462019920Z",
+          "kind": "Withdrawal",
+          "phase": "Event",
+          "before_path": [
+            11537,
+            40220,
+            225
+          ],
+          "after_path": [],
+          "element_sequence": [],
+          "observation_id": 208,
+          "archive_sha256": "4f14acfa8e4c304b9793a6adf43ff54429718e7349497880cc32a140ec4d06c6"
+        },
+        {
+          "timestamp": "2026-07-14T07:33:59.516258955Z",
+          "kind": "Announcement",
+          "phase": "Event",
+          "before_path": [],
+          "after_path": [
+            11537,
+            40220,
+            225,
+            225,
+            225,
+            225,
+            225,
+            225,
+            225
+          ],
+          "element_sequence": [
+            11537,
+            40220,
+            225,
+            225,
+            225,
+            225,
+            225,
+            225,
+            225
+          ],
+          "observation_id": 222,
+          "archive_sha256": "4f14acfa8e4c304b9793a6adf43ff54429718e7349497880cc32a140ec4d06c6"
+        },
+        {
+          "timestamp": "2026-07-14T07:36:30.456892013Z",
+          "kind": "PathReplacement",
+          "phase": "Event",
+          "before_path": [
+            11537,
+            40220,
+            225,
+            225,
+            225,
+            225,
+            225,
+            225,
+            225
+          ],
+          "after_path": [
+            11537,
+            40220,
+            225
+          ],
+          "element_sequence": [
+            11537,
+            40220,
+            225
+          ],
+          "observation_id": 311,
+          "archive_sha256": "4f14acfa8e4c304b9793a6adf43ff54429718e7349497880cc32a140ec4d06c6"
+        }
+      ],
+      "baseline_route": [
+        11537,
+        40220,
+        225,
+        225,
+        225,
+        225,
+        225,
+        225,
+        225
+      ],
+      "withdrawal_timestamp": "2026-07-14T07:33:59.462019920Z",
+      "absence_duration_secs": 0.0,
+      "first_returned_path": [
+        11537,
+        40220,
+        225,
+        225,
+        225,
+        225,
+        225,
+        225,
+        225
+      ],
+      "event_window_final_path": [
+        11537,
+        40220,
+        225
+      ],
+      "analysis_final_path": [
+        11537,
+        40220,
+        225
+      ]
+    },
+    {
+      "prefix": "192.35.49.0/24",
+      "transitions": [
+        {
+          "timestamp": "2026-07-14T07:25:17.678615093Z",
+          "kind": "PathReplacement",
+          "phase": "Event",
+          "before_path": [
+            11537,
+            40220,
+            225,
+            225,
+            225,
+            225,
+            225,
+            225,
+            225
+          ],
+          "after_path": [
+            11537,
+            40220,
+            225
+          ],
+          "element_sequence": [
+            11537,
+            40220,
+            225
+          ],
+          "observation_id": 156,
+          "archive_sha256": "ccb94a214c8d2f2282a02c9465e661771cc18a06ec600d5d0ee0e0e846fb0e75"
+        },
+        {
+          "timestamp": "2026-07-14T07:33:59.462019920Z",
+          "kind": "Withdrawal",
+          "phase": "Event",
+          "before_path": [
+            11537,
+            40220,
+            225
+          ],
+          "after_path": [],
+          "element_sequence": [],
+          "observation_id": 207,
+          "archive_sha256": "4f14acfa8e4c304b9793a6adf43ff54429718e7349497880cc32a140ec4d06c6"
+        },
+        {
+          "timestamp": "2026-07-14T07:33:59.516258955Z",
+          "kind": "Announcement",
+          "phase": "Event",
+          "before_path": [],
+          "after_path": [
+            11537,
+            40220,
+            225,
+            225,
+            225,
+            225,
+            225,
+            225,
+            225
+          ],
+          "element_sequence": [
+            11537,
+            40220,
+            225,
+            225,
+            225,
+            225,
+            225,
+            225,
+            225
+          ],
+          "observation_id": 221,
+          "archive_sha256": "4f14acfa8e4c304b9793a6adf43ff54429718e7349497880cc32a140ec4d06c6"
+        },
+        {
+          "timestamp": "2026-07-14T07:36:30.456892013Z",
+          "kind": "PathReplacement",
+          "phase": "Event",
+          "before_path": [
+            11537,
+            40220,
+            225,
+            225,
+            225,
+            225,
+            225,
+            225,
+            225
+          ],
+          "after_path": [
+            11537,
+            40220,
+            225
+          ],
+          "element_sequence": [
+            11537,
+            40220,
+            225
+          ],
+          "observation_id": 310,
+          "archive_sha256": "4f14acfa8e4c304b9793a6adf43ff54429718e7349497880cc32a140ec4d06c6"
+        }
+      ],
+      "baseline_route": [
+        11537,
+        40220,
+        225,
+        225,
+        225,
+        225,
+        225,
+        225,
+        225
+      ],
+      "withdrawal_timestamp": "2026-07-14T07:33:59.462019920Z",
+      "absence_duration_secs": 0.0,
+      "first_returned_path": [
+        11537,
+        40220,
+        225,
+        225,
+        225,
+        225,
+        225,
+        225,
+        225
+      ],
+      "event_window_final_path": [
+        11537,
+        40220,
+        225
+      ],
+      "analysis_final_path": [
+        11537,
+        40220,
+        225
+      ]
+    },
+    {
+      "prefix": "198.51.208.0/24",
+      "transitions": [
+        {
+          "timestamp": "2026-07-14T07:25:17.678420066Z",
+          "kind": "PathReplacement",
+          "phase": "Event",
+          "before_path": [
+            11537,
+            40220,
+            225,
+            225,
+            225,
+            225,
+            225,
+            225,
+            225
+          ],
+          "after_path": [
+            11537,
+            40220,
+            225
+          ],
+          "element_sequence": [
+            11537,
+            40220,
+            225
+          ],
+          "observation_id": 149,
+          "archive_sha256": "ccb94a214c8d2f2282a02c9465e661771cc18a06ec600d5d0ee0e0e846fb0e75"
+        },
+        {
+          "timestamp": "2026-07-14T07:33:59.462019920Z",
+          "kind": "Withdrawal",
+          "phase": "Event",
+          "before_path": [
+            11537,
+            40220,
+            225
+          ],
+          "after_path": [],
+          "element_sequence": [],
+          "observation_id": 205,
+          "archive_sha256": "4f14acfa8e4c304b9793a6adf43ff54429718e7349497880cc32a140ec4d06c6"
+        },
+        {
+          "timestamp": "2026-07-14T07:33:59.516063928Z",
+          "kind": "Announcement",
+          "phase": "Event",
+          "before_path": [],
+          "after_path": [
+            11537,
+            40220,
+            225,
+            225,
+            225,
+            225,
+            225,
+            225,
+            225
+          ],
+          "element_sequence": [
+            11537,
+            40220,
+            225,
+            225,
+            225,
+            225,
+            225,
+            225,
+            225
+          ],
+          "observation_id": 214,
+          "archive_sha256": "4f14acfa8e4c304b9793a6adf43ff54429718e7349497880cc32a140ec4d06c6"
+        },
+        {
+          "timestamp": "2026-07-14T07:36:30.456653118Z",
+          "kind": "PathReplacement",
+          "phase": "Event",
+          "before_path": [
+            11537,
+            40220,
+            225,
+            225,
+            225,
+            225,
+            225,
+            225,
+            225
+          ],
+          "after_path": [
+            11537,
+            40220,
+            225
+          ],
+          "element_sequence": [
+            11537,
+            40220,
+            225
+          ],
+          "observation_id": 303,
+          "archive_sha256": "4f14acfa8e4c304b9793a6adf43ff54429718e7349497880cc32a140ec4d06c6"
+        }
+      ],
+      "baseline_route": [
+        11537,
+        40220,
+        225,
+        225,
+        225,
+        225,
+        225,
+        225,
+        225
+      ],
+      "withdrawal_timestamp": "2026-07-14T07:33:59.462019920Z",
+      "absence_duration_secs": 0.0,
+      "first_returned_path": [
+        11537,
+        40220,
+        225,
+        225,
+        225,
+        225,
+        225,
+        225,
+        225
+      ],
+      "event_window_final_path": [
+        11537,
+        40220,
+        225
+      ],
+      "analysis_final_path": [
+        11537,
+        40220,
+        225
+      ]
+    },
+    {
+      "prefix": "199.111.192.0/18",
+      "transitions": [
+        {
+          "timestamp": "2026-07-14T07:25:17.678615093Z",
+          "kind": "PathReplacement",
+          "phase": "Event",
+          "before_path": [
+            11537,
+            40220,
+            225,
+            225,
+            225,
+            225,
+            225,
+            225,
+            225
+          ],
+          "after_path": [
+            11537,
+            40220,
+            225
+          ],
+          "element_sequence": [
+            11537,
+            40220,
+            225
+          ],
+          "observation_id": 153,
+          "archive_sha256": "ccb94a214c8d2f2282a02c9465e661771cc18a06ec600d5d0ee0e0e846fb0e75"
+        },
+        {
+          "timestamp": "2026-07-14T07:33:59.462019920Z",
+          "kind": "Withdrawal",
+          "phase": "Event",
+          "before_path": [
+            11537,
+            40220,
+            225
+          ],
+          "after_path": [],
+          "element_sequence": [],
+          "observation_id": 202,
+          "archive_sha256": "4f14acfa8e4c304b9793a6adf43ff54429718e7349497880cc32a140ec4d06c6"
+        },
+        {
+          "timestamp": "2026-07-14T07:33:59.516258955Z",
+          "kind": "Announcement",
+          "phase": "Event",
+          "before_path": [],
+          "after_path": [
+            11537,
+            40220,
+            225,
+            225,
+            225,
+            225,
+            225,
+            225,
+            225
+          ],
+          "element_sequence": [
+            11537,
+            40220,
+            225,
+            225,
+            225,
+            225,
+            225,
+            225,
+            225
+          ],
+          "observation_id": 218,
+          "archive_sha256": "4f14acfa8e4c304b9793a6adf43ff54429718e7349497880cc32a140ec4d06c6"
+        },
+        {
+          "timestamp": "2026-07-14T07:36:30.456892013Z",
+          "kind": "PathReplacement",
+          "phase": "Event",
+          "before_path": [
+            11537,
+            40220,
+            225,
+            225,
+            225,
+            225,
+            225,
+            225,
+            225
+          ],
+          "after_path": [
+            11537,
+            40220,
+            225
+          ],
+          "element_sequence": [
+            11537,
+            40220,
+            225
+          ],
+          "observation_id": 307,
+          "archive_sha256": "4f14acfa8e4c304b9793a6adf43ff54429718e7349497880cc32a140ec4d06c6"
+        }
+      ],
+      "baseline_route": [
+        11537,
+        40220,
+        225,
+        225,
+        225,
+        225,
+        225,
+        225,
+        225
+      ],
+      "withdrawal_timestamp": "2026-07-14T07:33:59.462019920Z",
+      "absence_duration_secs": 0.0,
+      "first_returned_path": [
+        11537,
+        40220,
+        225,
+        225,
+        225,
+        225,
+        225,
+        225,
+        225
+      ],
+      "event_window_final_path": [
+        11537,
+        40220,
+        225
+      ],
+      "analysis_final_path": [
+        11537,
+        40220,
+        225
+      ]
+    },
+    {
+      "prefix": "199.111.208.0/22",
+      "transitions": [
+        {
+          "timestamp": "2026-07-14T07:25:17.678615093Z",
+          "kind": "PathReplacement",
+          "phase": "Event",
+          "before_path": [
+            11537,
+            40220,
+            225,
+            225,
+            225,
+            225,
+            225,
+            225,
+            225
+          ],
+          "after_path": [
+            11537,
+            40220,
+            225
+          ],
+          "element_sequence": [
+            11537,
+            40220,
+            225
+          ],
+          "observation_id": 155,
+          "archive_sha256": "ccb94a214c8d2f2282a02c9465e661771cc18a06ec600d5d0ee0e0e846fb0e75"
+        },
+        {
+          "timestamp": "2026-07-14T07:33:59.462019920Z",
+          "kind": "Withdrawal",
+          "phase": "Event",
+          "before_path": [
+            11537,
+            40220,
+            225
+          ],
+          "after_path": [],
+          "element_sequence": [],
+          "observation_id": 204,
+          "archive_sha256": "4f14acfa8e4c304b9793a6adf43ff54429718e7349497880cc32a140ec4d06c6"
+        },
+        {
+          "timestamp": "2026-07-14T07:33:59.516258955Z",
+          "kind": "Announcement",
+          "phase": "Event",
+          "before_path": [],
+          "after_path": [
+            11537,
+            40220,
+            225,
+            225,
+            225,
+            225,
+            225,
+            225,
+            225
+          ],
+          "element_sequence": [
+            11537,
+            40220,
+            225,
+            225,
+            225,
+            225,
+            225,
+            225,
+            225
+          ],
+          "observation_id": 220,
+          "archive_sha256": "4f14acfa8e4c304b9793a6adf43ff54429718e7349497880cc32a140ec4d06c6"
+        },
+        {
+          "timestamp": "2026-07-14T07:36:30.456892013Z",
+          "kind": "PathReplacement",
+          "phase": "Event",
+          "before_path": [
+            11537,
+            40220,
+            225,
+            225,
+            225,
+            225,
+            225,
+            225,
+            225
+          ],
+          "after_path": [
+            11537,
+            40220,
+            225
+          ],
+          "element_sequence": [
+            11537,
+            40220,
+            225
+          ],
+          "observation_id": 309,
+          "archive_sha256": "4f14acfa8e4c304b9793a6adf43ff54429718e7349497880cc32a140ec4d06c6"
+        }
+      ],
+      "baseline_route": [
+        11537,
+        40220,
+        225,
+        225,
+        225,
+        225,
+        225,
+        225,
+        225
+      ],
+      "withdrawal_timestamp": "2026-07-14T07:33:59.462019920Z",
+      "absence_duration_secs": 0.0,
+      "first_returned_path": [
+        11537,
+        40220,
+        225,
+        225,
+        225,
+        225,
+        225,
+        225,
+        225
+      ],
+      "event_window_final_path": [
+        11537,
+        40220,
+        225
+      ],
+      "analysis_final_path": [
+        11537,
+        40220,
+        225
+      ]
+    },
+    {
+      "prefix": "199.111.224.0/19",
+      "transitions": [
+        {
+          "timestamp": "2026-07-14T07:25:17.678615093Z",
+          "kind": "PathReplacement",
+          "phase": "Event",
+          "before_path": [
+            11537,
+            40220,
+            225,
+            225,
+            225,
+            225,
+            225,
+            225,
+            225
+          ],
+          "after_path": [
+            11537,
+            40220,
+            225
+          ],
+          "element_sequence": [
+            11537,
+            40220,
+            225
+          ],
+          "observation_id": 154,
+          "archive_sha256": "ccb94a214c8d2f2282a02c9465e661771cc18a06ec600d5d0ee0e0e846fb0e75"
+        },
+        {
+          "timestamp": "2026-07-14T07:33:59.462019920Z",
+          "kind": "Withdrawal",
+          "phase": "Event",
+          "before_path": [
+            11537,
+            40220,
+            225
+          ],
+          "after_path": [],
+          "element_sequence": [],
+          "observation_id": 203,
+          "archive_sha256": "4f14acfa8e4c304b9793a6adf43ff54429718e7349497880cc32a140ec4d06c6"
+        },
+        {
+          "timestamp": "2026-07-14T07:33:59.516258955Z",
+          "kind": "Announcement",
+          "phase": "Event",
+          "before_path": [],
+          "after_path": [
+            11537,
+            40220,
+            225,
+            225,
+            225,
+            225,
+            225,
+            225,
+            225
+          ],
+          "element_sequence": [
+            11537,
+            40220,
+            225,
+            225,
+            225,
+            225,
+            225,
+            225,
+            225
+          ],
+          "observation_id": 219,
+          "archive_sha256": "4f14acfa8e4c304b9793a6adf43ff54429718e7349497880cc32a140ec4d06c6"
+        },
+        {
+          "timestamp": "2026-07-14T07:36:30.456892013Z",
+          "kind": "PathReplacement",
+          "phase": "Event",
+          "before_path": [
+            11537,
+            40220,
+            225,
+            225,
+            225,
+            225,
+            225,
+            225,
+            225
+          ],
+          "after_path": [
+            11537,
+            40220,
+            225
+          ],
+          "element_sequence": [
+            11537,
+            40220,
+            225
+          ],
+          "observation_id": 308,
+          "archive_sha256": "4f14acfa8e4c304b9793a6adf43ff54429718e7349497880cc32a140ec4d06c6"
+        }
+      ],
+      "baseline_route": [
+        11537,
+        40220,
+        225,
+        225,
+        225,
+        225,
+        225,
+        225,
+        225
+      ],
+      "withdrawal_timestamp": "2026-07-14T07:33:59.462019920Z",
+      "absence_duration_secs": 0.0,
+      "first_returned_path": [
+        11537,
+        40220,
+        225,
+        225,
+        225,
+        225,
+        225,
+        225,
+        225
+      ],
+      "event_window_final_path": [
+        11537,
+        40220,
+        225
+      ],
+      "analysis_final_path": [
+        11537,
+        40220,
+        225
+      ]
+    }
+  ]
+}

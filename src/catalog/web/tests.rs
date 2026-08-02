@@ -1478,8 +1478,8 @@ async fn expectation_assessment_uses_assessment_not_title() {
     // the R&E run's assessment and never from the target label.
     assert!(
         body.contains("Expectation assessment</dt><dd>")
-            || body.contains("<h3 class=\"wb-section\">Assessment</h3>"),
-        "relationship-relevant assessment renders once (header or Assessment section)"
+            || body.contains("Relationship assessment"),
+        "relationship-relevant assessment renders once (header, context row, or Assessment section)"
     );
     assert!(
         !body.contains("Expectation assessment</dt><dd>RIPE via NYIIX"),
@@ -1582,14 +1582,25 @@ async fn observed_peer_asn_is_never_rendered_as_unreviewed() {
         !body.to_lowercase().contains("peer asn: unreviewed"),
         "an observed ASN is never labeled unreviewed"
     );
-    // Events without reviewed peer evidence say the ASN is not in
-    // reviewed evidence — a fact about evidence, not a review verdict.
+    // The no-visibility page no longer carries the internal episodes
+    // peer cells (Session 43, Part 4); it never labels peers with a
+    // review verdict.
     let (_, ripe) = event_workbench("INC0302574").await;
-    assert!(
-        ripe.contains("peer ASN not observed in source evidence"),
-        "absence of observed peer-ASN evidence rendered honestly"
-    );
     assert!(!ripe.contains("ASN: unreviewed"));
+    assert!(
+        !ripe.contains("peer ASN not observed"),
+        "internal peer evidence detail stays off the primary page"
+    );
+    // Findings pages render honest evidence facts: a peer ASN without
+    // a reviewed name is 'name not reviewed', never a verdict.
+    let (_, uva) = event_workbench("INC0299001").await;
+    if !uva.is_empty() {
+        assert!(
+            uva.contains("name not reviewed"),
+            "unreviewed names are stated as an evidence fact"
+        );
+        assert!(!uva.to_lowercase().contains("peer asn: unreviewed"));
+    }
 }
 
 #[tokio::test]
@@ -2344,7 +2355,7 @@ async fn changed_finding_always_has_prefix_drilldown() {
     // per exact prefix (Part 5: one action away).
     let findings_section =
         body[..body.find("Observation coverage").unwrap_or(body.len())].to_string();
-    let drilldowns = findings_section.matches("View prefixes (").count();
+    let drilldowns = findings_section.matches("Prefixes (").count();
     assert!(drilldowns >= 4, "every finding has a prefix drill-down");
     assert!(
         body.contains(">10.0.0.0/24<") || body.contains("109.105.112.0/21"),
@@ -2576,7 +2587,10 @@ async fn no_changed_event_leads_with_session_ratio() {
         body.contains("Public-collector eligibility"),
         "eligibility section present"
     );
-    assert!(body.contains("Assessment"), "assessment section present");
+    assert!(
+        body.contains("Relationship assessment") || body.contains(">Assessment<"),
+        "assessment reachable (primary statement + collapsed context)"
+    );
     assert!(
         !body.contains("Externally observed routing changes"),
         "no empty routing-findings section"
@@ -2603,19 +2617,26 @@ async fn no_changed_event_leads_with_session_ratio() {
             coverage < ratio,
             "session ratio appears only inside Observation coverage"
         );
-        let assessment = body
-            .find("Insufficient public-collector visibility")
+        let statement = body
+            .find("cannot be assessed from these public collectors")
             .unwrap();
         assert!(
-            assessment < ratio,
-            "the reviewed assessment precedes any session ratio"
+            statement < ratio,
+            "the primary result precedes any session ratio"
         );
     }
-    // The relationship assessment lives once in the Assessment
-    // section (Session 41, Part 11: no header duplication).
+    // The relationship assessment lives once: as the primary
+    // statement, with the longer assessment in collapsed context
+    // (Session 43, Part 4: no duplication).
     assert!(
-        body.contains("<h3 class=\"wb-section\">Assessment</h3>"),
-        "assessment section present"
+        body.contains("Relationship assessment"),
+        "assessment reachable in collapsed context"
+    );
+    assert_eq!(
+        body.matches("Insufficient public-collector visibility")
+            .count(),
+        1,
+        "the longer assessment appears once"
     );
     assert!(
         body.contains("saw no route-state change"),
@@ -2802,8 +2823,8 @@ async fn principal_finding_shows_prefix_preview() {
         "hidden remainder counted on the preview"
     );
     assert!(
-        preview.contains("view all"),
-        "full prefix list remains one action away"
+        body.contains("Prefixes (") || body.contains(">Prefixes ▸<"),
+        "full prefix list remains one action away via the drill-down"
     );
     let _ = principal_start;
 }
@@ -3064,13 +3085,13 @@ async fn relevant_assessment_precedes_supporting_plane() {
         return;
     }
     assert_eq!(status, StatusCode::OK);
-    let assessment = body
-        .find("Insufficient public-collector visibility")
+    let statement = body
+        .find("cannot be assessed from these public collectors")
         .unwrap();
-    let supporting = body.find("Supporting").unwrap();
+    let supporting = body.find("Supporting R&amp;E observation").unwrap();
     assert!(
-        assessment < supporting,
-        "the relevant assessment precedes the supporting plane"
+        statement < supporting,
+        "the primary result precedes the supporting plane"
     );
 }
 
@@ -3342,8 +3363,8 @@ async fn prefix_preview_and_evidence_remain_one_action_away() {
         "prefix preview on the principal card"
     );
     assert!(
-        body.contains("view all"),
-        "full prefix list one action away"
+        body.contains("Prefixes ("),
+        "full prefix list one action away via the drill-down"
     );
     assert!(
         body.contains(">Prefixes ▸<") || body.contains("Prefixes ▸"),
@@ -3421,7 +3442,7 @@ async fn identity_provenance_is_separate_from_chronology() {
     let seq = body.find("wb-route-sequence").unwrap();
     let notes = body.find("wb-identity-notes").unwrap();
     assert!(seq < notes, "chronology precedes identity provenance");
-    let notes_block = &body[notes..notes + 4000];
+    let notes_block = window_at(&body, notes, 4000);
     let list_start = notes_block.find("wb-identity-notes-list").unwrap_or(0);
     let list = &notes_block[list_start..];
     assert!(
@@ -3460,7 +3481,7 @@ async fn current_identity_note_appears_once_per_distinct_asn() {
     }
     assert_eq!(status, StatusCode::OK);
     let notes_start = body.find("wb-identity-notes").unwrap();
-    let notes_block = &body[notes_start..notes_start + 4000];
+    let notes_block = window_at(&body, notes_start, 4000);
     let list_start = notes_block.find("wb-identity-notes-list").unwrap();
     let list = &notes_block[list_start..];
     // AS24489 appears 4x in the changed path but its identity note
@@ -3747,8 +3768,8 @@ async fn route_sequence_summary_matches_final_rows() {
         "summary states the exact baseline is present"
     );
     assert!(
-        body.contains("Analysis end: No later change observed"),
-        "quiet follow-up stated without internal 'None'"
+        body.contains("Analysis end: Exact baseline path present · no later change observed"),
+        "quiet follow-up states the present route state without internal 'None'"
     );
     assert!(
         body.to_lowercase()
@@ -3800,7 +3821,7 @@ async fn analysis_end_none_is_not_rendered_when_route_state_exists() {
         return;
     }
     assert_eq!(status, StatusCode::OK);
-    assert!(body.contains("Analysis end: No later change observed"));
+    assert!(body.contains("Analysis end: Exact baseline path present · no later change observed"));
     assert!(!body.contains("Analysis end: None"));
     assert!(!body.contains(">None<"));
 }
@@ -4042,5 +4063,403 @@ async fn supporting_plane_details_remain_accessible() {
     assert!(
         body.contains("Public-collector eligibility") && body.contains("directly peered with"),
         "eligibility evidence stays on the primary page"
+    );
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Session 43: UVA chronology gate (Parts 1-4).
+// ─────────────────────────────────────────────────────────────────────
+
+/// Load the committed finding-chronology audit artifact.
+fn chronology_audit() -> serde_json::Value {
+    let raw = std::fs::read_to_string("case-studies/inc0299001/finding-chronology-audit.json")
+        .expect("committed chronology audit");
+    serde_json::from_str(&raw).expect("audit parses")
+}
+
+/// Char-safe window starting at a byte index (multi-byte tokens like
+/// '×' must never be sliced).
+fn window_at(body: &str, start: usize, len: usize) -> &str {
+    let end = (start + len).min(body.len());
+    match body.get(start..end) {
+        Some(w) => w,
+        None => {
+            // Back off to the previous char boundary.
+            let mut e = end;
+            while e > start && !body.is_char_boundary(e) {
+                e -= 1;
+            }
+            body.get(start..e).unwrap_or("")
+        }
+    }
+}
+
+#[tokio::test]
+async fn uva_first_change_is_not_labeled_absence_unless_state_is_absent() {
+    let (status, body) = event_workbench("INC0299001").await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    // The 07:24:47 prepend reduction is a distinct "Prepending changed"
+    // card; the withdrawal is the "Temporarily absent" card.
+    let prepend = body
+        .find("163-253-3-14-prepending-changed")
+        .map(|i| window_at(&body, i, 700))
+        .unwrap_or("");
+    assert!(
+        prepend.contains("07:24:47") && prepend.contains("Prepending changed"),
+        "the earlier change is not an absence: {prepend}"
+    );
+    assert!(!prepend.contains("Temporarily absent"));
+    let absent = body
+        .find("163-253-3-14-temporarily-absent")
+        .map(|i| window_at(&body, i, 700))
+        .unwrap_or("");
+    assert!(
+        absent.contains("07:33:59") && absent.contains("Temporarily absent"),
+        "the withdrawal is the absence: {absent}"
+    );
+}
+
+#[tokio::test]
+async fn uva_withdrawal_timestamp_matches_transition_evidence() {
+    let audit = chronology_audit();
+    let wd = audit["prefixes"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|p| p["prefix"] == "128.143.0.0/16")
+        .and_then(|p| p["withdrawal_timestamp"].as_str())
+        .unwrap()
+        .to_string();
+    assert_eq!(&wd[11..19], "07:33:59", "audit withdrawal clock time");
+    let (_, body) = event_workbench("INC0299001").await;
+    if body.is_empty() {
+        return;
+    }
+    let absent = body
+        .find("163-253-3-14-temporarily-absent")
+        .map(|i| window_at(&body, i, 700))
+        .unwrap_or("");
+    assert!(
+        absent.contains("07:33:59 UTC"),
+        "absence card head matches the withdrawal evidence"
+    );
+}
+
+#[tokio::test]
+async fn uva_return_timestamp_follows_withdrawal() {
+    let audit = chronology_audit();
+    let p = audit["prefixes"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|p| p["prefix"] == "128.143.0.0/16")
+        .unwrap();
+    let wd = p["withdrawal_timestamp"].as_str().unwrap();
+    let ret = p["first_returned_path"].as_array().unwrap();
+    let ret_ts = p["transitions"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|t| {
+            t["after_path"].as_array().map(|a| a.len()).unwrap_or(0) > 0
+                && t["timestamp"].as_str().unwrap() > wd
+        })
+        .and_then(|t| t["timestamp"].as_str())
+        .unwrap();
+    assert!(ret_ts > wd, "return follows the withdrawal");
+    assert_eq!(ret.iter().filter(|x| x.as_u64() == Some(225)).count(), 7);
+    // The rendered route sequence orders Absent before First replacement.
+    let (_, body) = event_workbench("INC0299001").await;
+    if !body.is_empty() {
+        let absent_at = body.find(">Absent<").unwrap_or(0);
+        let replaced_at = body.find(">First replacement<").unwrap_or(0);
+        assert!(absent_at < replaced_at, "absence precedes replacement");
+    }
+}
+
+#[tokio::test]
+async fn uva_absence_duration_uses_actual_absence_interval() {
+    let audit = chronology_audit();
+    let p = audit["prefixes"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|p| p["prefix"] == "128.143.0.0/16")
+        .unwrap();
+    let d = p["absence_duration_secs"].as_f64().unwrap();
+    assert!(d < 1.0, "absence is sub-second per the audit: {d}");
+    let (_, body) = event_workbench("INC0299001").await;
+    if !body.is_empty() {
+        // The 11-prefix absence card must not claim a multi-minute
+        // absence (the old first-change-to-return span).
+        let absent = body
+            .find("163-253-3-14-temporarily-absent")
+            .map(|i| window_at(&body, i, 2600))
+            .unwrap_or("");
+        assert!(
+            !absent.contains("for 9 minutes") && !absent.contains("for 11 minutes"),
+            "absence duration uses the actual sub-second interval"
+        );
+    }
+}
+
+#[tokio::test]
+async fn uva_final_path_matches_last_observed_state() {
+    let audit = chronology_audit();
+    let p = audit["prefixes"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|p| p["prefix"] == "128.143.0.0/16")
+        .unwrap();
+    let final_path = p["event_window_final_path"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|x| x.as_u64().unwrap())
+        .collect::<Vec<_>>();
+    assert_eq!(final_path.len(), 3, "final path is the settle route");
+    assert_eq!(
+        final_path.last(),
+        Some(&225),
+        "final path settles at the origin"
+    );
+    assert_eq!(final_path.len(), 3, "final path is the settle route");
+    let (_, body) = event_workbench("INC0299001").await;
+    if !body.is_empty() {
+        let absent = body
+            .find("163-253-3-14-temporarily-absent")
+            .map(|i| window_at(&body, i, 6000))
+            .unwrap_or("");
+        assert!(
+            absent.contains("Event-window end") && absent.contains("AS40220 AS225"),
+            "sequence final row is the last observed state"
+        );
+    }
+}
+
+#[tokio::test]
+async fn prose_route_sequence_and_audit_are_identical() {
+    let audit = chronology_audit();
+    let wd = audit["prefixes"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|p| p["prefix"] == "128.143.0.0/16")
+        .and_then(|p| p["withdrawal_timestamp"].as_str())
+        .unwrap();
+    let (_, body) = event_workbench("INC0299001").await;
+    if body.is_empty() {
+        return;
+    }
+    // The absence card states the withdrawal and the ordered pair;
+    // the sequence anchors Absent on the withdrawal.
+    assert!(
+        body.contains(&format!("{} UTC", &wd[11..19])),
+        "withdrawal time rendered"
+    );
+    assert!(
+        body.contains("Before the withdrawal, the path contained AS225×1")
+            && body.contains("visibility returned on a path containing AS225×7"),
+        "ordered pair matches the audit transitions"
+    );
+    // The 07:24:47 reduction is the prepend finding's first change,
+    // not part of the absence chronology.
+    let absent = body
+        .find("163-253-3-14-temporarily-absent")
+        .map(|i| window_at(&body, i, 4000))
+        .unwrap_or("");
+    assert!(
+        !absent.contains("until 07:24:47"),
+        "the absence baseline starts at the withdrawal, not the reduction"
+    );
+    assert!(
+        absent.contains("until 07:33:59"),
+        "the absence sequence starts at the withdrawal"
+    );
+}
+
+#[tokio::test]
+async fn prepend_change_and_withdrawal_are_distinct_findings() {
+    let (status, body) = event_workbench("INC0299001").await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    let prepend = body
+        .find("163-253-3-14-prepending-changed")
+        .map(|i| window_at(&body, i, 900))
+        .unwrap_or("");
+    assert!(
+        prepend.contains("11 prefixes") && prepend.contains("Prepending changed"),
+        "the prepend finding covers the 11-prefix group"
+    );
+    let absent = body
+        .find("163-253-3-14-temporarily-absent")
+        .map(|i| window_at(&body, i, 900))
+        .unwrap_or("");
+    assert!(
+        absent.contains("11 prefixes") && absent.contains("Temporarily absent"),
+        "the absence finding covers the same group"
+    );
+    assert!(
+        body.find("163-253-3-14-prepending-changed")
+            != body.find("163-253-3-14-temporarily-absent"),
+        "two distinct finding cards"
+    );
+}
+
+#[tokio::test]
+async fn prepend_finding_states_route_remained_visible() {
+    let (_, body) = event_workbench("INC0299001").await;
+    if body.is_empty() {
+        return;
+    }
+    let prepend = body
+        .find("163-253-3-14-prepending-changed")
+        .map(|i| window_at(&body, i, 1400))
+        .unwrap_or("");
+    assert!(
+        prepend.contains("while the routes remained visible")
+            || prepend.contains("while remaining visible"),
+        "the prepend story states the routes stayed visible: {prepend}"
+    );
+}
+
+#[tokio::test]
+async fn absence_finding_starts_at_withdrawal() {
+    let (_, body) = event_workbench("INC0299001").await;
+    if body.is_empty() {
+        return;
+    }
+    let absent = body
+        .find("163-253-3-14-temporarily-absent")
+        .map(|i| window_at(&body, i, 700))
+        .unwrap_or("");
+    assert!(
+        absent.contains("07:33:59 UTC"),
+        "absence head is the withdrawal time"
+    );
+    assert!(
+        !absent[..absent.find("07:33:59").unwrap_or(0)].contains("07:24:47"),
+        "the absence card does not lead with the earlier prepend timestamp"
+    );
+}
+
+#[tokio::test]
+async fn absence_finding_does_not_use_earlier_prepend_timestamp() {
+    let (_, body) = event_workbench("INC0299001").await;
+    if body.is_empty() {
+        return;
+    }
+    let absent = body
+        .find("163-253-3-14-temporarily-absent")
+        .map(|i| window_at(&body, i, 4000))
+        .unwrap_or("");
+    assert!(
+        absent.contains("until 07:33:59"),
+        "baseline step anchored on the withdrawal"
+    );
+    assert!(
+        !absent.contains("until 07:24:47"),
+        "no earlier prepend timestamp in the absence chronology"
+    );
+}
+
+#[tokio::test]
+async fn related_findings_link_to_the_same_prefix_group() {
+    let (_, body) = event_workbench("INC0299001").await;
+    if body.is_empty() {
+        return;
+    }
+    // Both findings' prefix drill-downs cover the same 11 prefixes.
+    let prepend = body
+        .find("163-253-3-14-prepending-changed")
+        .map(|i| window_at(&body, i, 24000))
+        .unwrap_or("");
+    let absent = body
+        .find("163-253-3-14-temporarily-absent")
+        .map(|i| window_at(&body, i, 24000))
+        .unwrap_or("");
+    for probe in ["128.143.0.0/16", "137.54.0.0/16", "199.111.224.0/19"] {
+        assert!(
+            prepend.contains(probe),
+            "prepend drill-down carries {probe}"
+        );
+        assert!(absent.contains(probe), "absence drill-down carries {probe}");
+    }
+}
+
+#[tokio::test]
+async fn compact_finding_has_one_prefix_disclosure() {
+    let (status, body) = manlan_workbench().await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    let card_start = body.find("wb-principal").unwrap();
+    let card_end = body[card_start + 10..]
+        .find("class=\"wb-finding wb-principal\"")
+        .map(|i| card_start + 10 + i)
+        .unwrap_or(body.len());
+    let card = window_at(&body, card_start, card_end - card_start);
+    assert!(
+        card.matches("Prefixes (").count() == 1,
+        "one prefix disclosure per card"
+    );
+    assert!(
+        !card.contains("View prefixes") && !card.contains("view all"),
+        "no duplicate 'View prefixes' disclosure"
+    );
+}
+
+#[tokio::test]
+async fn no_visibility_result_is_not_repeated() {
+    let (status, body) = event_workbench("INC0302574").await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(
+        body.matches("cannot be assessed from these public collectors")
+            .count(),
+        1,
+        "the not-assessable conclusion appears once"
+    );
+    let primary = &body[..body
+        .find("Context: ticket interpretation")
+        .unwrap_or(body.len())];
+    assert!(
+        !primary.contains("Insufficient public-collector visibility"),
+        "the longer assessment is not repeated on the primary page"
+    );
+}
+
+#[tokio::test]
+async fn no_visibility_primary_page_has_no_internal_episode_control() {
+    let (status, body) = event_workbench("INC0302574").await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    assert!(
+        !body.contains("Observer episodes"),
+        "internal episode control removed from the page"
+    );
+}
+
+#[tokio::test]
+async fn analysis_end_summary_names_present_route_state() {
+    let (status, body) = manlan_workbench().await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    assert!(
+        body.contains("Analysis end: Exact baseline path present · no later change observed"),
+        "the analysis-end summary names the present route state"
     );
 }

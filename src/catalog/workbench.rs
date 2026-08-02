@@ -1698,8 +1698,85 @@ pub fn build_findings(
                     b[0].changed.clone(),
                 ))
         });
+        // Project a stream record onto a transition subset (Session
+        // 43, Part 2): recompute the path evidence from the selected
+        // ordered transitions only, so a split finding's baseline,
+        // changed, final, and restorations describe exactly its own
+        // routing event.
+        let project = |rec: &StreamRecord, selected: &[PathTransition]| -> StreamRecord {
+            let baseline = selected
+                .iter()
+                .find(|t| !t.before_path.is_empty())
+                .map(|t| t.before_path.clone())
+                .unwrap_or_else(|| rec.baseline.clone());
+            let changed = selected
+                .iter()
+                .find(|t| !t.after_path.is_empty())
+                .map(|t| t.after_path.clone())
+                .or_else(|| rec.changed.clone());
+            let final_path = selected
+                .iter()
+                .rev()
+                .find(|t| !t.after_path.is_empty())
+                .map(|t| t.after_path.clone())
+                .or_else(|| rec.final_path.clone());
+            let wd = selected.iter().position(|t| {
+                t.kind.contains("Withdraw")
+                    || (t.after_path.is_empty() && !t.before_path.is_empty())
+            });
+            let vis = wd.and_then(|i| {
+                selected[i + 1..]
+                    .iter()
+                    .find(|t| !t.after_path.is_empty())
+                    .map(|t| t.timestamp.clone())
+            });
+            let equiv = vis.clone().filter(|_| {
+                changed
+                    .as_deref()
+                    .map(|c| c != baseline.as_slice())
+                    .unwrap_or(false)
+            });
+            let base = selected
+                .iter()
+                .find(|t| t.kind == "ReturnToBaseline")
+                .map(|t| t.timestamp.clone());
+            let first_change = selected
+                .first()
+                .map(|t| t.timestamp.clone())
+                .or_else(|| rec.first_change.clone());
+            let mut stream = rec.stream.clone();
+            stream.transitions = selected.to_vec();
+            stream.withdrawn = wd.is_some();
+            stream.first_change_utc = first_change.clone();
+            stream.visibility_restored_at = vis.clone();
+            stream.equivalent_route_restored_at = equiv.clone();
+            stream.reviewed_plane_restored_at = None;
+            stream.exact_baseline_restored_at = base.clone();
+            StreamRecord {
+                stream,
+                baseline: baseline.clone(),
+                changed,
+                final_path,
+                first_change,
+                vis,
+                equiv,
+                plane: None,
+                base,
+            }
+        };
         let split = partitions.len() > 1;
-        for (pi, part) in partitions.into_iter().enumerate() {
+        // Session 43, Part 2: a partition whose streams carry BOTH a
+        // Withdrawal and earlier visible path-change transitions
+        // presents two distinct routing events. A prepend reduction is
+        // never headed "Temporarily absent": split the partition into a
+        // visible prepend/path-change finding and an absence finding.
+        // The later post-return transitions stay inside the absence
+        // finding's route chronology (never duplicated as cards).
+        let mut emit = |records: &[&StreamRecord],
+                        effect_kind: &EffectKind,
+                        end_state: &EndState,
+                        pi: usize|
+         -> () {
             let mut streams: Vec<FindingStream> = Vec::new();
             let mut exact_prefixes: Vec<String> = Vec::new();
             let mut evidence_refs: Vec<String> = Vec::new();
@@ -1712,7 +1789,7 @@ pub fn build_findings(
             let mut equivalent_route_restored_at: Option<String> = None;
             let mut reviewed_plane_restored_at: Option<String> = None;
             let mut exact_baseline_restored_at: Option<String> = None;
-            for rec in &part {
+            for rec in records {
                 exact_prefixes.push(rec.stream.prefix.clone());
                 if !rec.stream.evidence_refs.is_empty() {
                     evidence_refs.push(rec.stream.evidence_refs.clone());
@@ -1793,7 +1870,7 @@ pub fn build_findings(
                     .iter()
                     .max_by_key(|(p, c)| (*c, p.len()))
                     .map(|(p, _)| collapse_as_path(p))
-                    .unwrap_or_else(|| "—".to_string())
+                    .unwrap_or_else(|| "\u{2014}".to_string())
             };
 
             // Peer ASN: the reviewed session context wins; otherwise the
@@ -1818,13 +1895,17 @@ pub fn build_findings(
                 .unwrap_or("")
                 .to_string();
             let target_name = target_name_from_label(target_label);
-            let effect = RoutingEffect::from_kind(&e.effect_kind);
+            let effect = RoutingEffect::from_kind(effect_kind);
+            let first_tag = first_observed
+                .clone()
+                .or_else(|| e.first_change.clone())
+                .unwrap_or_default();
             let mut stable_id = format!(
                 "{}-{}-{}-{}",
                 session.collector.to_lowercase().replace(['/', ' '], "-"),
                 session.peer_ip.replace([':', '.'], "-"),
                 effect.label().to_lowercase().replace(' ', "-"),
-                e.first_change.clone().unwrap_or_default()
+                first_tag
             );
             if split {
                 // Split episodes share session/effect/timestamp; the
@@ -1855,7 +1936,7 @@ pub fn build_findings(
                 equivalent_route_restored_at,
                 reviewed_plane_restored_at,
                 exact_baseline_restored_at,
-                state_at_window_end: e.end_state.clone(),
+                state_at_window_end: end_state.clone(),
                 state_at_analysis_end: e.cooldown_outcome.clone(),
                 analysis_end: analysis_end.to_string(),
                 observer_stream_count: exact_prefixes.len(),
@@ -1868,6 +1949,97 @@ pub fn build_findings(
                 scope_limit: scope_limit.to_string(),
                 streams,
             });
+        };
+        for (pi, part) in partitions.into_iter().enumerate() {
+            // First Withdrawal per record (ordered evidence).
+            let withdrawals: Vec<Option<usize>> = part
+                .iter()
+                .map(|rec| {
+                    rec.stream.transitions.iter().position(|t| {
+                        t.kind.contains("Withdraw")
+                            || (t.after_path.is_empty() && !t.before_path.is_empty())
+                    })
+                })
+                .collect();
+            // Pre-withdrawal visible transitions: must be homogeneous
+            // path changes (kind + exact before/after shape) across the
+            // records that carry a withdrawal, and non-empty.
+            type TransitionShape = (String, Vec<u32>, Vec<u32>);
+            let pre_shape: Option<Vec<TransitionShape>> = {
+                let shapes: Vec<Vec<TransitionShape>> = part
+                    .iter()
+                    .zip(&withdrawals)
+                    .filter_map(|(rec, w)| {
+                        w.map(|i| {
+                            rec.stream.transitions[..i]
+                                .iter()
+                                .map(|t| {
+                                    (t.kind.clone(), t.before_path.clone(), t.after_path.clone())
+                                })
+                                .collect::<Vec<_>>()
+                        })
+                    })
+                    .collect();
+                let all_path_changes = shapes
+                    .iter()
+                    .all(|sh| sh.iter().all(|(_, b, a)| !b.is_empty() && !a.is_empty()));
+                let homogeneous = shapes.iter().all(|sh| sh == &shapes[0]);
+                if !shapes.is_empty() && all_path_changes && homogeneous {
+                    Some(shapes[0].clone())
+                } else {
+                    None
+                }
+            };
+            if let Some(shape) = pre_shape {
+                // The visible prepend/path-change finding: only the
+                // pre-withdrawal transitions; route remained visible.
+                let pre_records: Vec<StreamRecord> = part
+                    .iter()
+                    .zip(&withdrawals)
+                    .map(|(rec, w)| {
+                        let i = w.expect("withdrawal present in the split branch");
+                        project(rec, &rec.stream.transitions[..i])
+                    })
+                    .collect();
+                let kind = if !shape.is_empty() {
+                    let before = &shape[0].1;
+                    let after = &shape[0].2;
+                    let diff = diff_paths(before, after, &[]);
+                    if diff.inserted.is_empty()
+                        && diff.removed.is_empty()
+                        && !diff.count_deltas.is_empty()
+                    {
+                        EffectKind::PrependChange
+                    } else {
+                        EffectKind::PathReplacement
+                    }
+                } else {
+                    EffectKind::PathReplacement
+                };
+                let end_state = if pre_records.iter().all(|r| {
+                    r.final_path.is_some() && r.final_path.as_deref() == Some(r.baseline.as_slice())
+                }) {
+                    EndState::BaselineRestored
+                } else {
+                    EndState::StillChangedAtWindowEnd
+                };
+                let pre_refs: Vec<&StreamRecord> = pre_records.iter().collect();
+                emit(&pre_refs, &kind, &end_state, pi);
+                // The absence finding: withdrawal + return + later
+                // transitions (the settle stays in this chronology).
+                let abs_records: Vec<StreamRecord> = part
+                    .iter()
+                    .zip(&withdrawals)
+                    .map(|(rec, w)| {
+                        let i = w.expect("withdrawal present in the split branch");
+                        project(rec, &rec.stream.transitions[i..])
+                    })
+                    .collect();
+                let abs_refs: Vec<&StreamRecord> = abs_records.iter().collect();
+                emit(&abs_refs, &e.effect_kind, &e.end_state, pi);
+            } else {
+                emit(&part, &e.effect_kind, &e.end_state, pi);
+            }
         }
     }
     findings.sort_by(|a, b| {
@@ -2009,7 +2181,10 @@ pub fn finding_statement(f: &RoutingFinding) -> String {
             format!("{} saw {} change AS path{}{}.", head, unit, before, after)
         }
         RoutingEffect::PrependingChanged => {
-            format!("{} saw {} change AS-path prepending.", head, unit)
+            format!(
+                "{} saw {} change AS-path prepending while the routes remained visible.",
+                head, unit
+            )
         }
         RoutingEffect::NamedPlaneDeparted => {
             format!("{} saw {} leave the reviewed path plane.", head, unit)
@@ -3095,6 +3270,11 @@ pub fn human_analysis_end_state(f: &RoutingFinding) -> String {
         CO::None => {
             if f.final_path_signature == "\u{2014}" {
                 "No route observed after restoration".to_string()
+            } else if f.final_path_signature == f.baseline_path_signature {
+                // The route state is the operator's primary fact
+                // (Session 43, Part 4); the quiet follow-up stays
+                // supplemental.
+                "Exact baseline path present \u{b7} no later change observed".to_string()
             } else {
                 "No later change observed".to_string()
             }
@@ -10864,8 +11044,35 @@ mod session42_tests {
             "2026-07-14",
             "2026-07-14T08:56:00Z",
         );
-        assert_eq!(findings.len(), 1);
-        let story = withdrawal_story(&findings[0]).expect("withdrawal evidence");
+        // The visible prepend reduction and the withdrawal are now
+        // DISTINCT findings (Session 43, Part 2).
+        assert_eq!(findings.len(), 2, "prepend + absence are separate findings");
+        let prepend = findings
+            .iter()
+            .find(|f| f.effect == RoutingEffect::PrependingChanged)
+            .expect("the visible prepend finding");
+        assert_eq!(prepend.distinct_prefixes, 1);
+        assert!(
+            !prepend.streams[0].withdrawn,
+            "the prepend finding is not an absence"
+        );
+        assert_eq!(
+            prepend.first_observed.as_deref(),
+            Some("2026-07-14T07:24:47Z")
+        );
+        let absent = findings
+            .iter()
+            .find(|f| {
+                f.effect == RoutingEffect::PrefixesTemporarilyAbsent
+                    && f.exact_prefixes == vec!["137.54.0.0/16"]
+            })
+            .expect("the x7 absence finding");
+        assert_eq!(
+            absent.first_observed.as_deref(),
+            Some("2026-07-14T07:33:59Z"),
+            "the absence starts at the withdrawal"
+        );
+        let story = withdrawal_story(absent).expect("withdrawal evidence");
         let count = |p: &[u32], asn: u32| p.iter().filter(|a| **a == asn).count();
         assert_eq!(
             count(&story.before_path, 225),
@@ -10882,7 +11089,7 @@ mod session42_tests {
         );
         // Chronology: the absence is anchored on the withdrawal, and
         // the first replacement is the x7 return.
-        let ch = route_chronology(&findings[0], "2026-07-14T07:56:00Z");
+        let ch = route_chronology(absent, "2026-07-14T07:56:00Z");
         let labels: Vec<&str> = ch.steps.iter().map(|s| s.label).collect();
         assert_eq!(
             labels,
@@ -11020,25 +11227,40 @@ mod session42_tests {
             "2026-07-14",
             "2026-07-14T08:56:00Z",
         );
-        assert_eq!(findings.len(), 2, "materially different chronologies split");
-        let x7 = findings
+        // The x7 prefix splits into a visible prepend finding and an
+        // absence finding; the 12th prefix stays whole: 3 findings.
+        assert_eq!(findings.len(), 3, "prepend + absence + same-path finding");
+        let prepend = findings
             .iter()
-            .find(|f| f.baseline_path_signature.contains("225×7"))
-            .expect("the x7-baseline finding");
+            .find(|f| f.effect == RoutingEffect::PrependingChanged)
+            .expect("the visible prepend finding");
+        let absent = findings
+            .iter()
+            .find(|f| {
+                f.effect == RoutingEffect::PrefixesTemporarilyAbsent
+                    && f.exact_prefixes == vec!["137.54.0.0/16"]
+            })
+            .expect("the x7 absence finding");
         let same = findings
             .iter()
-            .find(|f| !f.baseline_path_signature.contains("225×7"))
+            .find(|f| f.exact_prefixes == vec!["137.54.122.0/23"])
             .expect("the same-path finding");
-        assert_eq!(x7.distinct_prefixes, 1);
+        assert_eq!(prepend.distinct_prefixes, 1);
+        assert_eq!(absent.distinct_prefixes, 1);
         assert_eq!(same.distinct_prefixes, 1);
-        assert_ne!(x7.stable_id, same.stable_id, "stable ids stay distinct");
+        assert_ne!(
+            prepend.stable_id, absent.stable_id,
+            "stable ids stay distinct"
+        );
         assert!(
-            x7.stable_id.contains("prefixes-"),
+            prepend.stable_id.contains("prefixes-"),
             "split findings carry the prefix-count + index disambiguator"
         );
-        // The x7-baseline finding's withdrawal story is (1, 7); the
-        // other finding never had an x7 phase (same-path return).
-        let story = withdrawal_story(x7).expect("withdrawal evidence");
+        // The prepend finding is the x7-baseline visible change; the
+        // absence finding's withdrawal story is (1, 7); the 12th
+        // prefix never had an x7 phase (same-path return).
+        assert_eq!(prepend.baseline_path_signature, "AS64512 AS40220 AS225×7");
+        let story = withdrawal_story(absent).expect("withdrawal evidence");
         let count = |p: &[u32], asn: u32| p.iter().filter(|a| **a == asn).count();
         assert_eq!(
             (
@@ -11103,7 +11325,10 @@ mod session42_tests {
         );
         let f = &mut findings[0];
         assert_eq!(human_window_end_state(f), "Exact baseline path present");
-        assert_eq!(human_analysis_end_state(f), "No later change observed");
+        assert_eq!(
+            human_analysis_end_state(f),
+            "Exact baseline path present \u{b7} no later change observed"
+        );
         f.final_path_signature = "AS4777 AS22388 AS2603".to_string();
         assert_eq!(human_window_end_state(f), "Visible on a changed path");
         f.final_path_signature = "—".to_string();
@@ -11118,4 +11343,235 @@ mod session42_tests {
         f.state_at_window_end = EndState::AbsentAtWindowEnd;
         assert_eq!(human_window_end_state(f), "Absent");
     }
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Session 43, Part 1: finding-chronology audit artifact.
+// ─────────────────────────────────────────────────────────────────────
+
+/// One ordered transition in the chronology audit, with the evidence
+/// id, archive identity, and the observed ASN element sequence.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct FindingChronologyTransition {
+    pub timestamp: String,
+    pub kind: String,
+    pub phase: Option<String>,
+    pub before_path: Vec<u32>,
+    pub after_path: Vec<u32>,
+    /// The observed route as the ASN element sequence (the after path
+    /// order); the raw RIB element ordering lives in the archive.
+    pub element_sequence: Vec<u32>,
+    pub observation_id: Option<i64>,
+    pub archive_sha256: Option<String>,
+}
+
+/// One prefix's exact ordered chronology plus the checked summary
+/// facts (baseline, withdrawal, absence duration, first returned
+/// path, final states).
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct FindingChronologyPrefix {
+    pub prefix: String,
+    pub transitions: Vec<FindingChronologyTransition>,
+    pub baseline_route: Vec<u32>,
+    pub withdrawal_timestamp: Option<String>,
+    pub absence_duration_secs: Option<f64>,
+    pub first_returned_path: Option<Vec<u32>>,
+    pub event_window_final_path: Option<Vec<u32>>,
+    pub analysis_final_path: Option<Vec<u32>>,
+}
+
+/// Checked audit of the exact per-prefix chronology for one event,
+/// generated from the canonical lifecycle artifact (Session 43,
+/// Part 1). The rendered workbench prose and route sequence must
+/// agree with this record.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct FindingChronologyAudit {
+    pub event_id: String,
+    pub session: String,
+    pub source: String,
+    pub prefixes: Vec<FindingChronologyPrefix>,
+}
+
+/// Load the chronology audit for an event's run directory (the
+/// directory containing lifecycle.json), restricted to one observer
+/// session (collector + peer IP) — the session whose findings the
+/// audit gates.
+pub fn load_finding_chronology_audit(
+    run_dir: &std::path::Path,
+    event_id: &str,
+    collector: &str,
+    peer_ip: &str,
+) -> Result<FindingChronologyAudit, String> {
+    let path = run_dir.join("lifecycle.json");
+    let raw = std::fs::read_to_string(&path)
+        .map_err(|e| format!("cannot read {}: {e}", path.display()))?;
+    let value: serde_json::Value =
+        serde_json::from_str(&raw).map_err(|e| format!("cannot parse {}: {e}", path.display()))?;
+    let lifecycles = value
+        .get("lifecycles")
+        .and_then(|v| v.as_array())
+        .ok_or_else(|| format!("{} has no lifecycles array", path.display()))?;
+    let mut prefixes: Vec<FindingChronologyPrefix> = Vec::new();
+    for stream in lifecycles {
+        let stream_collector = stream
+            .get("collector")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string();
+        let stream_peer = stream
+            .get("peer_ip")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string();
+        if stream_collector != collector || stream_peer != peer_ip {
+            continue;
+        }
+        let prefix = stream
+            .get("prefix")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string();
+        let transitions: Vec<FindingChronologyTransition> = stream
+            .get("transitions")
+            .and_then(|v| v.as_array())
+            .map(|arr| {
+                arr.iter()
+                    .map(|t| FindingChronologyTransition {
+                        timestamp: t
+                            .get("timestamp")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or("")
+                            .to_string(),
+                        kind: t
+                            .get("kind")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or("")
+                            .to_string(),
+                        phase: t
+                            .get("phase")
+                            .and_then(|v| v.as_str())
+                            .map(|s| s.to_string()),
+                        before_path: t
+                            .get("before_path")
+                            .and_then(|v| v.as_array())
+                            .map(|a| {
+                                a.iter()
+                                    .filter_map(|x| x.as_u64())
+                                    .map(|x| x as u32)
+                                    .collect()
+                            })
+                            .unwrap_or_default(),
+                        after_path: t
+                            .get("after_path")
+                            .and_then(|v| v.as_array())
+                            .map(|a| {
+                                a.iter()
+                                    .filter_map(|x| x.as_u64())
+                                    .map(|x| x as u32)
+                                    .collect()
+                            })
+                            .unwrap_or_default(),
+                        element_sequence: t
+                            .get("after_path")
+                            .and_then(|v| v.as_array())
+                            .map(|a| {
+                                a.iter()
+                                    .filter_map(|x| x.as_u64())
+                                    .map(|x| x as u32)
+                                    .collect()
+                            })
+                            .unwrap_or_default(),
+                        observation_id: t.get("observation_id").and_then(|v| v.as_i64()),
+                        archive_sha256: t
+                            .get("archive_sha256")
+                            .and_then(|v| v.as_str())
+                            .map(|s| s.to_string()),
+                    })
+                    .collect()
+            })
+            .unwrap_or_default();
+        // The baseline route is the PRE-CHANGE path (the first
+        // transition's before), consistent with the workbench model;
+        // the lifecycle baseline_path field (first baseline instance)
+        // is the fallback.
+        let baseline_route: Vec<u32> = transitions
+            .iter()
+            .find(|t| !t.before_path.is_empty())
+            .map(|t| t.before_path.clone())
+            .or_else(|| {
+                stream
+                    .get("baseline_path")
+                    .and_then(|v| v.as_array())
+                    .map(|a| {
+                        a.iter()
+                            .filter_map(|x| x.as_u64())
+                            .map(|x| x as u32)
+                            .collect()
+                    })
+            })
+            .unwrap_or_default();
+        // Withdrawal-adjacent facts from the ordered transitions.
+        let wd = transitions.iter().position(|t| {
+            t.kind.contains("Withdraw") || (t.after_path.is_empty() && !t.before_path.is_empty())
+        });
+        let withdrawal_timestamp = wd.map(|i| transitions[i].timestamp.clone());
+        let first_returned: Option<FindingChronologyTransition> = wd.and_then(|i| {
+            transitions[i + 1..]
+                .iter()
+                .find(|t| !t.after_path.is_empty())
+                .cloned()
+        });
+        let absence_duration_secs = match (&wd, &first_returned) {
+            (Some(i), Some(r)) => {
+                let start = parse_utc_seconds(&transitions[*i].timestamp);
+                let end = parse_utc_seconds(&r.timestamp);
+                match (start, end) {
+                    (Some(s), Some(e)) if e >= s => Some((e - s) as f64 / 1000.0),
+                    _ => None,
+                }
+            }
+            _ => None,
+        };
+        let event_window_final_path: Option<Vec<u32>> = stream
+            .get("final_state")
+            .and_then(|v| v.get("attributes"))
+            .and_then(|v| v.get("as_path"))
+            .and_then(|v| v.as_array())
+            .map(|a| {
+                a.iter()
+                    .filter_map(|x| x.as_u64())
+                    .map(|x| x as u32)
+                    .collect()
+            });
+        let cooldown_count = stream
+            .get("cooldown_transitions")
+            .and_then(|v| v.as_array())
+            .map(|a| a.len())
+            .unwrap_or(0);
+        // Cooldown transitions carry no route paths (raw-archive
+        // evidence only); the analysis-final path is only stated when
+        // no cooldown change contradicts it.
+        let analysis_final_path = if cooldown_count == 0 {
+            event_window_final_path.clone()
+        } else {
+            None
+        };
+        prefixes.push(FindingChronologyPrefix {
+            prefix,
+            transitions,
+            baseline_route,
+            withdrawal_timestamp,
+            absence_duration_secs,
+            first_returned_path: first_returned.map(|t| t.after_path.clone()),
+            event_window_final_path,
+            analysis_final_path,
+        });
+    }
+    prefixes.sort_by(|a, b| a.prefix.cmp(&b.prefix));
+    Ok(FindingChronologyAudit {
+        event_id: event_id.to_string(),
+        session: format!("{collector} peer {peer_ip}"),
+        source: path.display().to_string(),
+        prefixes,
+    })
 }

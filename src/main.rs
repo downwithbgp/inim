@@ -244,6 +244,24 @@ enum CatalogCommands {
         #[arg(long, value_name = "PATH")]
         out: Option<PathBuf>,
     },
+    /// Write the checked per-prefix chronology audit for an event
+    /// (Session 43, Part 1): the exact ordered transition sequence
+    /// with evidence ids and archive identities, read from the
+    /// canonical lifecycle artifact. Output to --out or stdout.
+    FindingChronologyAudit {
+        /// Event id (e.g. INC0299001); the run directory is located
+        /// under case-studies/<event>/out/<event>/.
+        #[arg(long, value_name = "ID")]
+        event: String,
+        /// Observer session filter: collector (default route-views2).
+        #[arg(long, default_value = "route-views2")]
+        collector: String,
+        /// Observer session filter: peer IP (default 163.253.3.14).
+        #[arg(long, default_value = "163.253.3.14")]
+        peer: String,
+        #[arg(long, value_name = "PATH")]
+        out: Option<PathBuf>,
+    },
     /// Manage incident case studies.
     #[command(subcommand)]
     CaseStudy(CaseStudyCommands),
@@ -1339,6 +1357,45 @@ fn cmd_catalog(stdout: &mut dyn Write, command: &CatalogCommands) -> i32 {
                     EXIT_INVALID_INPUT
                 }
             }
+        }
+        CatalogCommands::FindingChronologyAudit {
+            event,
+            collector,
+            peer,
+            out,
+        } => {
+            let run_dir = std::path::Path::new("case-studies")
+                .join(event.to_lowercase())
+                .join("out")
+                .join(event);
+            let audit = match inim::catalog::workbench::load_finding_chronology_audit(
+                &run_dir, event, collector, peer,
+            ) {
+                Ok(a) => a,
+                Err(e) => {
+                    let _ = writeln!(stdout, "error: {e}");
+                    return EXIT_INVALID_INPUT;
+                }
+            };
+            let json = match serde_json::to_string_pretty(&audit) {
+                Ok(j) => j,
+                Err(e) => {
+                    let _ = writeln!(stdout, "error: cannot serialize audit: {e}");
+                    return EXIT_INVALID_INPUT;
+                }
+            };
+            match out {
+                Some(path) => {
+                    if let Err(e) = std::fs::write(path, json) {
+                        let _ = writeln!(stdout, "error: cannot write {}: {e}", path.display());
+                        return EXIT_INVALID_INPUT;
+                    }
+                }
+                None => {
+                    let _ = writeln!(stdout, "{json}");
+                }
+            }
+            EXIT_SUCCESS
         }
         CatalogCommands::FindingAudit { db, subject, out } => {
             let conn = match inim::catalog::db::open_catalog(db) {

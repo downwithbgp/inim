@@ -169,9 +169,9 @@ async fn i2px_primary_assessment_uses_relationship_relevant_runs() {
     let (status, body) = get(&app, "/events/INC0302574/workbench").await;
     assert_eq!(status, StatusCode::OK);
     assert!(
-        body.contains("wb-novis-assessment")
-            && body.contains("Insufficient public-collector visibility"),
-        "audit assessment present"
+        body.contains("Insufficient public-collector visibility")
+            && body.contains("Relationship assessment"),
+        "audit assessment present in the collapsed context"
     );
     // The observed result still reports the supporting R&E observation
     // but the expectation/assessment fields come from the audit.

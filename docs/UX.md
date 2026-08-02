@@ -115,3 +115,26 @@ limitations, never "no change".
 - No primary table consists mainly of abstract counters; internal terms
   (schema versions, run IDs, transition counts) stay in Analysis
   details / Provenance / JSON API.
+
+## Alpha baseline freeze (Session 43)
+
+The compact workbench design is accepted as the alpha baseline:
+
+- overall information hierarchy
+- compact finding cards
+- route-sequence expansion
+- prefix drill-down
+- old-school visual design
+- mobile layout
+
+Future changes to the workbench should be driven by one of:
+
+- a newly analyzed incident
+- contradictory evidence
+- measured NOC-user feedback
+- accessibility defects
+
+Do not continue iterative visual polishing based solely on the existing
+three case studies. Semantic corrections that make the rendered story
+agree with the canonical route evidence remain in scope; visual
+redesigns do not.

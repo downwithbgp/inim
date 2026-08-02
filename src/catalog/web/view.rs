@@ -4762,7 +4762,30 @@ pub fn finding_final_state_line(f: &crate::catalog::workbench::RoutingFinding) -
         if let Some(v) = &f.visibility_restored_at {
             let tv = time(v);
             let bare = tv.trim_end_matches(" UTC");
-            s.push_str(&format!("Visibility returned at {bare} UTC."));
+            let mut returned = format!("Visibility returned at {bare} UTC.");
+            // "By TIME, the selected path contained AS225xM." — a later
+            // post-return prepend settle, from the ordered evidence
+            // (Session 43, Part 3).
+            if let Some(o) = f.target_origin_asns.first() {
+                if let Some(story) = crate::catalog::workbench::withdrawal_story(f) {
+                    let return_n = story.return_path.iter().filter(|a| **a == *o).count();
+                    let last = f
+                        .streams
+                        .iter()
+                        .filter_map(|s| s.transitions.iter().last())
+                        .max_by_key(|t| t.timestamp.clone());
+                    if let Some(last_t) = last {
+                        let last_n = last_t.after_path.iter().filter(|a| **a == *o).count();
+                        if last_n != return_n && last_n > 0 {
+                            let lt = crate::catalog::workbench::finding_time(&last_t.timestamp);
+                            returned.push_str(&format!(
+                                " By {lt} UTC, the selected path contained AS{o}×{last_n}."
+                            ));
+                        }
+                    }
+                }
+            }
+            s.push_str(&returned);
         }
     }
     // Final observed state, from the actual final route (Session 42,
