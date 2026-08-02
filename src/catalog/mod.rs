@@ -17,6 +17,7 @@ pub mod grnoc;
 pub mod grnoc_viewer;
 pub mod grouping;
 pub mod import;
+pub mod jobs;
 pub mod migrations;
 #[cfg(test)]
 pub mod mock_server;

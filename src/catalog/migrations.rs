@@ -5,10 +5,10 @@
 //! reopened database at the current version is a no-op.
 
 /// Current catalog schema version.
-pub const CATALOG_SCHEMA_VERSION: u32 = 9;
+pub const CATALOG_SCHEMA_VERSION: u32 = 10;
 
 /// Ordered migrations. Index i migrates user_version i -> i+1.
-pub const MIGRATIONS: &[&str] = &[V1, V2, V3, V4, V5, V6, V7, V8, V9];
+pub const MIGRATIONS: &[&str] = &[V1, V2, V3, V4, V5, V6, V7, V8, V9, V10];
 
 const V1: &str = r#"
 CREATE TABLE catalog_events (
@@ -473,4 +473,75 @@ CREATE TABLE observer_session_metadata (
 );
 CREATE INDEX idx_session_metadata_lookup ON observer_session_metadata(collector, peer_ip);
 ALTER TABLE analysis_runs ADD COLUMN classification TEXT;
+"#;
+
+/// V10 — durable analysis jobs, append-only job event log, worker
+/// heartbeats (ADR-004).
+///
+/// `analysis_jobs` rows are execution state for one exact immutable
+/// plan revision. `plan_revision_id` and `completed_run_id` use
+/// ON DELETE RESTRICT: completed plan revisions and immutable runs must
+/// not be deletable while referenced by jobs. `analysis_job_events` is
+/// append-only child data whose parent cannot normally be deleted, so
+/// it uses ON DELETE CASCADE (events must never outlive the job).
+/// Staged roots are catalog-root-relative paths, never absolute.
+/// `plan_hash` is the canonical hash of the serialized plan revision
+/// (execution-relevant fields only; no generated timestamps).
+const V10: &str = r#"
+CREATE TABLE analysis_jobs (
+    id                   TEXT PRIMARY KEY,
+    plan_revision_id     INTEGER NOT NULL REFERENCES analysis_plans(id) ON DELETE RESTRICT,
+    requested_by         TEXT NOT NULL,
+    requested_at         TEXT NOT NULL,
+    state                TEXT NOT NULL,
+    attempt              INTEGER NOT NULL DEFAULT 1,
+    original_job_id      TEXT REFERENCES analysis_jobs(id) ON DELETE RESTRICT,
+    worker_id            TEXT,
+    lease_acquired_at    TEXT,
+    lease_expires_at     TEXT,
+    heartbeat_at         TEXT,
+    stage                TEXT,
+    progress_current     INTEGER,
+    progress_total       INTEGER,
+    progress_unit        TEXT,
+    cancel_requested_at  TEXT,
+    started_at           TEXT,
+    finished_at          TEXT,
+    error_code           TEXT,
+    error_summary        TEXT,
+    staged_artifact_root TEXT,
+    completed_run_id     INTEGER REFERENCES analysis_runs(id) ON DELETE RESTRICT,
+    plan_hash            TEXT NOT NULL
+);
+CREATE INDEX idx_jobs_active ON analysis_jobs(state, requested_at);
+CREATE INDEX idx_jobs_plan ON analysis_jobs(plan_revision_id);
+CREATE INDEX idx_jobs_run ON analysis_jobs(completed_run_id);
+CREATE INDEX idx_jobs_original ON analysis_jobs(original_job_id);
+
+CREATE TABLE analysis_job_events (
+    job_id            TEXT NOT NULL REFERENCES analysis_jobs(id) ON DELETE CASCADE,
+    sequence          INTEGER NOT NULL,
+    occurred_at       TEXT NOT NULL,
+    state             TEXT NOT NULL,
+    stage             TEXT,
+    message_code      TEXT,
+    human_message     TEXT NOT NULL,
+    progress_current  INTEGER,
+    progress_total    INTEGER,
+    progress_unit     TEXT,
+    structured_detail TEXT,
+    PRIMARY KEY (job_id, sequence)
+) WITHOUT ROWID;
+
+CREATE TABLE worker_heartbeats (
+    worker_id       TEXT PRIMARY KEY,
+    started_at      TEXT NOT NULL,
+    last_heartbeat  TEXT NOT NULL,
+    process_version TEXT NOT NULL,
+    source_families TEXT NOT NULL,
+    download_jobs   INTEGER NOT NULL,
+    parse_jobs      INTEGER NOT NULL,
+    offline_mode    INTEGER NOT NULL
+);
+CREATE INDEX idx_worker_heartbeat ON worker_heartbeats(last_heartbeat);
 "#;

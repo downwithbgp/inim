@@ -43,6 +43,7 @@ follow-up ADRs.
 | Evidence and provenance policy | `docs/DATA_PROVENANCE.md` |
 | Observability limits (what BGP evidence can and cannot show) | `docs/OBSERVABILITY.md` |
 | Operator UX and workbench design | `docs/UX.md` |
+| Local operations: event → plan → job → workbench | `docs/OPERATIONS.md` |
 | Performance measurements | `docs/BENCHMARK.md` |
 | Data sources: GRNOC, RouteViews, RIPE RIS | `docs/sources/` |
 | Terminology (normative definitions) | `docs/GLOSSARY.md` |
