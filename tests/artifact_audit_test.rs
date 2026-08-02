@@ -12,8 +12,8 @@ use std::collections::BTreeMap;
 use std::path::Path;
 
 use inim::schema::{
-    EVIDENCE_APPENDIX_SCHEMA_VERSION, LIFECYCLE_ARTIFACT_SCHEMA_VERSION,
-    REPORT_SCHEMA_VERSION, SEMANTIC_WAVE_SCHEMA_VERSION, TRANSITIONS_ARTIFACT_SCHEMA_VERSION,
+    EVIDENCE_APPENDIX_SCHEMA_VERSION, LIFECYCLE_ARTIFACT_SCHEMA_VERSION, REPORT_SCHEMA_VERSION,
+    SEMANTIC_WAVE_SCHEMA_VERSION, TRANSITIONS_ARTIFACT_SCHEMA_VERSION,
     WITHDRAWAL_AUDIT_SCHEMA_VERSION,
 };
 
@@ -117,9 +117,11 @@ fn generated_artifacts_use_current_schema_versions() {
                 }
                 continue;
             }
-            let v = json_value(&p)["schema_version"].as_u64().unwrap_or_else(|| {
-                panic!("{p}: missing schema_version");
-            });
+            let v = json_value(&p)["schema_version"]
+                .as_u64()
+                .unwrap_or_else(|| {
+                    panic!("{p}: missing schema_version");
+                });
             assert_eq!(
                 v as u32, *version,
                 "{p}: {name} must be schema v{version} (current), not an archived schema"
@@ -200,7 +202,8 @@ fn artifact_identity_matches_run_directory() {
                     .unwrap_or_else(|| panic!("{p}: missing event_id"))
                     .to_string();
                 assert_eq!(
-                    event_id.as_str(), run,
+                    event_id.as_str(),
+                    run,
                     "{p}: artifact event_id {event_id} does not match run directory {run}"
                 );
             }
@@ -214,7 +217,10 @@ fn generated_artifacts_contain_no_absolute_local_paths() {
         if !p.contains("/out/") {
             continue;
         }
-        if p.ends_with(".json") || p.ends_with(".jsonl") || p.ends_with(".txt") || p.ends_with(".log")
+        if p.ends_with(".json")
+            || p.ends_with(".jsonl")
+            || p.ends_with(".txt")
+            || p.ends_with(".log")
         {
             let text = std::fs::read_to_string(manifest_dir().join(&p))
                 .unwrap_or_else(|e| panic!("cannot read {p}: {e}"));
