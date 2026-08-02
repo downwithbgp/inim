@@ -21,7 +21,11 @@ There is no Contributor License Agreement.
   cargo fmt --check
   cargo test
   cargo test --release
+  cargo test --doc
   cargo clippy --all-targets --all-features -- -D warnings
+  cargo doc --no-deps --document-private-items   # warnings denied
+  scripts/audit-docs.sh                          # documentation drift audit
+  cargo deny check licenses && cargo deny check bans
   ```
 - **Event subjects and ASN mappings are data, not code.** A new ticket
   title, participant, or transit ASN belongs in a reviewed manifest
@@ -34,6 +38,12 @@ There is no Contributor License Agreement.
   analyses and commit current-schema outputs when an analysis changes
   materially; do not commit scratch outputs, caches, or raw MRT archives
   (`cache/` is gitignored; `out/` is excluded from the crate package).
+- **Canonical evidence is immutable.** Artifacts under
+  `case-studies/*/out/` are protocol evidence or derived run outputs:
+  never hand-edit them, never modify archive hashes, observation IDs, or
+  canonical transitions. Correct stale presentation prose or regenerate
+  through the documented command; do not make generated JSON agree with
+  prose by hand.
 - **Keep changes surgical.** Match the existing style; every changed line
   should trace to the request.
 - **New persisted formats carry schema versions.** Bump the schema and

@@ -1,4 +1,4 @@
-//! inim — Internetwork Impact Monitor
+//! inim — local event-conditioned BGP analysis system and NOC incident workbench.
 //!
 //! CLI entry point. Parses commands and orchestrates analysis.
 //!
@@ -25,12 +25,12 @@ pub const EXIT_INVALID_INPUT: i32 = 1;
 pub const EXIT_ANALYSIS_INCOMPLETE: i32 = 2;
 pub const EXIT_ANALYSIS_BLOCKED: i32 = 3;
 
-/// Internetwork Impact Monitor — determine how network events affect
+/// Local event-conditioned BGP analysis: relate operator-declared network events to
 /// the globally visible routing system.
 #[derive(Parser)]
 #[command(name = "inim")]
 #[command(version = "0.1.0")]
-#[command(about = "Internetwork Impact Monitor", long_about = None)]
+#[command(about = "Local event-conditioned BGP analysis and NOC incident workbench", long_about = None)]
 struct Cli {
     #[command(subcommand)]
     command: Commands,

@@ -10,7 +10,14 @@ No git tag and no crates.io publication happen unless explicitly approved.
 cargo fmt --check
 cargo test
 cargo test --release
+cargo test --doc
 cargo clippy --all-targets --all-features -- -D warnings
+cargo doc --no-deps --document-private-items   # warnings denied
+scripts/audit-docs.sh                          # documentation drift audit
+cargo deny check licenses
+cargo deny check bans
+cargo package --list
+cargo package
 ```
 
 ## License and dependency audit
@@ -70,11 +77,11 @@ cargo clippy --all-targets --all-features -- -D warnings
 
 ## Before publishing (future, with approval)
 
-1. Confirm the canonical repository URL and set `repository` in
-   `Cargo.toml` before the first crates.io publish (crates.io requires it
-   for new versions).
+1. Confirm the canonical repository URL (`repository` is already set in
+   `Cargo.toml` to the public GitHub repository).
 2. Decide the `publish` policy explicitly (currently unset — crates.io
-   publication is enabled by default).
+   publication is enabled by default; no crates.io publication is
+   planned without approval).
 3. Create and push the git tag `v0.1.0` only when explicitly requested.
 
 ## Screenshot review workflow

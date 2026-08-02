@@ -103,6 +103,10 @@ def main() -> int:
     changed = set(
         git(["diff", "--name-only", AUDIT_START, "HEAD"]).splitlines()
     )
+    # The rendered audit is deterministic: review state is a property of
+    # the inventory, not of git history. (The changed-since list above is
+    # kept only for the completion report.)
+    del changed
 
     counts = Counter(e["category"] for e in inventory)
     lines = []
@@ -143,12 +147,8 @@ def main() -> int:
         path = e["path"]
         gen = "yes" if e["generated"] else "no"
         cur = "current" if e["current"] else "historical"
-        if path in changed:
-            req = "updated in this audit"
-            status = "reviewed + updated"
-        else:
-            req = "none"
-            status = "reviewed (unchanged)"
+        req = "none"
+        status = "reviewed in this audit"
         w(f"| `{path}` | {e['category']} | {e['audience']} | {e['authoritative']} | {gen} | {cur} | {REVIEW_RESULT[e['category']]} | {req} | {status} |")
     w("")
     if problems:

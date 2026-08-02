@@ -4,7 +4,7 @@ All notable changes to inim are documented here. This project follows
 [Semantic Versioning](https://semver.org/). Pre-1.0: minor versions may
 introduce breaking changes.
 
-## [0.1.0] — 2026-07-31 (initial release)
+## [Unreleased] — initial public alpha (no release or tag yet)
 
 - GRNOC event ingestion: Internet2 and Indiana GigaPOP ticket parsing with
   the parenthesized site-code convention and expectation derivation.
