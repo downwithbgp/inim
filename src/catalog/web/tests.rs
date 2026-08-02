@@ -2654,7 +2654,7 @@ async fn no_changed_event_leads_with_session_ratio() {
     }
     // The relationship assessment lives once: as the primary
     // statement, with the longer assessment in collapsed context
-    //.
+    //
     assert!(
         body.contains("Relationship assessment"),
         "assessment reachable in collapsed context"

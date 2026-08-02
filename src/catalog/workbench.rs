@@ -225,7 +225,7 @@ impl EndState {
 
     pub fn human_label(&self) -> &'static str {
         match self {
-            EndState::BaselineRestored => "Baseline restored",
+            EndState::BaselineRestored => "Exact baseline restored",
             EndState::VisibilityRestored => "Visibility restored on changed path",
             EndState::StillChangedAtWindowEnd => "Still changed at window end",
             EndState::AbsentAtWindowEnd => "Absent at window end",
@@ -2266,7 +2266,7 @@ pub fn finding_statement(f: &RoutingFinding) -> String {
         }
         RoutingEffect::PrependingChanged => {
             // The evidence-derived direction with the origin counts
-            //.
+            //
             let direction = f
                 .target_origin_asns
                 .first()

@@ -250,7 +250,7 @@
     <table class="wb-table wb-finding-prefixes">
       <thead><tr>
         <th>Prefix</th><th>Before path</th><th>After path</th><th>Final path</th>
-        <th>First change</th><th>Visibility restored</th><th>Baseline restored</th><th>Evidence</th>
+        <th>First change</th><th>Visibility restored</th><th>Exact baseline restored</th><th>Evidence</th>
       </tr></thead>
       <tbody>
       {% for s in f.stream_rows %}
@@ -304,7 +304,7 @@
     <table class="wb-table wb-finding-prefixes">
       <thead><tr>
         <th>Prefix</th><th>Before path</th><th>After path</th><th>Final path</th>
-        <th>First change</th><th>Visibility restored</th><th>Baseline restored</th><th>Evidence</th>
+        <th>First change</th><th>Visibility restored</th><th>Exact baseline restored</th><th>Evidence</th>
       </tr></thead>
       <tbody>
       {% for s in f.stream_rows %}
@@ -330,8 +330,7 @@
 {% endif %}
 
 <!-- ================================================================
-     CONTEXT (moved below the first findings for the mobile viewport,
-     Session 40, Part 13)
+     CONTEXT (moved below the first findings for the mobile viewport)
      ================================================================ -->
 <details class="wb-context">
   <summary>Context: ticket interpretation · source documents · analysis details · provenance</summary>
@@ -367,7 +366,7 @@
 
 <!-- ================================================================
      SECONDARY: OBSERVER COMPARISON BY REGION (narrative; ratios live
-     in Observation coverage, Session 40, Part 10). Hidden on the
+     in Observation coverage). Hidden on the
      no-visibility page where it would only repeat supporting-plane
      evidence .
      ================================================================ -->
@@ -431,7 +430,7 @@
         <dl class="wb-facts">
           <div><dt>First change</dt><dd class="wb-mono">{{ f.first_exact }}</dd></div>
           <div><dt>Visibility restored</dt><dd class="wb-mono">{{ f.visibility_restored_exact }}</dd></div>
-          <div><dt>Baseline restored</dt><dd class="wb-mono">{{ f.baseline_restored_exact }}</dd></div>
+          <div><dt>Exact baseline restored</dt><dd class="wb-mono">{{ f.baseline_restored_exact }}</dd></div>
           <div><dt>Observer streams</dt><dd>{{ f.stream_rows.len() }}</dd></div>
           <div><dt>Exact prefixes</dt><dd class="wb-mono">{{ f.exact_prefixes | join(", ") }}</dd></div>
           {% if !f.evidence_refs.is_empty() %}
@@ -452,7 +451,7 @@
 {% if !no_visibility_page %}
 <!-- ================================================================
      TIMELINE (secondary to the textual findings; hidden when there is
-     no relevant evidence, Session 40, Part 11)
+     no relevant evidence)
      ================================================================ -->
 <h3 class="wb-section">Timeline (UTC)</h3>
 {% if timeline.is_empty() %}

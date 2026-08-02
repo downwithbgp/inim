@@ -3071,7 +3071,7 @@ pub struct WorkbenchView {
     /// Operator-facing routing findings.
     pub findings: Vec<WorkbenchFindingRow>,
     /// Secondary findings under "Additional observer findings"
-    ///: fully accessible, not on the first screen.
+    ///  fully accessible, not on the first screen.
     pub additional_findings: Vec<WorkbenchFindingRow>,
     /// All findings in chronological model order (the Routing findings
     /// table); principal card order is by operational priority.
@@ -3081,11 +3081,11 @@ pub struct WorkbenchView {
     /// result and hides empty analysis scaffolding.
     pub no_visibility_page: bool,
     /// Compact case-study scope line for the mobile first viewport
-    ///: "`<pilot label>` · `<pilot range>` UTC ·
+    ///  "`<pilot label>` · `<pilot range>` UTC ·
     /// not incident-wide".
     pub compact_scope_line: String,
     /// Named target origin for the no-visibility eligibility text
-    ///: "RIPE" + 3333 from reviewed data.
+    ///  "RIPE" + 3333 from reviewed data.
     pub origin_label: String,
     pub origin_asn: String,
     /// Concrete per-region observer comparison (Part 9).
@@ -3611,7 +3611,7 @@ fn episode_row(
         }
     };
     let (end_state, end_state_class) = match e.end_state {
-        ES::BaselineRestored => ("Baseline restored".to_string(), "wb-end-restored"),
+        ES::BaselineRestored => ("Exact baseline restored".to_string(), "wb-end-restored"),
         ES::VisibilityRestored => (
             "Visibility restored on changed path".to_string(),
             "wb-end-restored",
@@ -3783,7 +3783,7 @@ fn stream_end_state_human(s: &crate::catalog::workbench::EpisodeStream) -> Strin
         return "Visibility restored".to_string();
     }
     if s.restoration_time_utc.is_some() {
-        return "Baseline restored".to_string();
+        return "Exact baseline restored".to_string();
     }
     if s.category != "Unchanged" {
         return "Still changed at window end".to_string();
@@ -4882,7 +4882,7 @@ pub fn finding_final_state_line(f: &crate::catalog::workbench::RoutingFinding) -
             let mut returned = format!("Visibility returned at {bare} UTC.");
             // "By TIME, the selected path contained AS225xM." — a later
             // post-return prepend settle, from the ordered evidence
-            //.
+            //
             if let Some(o) = f.target_origin_asns.first() {
                 if let Some(story) = crate::catalog::workbench::withdrawal_story(f) {
                     let return_n = story.return_path.iter().filter(|a| **a == *o).count();

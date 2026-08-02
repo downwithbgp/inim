@@ -233,7 +233,7 @@ enum CatalogCommands {
         subject: String,
     },
     /// Write the exact finding-audit record for a subject
-    ///. The prose renderer uses these exact
+    ///  The prose renderer uses these exact
     /// fields; output is written to --out or stdout.
     FindingAudit {
         #[arg(long, value_name = "PATH")]
@@ -245,7 +245,7 @@ enum CatalogCommands {
         out: Option<PathBuf>,
     },
     /// Write the checked per-prefix chronology audit for an event
-    ///: the exact ordered transition sequence
+    ///  the exact ordered transition sequence
     /// with evidence ids and archive identities, read from the
     /// canonical lifecycle artifact. Output to --out or stdout.
     FindingChronologyAudit {
