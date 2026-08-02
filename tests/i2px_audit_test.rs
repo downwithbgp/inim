@@ -87,8 +87,12 @@ async fn supporting_plane_run_is_labeled_supporting() {
         "R&E run classified as supporting"
     );
     assert!(
-        body.contains("supporting R&#38;E-plane observation"),
-        "supporting classification described in the note"
+        body.contains("Supporting R&amp;E observation"),
+        "supporting classification described in the collapsed section"
+    );
+    assert!(
+        body.contains("supporting-re-plane"),
+        "analysis history keeps the run classification"
     );
 }
 
@@ -165,8 +169,9 @@ async fn i2px_primary_assessment_uses_relationship_relevant_runs() {
     let (status, body) = get(&app, "/events/INC0302574/workbench").await;
     assert_eq!(status, StatusCode::OK);
     assert!(
-        body.contains("Ticket relationship assessment:"),
-        "audit block present"
+        body.contains("wb-novis-assessment")
+            && body.contains("Insufficient public-collector visibility"),
+        "audit assessment present"
     );
     // The observed result still reports the supporting R&E observation
     // but the expectation/assessment fields come from the audit.

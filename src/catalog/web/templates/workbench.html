@@ -7,6 +7,7 @@
 <p class="wb-scope-line">{{ compact_scope_line }}</p>
 {% endif %}
 
+{% if !no_visibility_page %}
 <div class="wb-panel wb-header">
   <div class="wb-observed">
     {% if !vm.scope_limit.is_empty() %}
@@ -18,6 +19,7 @@
     {% endif %}
   </div>
 </div>
+{% endif %}
 
 <!-- ================================================================
      PRIMARY: EXTERNALLY OBSERVED ROUTING CHANGES
@@ -65,6 +67,65 @@
       </ul>
     </div>
     {% endfor %}
+    {% endif %}
+    <h3 class="wb-section">Observation coverage</h3>
+    {% if !vm.observed_result.is_empty() %}
+    <p class="wb-result">{{ vm.observed_result }}</p>
+    {% endif %}
+    <p class="wb-denominator">{{ denominator }}</p>
+    {% if breadth.is_empty() %}
+    <p class="muted">No regional breadth summary.</p>
+    {% else %}
+    <div class="wb-scroll">
+    <table class="wb-table wb-breadth">
+    <thead><tr>
+      <th>Region</th>
+      <th>Changed / eligible</th>
+      <th>Episodes</th>
+      <th>Streams changed / baseline</th>
+      <th>Distinct prefixes</th>
+      <th>Route instances</th>
+      <th>Transitions</th>
+      <th>First change</th>
+      <th>Last in-window restoration</th>
+      <th>Coverage gaps</th>
+    </tr></thead>
+    <tbody>
+    {% for r in breadth %}
+    <tr class="{{ r.changed_class }}">
+      <td class="wb-nowrap">{{ r.region }}</td>
+      <td class="wb-nowrap">{{ r.changed_eligible }}</td>
+      <td>{{ r.episodes }}</td>
+      <td class="wb-nowrap">{{ r.streams_baseline }}</td>
+      <td>{{ r.prefixes }}</td>
+      <td>{{ r.route_instances }}</td>
+      <td>{{ r.transitions }}</td>
+      <td class="wb-mono wb-nowrap">{{ r.first_change }}</td>
+      <td class="wb-mono wb-nowrap">{{ r.last_restoration }}</td>
+      <td>{{ r.gaps }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+    </table>
+    </div>
+    {% endif %}
+    {% if !coverage.is_empty() %}
+    <h4 class="wb-subsection">Coverage limitations</h4>
+    <div class="wb-scroll">
+    <table class="wb-table wb-narrow">
+    <thead><tr><th>Region</th><th>Session</th><th>Reason</th><th>Evidence detail</th></tr></thead>
+    <tbody>
+    {% for s in coverage %}
+    <tr class="wb-nobaseline-row">
+      <td class="wb-nowrap wb-region">{{ s.region }}</td>
+      <td class="wb-nowrap">{{ s.session }}</td>
+      <td>{{ s.reason }}</td>
+      <td class="muted">{{ s.detail }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+    </table>
+    </div>
     {% endif %}
   </details>
 </div>
@@ -323,8 +384,11 @@
 {% endif %}
 
 <!-- ================================================================
-     ROUTING FINDINGS (dense table form; same evidence as above)
+     ROUTING FINDINGS (dense table form; same evidence as above).
+     Hidden entirely on the no-visibility page (Session 42, Part 5):
+     an empty findings table is scaffolding, not evidence.
      ================================================================ -->
+{% if !no_visibility_page %}
 <h3 class="wb-section">Routing findings</h3>
 {% if findings.is_empty() %}
 <p class="muted">No changed routing findings.</p>
@@ -376,6 +440,7 @@
 </tbody>
 </table>
 </div>
+{% endif %}
 {% endif %}
 
 {% if !no_visibility_page %}
@@ -435,8 +500,11 @@
 <!-- ================================================================
      SECONDARY: OBSERVATION COVERAGE
      Breadth ratios, denominators, no-baseline conditions, and
-     no-change observers belong here — after the findings.
+     no-change observers belong here — after the findings. On the
+     no-visibility page the coverage material lives INSIDE the
+     collapsed supporting section (Session 42, Part 5).
      ================================================================ -->
+{% if !no_visibility_page %}
 <h3 class="wb-section">Observation coverage</h3>
 {% if !vm.observed_result.is_empty() %}
 <p class="wb-result">{{ vm.observed_result }}</p>
@@ -506,6 +574,7 @@
 <li>{{ s }}</li>
 {% endfor %}
 </ul>
+{% endif %}
 {% endif %}
 
 <details class="wb-analysis-history">

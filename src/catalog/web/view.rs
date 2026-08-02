@@ -4434,23 +4434,89 @@ fn compact_finding_meaning(
             };
             let mut s = format!("{} temporarily disappeared{}.", unit, dur);
             if f.visibility_restored_at.is_some() {
-                let after = if diff.plane_retained {
-                    format!(
-                        " After visibility returned, the selected route continued through {}{}.",
-                        plane_text, insert_text
-                    )
-                } else if diff.plane_departed {
-                    format!(
-                        " After visibility returned, the selected route no longer traversed {}.",
-                        plane_text
-                    )
+                // Ordered withdrawal story (Session 42, Part 1): the
+                // pair of paths around the withdrawal. Wording never
+                // comes from a baseline-vs-arbitrary-transition
+                // comparison.
+                if let Some(story) = crate::catalog::workbench::withdrawal_story(f) {
+                    let origin = f.target_origin_asns.first().copied();
+                    if let Some(o) = origin {
+                        let before_n = story.before_path.iter().filter(|a| **a == o).count();
+                        let return_n = story.return_path.iter().filter(|a| **a == o).count();
+                        if before_n != return_n {
+                            s.push_str(&format!(
+                                " Before the withdrawal, the path contained AS{o}×{before_n}; visibility returned on a path containing AS{o}×{return_n}."
+                            ));
+                        }
+                    }
+                    // One concise semantic sentence about the return
+                    // path (Session 42, Part 4): repetition already
+                    // expressed by the ×N notation is never restated,
+                    // and a pure origin-prepend difference is already
+                    // covered by the ordered pair above.
+                    let ret_diff = crate::catalog::workbench::diff_paths(
+                        &story.before_path,
+                        &story.return_path,
+                        plane_asns,
+                    );
+                    if ret_diff.plane_retained && !ret_diff.inserted.is_empty() {
+                        let only_origin = ret_diff.inserted.iter().all(|a| Some(*a) == origin);
+                        if !only_origin {
+                            let count_in =
+                                |asn: u32| story.return_path.iter().filter(|a| **a == asn).count();
+                            let added: Vec<String> = ret_diff
+                                .inserted
+                                .iter()
+                                .map(|a| {
+                                    let c = count_in(*a);
+                                    if c > 1 {
+                                        format!("AS{a}×{c}")
+                                    } else {
+                                        format!("AS{a}")
+                                    }
+                                })
+                                .collect();
+                            let shape = if ret_diff.longer {
+                                "longer"
+                            } else if ret_diff.shorter {
+                                "shorter"
+                            } else {
+                                "different-length"
+                            };
+                            let joined = if added.len() > 1 {
+                                let (head, last) = added.split_at(added.len() - 1);
+                                format!("{}, and {}", head.join(", "), last[0])
+                            } else {
+                                added.join(", ")
+                            };
+                            s.push_str(&format!(
+                                " Visibility returned on a {shape} path that still traversed {}, adding {}.",
+                                plane_text, joined
+                            ));
+                        }
+                    } else if ret_diff.plane_departed {
+                        s.push_str(&format!(
+                            " Visibility returned on a path that no longer traversed {}.",
+                            plane_text
+                        ));
+                    }
                 } else {
-                    " After visibility returned, a different route was observed.".to_string()
-                };
-                s.push_str(&after);
-                if !prepend_text.is_empty() {
-                    s.push(' ');
-                    s.push_str(&prepend_text);
+                    // No per-prefix transition evidence: fall back to
+                    // the episode-level path facts (still exact).
+                    let after = if diff.plane_retained {
+                        format!(
+                            " After visibility returned, the selected route continued through {}{}.",
+                            plane_text, insert_text
+                        )
+                    } else if diff.plane_departed {
+                        format!(
+                            " After visibility returned, the selected route no longer traversed {}.",
+                            plane_text
+                        )
+                    } else {
+                        " After visibility returned, a different route was observed.".to_string()
+                    };
+                    s.push_str(&after);
                 }
             } else {
                 s.push_str(" The prefixes remained absent at the event-window end.");
@@ -4603,25 +4669,33 @@ fn later_insertion_clause(
 
 /// Human duration: "2 seconds", "11 minutes and 13 seconds".
 fn human_duration(secs: u64) -> String {
+    let unit = |n: u64, word: &str| -> String {
+        if n == 1 {
+            format!("1 {word}")
+        } else {
+            format!("{n} {word}s")
+        }
+    };
     if secs < 60 {
-        return format!("{secs} seconds");
+        return unit(secs, "second");
     }
     let m = secs / 60;
     let s = secs % 60;
     if s == 0 {
-        format!("{m} minutes")
-    } else if m == 1 {
-        format!("1 minute and {s} seconds")
+        unit(m, "minute")
     } else {
-        format!("{m} minutes and {s} seconds")
+        format!("{} and {}", unit(m, "minute"), unit(s, "second"))
     }
 }
 
 /// Absence duration in whole seconds between withdrawal and the
 /// visibility restoration, when both are exact.
 fn absence_duration_seconds(f: &crate::catalog::workbench::RoutingFinding) -> Option<u64> {
-    let start = f.first_observed.as_deref()?;
-    let end = f.visibility_restored_at.as_deref()?;
+    // The Withdrawal-to-return interval from the ordered evidence
+    // (Session 42, Part 1), never the episode's first-change span.
+    let story = crate::catalog::workbench::withdrawal_story(f)?;
+    let start = story.withdrawal_at.as_deref()?;
+    let end = story.returned_at_min.as_deref()?;
     let s = crate::catalog::workbench::parse_utc_seconds(start)?;
     let e = crate::catalog::workbench::parse_utc_seconds(end)?;
     if e >= s {
@@ -4634,7 +4708,7 @@ fn absence_duration_seconds(f: &crate::catalog::workbench::RoutingFinding) -> Op
 /// Restoration/final-state summary line (Session 41, Part 2): the
 /// exact-baseline reappearance and the FINAL observed state are
 /// distinct facts and never conflated.
-fn finding_final_state_line(f: &crate::catalog::workbench::RoutingFinding) -> String {
+pub fn finding_final_state_line(f: &crate::catalog::workbench::RoutingFinding) -> String {
     use crate::catalog::workbench::{CooldownOutcome as CO, EndState as ES};
     let time = |t: &str| {
         crate::catalog::workbench::workbench_time(t, f.first_observed.as_deref().unwrap_or(""))
@@ -4650,29 +4724,30 @@ fn finding_final_state_line(f: &crate::catalog::workbench::RoutingFinding) -> St
             exact_times.iter().min().copied().unwrap_or(t),
             exact_times.iter().max().copied().unwrap_or(t),
         );
-        let range = if crate::catalog::workbench::workbench_time(
-            min,
-            f.first_observed.as_deref().unwrap_or(""),
-        ) != crate::catalog::workbench::workbench_time(
-            max,
-            f.first_observed.as_deref().unwrap_or(""),
-        ) {
-            format!("between {} and {}", time(min), time(max))
+        // Group restoration wording (Session 42, Part 3): several
+        // prefixes restoring at different times restore as a GROUP
+        // over the interval — one route never gradually restores.
+        // time() already appends " UTC"; strip it and add one suffix.
+        let bare = |t: &str| time(t).trim_end_matches(" UTC").to_string();
+        if f.distinct_prefixes > 1 {
+            let (lo, hi) = (bare(min), bare(max));
+            if lo != hi {
+                s.push_str(&format!(
+                    "Exact baseline paths restored across the {}-prefix group between {} and {} UTC.",
+                    f.distinct_prefixes, lo, hi
+                ));
+            } else {
+                s.push_str(&format!(
+                    "Exact baseline paths restored across the {}-prefix group at {} UTC.",
+                    f.distinct_prefixes, lo
+                ));
+            }
         } else {
-            format!("at {}", time(t))
-        };
-        // Final observed state vs the baseline: never assume the
-        // restoration is the final state.
-        let same_as_baseline =
-            f.final_path_signature == f.baseline_path_signature || f.final_path_signature == "—";
-        let final_state = if same_as_baseline {
-            "the baseline path".to_string()
-        } else {
-            format!("a different path: {}", f.final_path_signature)
-        };
-        s.push_str(&format!(
-            "The exact baseline path reappeared {range}; final observed state: {final_state}."
-        ));
+            s.push_str(&format!(
+                "The exact baseline path was restored at {} UTC.",
+                bare(t)
+            ));
+        }
     } else {
         match &f.state_at_window_end {
             ES::StillChangedAtWindowEnd => {
@@ -4684,6 +4759,23 @@ fn finding_final_state_line(f: &crate::catalog::workbench::RoutingFinding) -> St
             ES::Unresolved => s.push_str("The end state is unresolved."),
             _ => {}
         }
+        if let Some(v) = &f.visibility_restored_at {
+            let tv = time(v);
+            let bare = tv.trim_end_matches(" UTC");
+            s.push_str(&format!("Visibility returned at {bare} UTC."));
+        }
+    }
+    // Final observed state, from the actual final route (Session 42,
+    // Part 2): never assume the restoration event is the final state,
+    // and never echo internal enum names.
+    if f.final_path_signature != "—" {
+        let human = crate::catalog::workbench::human_window_end_state(f);
+        let lower: String = human
+            .chars()
+            .next()
+            .map(|c| c.to_lowercase().collect::<String>() + &human[c.len_utf8()..])
+            .unwrap_or(human);
+        s.push_str(&format!(" Final observed state: {lower}."));
     }
     match &f.state_at_analysis_end {
         CO::StillChangingBeforeAnalysisEnd(t) => {

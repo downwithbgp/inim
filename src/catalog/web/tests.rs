@@ -3296,7 +3296,7 @@ async fn principal_card_contains_route_meaning_and_final_state() {
         "concrete route effect on the card"
     );
     assert!(
-        card.contains("final observed state") || card.contains("event-window end"),
+        card.to_lowercase().contains("final observed state") || card.contains("event-window end"),
         "final state on the card"
     );
 }
@@ -3518,8 +3518,9 @@ async fn uva_principal_card_explains_prepend_delta() {
     let card_start = body.find("wb-principal").unwrap();
     let card = &body[card_start..card_start + 2000];
     assert!(
-        card.contains("origin-AS prepending"),
-        "prepend delta explained on the UVA card"
+        card.contains("Before the withdrawal, the path contained AS225×1")
+            && card.contains("visibility returned on a path containing AS225×7"),
+        "ordered prepend pair on the UVA card"
     );
     assert!(
         card.contains("AS225×7") || card.contains("225×7"),
@@ -3659,5 +3660,385 @@ async fn primary_page_contains_only_relationship_relevant_evidence() {
     assert!(
         body.contains("Named relationship"),
         "primary content is the named relationship"
+    );
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Session 42: semantic cleanup (Parts 1-5).
+// ─────────────────────────────────────────────────────────────────────
+
+#[tokio::test]
+async fn real_uva_prepend_direction_matches_ordered_evidence() {
+    // The withdrawal-adjacent story must agree with the canonical
+    // lifecycle: before the withdrawal AS225x1, visibility returned on
+    // AS225x7 (the route then settled back to AS225x1).
+    let (status, body) = event_workbench("INC0299001").await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    assert!(
+        body.contains("Before the withdrawal, the path contained AS225×1")
+            && body.contains("visibility returned on a path containing AS225×7"),
+        "ordered prepend pair rendered"
+    );
+    // The absence card must NOT state the reversed (7 -> 1) story.
+    // (The separate prepending-changed findings legitimately describe
+    // their own 7 -> 1 reduction, so scope to the absence card.)
+    let card_start = body.find("route-views2-163-253-3-14").unwrap();
+    let card = &body[card_start..card_start + 3000];
+    assert!(
+        !card.contains("origin-AS prepending decreased from 7 to 1"),
+        "absence story never reversed"
+    );
+}
+
+#[tokio::test]
+async fn prose_and_route_sequence_agree() {
+    // The compact card's adding-sentence must match the route
+    // sequence's first-replacement path for the direct finding.
+    let (status, body) = manlan_workbench().await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    assert!(
+        body.contains("adding AS22388, AS24489×4, and AS24490"),
+        "compact diff sentence on the direct finding"
+    );
+    assert!(
+        !body.contains("adding AS22388, AS24489×4, AS24490,"),
+        "no trailing-comma list without 'and'"
+    );
+    let seq_start = body.find("Route sequence").unwrap_or(body.len());
+    let seq = &body[seq_start..body.len()];
+    assert!(
+        seq.contains("AS22388 AS24489×4 AS24490"),
+        "first-replacement path in the sequence carries the same ASNs"
+    );
+    // UVA: the prepend pair matches the sequence steps.
+    let (_, uva) = event_workbench("INC0299001").await;
+    if !uva.is_empty() {
+        assert!(
+            uva.contains("Before the withdrawal, the path contained AS225×1"),
+            "UVA card pair"
+        );
+        let seq = &uva[uva.find("Route sequence").unwrap_or(uva.len())..uva.len()];
+        assert!(
+            seq.contains("AS11537 AS40220 AS225×7"),
+            "UVA sequence first replacement is AS225x7"
+        );
+    }
+}
+
+#[tokio::test]
+async fn route_sequence_summary_matches_final_rows() {
+    // The chronology summary states must agree with the per-prefix
+    // drill-down rows and the card final line.
+    let (status, body) = manlan_workbench().await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    assert!(
+        body.contains("Event-window end: Exact baseline path present"),
+        "summary states the exact baseline is present"
+    );
+    assert!(
+        body.contains("Analysis end: No later change observed"),
+        "quiet follow-up stated without internal 'None'"
+    );
+    assert!(
+        body.to_lowercase()
+            .contains("final observed state: exact baseline path present"),
+        "card final line agrees with the summary"
+    );
+}
+
+#[tokio::test]
+async fn no_internal_enum_names_in_workbench() {
+    let cases = ["INC0299001", "INC0302574"];
+    for event in cases {
+        let (_, body) = event_workbench(event).await;
+        if body.is_empty() {
+            continue;
+        }
+        for leak in [
+            "VisibilityRestored",
+            "StillChangedAtWindowEnd",
+            "BaselineRestored",
+            "AbsentAtWindowEnd",
+            "NoRouteStateChange",
+            ">None<",
+            "Analysis end: None",
+        ] {
+            assert!(!body.contains(leak), "{leak} leaked on {event}");
+        }
+    }
+    let (_, body) = manlan_workbench().await;
+    if !body.is_empty() {
+        for leak in [
+            "VisibilityRestored",
+            "StillChangedAtWindowEnd",
+            "BaselineRestored",
+            ">None<",
+            "Analysis end: None",
+        ] {
+            assert!(!body.contains(leak), "{leak} leaked on the pilot");
+        }
+    }
+}
+
+#[tokio::test]
+async fn analysis_end_none_is_not_rendered_when_route_state_exists() {
+    // MAN LAN findings have a final route state; the follow-up window
+    // was quiet — "no later change observed", never "None".
+    let (status, body) = manlan_workbench().await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    assert!(body.contains("Analysis end: No later change observed"));
+    assert!(!body.contains("Analysis end: None"));
+    assert!(!body.contains(">None<"));
+}
+
+#[tokio::test]
+async fn multi_prefix_restoration_uses_group_language() {
+    // 11 prefixes restored over a range: group wording, one UTC.
+    let (status, body) = manlan_workbench().await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    assert!(
+        body.contains("Exact baseline paths restored across the 11-prefix group between 16:59:26 and 17:02:03 UTC"),
+        "plural group restoration wording"
+    );
+    assert!(
+        !body.contains("between 16:59:26 UTC and 17:02:03 UTC UTC"),
+        "no double UTC"
+    );
+}
+
+#[test]
+fn single_prefix_restoration_uses_singular_language() {
+    // One prefix restoring at one exact time: singular sentence, no
+    // group phrasing. (No real-data 1-prefix exact-baseline restoration
+    // exists, so the sentence is verified on the renderer directly.)
+    use crate::catalog::workbench::{
+        CooldownOutcome, EndState, FindingStream, RelationshipKind, RoutingEffect, RoutingFinding,
+    };
+    let mk = |prefixes: Vec<FindingStream>, restored: Vec<Option<String>>| RoutingFinding {
+        stable_id: "t".to_string(),
+        target_label: "TARGET (AS2603)".to_string(),
+        target_origin_asns: vec![2603],
+        target_name: "TARGET".to_string(),
+        observer_site: "site".to_string(),
+        observer_region: "AMER".to_string(),
+        source_family: "routeviews".to_string(),
+        collector: "route-views2".to_string(),
+        peer_ip: "192.0.2.1".to_string(),
+        peer_asn: Some(64512),
+        peer_name: "name not reviewed".to_string(),
+        peer_role: "".to_string(),
+        peer_asn_ambiguous: false,
+        relationship: RelationshipKind::Direct,
+        effect: RoutingEffect::AsPathChanged,
+        first_observed: Some("2019-08-21T16:45:25Z".to_string()),
+        last_observed: Some("2019-08-21T17:02:03Z".to_string()),
+        named_path_plane: "".to_string(),
+        visibility_restored_at: None,
+        equivalent_route_restored_at: None,
+        reviewed_plane_restored_at: None,
+        exact_baseline_restored_at: restored.iter().flatten().max().cloned(),
+        state_at_window_end: EndState::BaselineRestored,
+        state_at_analysis_end: CooldownOutcome::None,
+        analysis_end: "2019-08-21T18:00:00Z".to_string(),
+        observer_stream_count: prefixes.len(),
+        distinct_prefixes: prefixes.len(),
+        baseline_path_signature: "AS64512 AS2603".to_string(),
+        changed_path_signature: "AS64512 AS22388 AS2603".to_string(),
+        final_path_signature: "AS64512 AS2603".to_string(),
+        exact_prefixes: prefixes.iter().map(|s| s.prefix.clone()).collect(),
+        evidence_refs: vec![],
+        scope_limit: "".to_string(),
+        streams: prefixes,
+    };
+    let stream = |prefix: &str, restored: Option<&str>| FindingStream {
+        prefix: prefix.to_string(),
+        baseline_path: vec![64512, 2603],
+        changed_path: Some(vec![64512, 22388, 2603]),
+        final_path: Some(vec![64512, 2603]),
+        withdrawn: false,
+        first_change_utc: Some("2019-08-21T16:45:25Z".to_string()),
+        transitions: vec![],
+        visibility_restored_at: None,
+        equivalent_route_restored_at: None,
+        reviewed_plane_restored_at: None,
+        exact_baseline_restored_at: restored.map(|t| t.to_string()),
+        evidence_refs: "obs".to_string(),
+    };
+    let single = mk(
+        vec![stream("10.0.0.0/24", Some("2019-08-21T17:00:00Z"))],
+        vec![Some("2019-08-21T17:00:00Z".to_string())],
+    );
+    let line = crate::catalog::web::view::finding_final_state_line(&single);
+    assert!(
+        line.contains("The exact baseline path was restored at 17:00:00 UTC"),
+        "singular sentence: {line}"
+    );
+    assert!(!line.contains("group"), "no group phrasing: {line}");
+
+    // Two prefixes restoring at different times: plural group wording
+    // over the exact range.
+    let multi = mk(
+        vec![
+            stream("10.0.0.0/24", Some("2019-08-21T16:59:26Z")),
+            stream("10.0.1.0/24", Some("2019-08-21T17:02:03Z")),
+        ],
+        vec![
+            Some("2019-08-21T16:59:26Z".to_string()),
+            Some("2019-08-21T17:02:03Z".to_string()),
+        ],
+    );
+    let line = crate::catalog::web::view::finding_final_state_line(&multi);
+    assert!(
+        line.contains("Exact baseline paths restored across the 2-prefix group between 16:59:26 and 17:02:03 UTC"),
+        "group sentence: {line}"
+    );
+}
+
+#[tokio::test]
+async fn single_prefix_web_never_uses_group_language() {
+    // The one-prefix UVA split finding never uses group phrasing.
+    let (_, uva) = event_workbench("INC0299001").await;
+    if !uva.is_empty() {
+        assert!(
+            !uva.contains("across the 1-prefix group"),
+            "singular restoration never uses group language"
+        );
+    }
+    // The 11-prefix group on the pilot uses the plural group wording.
+    let (_, body) = manlan_workbench().await;
+    if !body.is_empty() {
+        assert!(
+            body.contains("across the 11-prefix group"),
+            "group language for the multi-prefix group"
+        );
+    }
+}
+
+#[tokio::test]
+async fn restoration_range_matches_prefix_level_evidence() {
+    // The group range must be the min..max of the per-prefix exact
+    // baseline restoration times visible in the drill-down rows.
+    let (status, body) = manlan_workbench().await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    assert!(
+        body.contains("16:59:26"),
+        "per-prefix row shows the earliest restoration"
+    );
+    assert!(
+        body.contains("17:02:03"),
+        "per-prefix row shows the latest restoration"
+    );
+    assert!(
+        body.contains("Exact baseline paths restored across the 11-prefix group between 16:59:26 and 17:02:03 UTC"),
+        "group range equals the per-prefix extremes"
+    );
+}
+
+#[tokio::test]
+async fn compact_prose_never_duplicates_multiplicity() {
+    // The compact card states the added segments once ("AS24489×4");
+    // it must not repeat the same fact as "appeared 4 consecutive
+    // times" in the same prose.
+    let (status, body) = manlan_workbench().await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    let card_start = body.find("wb-principal").unwrap();
+    let card = &body[card_start..card_start + 2600];
+    assert!(
+        card.contains("AS24489×4"),
+        "compact multiplicity notation present"
+    );
+    assert!(
+        !card.contains("appeared 4 consecutive times"),
+        "multiplicity never restated in compact prose"
+    );
+}
+
+#[tokio::test]
+async fn no_visibility_page_has_no_empty_header() {
+    let (status, body) = event_workbench("INC0302574").await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    assert!(
+        !body.contains("wb-panel wb-header"),
+        "no empty bordered header block on the primary page"
+    );
+}
+
+#[tokio::test]
+async fn no_visibility_page_has_no_routing_findings_heading() {
+    let (status, body) = event_workbench("INC0302574").await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    assert!(
+        !body.contains("Routing findings"),
+        "no empty routing-findings scaffolding"
+    );
+    assert!(!body.contains("No changed routing findings"));
+}
+
+#[tokio::test]
+async fn no_visibility_page_has_no_primary_coverage_table() {
+    let (status, body) = event_workbench("INC0302574").await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    // Coverage may only appear INSIDE the collapsed supporting
+    // section — never as a primary page section.
+    let primary_end = body
+        .find("Supporting R&amp;E observation")
+        .unwrap_or(body.len());
+    let primary = &body[..primary_end];
+    assert!(
+        !primary.contains("Observation coverage"),
+        "coverage table is not primary"
+    );
+    let supporting = &body[primary_end..body.len()];
+    assert!(
+        supporting.contains("Observation coverage"),
+        "coverage material moved inside the collapsed supporting section"
+    );
+}
+
+#[tokio::test]
+async fn supporting_plane_details_remain_accessible() {
+    let (status, body) = event_workbench("INC0302574").await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    assert!(body.contains("Supporting R&amp;E observation"));
+    assert!(
+        body.contains("showed no route-state change"),
+        "supporting no-change statements stay accessible"
+    );
+    assert!(
+        body.contains("Public-collector eligibility") && body.contains("directly peered with"),
+        "eligibility evidence stays on the primary page"
     );
 }
