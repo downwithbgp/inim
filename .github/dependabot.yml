@@ -1,0 +1,31 @@
+# Dependency update automation.
+#
+# Conservative schedule; no automatic merging. Dependabot PRs run the
+# same offline-safe CI as everything else: no live GRNOC / RouteViews /
+# RIPE RIS access, no analysis reruns, no publication.
+#
+# How action updates are reviewed (per PR):
+#   - upstream release notes for breaking changes and runtime
+#     requirements (Node version, runner image);
+#   - permissions: the action must not require more than it uses;
+#   - the new full-SHA pin matches the reviewed release tag (see the
+#     trailing comments in .github/workflows/ci.yml);
+#   - green local gates and GitHub CI before merge.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      ci-actions:
+        patterns: ["*"]
+    open-pull-requests-limit: 5
+  - package-ecosystem: cargo
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      rust-dependencies:
+        patterns: ["*"]
+    open-pull-requests-limit: 5
