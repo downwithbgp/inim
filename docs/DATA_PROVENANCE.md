@@ -308,3 +308,24 @@ all raw archives already local.
 - **Workbench reads** catalog tables (indexed), reviewed data files,
   and immutable report artifacts only; no analysis, no MRT parse, no
   cache writes happen on the request path.
+
+## Session 37 — operator anchors and workbench data provenance
+
+- **`pilot/operator-anchors.json`** (new, reviewed): structured
+  operator-reported timeline anchors derived from the existing
+  `pilot/pilot-result.json` `operator_evidence` string (AAR Appendix A
+  via the ticket reviews): NORDUnet interface flapping reported 15:33
+  (INC0040272), interface disabled 16:50 (INC0040289), interface
+  re-enabled 20:48. Each anchor records its source. Rendered on the
+  workbench timeline with visibly distinct operator styling.
+- **Plane labels in the workbench** are built from runtime data only:
+  manifest `path_classifiers` display labels, then reviewed
+  `network-profile.json` ASN→plane display-label mappings, then the
+  predicate ASN list ("path via AS{asn}"). Raw predicate JSON is never
+  rendered in the primary UI.
+- **Expectation assessments** on the event workbench come from the
+  immutable run `assessment` (report.json `assessment.statement`);
+  manifest target labels are titles, not assessments.
+- **Restoration and end states** derive from the immutable
+  lifecycle.json per-stream `restoration_time` evidence; no
+  presentation field fabricates or extrapolates a restoration.

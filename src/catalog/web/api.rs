@@ -287,7 +287,12 @@ pub async fn api_event_workbench(
     AxumPath(event_id): AxumPath<String>,
 ) -> Response {
     let db = state.db.lock().unwrap();
-    match super::view::load_event_workbench(&db, &event_id, &state.catalog_root) {
+    match super::view::load_event_workbench(
+        &db,
+        &event_id,
+        &state.catalog_root,
+        &crate::catalog::web::handlers::WorkbenchQuery::default(),
+    ) {
         Ok(Some(v)) => envelope(serde_json::to_value(v.vm).unwrap_or_default()),
         Ok(None) => super::handlers::json_error(StatusCode::NOT_FOUND, "event not found"),
         Err(e) => super::handlers::json_error(StatusCode::INTERNAL_SERVER_ERROR, &e),

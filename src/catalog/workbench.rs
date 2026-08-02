@@ -14,7 +14,7 @@
 //! identity; plane labels and ASNs arrive at runtime via the reviewed
 //! profile data (network-profile.json) and the run's manifest payload.
 
-use crate::catalog::domain::{RunTransitionRecord, SemanticWaveSummary, StreamLifecycleSummary};
+use crate::catalog::domain::{RunTransitionRecord, StreamLifecycleSummary};
 use crate::catalog::netprofile::{
     classify_route, CollectorLocationRegistry, ServicePlaneProfile, SessionRelationship,
 };
@@ -68,6 +68,22 @@ impl EffectKind {
             EffectKind::NoRouteStateChange => "NoRouteStateChange",
         }
     }
+
+    /// Human-readable label for the primary UI (Part 1.8). Raw enum
+    /// labels stay in the JSON API and technical details; the primary
+    /// workbench tables render these.
+    pub fn human_label(&self) -> &'static str {
+        match self {
+            EffectKind::TemporaryStreamAbsence => "Temporarily absent",
+            EffectKind::RouteWithdrawal => "Withdrawn, not restored",
+            EffectKind::PathReplacement => "AS path changed",
+            EffectKind::NamedPlaneDeparture => "Left the reviewed path",
+            EffectKind::NamedPlaneReturn => "Returned to the reviewed path",
+            EffectKind::PrependChange => "AS-path prepending changed",
+            EffectKind::MixedRouteChange => "Mixed route-state change",
+            EffectKind::NoRouteStateChange => "No route-state change",
+        }
+    }
 }
 
 /// Relationship of the observer session to the reviewed named plane.
@@ -92,16 +108,20 @@ impl RelationshipKind {
 
 /// Coverage status of one observer session for the target.
 ///
-/// These three states must NEVER collapse into one zero:
-/// - `NoChange`: a qualifying baseline existed and no route-state change
-///   occurred at this session.
+/// These states are about whether the observation could be made, NOT
+/// about whether a route-state change occurred:
+/// - `Complete`: a qualifying baseline existed and the run's observation
+///   of this session completed.
 /// - `NoBaselineVisibility`: the target was not visible at this session
 ///   (no qualifying baseline stream).
 /// - `IncompleteCoverage`: the observation could not be completed
 ///   (run incomplete / archive coverage limitation).
+///
+/// "No change" is NOT a coverage state: it is an observed signature
+/// (EffectKind::NoRouteStateChange) with Complete coverage.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum CoverageStatus {
-    NoChange,
+    Complete,
     NoBaselineVisibility,
     IncompleteCoverage,
 }
@@ -109,9 +129,61 @@ pub enum CoverageStatus {
 impl CoverageStatus {
     pub fn label(&self) -> &'static str {
         match self {
-            CoverageStatus::NoChange => "NoChange",
+            CoverageStatus::Complete => "Complete",
             CoverageStatus::NoBaselineVisibility => "NoBaselineVisibility",
             CoverageStatus::IncompleteCoverage => "IncompleteCoverage",
+        }
+    }
+
+    /// Human-readable label for the primary UI (Part 1.8).
+    pub fn human_label(&self) -> &'static str {
+        match self {
+            CoverageStatus::Complete => "Complete",
+            CoverageStatus::NoBaselineVisibility => "No qualifying baseline",
+            CoverageStatus::IncompleteCoverage => "Incomplete coverage",
+        }
+    }
+}
+
+/// End state of one episode at the analysis-window end, derived ONLY
+/// from lifecycle evidence (withdrawal/restoration flags and exact
+/// restoration timestamps) — never from an optional presentation field.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum EndState {
+    /// Changed streams returned to their baseline path by window end.
+    BaselineRestored,
+    /// Withdrawn streams returned to visibility (restored) by window end.
+    VisibilityRestored,
+    /// Changed streams were still changed at the analysis-window end.
+    StillChangedAtWindowEnd,
+    /// Withdrawn streams were still absent at the analysis-window end.
+    AbsentAtWindowEnd,
+    /// No route-state change was observed.
+    NoRouteStateChange,
+    /// Restoration status could not be determined from lifecycle evidence.
+    Unresolved,
+}
+
+impl EndState {
+    pub fn label(&self) -> &'static str {
+        match self {
+            EndState::BaselineRestored => "BaselineRestored",
+            EndState::VisibilityRestored => "VisibilityRestored",
+            EndState::StillChangedAtWindowEnd => "StillChangedAtWindowEnd",
+            EndState::AbsentAtWindowEnd => "AbsentAtWindowEnd",
+            EndState::NoRouteStateChange => "NoRouteStateChange",
+            EndState::Unresolved => "Unresolved",
+        }
+    }
+
+    pub fn human_label(&self) -> &'static str {
+        match self {
+            EndState::BaselineRestored => "Baseline restored",
+            EndState::VisibilityRestored => "Visibility restored on changed path",
+            EndState::StillChangedAtWindowEnd => "Still changed at window end",
+            EndState::AbsentAtWindowEnd => "Absent at window end",
+            EndState::NoRouteStateChange => "No route-state change",
+            EndState::Unresolved => "Unresolved",
         }
     }
 }
@@ -135,8 +207,6 @@ pub struct ObserverEpisode {
     pub effect_kind: EffectKind,
     /// First observed route-state change in the episode (UTC).
     pub first_change: Option<String>,
-    /// Peak interval of the episode's semantic evidence (UTC..UTC).
-    pub peak_interval: Option<(String, String)>,
     /// Last observed route-state change in the episode (UTC).
     pub last_change: Option<String>,
     pub restoration_start: Option<String>,
@@ -145,12 +215,17 @@ pub struct ObserverEpisode {
     pub baseline_stream_count: usize,
     /// Streams in the episode that changed.
     pub changed_stream_count: usize,
+    /// Changed streams with an exact lifecycle restoration timestamp.
+    pub restored_stream_count: usize,
     /// Distinct prefixes across the episode's changed streams.
     pub distinct_prefix_count: usize,
     /// Route instances involved in the episode's changed streams.
     pub route_instance_count: usize,
     /// Changed streams whose restoration is unresolved.
     pub unresolved_count: usize,
+    /// End state at the analysis-window end, derived from lifecycle
+    /// evidence (Part 1.3/1.4). NEVER "NoChange" for changed episodes.
+    pub end_state: EndState,
     pub coverage_status: CoverageStatus,
     /// Data-supported sentence describing the episode.
     pub representative_evidence: String,
@@ -168,15 +243,22 @@ pub struct EpisodeStream {
     pub baseline_instances: i64,
     pub transition_count: i64,
     pub add_path_ambiguous: bool,
+    /// Exact lifecycle timestamps (drill-down only; primary UI renders
+    /// HH:MM:SS via `workbench_time`).
+    pub first_change_utc: Option<String>,
+    pub restoration_time_utc: Option<String>,
     pub evidence_refs: String,
 }
 
-/// Load all runs' streams+transitions+waves for a set of run ids.
+/// Load all runs' streams and transitions for a set of run ids.
+///
+/// Semantic waves are run-scoped aggregates without session identity;
+/// they do not feed the episode presentation model (Session 37 audit)
+/// and are therefore not loaded here.
 #[derive(Debug, Default)]
 pub struct RunEvidence {
     pub streams: Vec<StreamLifecycleSummary>,
     pub transitions: Vec<RunTransitionRecord>,
-    pub waves: Vec<SemanticWaveSummary>,
 }
 
 impl RunEvidence {
@@ -187,8 +269,6 @@ impl RunEvidence {
                 .extend(crate::catalog::db::list_streams(conn, *run_id, None, None)?);
             out.transitions
                 .extend(crate::catalog::db::list_transitions(conn, *run_id)?);
-            out.waves
-                .extend(crate::catalog::db::list_waves(conn, *run_id)?);
         }
         Ok(out)
     }
@@ -228,6 +308,48 @@ pub fn stream_effect_kind(stream: &StreamLifecycleSummary) -> EffectKind {
     }
 }
 
+/// Derive one episode's end state from lifecycle evidence (Part 1.3).
+///
+/// The end state answers "where did this episode stand at the
+/// analysis-window end?" using ONLY exact lifecycle facts: withdrawal/
+/// restoration flags and exact restoration timestamps. A changed episode
+/// can NEVER yield `EndState::NoRouteStateChange`.
+pub fn derive_end_state(
+    kind: &EffectKind,
+    changed_count: usize,
+    restored_count: usize,
+    members: &[&StreamLifecycleSummary],
+) -> EndState {
+    if *kind == EffectKind::NoRouteStateChange || changed_count == 0 {
+        return EndState::NoRouteStateChange;
+    }
+    // ADD-PATH ambiguity means the stream's end state cannot be
+    // determined from lifecycle evidence — genuinely unresolved.
+    if members.iter().any(|s| s.add_path_ambiguous) {
+        return EndState::Unresolved;
+    }
+    let all_restored = restored_count == changed_count;
+    match kind {
+        EffectKind::TemporaryStreamAbsence | EffectKind::RouteWithdrawal => {
+            let any_withdrawn_unrestored = members.iter().any(|s| s.withdrawn && !s.restored);
+            if all_restored {
+                EndState::VisibilityRestored
+            } else if any_withdrawn_unrestored && restored_count == 0 {
+                EndState::AbsentAtWindowEnd
+            } else {
+                EndState::StillChangedAtWindowEnd
+            }
+        }
+        _ => {
+            if all_restored {
+                EndState::BaselineRestored
+            } else {
+                EndState::StillChangedAtWindowEnd
+            }
+        }
+    }
+}
+
 /// Build observer episodes for one run.
 ///
 /// Streams are grouped by (observer session, effect kind). `peer_asn`,
@@ -242,7 +364,6 @@ pub fn build_episodes(
     family: &str,
     streams: &[StreamLifecycleSummary],
     transitions: &[RunTransitionRecord],
-    waves: &[SemanticWaveSummary],
     registry: &CollectorLocationRegistry,
     session_peers: &BTreeMap<(String, String), (u32, String, String, RelationshipKind)>,
     named_path_plane: &str,
@@ -324,10 +445,16 @@ pub fn build_episodes(
             }
         }
 
-        // Restoration evidence from stream lifecycle fields.
+        // Restoration evidence from stream lifecycle fields (Part 1.4):
+        // the exact lifecycle restoration timestamp is honored for every
+        // changed stream, whether the change was a withdrawal (visibility
+        // restoration) or a path change (baseline-path restoration).
+        // Restoration is NEVER extrapolated and never read from an
+        // optional presentation field.
         let mut restoration_start: Option<String> = None;
         let mut restoration_end: Option<String> = None;
         let mut changed_count = 0usize;
+        let mut restored_count = 0usize;
         let mut distinct_prefixes: Vec<String> = Vec::new();
         let mut route_instances = 0usize;
         let mut unresolved = 0usize;
@@ -338,48 +465,35 @@ pub fn build_episodes(
                     distinct_prefixes.push(s.prefix.clone());
                 }
                 route_instances += s.max_active_instances.max(1) as usize;
+                if s.restoration_time_utc.is_some() {
+                    restored_count += 1;
+                }
             }
             if (s.withdrawn && !s.restored) || s.add_path_ambiguous {
                 unresolved += 1;
             }
-            // Restoration interval from the immutable lifecycle evidence
-            // (per-stream restoration timestamps), NOT extrapolated.
-            if s.restored {
-                if let Some(rt) = &s.restoration_time_utc {
-                    restoration_start = match (restoration_start.clone(), rt.clone()) {
-                        (None, r) => Some(r),
-                        (Some(cur), r) if r < cur => Some(r),
-                        (cur, _) => cur,
-                    };
-                    restoration_end = match (restoration_end.clone(), rt.clone()) {
-                        (None, r) => Some(r),
-                        (Some(cur), r) if r > cur => Some(r),
-                        (cur, _) => cur,
-                    };
-                }
+            if let Some(rt) = &s.restoration_time_utc {
+                restoration_start = match (restoration_start.clone(), rt.clone()) {
+                    (None, r) => Some(r),
+                    (Some(cur), r) if r < cur => Some(r),
+                    (cur, _) => cur,
+                };
+                restoration_end = match (restoration_end.clone(), rt.clone()) {
+                    (None, r) => Some(r),
+                    (Some(cur), r) if r > cur => Some(r),
+                    (cur, _) => cur,
+                };
             }
         }
+        let end_state = derive_end_state(&kind, changed_count, restored_count, &members);
 
-        // Peak interval from overlapping semantic waves of this session.
-        let mut peak_interval: Option<(String, String)> = None;
-        for w in waves {
-            if w.start
-                < peak_interval
-                    .as_ref()
-                    .map(|p| p.0.clone())
-                    .unwrap_or_default()
-                || peak_interval.is_none()
-            {
-                peak_interval = Some((w.start.clone(), w.end.clone()));
-            }
-        }
-
-        // Coverage status: a qualifying baseline exists at this session
-        // (streams present), so the status is NoChange when no route-state
-        // change was observed. NoBaselineVisibility / IncompleteCoverage
-        // are derived at the workbench level from run coverage, because a
-        // session without streams never reaches this per-run builder.
-        let coverage = CoverageStatus::NoChange;
+        // Coverage status (Part 1.3): a session with streams and a
+        // completed run has Complete coverage. "No route-state change"
+        // is an OBSERVED SIGNATURE (EffectKind), never a coverage state.
+        // NoBaselineVisibility / IncompleteCoverage are derived at the
+        // workbench level from run coverage, because a session without
+        // streams never reaches this per-run builder.
+        let coverage = CoverageStatus::Complete;
 
         let episode = ObserverEpisode {
             analysis_run: run_id,
@@ -396,15 +510,16 @@ pub fn build_episodes(
             named_path_plane: named_path_plane.to_string(),
             effect_kind: kind.clone(),
             first_change,
-            peak_interval,
             last_change,
             restoration_start,
             restoration_end,
             baseline_stream_count: members.len(),
             changed_stream_count: changed_count,
+            restored_stream_count: restored_count,
             distinct_prefix_count: distinct_prefixes.len(),
             route_instance_count: route_instances,
             unresolved_count: unresolved,
+            end_state,
             coverage_status: coverage,
             representative_evidence: String::new(), // filled by sentence renderer
             streams: members
@@ -417,6 +532,8 @@ pub fn build_episodes(
                     baseline_instances: s.baseline_instances,
                     transition_count: s.transition_count,
                     add_path_ambiguous: s.add_path_ambiguous,
+                    first_change_utc: s.first_change_utc.clone(),
+                    restoration_time_utc: s.restoration_time_utc.clone(),
                     evidence_refs: s.evidence_refs.clone(),
                 })
                 .collect(),
@@ -599,15 +716,259 @@ pub fn render_episode_sentence(episode: &ObserverEpisode) -> String {
     }
 }
 
+/// Render the observer-lane timeline as server-rendered SVG (Part 7).
+///
+/// One lane per observer session plus one "Operator report" lane for
+/// operator-reported anchors. BGP lane axis is the pilot/analysis
+/// window; the operator lane spans its own anchors' extent. Markers are
+/// EXACT observed timestamps — nothing is interpolated; intervals span
+/// only between observed endpoints. Marker classes are distinct:
+/// `tl-op`, `tl-bgp`, `tl-absence`, `tl-path`, `tl-restore`,
+/// `tl-changed-end`. A conventional table fallback is rendered by the
+/// template alongside this SVG.
+pub fn render_timeline_svg(lanes: &[TimelineLane], anchors: &[TimelineMarker]) -> String {
+    const W: f64 = 1180.0;
+    const LEFT: f64 = 260.0;
+    const RIGHT: f64 = 1150.0;
+    const LANE_H: f64 = 26.0;
+    const TOP: f64 = 30.0;
+
+    let mut out = String::new();
+    out.push_str(&format!(
+        r#"<svg class="wb-timeline-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {}" role="img" aria-label="Observer-lane timeline (UTC)">"#,
+        TOP + (lanes.len() as f64 + 1.0) * LANE_H + 18.0
+    ));
+
+    // BGP axis from the first lane's window (all lanes share it).
+    let (axis_start, axis_end) = match lanes.first() {
+        Some(l) => (
+            parse_utc_seconds(&l.window_start).unwrap_or(0),
+            parse_utc_seconds(&l.window_end).unwrap_or(1),
+        ),
+        None => (0, 1),
+    };
+    let span = (axis_end - axis_start).max(1);
+    let x_of = |t: i64| LEFT + (t - axis_start) as f64 / span as f64 * (RIGHT - LEFT);
+
+    // Axis ticks (start / mid / end).
+    let (s, m, e) = (axis_start, axis_start + span / 2, axis_end);
+    out.push_str(&format!(
+        r#"<g class="tl-axis"><line x1="{LEFT}" y1="{TOP}" x2="{RIGHT}" y2="{TOP}"/>"#
+    ));
+    for (t, label) in [(s, hms_of(s)), (m, hms_of(m)), (e, hms_of(e))] {
+        let x = x_of(t);
+        out.push_str(&format!(
+            r#"<line class="tl-tick" x1="{x:.1}" y1="{TOP}" x2="{x:.1}" y2="{:.1}"/><text class="tl-tick-label" x="{x:.1}" y="{:.1}" text-anchor="middle">{label}</text>"#,
+            TOP + 12.0, TOP + 12.0
+        ));
+    }
+    out.push_str("</g>");
+
+    // Operator lane (distinct styling), when anchors exist.
+    if !anchors.is_empty() {
+        let op_start = anchors
+            .iter()
+            .filter_map(|a| parse_utc_seconds(&a.timestamp_utc))
+            .min()
+            .unwrap_or(axis_start);
+        let op_end = anchors
+            .iter()
+            .filter_map(|a| parse_utc_seconds(&a.timestamp_utc))
+            .max()
+            .unwrap_or(axis_end);
+        let op_span = (op_end - op_start).max(1);
+        let lane_top = TOP + 18.0;
+        out.push_str(&format!(
+            r#"<g class="tl-lane tl-lane-operator"><text class="tl-lane-label" x="8" y="{:.1}" text-anchor="start">Operator report</text><line class="tl-lane-line" x1="{LEFT}" y1="{:.1}" x2="{RIGHT}" y2="{:.1}"/>"#,
+            lane_top + 10.0, lane_top, lane_top
+        ));
+        for a in anchors {
+            if let Some(t) = parse_utc_seconds(&a.timestamp_utc) {
+                let x = LEFT + (t - op_start) as f64 / op_span as f64 * (RIGHT - LEFT);
+                let label = escape_svg(&a.label);
+                out.push_str(&format!(
+                    r#"<g class="tl-op" transform="translate({x:.1},{:.1})"><path class="tl-op-marker" d="M0,-5 L5,0 L0,5 L-5,0 Z"/><text class="tl-op-label" x="8" y="4">{label}</text></g>"#,
+                    lane_top
+                ));
+            }
+        }
+        out.push_str("</g>");
+    }
+
+    // One lane per observer session.
+    for (i, lane) in lanes.iter().enumerate() {
+        let lane_top = TOP + 18.0 + (i as f64 + 1.0) * LANE_H;
+        let label = escape_svg(&format!(
+            "{} · {}",
+            collector_from_session(&lane.observer_session),
+            lane.region
+        ));
+        out.push_str(&format!(
+            r#"<g class="tl-lane"><text class="tl-lane-label" x="8" y="{:.1}" text-anchor="start">{label}</text><line class="tl-lane-line" x1="{LEFT}" y1="{:.1}" x2="{RIGHT}" y2="{:.1}"/>"#,
+            lane_top + 10.0, label, lane_top
+        ));
+
+        // Absence interval (explicit start AND end, never extrapolated).
+        if let Some((a, b)) = &lane.absence_interval {
+            if let (Some(ta), Some(tb)) = (parse_utc_seconds(a), parse_utc_seconds(b)) {
+                let x1 = x_of(ta).max(LEFT);
+                let x2 = x_of(tb).min(RIGHT).max(x1 + 1.0);
+                out.push_str(&format!(
+                    r#"<rect class="tl-absence" x="{x1:.1}" y="{:.1}" width="{:.1}" height="7" rx="1"/>"#,
+                    lane_top - 6.0, x2 - x1
+                ));
+            }
+        }
+        // Path-change interval.
+        if let Some((a, b)) = &lane.path_change_interval {
+            if let (Some(ta), Some(tb)) = (parse_utc_seconds(a), parse_utc_seconds(b)) {
+                let x1 = x_of(ta).max(LEFT);
+                let x2 = x_of(tb).min(RIGHT).max(x1 + 1.0);
+                out.push_str(&format!(
+                    r#"<rect class="tl-path" x="{x1:.1}" y="{:.1}" width="{:.1}" height="4"/>"#,
+                    lane_top + 1.0,
+                    x2 - x1
+                ));
+            }
+        }
+        // First route change marker (BGP evidence).
+        if let Some(m) = &lane.first_route_change {
+            if let Some(t) = parse_utc_seconds(&m.timestamp_utc) {
+                let x = x_of(t).clamp(LEFT, RIGHT);
+                out.push_str(&format!(
+                    r#"<path class="tl-bgp tl-first" transform="translate({x:.1},{:.1})" d="M0,-5 L4,0 L0,5 L-4,0 Z"/>"#,
+                    lane_top
+                ));
+            }
+        }
+        // Restoration marker (only when lifecycle evidence has one).
+        if let Some((a, b)) = &lane.restoration_interval {
+            if let Some(t) = parse_utc_seconds(b).or_else(|| parse_utc_seconds(a)) {
+                let x = x_of(t).clamp(LEFT, RIGHT);
+                out.push_str(&format!(
+                    r#"<path class="tl-restore" transform="translate({x:.1},{:.1})" d="M0,-6 L5,4 L-5,4 Z"/>"#,
+                    lane_top
+                ));
+            }
+        }
+        // Changed-at-end marker: a lane with observed changes and no
+        // restoration interval (whether unresolved or still changed at
+        // the window end) gets a hollow square at the window end.
+        if lane.first_route_change.is_some() && lane.restoration_interval.is_none() {
+            let x = RIGHT;
+            out.push_str(&format!(
+                r#"<rect class="tl-changed-end" x="{:.1}" y="{:.1}" width="8" height="8" fill="none"/>"#,
+                x - 4.0, lane_top - 4.0
+            ));
+        }
+        out.push_str("</g>");
+    }
+
+    out.push_str(
+        r#"<g class="tl-legend"><text class="tl-legend-item" x="8" y="18">Legend:</text>"#,
+    );
+    let legend = [
+        ("tl-absence", "absence interval"),
+        ("tl-path", "path-change interval"),
+        ("tl-bgp", "first route change (BGP)"),
+        ("tl-restore", "restoration (BGP)"),
+        ("tl-changed-end", "changed at window end"),
+        ("tl-op-marker", "operator-reported anchor"),
+    ];
+    let mut lx = 90.0;
+    for (class, text) in legend {
+        out.push_str(&format!(
+            r#"<rect class="{class}" x="{lx:.0}" y="12" width="9" height="7"/><text class="tl-legend-item" x="{:.0}" y="20">{text}</text>"#,
+            lx + 12.0
+        ));
+        lx += 30.0 + (text.len() as f64) * 6.6;
+    }
+    out.push_str("</g></svg>");
+    out
+}
+
+/// Seconds since epoch for "YYYY-MM-DDTHH:MM:SS…" (UTC; Z/+00:00/fraction
+/// tolerated). Exact seconds only — sub-second precision is not needed
+/// for axis placement and is never fabricated.
+fn parse_utc_seconds(ts: &str) -> Option<i64> {
+    if ts.len() < 19 {
+        return None;
+    }
+    let y: i64 = ts.get(0..4)?.parse().ok()?;
+    let mo: i64 = ts.get(5..7)?.parse().ok()?;
+    let d: i64 = ts.get(8..10)?.parse().ok()?;
+    let h: i64 = ts.get(11..13)?.parse().ok()?;
+    let mi: i64 = ts.get(14..16)?.parse().ok()?;
+    let s: i64 = ts.get(17..19)?.parse().ok()?;
+    if !(1..=12).contains(&mo) || !(1..=31).contains(&d) || h > 23 || mi > 59 || s > 60 {
+        return None;
+    }
+    let y2 = if mo <= 2 { y - 1 } else { y };
+    let era = if y2 >= 0 { y2 } else { y2 - 399 } / 400;
+    let yoe = y2 - era * 400;
+    let mp = (mo + 9) % 12;
+    let doy = (153 * mp + 2) / 5 + d - 1;
+    let doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
+    Some((era * 146097 + doe - 719468) * 86400 + h * 3600 + mi * 60 + s)
+}
+
+/// "HH:MM:SS" of a seconds-since-epoch value (UTC).
+fn hms_of(secs: i64) -> String {
+    let days = secs.div_euclid(86400);
+    let rem = secs.rem_euclid(86400);
+    let _ = days; // date not needed for axis labels within one window
+    format!("{:02}:{:02}:{:02}", rem / 3600, (rem % 3600) / 60, rem % 60)
+}
+
+/// Minimal SVG text escaping.
+fn escape_svg(s: &str) -> String {
+    s.replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+}
+
 /// Extract the collector label from an observer session string of the
 /// form "<family>/<collector> peer <ip>".
-fn collector_from_session(session: &str) -> &str {
+pub fn collector_from_session(session: &str) -> &str {
     match session.split_once('/') {
         Some((_, rest)) => match rest.split_once(" peer ") {
             Some((c, _)) => c,
             None => rest,
         },
         None => session,
+    }
+}
+
+/// Extract the source family from "<family>/<collector> peer <ip>".
+pub fn family_from_session(session: &str) -> &str {
+    match session.split_once('/') {
+        Some((f, _)) => f,
+        None => "",
+    }
+}
+
+/// Render a workbench timestamp for ordinary rows (Part 4).
+///
+/// The page header already carries the event date and UTC context, so
+/// rows on the same day as the analysis window render as `HH:MM:SS UTC`.
+/// Rows belonging to another day (cross-midnight events) include the
+/// date: `YYYY-MM-DD HH:MM:SS UTC`. The timezone is ALWAYS explicit.
+/// The input may carry `Z`, `+00:00`, or nanosecond precision; only the
+/// second precision is rendered. Exact timestamps remain available in
+/// expanded evidence details, the JSON API, copied values, and the text
+/// report — this function is for display rows only.
+pub fn workbench_time(timestamp: &str, window_start: &str) -> String {
+    let ts = timestamp.trim();
+    // Accept "YYYY-MM-DDTHH:MM:SS" prefixes (Z / +00:00 / fraction).
+    let (date, hms) = match (ts.get(0..10), ts.get(11..19)) {
+        (Some(d), Some(t)) if ts.len() >= 19 => (d, t),
+        _ => return format!("{ts} UTC"),
+    };
+    let window_date = window_start.get(0..10).unwrap_or("");
+    if date == window_date {
+        format!("{hms} UTC")
+    } else {
+        format!("{date} {hms} UTC")
     }
 }
 
@@ -628,7 +989,6 @@ mod sentence_tests {
             named_path_plane: "Plane A".to_string(),
             effect_kind: kind,
             first_change: Some("2019-08-21T16:45:25Z".to_string()),
-            peak_interval: None,
             last_change: Some("2019-08-21T17:02:19Z".to_string()),
             restoration_start: Some("2019-08-21T16:59:00Z".to_string()),
             restoration_end: Some("2019-08-21T17:02:00Z".to_string()),
@@ -636,8 +996,10 @@ mod sentence_tests {
             changed_stream_count: 11,
             distinct_prefix_count: 11,
             route_instance_count: 11,
+            restored_stream_count: 0,
             unresolved_count: 0,
-            coverage_status: CoverageStatus::NoChange,
+            end_state: EndState::NoRouteStateChange,
+            coverage_status: CoverageStatus::Complete,
             representative_evidence: String::new(),
             streams: Vec::new(),
         }
@@ -917,16 +1279,7 @@ mod tests {
                 0,
             ),
         ];
-        let eps = build_episodes(
-            1,
-            "ris",
-            &streams,
-            &[],
-            &[],
-            &registry(),
-            &peers(),
-            "plane-a",
-        );
+        let eps = build_episodes(1, "ris", &streams, &[], &registry(), &peers(), "plane-a");
         // Two absent streams share one signature → one episode; the
         // unchanged stream forms a separate no-change episode.
         assert_eq!(eps.len(), 2);
@@ -964,16 +1317,7 @@ mod tests {
                 2,
             ),
         ];
-        let eps = build_episodes(
-            1,
-            "ris",
-            &streams,
-            &[],
-            &[],
-            &registry(),
-            &peers(),
-            "plane-a",
-        );
+        let eps = build_episodes(1, "ris", &streams, &[], &registry(), &peers(), "plane-a");
         assert_eq!(eps.len(), 2, "each peer session stays separate");
         assert!(eps
             .iter()
@@ -1005,16 +1349,7 @@ mod tests {
                 2,
             ),
         ];
-        let eps = build_episodes(
-            1,
-            "ris",
-            &streams,
-            &[],
-            &[],
-            &registry(),
-            &peers(),
-            "plane-a",
-        );
+        let eps = build_episodes(1, "ris", &streams, &[], &registry(), &peers(), "plane-a");
         let direct = eps.iter().find(|e| e.peer_asn == Some(64500)).unwrap();
         let indirect = eps.iter().find(|e| e.peer_asn == Some(64599)).unwrap();
         assert_eq!(direct.relationship, RelationshipKind::Direct);
@@ -1057,16 +1392,7 @@ mod tests {
                 1,
             ),
         ];
-        let eps = build_episodes(
-            1,
-            "ris",
-            &streams,
-            &[],
-            &[],
-            &registry(),
-            &peers(),
-            "plane-a",
-        );
+        let eps = build_episodes(1, "ris", &streams, &[], &registry(), &peers(), "plane-a");
         let total_streams: usize = eps.iter().map(|e| e.baseline_stream_count).sum();
         let total_prefixes: usize = eps.iter().map(|e| e.distinct_prefix_count).sum();
         assert_eq!(total_streams, 3, "streams counted per stream");
@@ -1128,7 +1454,6 @@ mod tests {
             "ris",
             &streams,
             &transitions,
-            &[],
             &registry(),
             &peers(),
             "plane-a",
@@ -1174,26 +1499,8 @@ mod tests {
                 0,
             ),
         ];
-        let a = build_episodes(
-            1,
-            "ris",
-            &streams,
-            &[],
-            &[],
-            &registry(),
-            &peers(),
-            "plane-a",
-        );
-        let b = build_episodes(
-            1,
-            "ris",
-            &streams,
-            &[],
-            &[],
-            &registry(),
-            &peers(),
-            "plane-a",
-        );
+        let a = build_episodes(1, "ris", &streams, &[], &registry(), &peers(), "plane-a");
+        let b = build_episodes(1, "ris", &streams, &[], &registry(), &peers(), "plane-a");
         assert_eq!(a, b);
         // No-change episodes sort after changed episodes.
         let idx_unchanged = a
@@ -1229,16 +1536,7 @@ mod tests {
                 0,
             ),
         ];
-        let eps = build_episodes(
-            1,
-            "ris",
-            &streams,
-            &[],
-            &[],
-            &registry(),
-            &peers(),
-            "plane-a",
-        );
+        let eps = build_episodes(1, "ris", &streams, &[], &registry(), &peers(), "plane-a");
         assert!(eps
             .iter()
             .any(|e| e.effect_kind == EffectKind::RouteWithdrawal));
@@ -1304,9 +1602,11 @@ mod tests {
 /// affected; no severity score is computed anywhere.
 ///
 /// The denominator is ALWAYS visible: `eligible_observer_sessions` is
-/// reported alongside `changed_observer_sessions`. The three coverage
-/// states never collapse into one zero:
-/// - `NoChange` — qualifying baseline existed, no route-state change.
+/// reported alongside `changed_observer_sessions`. The coverage states
+/// never collapse into one zero:
+/// - `Complete` — qualifying baseline existed and the session was
+///   observed (a "no change" result is an OBSERVED SIGNATURE, not a
+///   coverage state).
 /// - `NoBaselineVisibility` — target not visible at that session.
 /// - `IncompleteCoverage` — observation could not be completed.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -1334,12 +1634,14 @@ pub struct RegionObservationSummary {
 /// `eligible_sessions` is the denominator per region: every observer
 /// session that had a qualifying baseline. `no_baseline_sessions` and
 /// `incomplete_sessions` are reported separately per region and never
-/// counted as unchanged. Regions without any eligible session are
+/// counted as unchanged. Entries are (collector, region, label) triples
+/// with the region resolved by the loader — a collector id is never
+/// treated as a region key. Regions without any eligible session are
 /// omitted (they carry no observation to summarize).
 pub fn regional_breadth(
     episodes: &[ObserverEpisode],
-    no_baseline_sessions: &[(String, String)],
-    incomplete_sessions: &[(String, String)],
+    no_baseline_sessions: &[(String, String, String)],
+    incomplete_sessions: &[(String, String, String)],
 ) -> Vec<RegionObservationSummary> {
     let mut by_region: BTreeMap<String, RegionObservationSummary> = BTreeMap::new();
 
@@ -1391,7 +1693,7 @@ pub fn regional_breadth(
 
     // No-baseline and incomplete sessions are per-region facts derived
     // from run coverage; they are never added to the unchanged count.
-    for (region, _session) in no_baseline_sessions {
+    for (_collector, region, _session) in no_baseline_sessions {
         let r = by_region
             .entry(region.clone())
             .or_insert_with(|| RegionObservationSummary {
@@ -1409,7 +1711,7 @@ pub fn regional_breadth(
             });
         r.sessions_without_baseline_visibility += 1;
     }
-    for (region, _session) in incomplete_sessions {
+    for (_collector, region, _session) in incomplete_sessions {
         let r = by_region
             .entry(region.clone())
             .or_insert_with(|| RegionObservationSummary {
@@ -1454,7 +1756,6 @@ mod breadth_tests {
             named_path_plane: "Plane A".to_string(),
             effect_kind: kind,
             first_change: Some(first.to_string()),
-            peak_interval: None,
             last_change: Some(first.to_string()),
             restoration_start: None,
             restoration_end: Some("2019-08-21T17:02:00Z".to_string()),
@@ -1462,8 +1763,10 @@ mod breadth_tests {
             changed_stream_count: changed_streams,
             distinct_prefix_count: prefixes,
             route_instance_count: changed_streams,
+            restored_stream_count: 0,
             unresolved_count: 0,
-            coverage_status: CoverageStatus::NoChange,
+            end_state: EndState::NoRouteStateChange,
+            coverage_status: CoverageStatus::Complete,
             representative_evidence: String::new(),
             streams: Vec::new(),
         }
@@ -1505,7 +1808,11 @@ mod breadth_tests {
             0,
             "2019-08-21T16:45:25Z",
         )];
-        let rows = regional_breadth(&episodes, &[("APAC".to_string(), "s1".to_string())], &[]);
+        let rows = regional_breadth(
+            &episodes,
+            &[("rrc01".to_string(), "APAC".to_string(), "s1".to_string())],
+            &[],
+        );
         let apac = rows.iter().find(|r| r.region == "APAC").unwrap();
         assert_eq!(apac.unchanged_observer_sessions, 1);
         assert_eq!(
@@ -1524,7 +1831,11 @@ mod breadth_tests {
             0,
             "2019-08-21T16:45:25Z",
         )];
-        let rows = regional_breadth(&episodes, &[], &[("EMEA".to_string(), "s9".to_string())]);
+        let rows = regional_breadth(
+            &episodes,
+            &[],
+            &[("rrc05".to_string(), "EMEA".to_string(), "s9".to_string())],
+        );
         let emea = rows.iter().find(|r| r.region == "EMEA").unwrap();
         assert_eq!(emea.unchanged_observer_sessions, 1);
         assert_eq!(
@@ -1703,6 +2014,12 @@ pub fn build_timeline(
                 });
             }
         }
+        // "Unresolved" is a determinate end-state verdict from lifecycle
+        // evidence (EndState::Unresolved) and applies to ANY episode
+        // kind, not just withdrawals.
+        if ep.end_state == EndState::Unresolved {
+            lane.unresolved_end_state = true;
+        }
         match ep.effect_kind {
             EffectKind::TemporaryStreamAbsence | EffectKind::RouteWithdrawal => {
                 let (start, end) = (
@@ -1716,9 +2033,6 @@ pub fn build_timeline(
                 };
                 if better {
                     lane.absence_interval = Some(interval);
-                }
-                if ep.effect_kind == EffectKind::RouteWithdrawal {
-                    lane.unresolved_end_state = true;
                 }
             }
             EffectKind::PathReplacement
@@ -1751,14 +2065,16 @@ pub fn build_timeline(
             }
             EffectKind::NoRouteStateChange => {}
         }
-        if let (Some(rs), Some(re)) = (&ep.restoration_start, &ep.restoration_end) {
-            let interval = (rs.clone(), re.clone());
-            let better = match &lane.restoration_interval {
-                None => true,
-                Some((s, e)) => interval.0 < *s || (interval.0 == *s && interval.1 > *e),
-            };
-            if better {
-                lane.restoration_interval = Some(interval);
+        if ep.end_state != EndState::Unresolved {
+            if let (Some(rs), Some(re)) = (&ep.restoration_start, &ep.restoration_end) {
+                let interval = (rs.clone(), re.clone());
+                let better = match &lane.restoration_interval {
+                    None => true,
+                    Some((s, e)) => interval.0 < *s || (interval.0 == *s && interval.1 > *e),
+                };
+                if better {
+                    lane.restoration_interval = Some(interval);
+                }
             }
         }
     }
@@ -1788,7 +2104,6 @@ mod timeline_tests {
             named_path_plane: "Plane A".to_string(),
             effect_kind: kind,
             first_change: Some(first.to_string()),
-            peak_interval: None,
             last_change: Some(last.to_string()),
             restoration_start: Some(first.to_string()),
             restoration_end: Some(last.to_string()),
@@ -1796,8 +2111,10 @@ mod timeline_tests {
             changed_stream_count: 1,
             distinct_prefix_count: 1,
             route_instance_count: 1,
+            restored_stream_count: 0,
             unresolved_count: 0,
-            coverage_status: CoverageStatus::NoChange,
+            end_state: EndState::NoRouteStateChange,
+            coverage_status: CoverageStatus::Complete,
             representative_evidence: String::new(),
             streams: Vec::new(),
         }
@@ -1940,13 +2257,37 @@ mod timeline_tests {
         );
         e.restoration_start = None;
         e.restoration_end = None;
+        // Unresolved is a determinate end-state verdict (Session 37);
+        // an unresolved episode must never fabricate a restoration.
+        e.end_state = EndState::Unresolved;
         let lanes = build_timeline(&[e], "W0", "W1", &BTreeMap::new());
         let lane = &lanes[0];
-        assert!(lane.unresolved_end_state, "withdrawal without restoration");
+        assert!(lane.unresolved_end_state, "unresolved end state");
         assert_eq!(
             lane.restoration_interval, None,
             "no fabricated restoration interval"
         );
+    }
+
+    #[test]
+    fn absent_withdrawal_is_determinate_not_unresolved() {
+        // A withdrawal without restoration is the determinate end state
+        // "Absent at window end" — the timeline must not label it as an
+        // unresolved observation (Session 37 semantic correction).
+        let mut e = ep(
+            EffectKind::RouteWithdrawal,
+            "catalog/rrc06 peer 192.0.2.1",
+            "APAC",
+            "2019-08-21T16:45:25Z",
+            "2019-08-21T16:45:27Z",
+        );
+        e.restoration_start = None;
+        e.restoration_end = None;
+        e.end_state = EndState::AbsentAtWindowEnd;
+        let lanes = build_timeline(&[e], "W0", "W1", &BTreeMap::new());
+        let lane = &lanes[0];
+        assert!(!lane.unresolved_end_state);
+        assert_eq!(lane.restoration_interval, None);
     }
 }
 
@@ -2058,7 +2399,6 @@ mod cue_tests {
             named_path_plane: plane.to_string(),
             effect_kind: kind,
             first_change: Some("2019-08-21T16:45:25Z".to_string()),
-            peak_interval: None,
             last_change: Some("2019-08-21T17:02:00Z".to_string()),
             restoration_start: None,
             restoration_end: None,
@@ -2066,8 +2406,10 @@ mod cue_tests {
             changed_stream_count: 1,
             distinct_prefix_count: 1,
             route_instance_count: 1,
+            restored_stream_count: 0,
             unresolved_count: 0,
-            coverage_status: CoverageStatus::NoChange,
+            end_state: EndState::NoRouteStateChange,
+            coverage_status: CoverageStatus::Complete,
             representative_evidence: String::new(),
             streams: vec![EpisodeStream {
                 prefix: prefix.to_string(),
@@ -2077,6 +2419,8 @@ mod cue_tests {
                 baseline_instances: 1,
                 transition_count: 2,
                 add_path_ambiguous: false,
+                first_change_utc: None,
+                restoration_time_utc: None,
                 evidence_refs: "[]".to_string(),
             }],
         }
@@ -2177,6 +2521,262 @@ mod cue_tests {
     }
 }
 
+// ── Grouped investigation cues (Session 37, Part 9) ────────────────
+
+/// One grouped internal-investigation cue.
+///
+/// Cues are grouped by operational question (3–5 groups max); each group
+/// carries the observed facts it is traceable to: prefix count, time
+/// range, affected observer-session count, and a drill-down link target.
+/// The boilerplate disclaimer appears once at the section level, never
+/// per bullet.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct GroupedCue {
+    /// Operational question, e.g. "Advertisements to the reviewed path".
+    pub title: String,
+    pub text: String,
+    pub prefix_count: usize,
+    /// "HH:MM:SS–HH:MM:SS UTC" (or window-wide).
+    pub time_range: String,
+    pub session_count: usize,
+    /// Drill-down target: episode index (server-rendered ?prefixes=<n>).
+    pub drill_down: Option<usize>,
+}
+
+/// Build grouped investigation cues from episodes (Part 9).
+///
+/// Groups (when the supporting evidence exists):
+/// 1. Advertisements to the reviewed path plane — check the changed
+///    prefixes toward the plane's ASNs during the observed interval.
+/// 2. Alternate path selection — compare prefixes whose path changed at
+///    the affected observers (PathReplacement / plane departure).
+/// 3. Restoration quality — verify restored prefixes returned to the
+///    expected baseline path, not merely to visibility.
+/// 4. Observer disagreement — compare direct vs indirect observers.
+///
+/// Each group carries prefix count, time range, session count, and a
+/// link to the exact prefixes (drill-down). Deterministic ordering.
+pub fn build_grouped_cues(
+    episodes: &[ObserverEpisode],
+    plane_label: &str,
+    plane_asns: &[u32],
+) -> Vec<GroupedCue> {
+    let changed: Vec<&ObserverEpisode> = episodes
+        .iter()
+        .filter(|e| e.effect_kind != EffectKind::NoRouteStateChange)
+        .collect();
+    if changed.is_empty() {
+        return Vec::new();
+    }
+    let mut out: Vec<GroupedCue> = Vec::new();
+
+    // Range + prefix count across all changed episodes.
+    let (first, last) = changed.iter().fold((None, None), |(lo, hi), e| {
+        (
+            match (&lo, &e.first_change) {
+                (None, s) => s.clone(),
+                (Some(lo), Some(s)) if s < lo => Some(s.clone()),
+                _ => lo,
+            },
+            match (&hi, &e.last_change) {
+                (None, s) => s.clone(),
+                (Some(hi), Some(s)) if s > hi => Some(s.clone()),
+                _ => hi,
+            },
+        )
+    });
+    let range = match (first, last) {
+        (Some(a), Some(b)) if a == b => workbench_time(&a, &a),
+        (Some(a), Some(b)) => {
+            // Same-day range: both ends in HH:MM:SS with explicit UTC.
+            let ws = &a;
+            format!("{}–{}", workbench_time(&a, ws), workbench_time(&b, ws))
+        }
+        _ => "the analysis window".to_string(),
+    };
+    let prefix_set: std::collections::BTreeSet<&str> = changed
+        .iter()
+        .flat_map(|e| e.streams.iter().map(|s| s.prefix.as_str()))
+        .collect();
+    let prefix_count = prefix_set.len();
+    let session_count = changed
+        .iter()
+        .map(|e| e.observer_session.as_str())
+        .collect::<std::collections::BTreeSet<_>>()
+        .len();
+
+    // 1. Advertisements to the reviewed path plane.
+    let asn_text = if plane_asns.is_empty() {
+        String::new()
+    } else {
+        let asns: Vec<String> = plane_asns.iter().map(|a| format!("AS{a}")).collect();
+        format!(" toward {}", asns.join(", "))
+    };
+    let first_changed_idx = changed.first().and_then(|e| {
+        episodes
+            .iter()
+            .position(|x| x.observer_session == e.observer_session)
+    });
+    out.push(GroupedCue {
+        title: format!("Advertisements to {plane_label}"),
+        text: format!(
+            "Check {prefix_count} {}{asn_text} during {range} at {session_count} affected observer session{}.",
+            if prefix_count == 1 { "prefix" } else { "prefixes" },
+            if session_count == 1 { "" } else { "s" }
+        ),
+        prefix_count,
+        time_range: range.clone(),
+        session_count,
+        drill_down: first_changed_idx,
+    });
+
+    // 2. Alternate path selection.
+    let alternate: Vec<&ObserverEpisode> = changed
+        .iter()
+        .copied()
+        .filter(|e| {
+            matches!(
+                e.effect_kind,
+                EffectKind::PathReplacement
+                    | EffectKind::NamedPlaneDeparture
+                    | EffectKind::NamedPlaneReturn
+            )
+        })
+        .collect();
+    if !alternate.is_empty() {
+        let alt_prefixes: std::collections::BTreeSet<&str> = alternate
+            .iter()
+            .flat_map(|e| e.streams.iter().map(|s| s.prefix.as_str()))
+            .collect();
+        let alt_sessions = alternate
+            .iter()
+            .map(|e| e.observer_session.as_str())
+            .collect::<std::collections::BTreeSet<_>>()
+            .len();
+        out.push(GroupedCue {
+            title: "Alternate path selection".to_string(),
+            text: format!(
+                "Compare {} {} whose paths changed at {} observer session{} during {range}.",
+                alt_prefixes.len(),
+                if alt_prefixes.len() == 1 {
+                    "prefix"
+                } else {
+                    "prefixes"
+                },
+                alt_sessions,
+                if alt_sessions == 1 { "" } else { "s" },
+            ),
+            prefix_count: alt_prefixes.len(),
+            time_range: range.clone(),
+            session_count: alt_sessions,
+            drill_down: alternate.first().and_then(|e| {
+                episodes
+                    .iter()
+                    .position(|x| x.observer_session == e.observer_session)
+            }),
+        });
+    }
+
+    // 3. Restoration quality.
+    let restored: Vec<&ObserverEpisode> = changed
+        .iter()
+        .copied()
+        .filter(|e| e.restored_stream_count > 0)
+        .collect();
+    if !restored.is_empty() {
+        let first_restored_idx = restored.first().and_then(|e| {
+            episodes
+                .iter()
+                .position(|x| x.observer_session == e.observer_session)
+        });
+        out.push(GroupedCue {
+            title: "Restoration quality".to_string(),
+            text: format!(
+                "Verify whether {} externally restored {} returned to the expected baseline path, not merely to visibility ({} restored stream{} at {} session{}).",
+                restored.iter().map(|e| e.distinct_prefix_count).sum::<usize>(),
+                if restored.iter().map(|e| e.distinct_prefix_count).sum::<usize>() == 1 {
+                    "prefix"
+                } else {
+                    "prefixes"
+                },
+                restored.iter().map(|e| e.restored_stream_count).sum::<usize>(),
+                if restored.iter().map(|e| e.restored_stream_count).sum::<usize>() == 1 { "" } else { "s" },
+                restored.len(),
+                if restored.len() == 1 { "" } else { "s" },
+            ),
+            prefix_count: restored.iter().map(|e| e.distinct_prefix_count).sum(),
+            time_range: range.clone(),
+            session_count: restored.len(),
+            drill_down: first_restored_idx,
+        });
+    }
+
+    // 4. Observer disagreement (direct vs indirect sessions).
+    let direct: Vec<&&ObserverEpisode> = changed
+        .iter()
+        .filter(|e| e.relationship == RelationshipKind::Direct)
+        .collect();
+    let indirect: Vec<&&ObserverEpisode> = changed
+        .iter()
+        .filter(|e| e.relationship == RelationshipKind::Indirect)
+        .collect();
+    if !direct.is_empty() && !indirect.is_empty() {
+        out.push(GroupedCue {
+            title: "Observer disagreement".to_string(),
+            text: format!(
+                "Compare the {} direct observer session{} with {} indirect session{}.",
+                direct.len(),
+                if direct.len() == 1 { "" } else { "s" },
+                indirect.len(),
+                if indirect.len() == 1 { "" } else { "s" },
+            ),
+            prefix_count: 0,
+            time_range: range.clone(),
+            session_count: changed.len(),
+            drill_down: None,
+        });
+    }
+
+    // Deterministic cap at 5 groups.
+    out.truncate(5);
+    out
+}
+
+/// Generate the first-screen OBSERVED RESULT text from model counts
+/// (Part 2). The denominator is always named; no-baseline sessions are
+/// reported as a separate sentence.
+pub fn render_observed_result(vm: &IncidentWorkbenchViewModel) -> String {
+    let eligible: usize = vm
+        .breadth
+        .iter()
+        .map(|b| b.eligible_observer_sessions)
+        .sum();
+    let changed: usize = vm.breadth.iter().map(|b| b.changed_observer_sessions).sum();
+    let baseline: usize = vm.breadth.iter().map(|b| b.baseline_streams).sum();
+    let changed_streams: usize = vm.breadth.iter().map(|b| b.changed_streams).sum();
+    let mut out = if changed == 0 {
+        format!(
+            "No route-state change at {eligible} of {eligible} eligible observer sessions covering {baseline} baseline streams."
+        )
+    } else if changed == eligible {
+        format!(
+            "Route-state changes at {changed} of {eligible} eligible observer sessions covering {baseline} streams."
+        )
+    } else {
+        format!(
+            "Route-state changes appeared at {changed} of {eligible} eligible observer sessions. {changed_streams} of {baseline} baseline streams changed."
+        )
+    };
+    let no_baseline = vm.no_baseline_sessions.len() + vm.incomplete_sessions.len();
+    if no_baseline > 0 {
+        out.push_str(&format!(
+            " {no_baseline} additional session{} had no qualifying baseline.",
+            if no_baseline == 1 { "" } else { "s" }
+        ));
+    }
+    out
+}
+
 // ── Incident workbench view model (Parts 7, 12) ─────────────────────
 
 /// The reusable incident-workbench view model.
@@ -2201,12 +2801,27 @@ pub struct IncidentWorkbenchViewModel {
     pub current_result: String,
     pub expectation_assessment: String,
     pub archive_coverage: String,
+    /// Generated OBSERVED RESULT sentence(s) from model counts (Part 2).
+    pub observed_result: String,
+    /// Scope limit (case studies): single-target pilot, not incident-wide.
+    pub scope_limit: String,
+    /// Operator incident horizon (case studies; empty for events).
+    pub incident_horizon_start: String,
+    pub incident_horizon_end: String,
+    /// Selected historical pilot label (runtime pilot-result data).
+    pub pilot_label: String,
+    /// Linked source tickets (case-study related events).
+    pub linked_tickets: Vec<String>,
+    /// Reviewed path-plane ASNs (runtime data) for cue text.
+    pub plane_asns: Vec<u32>,
     pub runs: Vec<WorkbenchRunView>,
     pub episodes: Vec<ObserverEpisode>,
     pub breadth: Vec<RegionObservationSummary>,
     pub timeline: Vec<TimelineLane>,
     pub operator_anchors: Vec<TimelineMarker>,
     pub cues: Vec<InvestigationCue>,
+    /// Grouped investigation cues (Part 9) — the primary section.
+    pub grouped_cues: Vec<GroupedCue>,
     /// Sessions with no qualifying baseline (NoBaselineVisibility).
     pub no_baseline_sessions: Vec<CoverageSessionView>,
     /// Sessions whose observation could not be completed.
@@ -2221,9 +2836,12 @@ pub struct WorkbenchRunView {
     pub status: String,
     pub verdict: String,
     pub started_at: String,
+    pub completed_at: String,
     pub window_start: String,
     pub window_end: String,
     pub named_path_plane: String,
+    /// "{source family}/{collector}" (runtime manifest data).
+    pub source: String,
     pub archive_coverage: String,
 }
 
@@ -2243,12 +2861,17 @@ pub struct WorkbenchContext {
     /// (collector, peer_ip) → (peer_asn, label, role, relationship).
     pub session_peers: BTreeMap<(String, String), (u32, String, String, RelationshipKind)>,
     pub registry: Option<CollectorLocationRegistry>,
+    /// Reviewed ASN → plane display label map (network profile, runtime
+    /// data) for building human path-plane labels.
+    pub plane_labels: Vec<(u32, String)>,
+    /// Selected historical pilot target label (pilot-result.json).
+    pub pilot_target: String,
     /// Operator-reported anchors (case-study phases/claims).
     pub operator_anchors: Vec<TimelineMarker>,
-    /// Sessions with no qualifying baseline (collector, session label).
-    pub no_baseline_sessions: Vec<(String, String)>,
-    /// Sessions with incomplete coverage (collector, session label).
-    pub incomplete_sessions: Vec<(String, String)>,
+    /// Sessions with no qualifying baseline (collector, region, label).
+    pub no_baseline_sessions: Vec<(String, String, String)>,
+    /// Sessions with incomplete coverage (collector, region, label).
+    pub incomplete_sessions: Vec<(String, String, String)>,
 }
 
 impl IncidentWorkbenchViewModel {
@@ -2269,7 +2892,7 @@ impl IncidentWorkbenchViewModel {
         let runs = crate::catalog::db::list_runs_for_event(conn, event.id)?;
         let run_ids: Vec<i64> = runs.iter().map(|r| r.id).collect();
         let evidence = RunEvidence::load(conn, &run_ids)?;
-        Self::assemble(
+        let mut vm = Self::assemble(
             conn,
             event_id,
             "event",
@@ -2279,8 +2902,9 @@ impl IncidentWorkbenchViewModel {
             &evidence,
             context,
             catalog_root,
-        )
-        .map(Some)
+        )?;
+        vm.observed_result = render_observed_result(&vm);
+        Ok(Some(vm))
     }
 
     /// Build the view model for one case study (its linked runs).
@@ -2296,18 +2920,58 @@ impl IncidentWorkbenchViewModel {
         let runs = linked_runs(conn, cs.id)?;
         let run_ids: Vec<i64> = runs.iter().map(|r| r.id).collect();
         let evidence = RunEvidence::load(conn, &run_ids)?;
-        Self::assemble(
+        let mut vm = Self::assemble(
             conn,
             slug,
             "case-study",
-            "case study",
+            "Not applicable — multi-ticket case study",
             &cs.title,
             &runs,
             &evidence,
             context,
             catalog_root,
-        )
-        .map(Some)
+        )?;
+        vm.subject_kind = "case-study".to_string();
+        vm.lifecycle = if cs.end_utc.is_some() {
+            "Closed".to_string()
+        } else {
+            "Open".to_string()
+        };
+        vm.reviewed_incident_role = "Multi-ticket operator incident".to_string();
+        // Case-study semantics (Part 1.1/1.2/11): no incident-wide
+        // expectation assessment or BGP verdict exists — the displayed
+        // observations are limited to the reviewed historical pilot.
+        vm.expectation_assessment =
+            "No incident-wide expectation assessment exists; observations are limited to the reviewed historical pilot."
+                .to_string();
+        let subject_short = cs
+            .title
+            .split_whitespace()
+            .take(2)
+            .collect::<Vec<_>>()
+            .join(" ");
+        let changed_any = vm
+            .episodes
+            .iter()
+            .any(|e| e.effect_kind != EffectKind::NoRouteStateChange);
+        vm.current_result = if changed_any {
+            format!("Multi-observer route-state changes observed in the {subject_short} pilot")
+        } else {
+            format!("No route-state changes observed in the {subject_short} pilot")
+        };
+        vm.scope_limit = format!(
+            "This is a single-target historical pilot, not a complete {subject_short} incident assessment. No complete {subject_short} incident-wide BGP assessment has been performed."
+        );
+        vm.incident_horizon_start = cs.start_utc.clone().unwrap_or_default();
+        vm.incident_horizon_end = cs.end_utc.clone().unwrap_or_default();
+        // Linked source tickets (case-study event links, sorted).
+        vm.linked_tickets = linked_ticket_labels(conn, cs.id)?;
+        // Selected pilot label from the reviewed pilot result (runtime).
+        if !context.pilot_target.is_empty() {
+            vm.pilot_label = context.pilot_target.clone();
+        }
+        vm.observed_result = render_observed_result(&vm);
+        Ok(Some(vm))
     }
 
     #[allow(clippy::too_many_arguments)] // view-model assembly; each arg maps to a header field
@@ -2328,23 +2992,31 @@ impl IncidentWorkbenchViewModel {
         let mut window_start = String::new();
         let mut window_end = String::new();
         let mut current_result = String::new();
+        let mut expectation = String::new();
         let mut archive_coverage = String::new();
         let mut named_planes: Vec<String> = Vec::new();
+        let mut plane_asns: Vec<u32> = Vec::new();
 
         for run in runs {
-            let (ws, we, plane, coverage, run_family) = run_meta(conn, run.id, catalog_root)?;
+            let meta = run_meta(conn, run.id, catalog_root, &context.plane_labels)?;
             if window_start.is_empty() {
-                window_start = ws.clone();
-                window_end = we.clone();
+                window_start = meta.window_start.clone();
+                window_end = meta.window_end.clone();
             }
             if run.status == "Complete" && current_result.is_empty() {
                 current_result = run.verdict.clone().unwrap_or_default();
             }
-            if archive_coverage.is_empty() {
-                archive_coverage = coverage.clone();
+            if run.status == "Complete" && expectation.is_empty() {
+                expectation = run.assessment.clone().unwrap_or_default();
             }
-            if !plane.is_empty() && !named_planes.contains(&plane) {
-                named_planes.push(plane.clone());
+            if archive_coverage.is_empty() {
+                archive_coverage = meta.coverage.clone();
+            }
+            if !meta.plane.is_empty() && !named_planes.contains(&meta.plane) {
+                named_planes.push(meta.plane.clone());
+            }
+            if plane_asns.is_empty() {
+                plane_asns = meta.predicate_asns;
             }
             run_views.push(WorkbenchRunView {
                 id: run.id,
@@ -2352,10 +3024,12 @@ impl IncidentWorkbenchViewModel {
                 status: run.status.clone(),
                 verdict: run.verdict.clone().unwrap_or_default(),
                 started_at: run.started_at.clone(),
-                window_start: ws,
-                window_end: we,
-                named_path_plane: plane,
-                archive_coverage: coverage,
+                completed_at: run.completed_at.clone().unwrap_or_default(),
+                window_start: meta.window_start,
+                window_end: meta.window_end,
+                named_path_plane: meta.plane,
+                source: meta.source,
+                archive_coverage: meta.coverage,
             });
 
             let run_streams: Vec<StreamLifecycleSummary> = evidence
@@ -2370,12 +3044,6 @@ impl IncidentWorkbenchViewModel {
                 .filter(|t| t.run_id == run.id)
                 .cloned()
                 .collect();
-            let run_waves: Vec<SemanticWaveSummary> = evidence
-                .waves
-                .iter()
-                .filter(|w| w.run_id == run.id)
-                .cloned()
-                .collect();
 
             let plane_label = if named_planes.is_empty() {
                 "no reviewed plane".to_string()
@@ -2384,10 +3052,9 @@ impl IncidentWorkbenchViewModel {
             };
             let mut eps = build_episodes(
                 run.id,
-                &run_family,
+                &meta.family,
                 &run_streams,
                 &run_transitions,
-                &run_waves,
                 &registry,
                 &context.session_peers,
                 &plane_label,
@@ -2431,9 +3098,9 @@ impl IncidentWorkbenchViewModel {
         let no_baseline_views: Vec<CoverageSessionView> = context
             .no_baseline_sessions
             .iter()
-            .map(|(collector, label)| CoverageSessionView {
+            .map(|(collector, region, label)| CoverageSessionView {
                 observer_session: label.clone(),
-                region: registry.region_by_collector(collector),
+                region: region.clone(),
                 collector: collector.clone(),
                 coverage_status: CoverageStatus::NoBaselineVisibility,
                 note: "no qualifying baseline at this observer".to_string(),
@@ -2442,9 +3109,9 @@ impl IncidentWorkbenchViewModel {
         let incomplete_views: Vec<CoverageSessionView> = context
             .incomplete_sessions
             .iter()
-            .map(|(collector, label)| CoverageSessionView {
+            .map(|(collector, region, label)| CoverageSessionView {
                 observer_session: label.clone(),
-                region: registry.region_by_collector(collector),
+                region: region.clone(),
                 collector: collector.clone(),
                 coverage_status: CoverageStatus::IncompleteCoverage,
                 note: "observation could not be completed".to_string(),
@@ -2454,8 +3121,9 @@ impl IncidentWorkbenchViewModel {
         let timeline = build_timeline(&episodes, &window_start, &window_end, &BTreeMap::new());
 
         let cues = build_investigation_cues(&episodes);
-
-        Ok(IncidentWorkbenchViewModel {
+        let plane_label = named_planes.first().cloned().unwrap_or_default();
+        let grouped_cues = build_grouped_cues(&episodes, &plane_label, &plane_asns);
+        let vm = IncidentWorkbenchViewModel {
             subject_id: subject_id.to_string(),
             subject_kind: subject_kind.to_string(),
             title: title.to_string(),
@@ -2465,17 +3133,26 @@ impl IncidentWorkbenchViewModel {
             window_start,
             window_end,
             current_result,
-            expectation_assessment: String::new(),
+            expectation_assessment: expectation,
             archive_coverage,
+            observed_result: String::new(),
+            scope_limit: String::new(),
+            incident_horizon_start: String::new(),
+            incident_horizon_end: String::new(),
+            pilot_label: String::new(),
+            linked_tickets: Vec::new(),
+            plane_asns,
             runs: run_views,
             episodes,
             breadth,
             timeline,
             operator_anchors: context.operator_anchors.clone(),
             cues,
+            grouped_cues,
             no_baseline_sessions: no_baseline_views,
             incomplete_sessions: incomplete_views,
-        })
+        };
+        Ok(vm)
     }
 }
 
@@ -2521,20 +3198,76 @@ fn linked_runs(
     Ok(out)
 }
 
+/// Build a human path-plane label from predicate ASNs and reviewed
+/// profile plane labels (both runtime data, Part 1.8).
+///
+/// Never renders raw predicate JSON. When the ASN maps to a reviewed
+/// plane display label the label reads "{display label} path (AS{asn})";
+/// otherwise the observed ASN is named without claiming an organization:
+/// "path via AS{asn}".
+pub fn plane_label_from_asns(asns: &[u32], profile_labels: &[(u32, String)]) -> String {
+    if asns.is_empty() {
+        return "reviewed path plane".to_string();
+    }
+    let parts: Vec<String> = asns
+        .iter()
+        .map(|a| {
+            profile_labels
+                .iter()
+                .find(|(pa, _)| pa == a)
+                .map(|(_, label)| format!("{label} path (AS{a})"))
+                .unwrap_or_else(|| format!("path via AS{a}"))
+        })
+        .collect();
+    parts.join(" / ")
+}
+
+/// Linked source tickets of a case study (external identifiers, sorted).
+fn linked_ticket_labels(conn: &Connection, case_study_id: i64) -> Result<Vec<String>, String> {
+    let mut stmt = conn
+        .prepare(
+            "SELECT external_identifier FROM case_study_event_links
+             WHERE case_study_id = ?1 ORDER BY sort_order",
+        )
+        .map_err(|e| format!("catalog read failed: {e}"))?;
+    let rows = stmt
+        .query_map([case_study_id], |row| row.get::<_, String>(0))
+        .map_err(|e| format!("catalog read failed: {e}"))?;
+    let mut out = Vec::new();
+    for r in rows {
+        out.push(r.map_err(|e| format!("catalog read failed: {e}"))?);
+    }
+    Ok(out)
+}
+
 /// Per-run metadata: analysis window, named plane label, archive coverage.
 ///
 /// The plane label is runtime DATA (manifest path_classifiers /
 /// transit predicate), never a literal in code. Archive coverage comes
 /// from the run's report artifact when present.
+#[derive(Debug, Clone, Default)]
+struct RunMeta {
+    window_start: String,
+    window_end: String,
+    plane: String,
+    coverage: String,
+    family: String,
+    predicate_asns: Vec<u32>,
+    source: String,
+}
+
 fn run_meta(
     conn: &Connection,
     run_id: i64,
     catalog_root: &std::path::Path,
-) -> Result<(String, String, String, String, String), String> {
+    profile_labels: &[(u32, String)],
+) -> Result<RunMeta, String> {
     let mut window_start = String::new();
     let mut window_end = String::new();
     let mut plane = String::new();
     let mut family = String::new();
+    let mut collectors: Vec<String> = Vec::new();
+    let mut predicate_asns: Vec<u32> = Vec::new();
     {
         let mut stmt = conn
             .prepare(
@@ -2565,6 +3298,15 @@ fn run_meta(
             if let Some(f) = v.get("source_family").and_then(|s| s.as_str()) {
                 family = f.to_string();
             }
+            if let Some(cs) = v.get("collectors").and_then(|c| c.as_array()) {
+                for c in cs {
+                    if let Some(name) = c.as_str() {
+                        if !collectors.contains(&name.to_string()) {
+                            collectors.push(name.to_string());
+                        }
+                    }
+                }
+            }
             // Named plane label from reviewed path classifiers (data).
             if let Some(classifiers) = v
                 .get("target")
@@ -2578,15 +3320,25 @@ fn run_meta(
                         .unwrap_or("")
                         .to_string();
                 }
+                // Predicate ASNs (for human cue text) from the FIRST
+                // classifier's predicate when present.
+                if let Some(pred) = classifiers.first().and_then(|c| c.get("predicate")) {
+                    collect_predicate_asns(pred, &mut predicate_asns);
+                }
             }
             if plane.is_empty() {
                 // Fall back to the reviewed transit predicate (data).
+                // The predicate JSON is never rendered verbatim: its ASN
+                // set is extracted and mapped to a human label.
                 if let Some(pred) = v
                     .get("target")
                     .and_then(|t| t.get("transit_predicate"))
                     .and_then(|t| t.get("predicate"))
                 {
-                    plane = format!("reviewed transit {pred}");
+                    collect_predicate_asns(pred, &mut predicate_asns);
+                    if !predicate_asns.is_empty() {
+                        plane = plane_label_from_asns(&predicate_asns, profile_labels);
+                    }
                 }
             }
         }
@@ -2637,7 +3389,49 @@ fn run_meta(
     if coverage.is_empty() {
         coverage = "coverage not available in catalog artifacts".to_string();
     }
-    Ok((window_start, window_end, plane, coverage, family))
+    let first_collector = collectors.first().cloned().unwrap_or_default();
+    let source = if family.is_empty() {
+        first_collector.clone()
+    } else if first_collector.is_empty() {
+        family.clone()
+    } else {
+        format!("{family}/{first_collector}")
+    };
+    Ok(RunMeta {
+        window_start,
+        window_end,
+        plane,
+        coverage,
+        family,
+        predicate_asns,
+        source,
+    })
+}
+
+/// Extract ASN values from a reviewed transit predicate (runtime JSON:
+/// {"ContainsAny": [asn, …]} or a plain list). No predicate rendering.
+fn collect_predicate_asns(pred: &serde_json::Value, out: &mut Vec<u32>) {
+    let mut push = |v: &serde_json::Value| {
+        if let Some(n) = v.as_u64() {
+            if n <= u32::MAX as u64 && !out.contains(&(n as u32)) {
+                out.push(n as u32);
+            }
+        }
+    };
+    match pred {
+        serde_json::Value::Array(items) => items.iter().for_each(&mut push),
+        serde_json::Value::Object(map) => {
+            for (k, v) in map {
+                if k.eq_ignore_ascii_case("containsany") || k.eq_ignore_ascii_case("asns") {
+                    if let serde_json::Value::Array(items) = v {
+                        items.iter().for_each(&mut push);
+                    }
+                }
+            }
+        }
+        _ => {}
+    }
+    out.sort_unstable();
 }
 
 #[cfg(test)]
@@ -2658,12 +3452,20 @@ mod workbench_view_tests {
             current_result: "Partial".to_string(),
             expectation_assessment: String::new(),
             archive_coverage: "Complete".to_string(),
+            observed_result: String::new(),
+            scope_limit: String::new(),
+            incident_horizon_start: String::new(),
+            incident_horizon_end: String::new(),
+            pilot_label: String::new(),
+            linked_tickets: vec![],
+            plane_asns: vec![],
             runs: vec![],
             episodes: vec![],
             breadth: vec![],
             timeline: vec![],
             operator_anchors: vec![],
             cues: vec![],
+            grouped_cues: vec![],
             no_baseline_sessions: vec![],
             incomplete_sessions: vec![],
         };
@@ -2686,6 +3488,14 @@ impl WorkbenchContext {
         let pex_decision_path = pilot_dir.join("rrc11-pex-pilot-decision.json");
 
         if let Ok(profile) = ServicePlaneProfile::load(&profile_path) {
+            // Reviewed ASN → plane display label map (runtime data).
+            for plane in &profile.service_planes {
+                for asn in &plane.asns {
+                    if !ctx.plane_labels.iter().any(|(a, _)| a == asn) {
+                        ctx.plane_labels.push((*asn, plane.display_label.clone()));
+                    }
+                }
+            }
             if let Ok(registry) = CollectorLocationRegistry::load(&locations_path) {
                 if let Ok(raw) = std::fs::read_to_string(&audit_path) {
                     if let Ok(audit) = serde_json::from_str::<
@@ -2701,6 +3511,8 @@ impl WorkbenchContext {
 
         // Reviewed direct-peering-plane decision: a blocked pilot with no direct
         // session means the observer has no qualifying peering-plane baseline.
+        // The tuple is (collector, REGION, label) — region is resolved here so
+        // that downstream aggregation never treats the collector as a region.
         if let Ok(raw) = std::fs::read_to_string(&pex_decision_path) {
             if let Ok(v) = serde_json::from_str::<serde_json::Value>(&raw) {
                 if v.get("decision").and_then(|d| d.as_str()) == Some("blocked-no-direct-session") {
@@ -2710,27 +3522,84 @@ impl WorkbenchContext {
                         .and_then(|c| c.as_str())
                         .unwrap_or("rrc11")
                         .to_string();
+                    let region = ctx
+                        .registry
+                        .as_ref()
+                        .map(|r| r.region_by_collector(&collector))
+                        .unwrap_or_else(|| "Unknown".to_string());
                     ctx.no_baseline_sessions.push((
                         collector.clone(),
+                        region,
                         format!("{collector} (reviewed peering-plane pilot decision)"),
                     ));
+                }
+            }
+        }
+
+        // Reviewed operator-reported anchors (Part 7): structured file
+        // derived from pilot-result.json operator evidence.
+        let anchors_path = pilot_dir.join("operator-anchors.json");
+        if let Ok(raw) = std::fs::read_to_string(&anchors_path) {
+            if let Ok(v) = serde_json::from_str::<serde_json::Value>(&raw) {
+                if let Some(items) = v.get("anchors").and_then(|a| a.as_array()) {
+                    for item in items {
+                        let ts = item
+                            .get("timestamp_utc")
+                            .and_then(|t| t.as_str())
+                            .unwrap_or("")
+                            .to_string();
+                        let label = item
+                            .get("label")
+                            .and_then(|l| l.as_str())
+                            .unwrap_or("")
+                            .to_string();
+                        if !ts.is_empty() && !label.is_empty() {
+                            ctx.operator_anchors.push(TimelineMarker {
+                                timestamp_utc: ts,
+                                label,
+                                kind: "operator".to_string(),
+                            });
+                        }
+                    }
+                }
+            }
+        }
+
+        // Selected pilot target label (reviewed pilot result, runtime).
+        let pilot_result_path = pilot_dir.join("pilot-result.json");
+        if let Ok(raw) = std::fs::read_to_string(&pilot_result_path) {
+            if let Ok(v) = serde_json::from_str::<serde_json::Value>(&raw) {
+                if let Some(t) = v.get("target").and_then(|t| t.as_str()) {
+                    ctx.pilot_target = t.to_string();
                 }
             }
         }
         ctx
     }
 
-    /// Load ONLY the reviewed collector-site registry for a generic event
-    /// workbench. Collector sites are stable reviewed facts (where the
-    /// route reflector is hosted, time-scoped by `as_of`); the 2019
-    /// session audit and the peering-plane pilot decision are NOT loaded here
-    /// because they are pilot-scoped evidence and must not be attributed
-    /// to unrelated events.
+    /// Load ONLY the reviewed collector-site registry and plane-label
+    /// map for a generic event workbench. Collector sites are stable
+    /// reviewed facts (where the route reflector is hosted, time-scoped
+    /// by `as_of`); the ASN→plane display-label mapping is the same
+    /// stable reviewed class. The 2019 session audit and the peering-
+    /// plane pilot decision are NOT loaded here because they are
+    /// pilot-scoped evidence and must not be attributed to unrelated
+    /// events.
     pub fn load_registry_only(pilot_dir: &std::path::Path) -> Self {
         let mut ctx = WorkbenchContext::default();
         let locations_path = pilot_dir.join("collector-locations.json");
         if let Ok(registry) = CollectorLocationRegistry::load(&locations_path) {
             ctx.registry = Some(registry);
+        }
+        let profile_path = pilot_dir.join("network-profile.json");
+        if let Ok(profile) = ServicePlaneProfile::load(&profile_path) {
+            for plane in &profile.service_planes {
+                for asn in &plane.asns {
+                    if !ctx.plane_labels.iter().any(|(a, _)| a == asn) {
+                        ctx.plane_labels.push((*asn, plane.display_label.clone()));
+                    }
+                }
+            }
         }
         ctx
     }
@@ -2898,6 +3767,13 @@ mod text_report_tests {
             current_result: "Partial".to_string(),
             expectation_assessment: String::new(),
             archive_coverage: "Complete".to_string(),
+            observed_result: String::new(),
+            scope_limit: String::new(),
+            incident_horizon_start: String::new(),
+            incident_horizon_end: String::new(),
+            pilot_label: String::new(),
+            linked_tickets: vec![],
+            plane_asns: vec![],
             runs: vec![],
             episodes: vec![ObserverEpisode {
                 analysis_run: 1,
@@ -2911,7 +3787,6 @@ mod text_report_tests {
                 named_path_plane: "Plane A".to_string(),
                 effect_kind: EffectKind::TemporaryStreamAbsence,
                 first_change: Some("2019-08-21T16:45:25Z".to_string()),
-                peak_interval: None,
                 last_change: Some("2019-08-21T16:45:27Z".to_string()),
                 restoration_start: Some("2019-08-21T16:45:27Z".to_string()),
                 restoration_end: Some("2019-08-21T16:45:27Z".to_string()),
@@ -2919,8 +3794,10 @@ mod text_report_tests {
                 changed_stream_count: 2,
                 distinct_prefix_count: 2,
                 route_instance_count: 2,
+                restored_stream_count: 0,
                 unresolved_count: 0,
-                coverage_status: CoverageStatus::NoChange,
+                end_state: EndState::NoRouteStateChange,
+                coverage_status: CoverageStatus::Complete,
                 representative_evidence: "evidence sentence".to_string(),
                 streams: vec![],
             }],
@@ -2940,6 +3817,7 @@ mod text_report_tests {
             timeline: vec![],
             operator_anchors: vec![],
             cues: vec![],
+            grouped_cues: vec![],
             no_baseline_sessions: vec![],
             incomplete_sessions: vec![],
         };
@@ -2948,5 +3826,441 @@ mod text_report_tests {
         assert!(text.contains("2 streams / 2 prefixes"));
         assert!(text.contains("TemporaryStreamAbsence"));
         assert!(text.contains("evidence sentence"));
+    }
+}
+
+// ── Session 37: presentation-semantics invariants (Part 1) ─────────
+
+#[cfg(test)]
+mod session37_semantic_tests {
+    use super::*;
+
+    fn stream_with(
+        kind: EffectKind,
+        withdrawn: bool,
+        restored: bool,
+        rest_time: Option<&str>,
+        category: &str,
+    ) -> (ObserverEpisode, StreamLifecycleSummary) {
+        let s = StreamLifecycleSummary {
+            id: 0,
+            run_id: 1,
+            collector: "rrc06".to_string(),
+            peer_ip: "192.0.2.1".to_string(),
+            prefix: "198.51.100.0/24".to_string(),
+            category: category.to_string(),
+            baseline_instances: 1,
+            max_active_instances: 1,
+            transition_count: if kind == EffectKind::NoRouteStateChange {
+                0
+            } else {
+                1
+            },
+            withdrawn,
+            restored,
+            transit_state: "retained".to_string(),
+            add_path_ambiguous: false,
+            evidence_refs: "[]".to_string(),
+            first_change_utc: Some("2019-08-21T16:45:25Z".to_string()),
+            restoration_time_utc: rest_time.map(|t| t.to_string()),
+        };
+        let members = vec![&s];
+        let changed = if kind == EffectKind::NoRouteStateChange {
+            0
+        } else {
+            1
+        };
+        let restored_count = usize::from(rest_time.is_some());
+        let end_state = derive_end_state(&kind, changed, restored_count, &members);
+        let ep = ObserverEpisode {
+            analysis_run: 1,
+            observer_session: "ris/rrc06 peer 192.0.2.1".to_string(),
+            observer_site: "Otemachi, Tokyo, Japan".to_string(),
+            observer_region: "APAC".to_string(),
+            peer_asn: Some(64500),
+            peer_label: "AS64500".to_string(),
+            peer_role: "regional-re".to_string(),
+            relationship: RelationshipKind::Direct,
+            named_path_plane: "Plane A".to_string(),
+            effect_kind: kind.clone(),
+            first_change: Some("2019-08-21T16:45:25Z".to_string()),
+            last_change: Some("2019-08-21T16:45:27Z".to_string()),
+            restoration_start: rest_time.map(|t| t.to_string()),
+            restoration_end: rest_time.map(|t| t.to_string()),
+            baseline_stream_count: 1,
+            changed_stream_count: changed,
+            restored_stream_count: restored_count,
+            distinct_prefix_count: changed,
+            route_instance_count: 1,
+            unresolved_count: if withdrawn && !restored { 1 } else { 0 },
+            end_state,
+            coverage_status: CoverageStatus::Complete,
+            representative_evidence: String::new(),
+            streams: vec![EpisodeStream {
+                prefix: "198.51.100.0/24".to_string(),
+                category: category.to_string(),
+                withdrawn,
+                restored,
+                baseline_instances: 1,
+                transition_count: 1,
+                add_path_ambiguous: false,
+                first_change_utc: Some("2019-08-21T16:45:25Z".to_string()),
+                restoration_time_utc: rest_time.map(|t| t.to_string()),
+                evidence_refs: "[]".to_string(),
+            }],
+        };
+        (ep, s)
+    }
+
+    #[test]
+    fn changed_episode_cannot_have_no_change_result() {
+        for kind in [
+            EffectKind::TemporaryStreamAbsence,
+            EffectKind::RouteWithdrawal,
+            EffectKind::PathReplacement,
+            EffectKind::NamedPlaneDeparture,
+            EffectKind::NamedPlaneReturn,
+            EffectKind::PrependChange,
+            EffectKind::MixedRouteChange,
+        ] {
+            let (ep, _) = stream_with(kind.clone(), false, false, None, "DepartedTransitPath");
+            assert_ne!(
+                ep.end_state,
+                EndState::NoRouteStateChange,
+                "changed episode {kind:?} must never end in NoRouteStateChange"
+            );
+            assert_ne!(ep.coverage_status, CoverageStatus::NoBaselineVisibility);
+        }
+    }
+
+    #[test]
+    fn temporary_absence_with_restoration_has_restored_end_state() {
+        let (ep, _) = stream_with(
+            EffectKind::TemporaryStreamAbsence,
+            true,
+            true,
+            Some("2019-08-21T16:45:27Z"),
+            "Withdrawn",
+        );
+        assert_eq!(ep.end_state, EndState::VisibilityRestored);
+        assert_eq!(ep.restored_stream_count, 1);
+        assert_eq!(
+            ep.restoration_end.as_deref(),
+            Some("2019-08-21T16:45:27Z"),
+            "restoration comes from lifecycle evidence"
+        );
+    }
+
+    #[test]
+    fn path_change_with_lifecycle_restoration_is_baseline_restored() {
+        // DepartedTransitPath with an exact restoration timestamp but
+        // restored=false: the baseline path returned — end state must
+        // reflect the lifecycle evidence, not the presentation default.
+        let (ep, _) = stream_with(
+            EffectKind::PathReplacement,
+            false,
+            false,
+            Some("2019-08-21T17:02:19Z"),
+            "DepartedTransitPath",
+        );
+        assert_eq!(ep.end_state, EndState::BaselineRestored);
+        assert_eq!(ep.restoration_end.as_deref(), Some("2019-08-21T17:02:19Z"));
+    }
+
+    #[test]
+    fn unresolved_withdrawal_ends_absent_at_window_end() {
+        let (ep, _) = stream_with(EffectKind::RouteWithdrawal, true, false, None, "Withdrawn");
+        assert_eq!(ep.end_state, EndState::AbsentAtWindowEnd);
+        assert_eq!(ep.unresolved_count, 1);
+        assert_eq!(ep.restoration_start, None, "no fabricated restoration");
+    }
+
+    #[test]
+    fn end_state_matches_lifecycle() {
+        // No-change episode keeps NoRouteStateChange end state.
+        let (ep, _) = stream_with(
+            EffectKind::NoRouteStateChange,
+            false,
+            false,
+            None,
+            "Unchanged",
+        );
+        assert_eq!(ep.end_state, EndState::NoRouteStateChange);
+    }
+
+    #[test]
+    fn region_key_is_valid() {
+        for region in ["AMER", "EMEA", "APAC", "Unknown"] {
+            assert!(
+                matches!(region, "AMER" | "EMEA" | "APAC" | "Unknown"),
+                "region key must be one of the four canonical keys: {region}"
+            );
+        }
+        // Every region produced by the registry is one of the canonical keys.
+        let registry = CollectorLocationRegistry::default();
+        for c in &registry.collectors {
+            assert!(
+                matches!(c.region.as_str(), "AMER" | "EMEA" | "APAC" | "Unknown"),
+                "collector {} has invalid region {}",
+                c.collector,
+                c.region
+            );
+        }
+    }
+
+    #[test]
+    fn observed_peer_asn_is_never_rendered_as_unreviewed() {
+        // When the ASN is observed in reviewed evidence it renders as
+        // "AS<n>"; when absent the label says the ASN is not in reviewed
+        // evidence — "unreviewed" never labels the ASN itself.
+        let (ep, _) = stream_with(
+            EffectKind::PathReplacement,
+            false,
+            false,
+            None,
+            "DepartedTransitPath",
+        );
+        let with_asn = ep
+            .peer_asn
+            .map(|a| format!("AS{a}"))
+            .unwrap_or_else(|| "peer ASN not in reviewed evidence".to_string());
+        assert!(with_asn.starts_with("AS64500"));
+        let mut no_asn = ep.clone();
+        no_asn.peer_asn = None;
+        let without_asn = no_asn
+            .peer_asn
+            .map(|a| format!("AS{a}"))
+            .unwrap_or_else(|| "peer ASN not in reviewed evidence".to_string());
+        assert!(without_asn.contains("not in reviewed evidence"));
+        assert!(!without_asn.to_lowercase().contains("unreviewed"));
+    }
+
+    #[test]
+    fn primary_ui_contains_no_raw_internal_enum_labels() {
+        // The primary UI renders human labels; raw enum labels are
+        // confined to technical details.
+        let ep = stream_with(
+            EffectKind::TemporaryStreamAbsence,
+            true,
+            true,
+            Some("2019-08-21T16:45:27Z"),
+            "Withdrawn",
+        )
+        .0;
+        let human = ep.effect_kind.human_label();
+        assert!(human.contains("Temporarily absent"));
+        assert!(!human.contains("TemporaryStreamAbsence"));
+        assert_eq!(
+            ep.end_state.human_label(),
+            "Visibility restored on changed path"
+        );
+        assert!(ep.coverage_status.human_label().contains("Complete"));
+    }
+
+    #[test]
+    fn primary_ui_contains_no_raw_predicate_json() {
+        // Plane labels are runtime-built; predicate JSON never renders
+        // in the primary UI (the "reviewed transit {…}" fallback is gone).
+        // This unit-level check guards the label builder shape: any label
+        // containing "{" or "ContainsAny" is a raw predicate leak.
+        // ASN values are runtime data; 64500 is a documentation-range
+        // ASN used only to check the label shape (no frozen token here).
+        let predicate_asns = vec![64500u32];
+        let label = plane_label_from_asns(&predicate_asns, &[]);
+        assert!(!label.contains('{'), "raw predicate JSON leaked: {label}");
+        assert!(
+            !label.contains("ContainsAny"),
+            "raw predicate leaked: {label}"
+        );
+        assert!(label.contains("AS64500"), "ASN must be named: {label}");
+        let with_profile =
+            plane_label_from_asns(&predicate_asns, &[(64500u32, "Reviewed Plane".to_string())]);
+        assert!(
+            with_profile.contains("Reviewed Plane path (AS64500)"),
+            "{with_profile}"
+        );
+    }
+
+    #[test]
+    fn same_day_workbench_time_uses_hms() {
+        assert_eq!(
+            workbench_time("2019-08-21T16:45:25Z", "2019-08-21T16:00:00Z"),
+            "16:45:25 UTC"
+        );
+        assert_eq!(
+            workbench_time("2019-08-21T16:45:25+00:00", "2019-08-21T16:00:00Z"),
+            "16:45:25 UTC"
+        );
+        assert_eq!(
+            workbench_time("2019-08-21T16:45:25.123456789Z", "2019-08-21T16:00:00Z"),
+            "16:45:25 UTC"
+        );
+    }
+
+    #[test]
+    fn cross_day_time_includes_date() {
+        assert_eq!(
+            workbench_time("2019-08-22T00:15:03Z", "2019-08-21T16:00:00Z"),
+            "2019-08-22 00:15:03 UTC"
+        );
+        assert_eq!(
+            workbench_time("2019-08-21T23:59:59Z", "2019-08-22T00:00:00Z"),
+            "2019-08-21 23:59:59 UTC"
+        );
+    }
+
+    #[test]
+    fn exact_timestamp_remains_in_details() {
+        // The model keeps exact timestamps; only the display layer uses
+        // workbench_time.
+        let (ep, _) = stream_with(
+            EffectKind::TemporaryStreamAbsence,
+            true,
+            true,
+            Some("2019-08-21T16:45:27Z"),
+            "Withdrawn",
+        );
+        assert_eq!(
+            ep.first_change.as_deref(),
+            Some("2019-08-21T16:45:25Z"),
+            "model timestamps stay exact"
+        );
+        assert_eq!(
+            ep.streams[0].first_change_utc.as_deref(),
+            Some("2019-08-21T16:45:25Z")
+        );
+    }
+
+    #[test]
+    fn timezone_is_always_explicit() {
+        for (ts, ws) in [
+            ("2019-08-21T16:45:25Z", "2019-08-21T16:00:00Z"),
+            ("2019-08-22T01:02:03Z", "2019-08-21T16:00:00Z"),
+            ("garbage", "2019-08-21T16:00:00Z"),
+        ] {
+            let rendered = workbench_time(ts, ws);
+            assert!(
+                rendered.contains("UTC"),
+                "timezone must be explicit: {rendered}"
+            );
+        }
+    }
+}
+
+// ── Session 37: lane timeline (Part 7) ──────────────────────────────
+
+#[cfg(test)]
+mod session37_timeline_tests {
+    use super::*;
+
+    fn lane(session: &str, region: &str) -> TimelineLane {
+        TimelineLane {
+            observer_session: session.to_string(),
+            region: region.to_string(),
+            collector: "rrc06".to_string(),
+            window_start: "2019-08-21T16:00:00Z".to_string(),
+            window_end: "2019-08-21T17:30:00Z".to_string(),
+            operator_anchors: Vec::new(),
+            first_route_change: Some(TimelineMarker {
+                timestamp_utc: "2019-08-21T16:45:25Z".to_string(),
+                label: "first route change".to_string(),
+                kind: "bgp".to_string(),
+            }),
+            absence_interval: Some((
+                "2019-08-21T16:45:25Z".to_string(),
+                "2019-08-21T16:45:27Z".to_string(),
+            )),
+            path_change_interval: None,
+            restoration_interval: Some((
+                "2019-08-21T16:45:27Z".to_string(),
+                "2019-08-21T16:45:27Z".to_string(),
+            )),
+            unresolved_end_state: false,
+        }
+    }
+
+    #[test]
+    fn timeline_has_one_lane_per_session() {
+        let lanes = vec![
+            lane("ris/rrc06 peer 192.0.2.1", "APAC"),
+            lane("ris/rrc00 peer 192.0.2.9", "EMEA"),
+        ];
+        let svg = render_timeline_svg(&lanes, &[]);
+        let lane_count = svg.matches(r#"class="tl-lane""#).count();
+        // One <g class="tl-lane"> per observer session (operator lane
+        // absent when there are no anchors).
+        assert_eq!(lane_count, 2, "one lane per observer session");
+        assert!(svg.contains("tl-lane-line"));
+    }
+
+    #[test]
+    fn operator_markers_and_bgp_markers_have_distinct_classes() {
+        let lanes = vec![lane("ris/rrc06 peer 192.0.2.1", "APAC")];
+        let anchors = vec![
+            TimelineMarker {
+                timestamp_utc: "2019-08-21T16:50:00Z".to_string(),
+                label: "interface disabled".to_string(),
+                kind: "operator".to_string(),
+            },
+            TimelineMarker {
+                timestamp_utc: "2019-08-21T20:48:00Z".to_string(),
+                label: "interface re-enabled".to_string(),
+                kind: "operator".to_string(),
+            },
+        ];
+        let svg = render_timeline_svg(&lanes, &anchors);
+        assert!(svg.contains(r#"class="tl-op-marker""#), "operator class");
+        assert!(svg.contains(r#"class="tl-bgp tl-first""#), "bgp class");
+        assert!(svg.contains("Operator report"), "operator lane label");
+        assert!(
+            svg.contains("interface re-enabled"),
+            "operator anchor label present"
+        );
+    }
+
+    #[test]
+    fn absence_interval_has_explicit_start_and_end() {
+        let lanes = vec![lane("ris/rrc06 peer 192.0.2.1", "APAC")];
+        let svg = render_timeline_svg(&lanes, &[]);
+        assert!(svg.contains(r#"class="tl-absence""#));
+        // The interval rect must have a positive width (start < end).
+        let re = regex::Regex::new(
+            r#"<rect class="tl-absence" x="([0-9.]+)" y="([0-9.]+)" width="([0-9.]+)""#,
+        )
+        .unwrap();
+        let caps = re.captures(&svg).expect("absence rect present");
+        let width: f64 = caps[3].parse().unwrap();
+        assert!(width > 0.0, "explicit start and end give a real interval");
+    }
+
+    #[test]
+    fn unresolved_end_state_has_no_restoration_marker() {
+        let mut l = lane("ris/rrc06 peer 192.0.2.1", "APAC");
+        l.restoration_interval = None;
+        l.unresolved_end_state = true;
+        let svg = render_timeline_svg(&[l], &[]);
+        assert!(
+            !svg.contains(r#"class="tl-restore" transform="#),
+            "no restoration marker for unresolved end state"
+        );
+        assert!(svg.contains(r#"class="tl-changed-end""#));
+    }
+
+    #[test]
+    fn timeline_text_fallback_contains_same_evidence() {
+        // The fallback table (rendered by the template from the same
+        // lanes) shows the same exact evidence: absence endpoints and
+        // unresolved flag must be available on the model.
+        let mut l = lane("ris/rrc06 peer 192.0.2.1", "APAC");
+        l.unresolved_end_state = true;
+        assert_eq!(
+            l.absence_interval.as_ref().unwrap().0,
+            "2019-08-21T16:45:25Z"
+        );
+        assert_eq!(
+            l.absence_interval.as_ref().unwrap().1,
+            "2019-08-21T16:45:27Z"
+        );
+        assert!(l.unresolved_end_state);
     }
 }

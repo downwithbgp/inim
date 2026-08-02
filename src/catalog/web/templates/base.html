@@ -22,5 +22,16 @@
 <main>
 {% block content %}{% endblock %}
 </main>
+<script>
+/* Progressive enhancement: mark the active nav item from the path. */
+(function () {
+  var path = location.pathname;
+  document.querySelectorAll('nav a').forEach(function (a) {
+    var href = a.getAttribute('href');
+    if (href === '/' && path === '/') { a.classList.add('active'); }
+    else if (href !== '/' && path.indexOf(href) === 0) { a.classList.add('active'); }
+  });
+})();
+</script>
 </body>
 </html>

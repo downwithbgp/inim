@@ -1,227 +1,321 @@
 {% extends "base.html" %}
 {% block title %}inim workbench — {{ vm.subject_id }}{% endblock %}
 {% block content %}
-<h2>Incident workbench — {{ vm.subject_id }}</h2>
-<p class="muted">{{ vm.title }} · {{ vm.subject_kind }} · window {{ vm.window_start }} → {{ vm.window_end }} UTC</p>
+<h2 class="wb-title">Incident workbench — {{ vm.title }}</h2>
+<p class="muted wb-subtitle">{{ vm.subject_id }} · {{ vm.subject_kind }}{% if !vm.pilot_label.is_empty() %} · historical pilot {{ vm.pilot_label }}{% endif %}</p>
 
-<div class="panel wb-panel">
-<h3>Event summary</h3>
-<table class="wb-table">
-  <tr><th>Event ID</th><td>{{ vm.subject_id }}</td></tr>
-  <tr><th>Title</th><td>{{ vm.title }}</td></tr>
-  <tr><th>Source task type</th><td>{{ vm.source_task_type }}</td></tr>
-  <tr><th>Reviewed incident role</th><td>{% if vm.reviewed_incident_role.is_empty() %}<span class="muted">not reviewed</span>{% else %}{{ vm.reviewed_incident_role }}{% endif %}</td></tr>
-  <tr><th>Lifecycle</th><td>{{ vm.lifecycle }}</td></tr>
-  <tr><th>Analysis window (UTC)</th><td>{{ vm.window_start }} → {{ vm.window_end }}</td></tr>
-  <tr><th>Current observed result</th><td>{% if vm.current_result.is_empty() %}<span class="muted">no completed run</span>{% else %}{{ vm.current_result }}{% endif %}</td></tr>
-  <tr><th>Expectation assessment</th><td>{{ vm.expectation_assessment }}</td></tr>
-  <tr><th>Archive coverage</th><td>{{ vm.archive_coverage }}</td></tr>
-</table>
-<p class="muted wb-note">Rows below state what each observer session saw, when it changed, how many prefixes were involved, and when it restored. This is observed breadth, not outage severity; no causal claim is made.</p>
+<div class="wb-panel wb-header">
+  <dl class="wb-facts">
+    <div><dt>Source task type</dt><dd>{{ vm.source_task_type }}</dd></div>
+    <div><dt>Reviewed incident role</dt><dd>{{ vm.reviewed_incident_role }}</dd></div>
+    <div><dt>Lifecycle</dt><dd>{{ vm.lifecycle }}</dd></div>
+    {% if !vm.expectation_assessment.is_empty() %}
+    <div><dt>Expectation assessment</dt><dd>{{ vm.expectation_assessment }}</dd></div>
+    {% endif %}
+    {% if !vm.linked_tickets.is_empty() %}
+    <div><dt>Linked source tickets</dt><dd>{{ vm.linked_tickets | join(", ") }}</dd></div>
+    {% endif %}
+    {% if !vm.incident_horizon_start.is_empty() %}
+    <div><dt>Operator incident horizon</dt><dd class="wb-mono wb-nowrap">{{ vm.incident_horizon_start }} → {{ vm.incident_horizon_end }} UTC</dd></div>
+    {% endif %}
+    <div><dt>Displayed BGP pilot</dt><dd class="wb-mono wb-nowrap">{{ vm.window_start }} → {{ vm.window_end }} UTC</dd></div>
+  </dl>
+
+  <div class="wb-observed">
+    <h3>Observed result</h3>
+    <p class="wb-result">{{ vm.observed_result }}</p>
+    {% if !vm.current_result.is_empty() && vm.current_result != vm.observed_result %}
+    <p class="muted wb-note">{{ vm.current_result }}</p>
+    {% endif %}
+    {% if !vm.scope_limit.is_empty() %}
+    <p class="wb-scope">Scope limit: {{ vm.scope_limit }}</p>
+    {% endif %}
+  </div>
+
+  <p class="wb-links">
+    <a href="{% if vm.subject_kind == "case-study" %}/case-studies/{{ vm.subject_id }}{% else %}/events/{{ vm.subject_id }}{% endif %}">Ticket interpretation</a>
+    · <a href="{% if vm.subject_kind == "case-study" %}/case-studies/{{ vm.subject_id }}{% else %}/events/{{ vm.subject_id }}{% endif %}">Source documents</a>
+    · <a href="/analyses/{% if !vm.runs.is_empty() %}{{ vm.runs[0].id }}{% else %}0{% endif %}">Analysis details</a>
+    · <a href="{% if vm.subject_kind == "case-study" %}/case-studies/{{ vm.subject_id }}{% else %}/events/{{ vm.subject_id }}{% endif %}">Provenance</a>
+  </p>
 </div>
 
-<h3>Observed breadth by region</h3>
+<h3 class="wb-section">Observed breadth by region</h3>
 {% if breadth.is_empty() %}
 <p class="muted">No regional breadth summary.</p>
 {% else %}
-<table class="wb-table wb-sortable" data-sortable>
+<div class="wb-scroll">
+<table class="wb-table wb-breadth">
 <thead><tr>
   <th>Region</th>
-  <th>Eligible observer sessions</th>
-  <th>Changed</th>
-  <th>Unchanged</th>
-  <th>No baseline</th>
-  <th>Incomplete</th>
-  <th>Changed streams</th>
-  <th>Baseline streams</th>
-  <th>Changed prefixes</th>
-  <th>First change (UTC)</th>
-  <th>Last restoration (UTC)</th>
+  <th>Changed / eligible</th>
+  <th>Streams changed / baseline</th>
+  <th>Prefixes</th>
+  <th>First change</th>
+  <th>Restored</th>
+  <th>Coverage gaps</th>
 </tr></thead>
 <tbody>
 {% for b in breadth %}
 <tr>
-  <td>{{ b.region }}</td>
-  <td>{{ b.eligible }}</td>
-  <td>{{ b.changed }}</td>
-  <td>{{ b.unchanged }}</td>
-  <td>{{ b.no_baseline }}</td>
-  <td>{{ b.incomplete }}</td>
-  <td>{{ b.changed_streams }}</td>
-  <td>{{ b.baseline_streams }}</td>
-  <td>{{ b.changed_prefixes }}</td>
-  <td class="wb-mono">{{ b.first_change }}</td>
-  <td class="wb-mono">{{ b.last_restoration }}</td>
+  <td class="wb-nowrap wb-region">{{ b.region }}</td>
+  <td class="wb-num {{ b.changed_class }}"><span class="wb-change-tag">{{ b.changed_eligible }}</span> sessions</td>
+  <td class="wb-num">{{ b.streams_baseline }}</td>
+  <td class="wb-num">{{ b.prefixes }}</td>
+  <td class="wb-mono wb-nowrap">{{ b.first_change }}</td>
+  <td class="wb-mono wb-nowrap">{{ b.last_restoration }}</td>
+  <td class="wb-num">{{ b.gaps }}</td>
 </tr>
 {% endfor %}
 </tbody>
 </table>
-<p class="muted">Changed / eligible is shown as two numbers: the denominator is always visible. NoBaselineVisibility and IncompleteCoverage are distinct states and never collapse into "unchanged".</p>
+</div>
+<p class="muted wb-note">Changed / eligible is one combined cell (e.g. 6/7): the denominator is always visible. Coverage gaps count sessions with no qualifying baseline or incomplete coverage; those are distinct states and never collapse into "unchanged".</p>
 {% endif %}
 
-<h3>Observer episodes</h3>
-{% if episodes.is_empty() %}
-<p class="muted">No observer episodes.</p>
+{% if !coverage.is_empty() %}
+<h4 class="wb-subsection">No qualifying baseline</h4>
+<div class="wb-scroll">
+<table class="wb-table wb-narrow">
+<thead><tr><th>Region</th><th>Session</th><th>Note</th></tr></thead>
+<tbody>
+{% for s in coverage %}
+<tr class="wb-nobaseline-row">
+  <td class="wb-nowrap wb-region">{{ s.region }}</td>
+  <td class="wb-nowrap">{{ s.session }}</td>
+  <td class="muted">{{ s.note }}</td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+</div>
+{% endif %}
+
+{% if !timeline_focus %}
+<h3 class="wb-section">Observer episodes</h3>
+<p class="wb-denominator">{{ denominator }}</p>
+<p class="wb-filters">
+  Filters:
+  <a href="?"{% if !filters.active() %} class="wb-filter-active"{% endif %}>all</a>
+  <a href="?changed=1"{% if filters.changed %} class="wb-filter-active"{% endif %}>changed</a>
+  <a href="?kind=absent"{% if filters.kind == "absent" %} class="wb-filter-active"{% endif %}>absent</a>
+  <a href="?kind=path"{% if filters.kind == "path" %} class="wb-filter-active"{% endif %}>path changed</a>
+  <a href="?kind=plane"{% if filters.kind == "plane" %} class="wb-filter-active"{% endif %}>plane departure</a>
+  <a href="?kind=unchanged"{% if filters.kind == "unchanged" %} class="wb-filter-active"{% endif %}>unchanged</a>
+  <a href="?kind=withdrawn"{% if filters.kind == "withdrawn" %} class="wb-filter-active"{% endif %}>withdrawn</a>
+  · <a href="?region=AMER"{% if filters.region == "AMER" %} class="wb-filter-active"{% endif %}>AMER</a>
+  <a href="?region=EMEA"{% if filters.region == "EMEA" %} class="wb-filter-active"{% endif %}>EMEA</a>
+  <a href="?region=APAC"{% if filters.region == "APAC" %} class="wb-filter-active"{% endif %}>APAC</a>
+  · <a href="?rel=direct"{% if filters.rel == "direct" %} class="wb-filter-active"{% endif %}>direct</a>
+  <a href="?rel=indirect"{% if filters.rel == "indirect" %} class="wb-filter-active"{% endif %}>indirect</a>
+</p>
+{% if episodes.is_empty() && unchanged_episodes.is_empty() %}
+<p class="muted">No observer episodes match the current filter.</p>
 {% else %}
+<div class="wb-scroll">
 <table class="wb-table wb-sortable wb-episodes" data-sortable>
 <thead><tr>
-  <th>First change (UTC)</th>
+  <th>First</th>
   <th>Region</th>
-  <th>Collector / site</th>
-  <th>Peer ASN</th>
-  <th>Peer role</th>
-  <th>Direct/Indirect</th>
-  <th>Path plane</th>
-  <th>Changed streams</th>
-  <th>Distinct prefixes</th>
-  <th>Observed signature</th>
-  <th>Restoration</th>
-  <th>Status</th>
+  <th>Observer</th>
+  <th>Peer / view</th>
+  <th>Observed change</th>
+  <th>Streams</th>
+  <th>Prefixes</th>
+  <th>Restored</th>
+  <th>End state</th>
+  <th>Details</th>
 </tr></thead>
 <tbody>
 {% for e in episodes %}
-<tr class="wb-episode-row" data-target="wb-detail-{{ loop.index0 }}" tabindex="0">
-  <td class="wb-mono">{{ e.first_change }}</td>
-  <td>{{ e.region }}</td>
-  <td>{{ e.site }}</td>
-  <td>{{ e.peer_asn }}</td>
-  <td>{{ e.peer_role }}</td>
-  <td>{{ e.relationship }}</td>
-  <td>{{ e.plane }}</td>
-  <td>{{ e.changed_streams }}</td>
-  <td>{{ e.prefixes }}</td>
-  <td>{{ e.signature }}</td>
-  <td class="wb-mono">{{ e.restoration }}</td>
-  <td>{{ e.status }}</td>
-</tr>
-<tr class="wb-detail" id="wb-detail-{{ loop.index0 }}"{% if expanded %} style="display:table-row"{% else %} style="display:none"{% endif %}>
-  <td colspan="12">
-    <p class="wb-sentence">{{ e.sentence }}</p>
-    <p class="muted">{{ e.session }} · {{ e.baseline_streams }} baseline stream(s) · {{ e.route_instances }} route instance(s) · {{ e.unresolved }} unresolved</p>
-    <details class="wb-drilldown">
-      <summary>Prefix drill-down ({{ e.stream_count }} stream{% if e.stream_count != "1" %}s{% endif %})</summary>
-      <table class="wb-table">
-        <thead><tr>
-          <th>Prefix</th><th>Category</th><th>Withdrawn</th><th>Restored</th>
-          <th>Baseline instances</th><th>Transitions</th><th>ADD-PATH ambiguous</th>
-        </tr></thead>
-        <tbody>
-        {% for s in e.streams %}
-        <tr>
-          <td><code>{{ s.prefix }}</code></td>
-          <td>{{ s.category }}</td>
-          <td>{{ s.withdrawn }}</td>
-          <td>{{ s.restored }}</td>
-          <td>{{ s.baseline_instances }}</td>
-          <td>{{ s.transitions }}</td>
-          <td>{{ s.ambiguous }}</td>
-        </tr>
+<tr class="wb-episode-row{% if e.changed %} wb-changed{% else %} wb-unchanged{% endif %}">
+  <td class="wb-mono wb-nowrap" data-label="First">{{ e.first }}</td>
+  <td class="wb-nowrap wb-region" data-label="Region">{{ e.region }}</td>
+  <td class="wb-nowrap" data-label="Observer">{{ e.observer }}</td>
+  <td class="wb-nowrap wb-peer" data-label="Peer / view">{{ e.peer_view }}</td>
+  <td data-label="Observed change"><span class="wb-change">{{ e.change }}</span></td>
+  <td class="wb-num" data-label="Streams">{{ e.streams }}</td>
+  <td class="wb-num" data-label="Prefixes">{{ e.prefixes }}</td>
+  <td class="wb-mono wb-nowrap" data-label="Restored">{{ e.restored }}</td>
+  <td data-label="End state"><span class="wb-end {{ e.end_state_class }}">{{ e.end_state }}</span></td>
+  <td>
+    <details class="wb-episode-details"{% if e.expanded %} open{% endif %}>
+      <summary>View</summary>
+      <div class="wb-episode-expanded">
+        <p class="wb-sentence">{{ e.sentence }}</p>
+        <dl class="wb-facts">
+          <div><dt>Session</dt><dd class="wb-mono">{{ e.session }}</dd></div>
+          <div><dt>Source family</dt><dd>{{ e.family }}</dd></div>
+          <div><dt>Relationship</dt><dd>{{ e.relationship }}</dd></div>
+          <div><dt>Path plane</dt><dd>{{ e.plane }}</dd></div>
+          <div><dt>Baseline</dt><dd>{{ e.baseline_plane_state }}</dd></div>
+          <div><dt>Changed</dt><dd>{{ e.changed_plane_state }}</dd></div>
+          <div><dt>First change</dt><dd class="wb-mono">{{ e.first_exact }}</dd></div>
+          <div><dt>Last change</dt><dd class="wb-mono">{{ e.last_exact }}</dd></div>
+          <div><dt>Restoration</dt><dd class="wb-mono">{{ e.restoration_exact }}</dd></div>
+          <div><dt>Baseline streams</dt><dd>{{ e.baseline_streams }}</dd></div>
+          <div><dt>Route instances</dt><dd>{{ e.route_instances }}</dd></div>
+          <div><dt>Unresolved</dt><dd>{{ e.unresolved }}</dd></div>
+        </dl>
+        {% if !e.signatures.is_empty() %}
+        <h5 class="wb-subsection">Grouped prefix signatures</h5>
+        <ul class="flat">
+        {% for s in e.signatures %}
+          <li><span class="wb-mono">{{ s.count }}</span> {{ s.human }}: <span class="wb-mono">{{ s.prefixes }}</span></li>
         {% endfor %}
-        </tbody>
-      </table>
-      <p class="muted">Evidence refs are available on demand from the run's immutable artifacts; raw MRT files are never loaded.</p>
+        </ul>
+        {% endif %}
+        {% if !e.evidence_refs.is_empty() %}
+        <p class="wb-note">Representative evidence: <span class="wb-mono">{{ e.evidence_refs }}</span></p>
+        {% endif %}
+        <details class="wb-prefix-drilldown"{% if e.prefixes_open %} open{% endif %}>
+          <summary>Prefix drill-down ({{ e.stream_rows.len() }})</summary>
+          <div class="wb-scroll">
+          <table class="wb-table">
+            <thead><tr>
+              <th>Prefix</th><th>Baseline path</th><th>Change</th>
+              <th>First change</th><th>Restoration</th><th>End state</th><th>Evidence</th>
+            </tr></thead>
+            <tbody>
+            {% for s in e.stream_rows %}
+            <tr>
+              <td class="wb-mono wb-nowrap">{{ s.prefix }}</td>
+              <td class="wb-nowrap">{{ s.baseline }}</td>
+              <td>{{ s.change }}</td>
+              <td class="wb-mono wb-nowrap">{{ s.first }}</td>
+              <td class="wb-mono wb-nowrap">{{ s.restoration }}</td>
+              <td>{{ s.end_state }}</td>
+              <td class="wb-mono wb-evidence">{{ s.evidence }}</td>
+            </tr>
+            {% endfor %}
+            </tbody>
+          </table>
+          </div>
+          <p class="muted wb-note">Evidence references point into the run's immutable artifacts; raw MRT files are never loaded on this page.</p>
+        </details>
+      </div>
     </details>
   </td>
 </tr>
 {% endfor %}
 </tbody>
 </table>
+</div>
+
+{% if !unchanged_episodes.is_empty() %}
+<details class="wb-collapsed">
+  <summary>No-change sessions ({{ unchanged_episodes.len() }})</summary>
+  <div class="wb-scroll">
+  <table class="wb-table wb-episodes">
+  <thead><tr>
+    <th>First</th><th>Region</th><th>Observer</th><th>Peer / view</th>
+    <th>Observed change</th><th>Streams</th><th>Prefixes</th><th>Restored</th><th>End state</th><th>Details</th>
+  </tr></thead>
+  <tbody>
+  {% for e in unchanged_episodes %}
+  <tr class="wb-episode-row wb-unchanged">
+    <td class="wb-mono wb-nowrap" data-label="First">{{ e.first }}</td>
+    <td class="wb-nowrap wb-region" data-label="Region">{{ e.region }}</td>
+    <td class="wb-nowrap" data-label="Observer">{{ e.observer }}</td>
+    <td class="wb-nowrap wb-peer" data-label="Peer / view">{{ e.peer_view }}</td>
+    <td data-label="Observed change"><span class="wb-change">{{ e.change }}</span></td>
+    <td class="wb-num" data-label="Streams">{{ e.streams }}</td>
+    <td class="wb-num" data-label="Prefixes">{{ e.prefixes }}</td>
+    <td class="wb-mono wb-nowrap" data-label="Restored">{{ e.restored }}</td>
+    <td data-label="End state"><span class="wb-end {{ e.end_state_class }}">{{ e.end_state }}</span></td>
+    <td>
+      <details class="wb-episode-details"{% if e.expanded %} open{% endif %}>
+        <summary>View</summary>
+        <div class="wb-episode-expanded">
+          <p class="wb-sentence">{{ e.sentence }}</p>
+          <dl class="wb-facts">
+            <div><dt>Session</dt><dd class="wb-mono">{{ e.session }}</dd></div>
+            <div><dt>Path plane</dt><dd>{{ e.plane }}</dd></div>
+            <div><dt>Baseline</dt><dd>{{ e.baseline_plane_state }}</dd></div>
+          </dl>
+        </div>
+      </details>
+    </td>
+  </tr>
+  {% endfor %}
+  </tbody>
+  </table>
+  </div>
+</details>
+{% endif %}
+{% endif %}
 {% endif %}
 
-<h3>Coverage-only sessions</h3>
-{% if coverage.is_empty() %}
-<p class="muted">All selected observer sessions had a qualifying baseline.</p>
-{% else %}
-<table class="wb-table">
-<thead><tr><th>Observer session</th><th>Region</th><th>Status</th><th>Note</th></tr></thead>
-<tbody>
-{% for s in coverage %}
-<tr><td>{{ s.session }}</td><td>{{ s.region }}</td><td>{{ s.status }}</td><td class="muted">{{ s.note }}</td></tr>
-{% endfor %}
-</tbody>
-</table>
-{% endif %}
-
-<h3>Timeline (UTC)</h3>
+<h3 class="wb-section">Timeline (UTC)</h3>
 {% if timeline.is_empty() %}
 <p class="muted">No timeline lanes.</p>
 {% else %}
+<div class="wb-scroll wb-timeline-scroll">{{ timeline_svg|safe }}</div>
+{% if !anchors.is_empty() %}
+<p class="muted wb-note">Operator-reported anchors (diamonds) are distinct from BGP evidence (triangles/bars). The operator lane spans its anchors' extent; observer lanes span the pilot window. Exact observed timestamps only — the timeline never interpolates unobserved state.</p>
+{% endif %}
+<div class="wb-scroll">
 <table class="wb-table wb-timeline">
-<thead><tr><th>Observer session</th><th>Region</th><th>Window</th><th>First route change</th><th>Absence interval</th><th>Path-change interval</th><th>Restoration interval</th><th>End state</th></tr></thead>
+<thead><tr><th>Observer session</th><th>Region</th><th>Window</th><th>First route change</th><th>Absence interval</th><th>Path-change interval</th><th>Restoration</th><th>End state</th></tr></thead>
 <tbody>
 {% for lane in timeline %}
 <tr>
-  <td>{{ lane.session }}</td>
-  <td>{{ lane.region }}</td>
-  <td class="wb-mono">{{ lane.window }}</td>
-  <td class="wb-mono">{{ lane.first_change }}</td>
-  <td class="wb-mono">{{ lane.absence }}</td>
-  <td class="wb-mono">{{ lane.path_change }}</td>
-  <td class="wb-mono">{{ lane.restoration }}</td>
+  <td class="wb-nowrap">{{ lane.session }}</td>
+  <td class="wb-nowrap wb-region">{{ lane.region }}</td>
+  <td class="wb-mono wb-nowrap">{{ lane.window }}</td>
+  <td class="wb-mono wb-nowrap">{{ lane.first_change }}</td>
+  <td class="wb-mono wb-nowrap">{{ lane.absence }}</td>
+  <td class="wb-mono wb-nowrap">{{ lane.path_change }}</td>
+  <td class="wb-mono wb-nowrap">{{ lane.restoration }}</td>
   <td>{% if lane.end_state == "unresolved" %}<span class="wb-status wb-unresolved">unresolved</span>{% else %}<span class="muted">observed</span>{% endif %}</td>
 </tr>
 {% endfor %}
 </tbody>
 </table>
-<p class="muted">Exact timestamps only — the timeline never interpolates unobserved state.</p>
+</div>
 {% endif %}
 
-{% if !anchors.is_empty() %}
-<h4>Operator-reported anchors (distinct from BGP evidence)</h4>
-<table class="wb-table">
-<thead><tr><th>Timestamp (UTC)</th><th>Label</th><th>Kind</th></tr></thead>
-<tbody>
-{% for m in anchors %}
-<tr><td class="wb-mono">{{ m.timestamp }}</td><td>{{ m.label }}</td><td>{{ m.kind }}</td></tr>
-{% endfor %}
-</tbody>
-</table>
-{% endif %}
-
-<h3>Suggested internal checks</h3>
-<p class="muted">Investigation cues based on observed external facts — not diagnosis, not root cause, not remediation.</p>
-{% if cues.is_empty() %}
+<h3 class="wb-section">Suggested internal checks</h3>
+<p class="muted wb-note">Investigation cues based on observed external facts — not diagnosis, not root cause, not remediation.</p>
+{% if grouped_cues.is_empty() %}
 <p class="muted">No investigation cues (no route-state changes observed).</p>
 {% else %}
-<ul class="flat">
-{% for cue in cues %}
-<li><span class="wb-cue">{{ cue.text }}</span> <span class="muted">(traceable to {{ cue.traceable_to }})</span></li>
+<ul class="flat wb-cue-groups">
+{% for g in grouped_cues %}
+<li class="wb-cue-group">
+  <span class="wb-cue-title">{{ g.title }}</span>
+  <span class="wb-cue-text">{{ g.text }}</span>
+  {% if g.drill_down.is_some() %}<a href="?prefixes={{ g.drill_down.as_ref().unwrap() }}">exact prefixes</a>{% endif %}
+</li>
 {% endfor %}
 </ul>
 {% endif %}
 
-<h3>Runs</h3>
-<table class="wb-table">
-<thead><tr><th>Run</th><th>Event</th><th>Status</th><th>Verdict</th><th>Started (UTC)</th><th>Plane</th><th>Archive coverage</th></tr></thead>
-<tbody>
-{% for r in runs %}
-<tr>
-  <td><a href="/analyses/{{ r.id }}">{{ r.id }}</a></td>
-  <td>{{ r.event_id }}</td>
-  <td>{{ r.status }}</td>
-  <td>{{ r.verdict }}</td>
-  <td class="wb-mono">{{ r.started_at }}</td>
-  <td>{{ r.named_path_plane }}</td>
-  <td>{{ r.archive_coverage }}</td>
-</tr>
-{% endfor %}
-</tbody>
-</table>
+<details class="wb-analysis-history">
+  <summary>Analysis history ({{ runs.len() }} runs)</summary>
+  <div class="wb-scroll">
+  <table class="wb-table">
+  <thead><tr><th>Run</th><th>Source family / collector</th><th>Plane</th><th>Completed</th><th>Result</th><th>Details</th></tr></thead>
+  <tbody>
+  {% for r in runs %}
+  <tr>
+    <td class="wb-num">{{ r.id }}</td>
+    <td class="wb-nowrap">{{ r.source }}</td>
+    <td>{{ r.named_path_plane }}</td>
+    <td class="wb-mono wb-nowrap">{{ r.completed_at }}</td>
+    <td>{{ r.verdict }}</td>
+    <td><a href="/analyses/{{ r.id }}">run detail</a></td>
+  </tr>
+  {% endfor %}
+  </tbody>
+  </table>
+  </div>
+</details>
 
 <script>
-/* Progressive enhancement only: sorting, row expansion. The page is
-   fully understandable without JavaScript (server-rendered). */
+/* Progressive enhancement only: column sorting. Episode expansion uses
+   native <details> and works without JavaScript. */
 (function () {
-  function toggleRow(id) {
-    var el = document.getElementById(id);
-    if (el) { el.style.display = (el.style.display === 'none') ? '' : 'none'; }
-  }
-  document.querySelectorAll('.wb-episode-row').forEach(function (row) {
-    row.addEventListener('click', function () { toggleRow(row.dataset.target); });
-    row.addEventListener('keydown', function (ev) {
-      if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); toggleRow(row.dataset.target); }
-    });
-  });
   document.querySelectorAll('table[data-sortable]').forEach(function (table) {
     var headers = table.querySelectorAll('th');
     var tbody = table.querySelector('tbody');

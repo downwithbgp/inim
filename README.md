@@ -122,6 +122,21 @@ It is reachable from an event (`/events/{id}/workbench`) or a case study
 `/api/v1/analyses/{run_id}/observer-episodes`,
 `/api/v1/analyses/{run_id}/regional-breadth`).
 
+The Session 37 revision makes the workbench semantically correct before
+visually dense: expectation assessments come from the run assessment
+(not the target label), episode rows separate observed signature, end
+state, and coverage status (changed episodes never show "NoChange"),
+restoration derives from lifecycle evidence, region keys are canonical,
+and peer ASNs are observed facts. The UI is a compact incident header
+with generated observed-result text, a glanceable breadth matrix, an
+observer-episode table with filters and native-`details` drill-downs, a
+server-rendered lane timeline with operator anchors, grouped
+investigation cues, and a collapsed analysis history — old-school NOC
+styling at ~1440px content width with a dedicated mobile layout.
+Deterministic query states (`?changed`, `?episode=`, `?prefixes=`,
+`?view=timeline`) feed the validated screenshot harness
+(`scripts/screenshot-review-session37.sh`).
+
 - **ObserverEpisode** is the primary human-facing unit: streams at one
   observer session (collector + peer) sharing one presentation-level
   signature (`TemporaryStreamAbsence`, `RouteWithdrawal`,

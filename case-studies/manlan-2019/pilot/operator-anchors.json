@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "case_study_slug": "manlan-2019",
+  "scope": "Operator-reported anchors derived from the reviewed pilot result (pilot-result.json operator_evidence) and the AAR Appendix A timeline as recorded in the ticket reviews. These are operator-reported facts, distinct from BGP evidence; they are rendered with visibly different styling on the workbench timeline.",
+  "provenance": "pilot/pilot-result.json operator_evidence: 'AAR Appendix A: NORDUnet interface flapping reported at 15:33 (INC0040272); customer disabled the interface at 16:50 to regain stability; availability window 16:50-21:33 (INC0040289); interface re-enabled at 20:48.'",
+  "anchors": [
+    {
+      "label": "NORDUnet flapping reported",
+      "timestamp_utc": "2019-08-21T15:33:00Z",
+      "kind": "operator",
+      "source": "pilot-result.json operator_evidence (INC0040272)"
+    },
+    {
+      "label": "interface disabled",
+      "timestamp_utc": "2019-08-21T16:50:00Z",
+      "kind": "operator",
+      "source": "pilot-result.json operator_evidence (INC0040289)"
+    },
+    {
+      "label": "interface re-enabled",
+      "timestamp_utc": "2019-08-21T20:48:00Z",
+      "kind": "operator",
+      "source": "pilot-result.json operator_evidence"
+    }
+  ]
+}

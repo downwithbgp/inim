@@ -1277,6 +1277,7 @@ fn cmd_catalog(stdout: &mut dyn Write, command: &CatalogCommands) -> i32 {
                 &conn,
                 subject,
                 std::path::Path::new("."),
+                &inim::catalog::web::handlers::WorkbenchQuery::default(),
             ) {
                 Ok(Some(v)) => Some(v.vm),
                 Ok(None) => {
@@ -1284,6 +1285,7 @@ fn cmd_catalog(stdout: &mut dyn Write, command: &CatalogCommands) -> i32 {
                         &conn,
                         subject,
                         std::path::Path::new("."),
+                        &inim::catalog::web::handlers::WorkbenchQuery::default(),
                     ) {
                         Ok(v) => v.map(|v| v.vm),
                         Err(e) => {

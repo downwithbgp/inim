@@ -431,9 +431,12 @@ reached from an event, a case study, or eventually a network.
   presentation-level groupings derived from existing lifecycle/
   transition evidence; they introduce no new route-transition
   semantics.
-- **Coverage states** — `NoChange` (baseline existed, no change),
-  `NoBaselineVisibility` (target not visible), `IncompleteCoverage`
-  (observation could not be completed). Never collapsed into one zero.
+- **Coverage states** — `Complete` (baseline existed and the session
+  was observed), `NoBaselineVisibility` (target not visible),
+  `IncompleteCoverage` (observation could not be completed). Coverage
+  describes whether the observation could be made; "no change" is an
+  OBSERVED SIGNATURE (`EffectKind::NoRouteStateChange`), never a
+  coverage state (Session 37 correction). Never collapsed into one zero.
 - **Shared output surface** — HTML workbench (NOC HCI), plain-text
   report, JSON API: same model, same counts.
 
@@ -470,3 +473,81 @@ existing run indexes (`idx_streams_run`, `idx_run_transitions_run`,
 `idx_waves_run` — verified with EXPLAIN QUERY PLAN); no new indexes were
 needed. Per-request SQL count and timings are captured; demo catalog
 renders in ~16–23 ms median (target: <100 ms median, <250 ms worst).
+
+## Session 37 — semantic repair and NOC-grade HCI
+
+### Presentation semantics (Part 1)
+
+- **Expectation assessment** comes from the first completed run's
+  `assessment` field (e.g. "Consistent with the redundant-attachment
+  expectation."); the manifest `target.label` is a title and is never
+  rendered as an assessment. Case studies have no incident-wide
+  expectation: the model states this explicitly.
+- **Observed result** on the first screen is generated from model
+  counts (`render_observed_result`): changed/eligible observer sessions
+  and changed/baseline streams, with no-baseline sessions reported
+  separately. Case studies additionally show a scope limit ("single
+  target historical pilot, not a complete incident assessment") and
+  state that no incident-wide BGP verdict has been performed.
+- **Episode rows split three concepts**: observed signature
+  (EffectKind), end state (`EndState`, derived ONLY from lifecycle
+  evidence — withdrawal/restoration flags and exact restoration
+  timestamps; changed episodes can never end in "no change"), and
+  coverage status (Complete / NoBaselineVisibility / IncompleteCoverage).
+- **Restoration** is derived from the immutable `restoration_time_utc`
+  for every changed stream (visibility restoration for withdrawals,
+  baseline-path restoration for path changes) — never from an optional
+  presentation field, never extrapolated.
+- **Regions** are canonical keys (AMER/EMEA/APAC/Unknown); coverage-only
+  sessions carry their region resolved at load time, so a collector id
+  can never render as a region.
+- **Peer identity**: an observed peer ASN renders as `AS<n>`; a missing
+  ASN renders "peer ASN not in reviewed evidence". Organization and role
+  labels are reviewed/unclassified concepts — the ASN itself is never
+  "unreviewed".
+- **Human labels** (`EffectKind::human_label`, `EndState::human_label`,
+  `CoverageStatus::human_label`) replace raw enums and predicate JSON in
+  the primary UI; raw labels and exact timestamps remain in the JSON API
+  and expanded details.
+
+### NOC HCI (Parts 2–14)
+
+- **First screen**: compact incident header (subject facts, horizons,
+  linked tickets, observed result, scope limit, navigation links) — no
+  generic event-summary table, no long operator narrative.
+- **Breadth matrix**: REGION | CHANGED/ELIGIBLE | STREAMS/BASELINE |
+  PREFIXES | FIRST CHANGE | RESTORED | COVERAGE GAPS, with color cues
+  always paired with explicit text; a separate NO QUALIFYING BASELINE
+  block.
+- **Episode table**: FIRST | REGION | OBSERVER (collector · site) |
+  PEER/VIEW (ASn · relationship plane) | OBSERVED CHANGE | STREAMS |
+  PREFIXES | RESTORED | END STATE | DETAILS. Changed rows first;
+  unchanged rows collapsed but discoverable with their denominator
+  visible. Filters: `?changed`, `?kind=`, `?region=`, `?rel=`.
+- **Timestamps**: HH:MM:SS UTC in ordinary rows; the date is added for
+  cross-day rows; exact timestamps stay in details, the JSON API, and
+  the text report.
+- **Lane timeline**: server-rendered SVG, one lane per observer session
+  plus an operator-report lane (distinct marker classes), exact
+  markers/intervals only, no interpolation; conventional table fallback.
+- **Drill-down**: native `<details>` expansion (no JavaScript needed)
+  with episode-specific content, grouped prefix signatures, evidence
+  references, and per-prefix drill-down tables (`?episode=N`,
+  `?prefixes=N`); `?view=timeline` focuses the timeline.
+- **Investigation cues**: grouped by operational question (3–5 groups),
+  each carrying prefix count, time range, session count, and a link to
+  the exact prefixes; the disclaimer appears once.
+- **Analysis history** (runs) is collapsed below the workbench; archive
+  coverage lives on the run-detail page.
+- **Layout**: content width ~1440px with modest margins; `nowrap` on
+  timestamps/ASNs/prefixes/collector IDs/region codes/status labels;
+  wrapping only in prose columns; body 13–14px, tables 12–13px, section
+  headings 16–18px. Mobile (≤640px) keeps result+scope on top, uses
+  horizontally scrollable tables and definition-list episode rows, and
+  never breaks timestamps/ASNs/prefixes.
+- **Screenshot harness** (`scripts/screenshot-review-session37.sh` +
+  `scripts/screenshot-session37-capture.js`): explicit viewports,
+  content-marker verification, PNG-width assertion, SHA-256 recording,
+  and distinct-state hash checks. Eight captures at 1440×900, 1280×800,
+  390×844; the harness fails on missing markers, duplicate hashes, or
+  width mismatches.

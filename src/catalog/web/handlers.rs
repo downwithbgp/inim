@@ -59,10 +59,40 @@ pub async fn event_list(
 #[derive(Debug, Default, Deserialize)]
 pub struct WorkbenchQuery {
     /// Render all episode detail rows open (deterministic screenshots).
-    #[serde(default)]
+    #[serde(default, deserialize_with = "de_bool_loose")]
     pub expand: bool,
+    /// Show only changed episodes (Part 6 filter).
+    #[serde(default, deserialize_with = "de_bool_loose")]
+    pub changed: bool,
+    /// Region filter: AMER | EMEA | APAC | Unknown.
+    pub region: Option<String>,
+    /// Relationship filter: direct | indirect.
+    pub rel: Option<String>,
+    /// Effect-kind filter (human slug: absent | withdrawn | path |
+    /// plane | prepend | mixed | unchanged).
+    pub kind: Option<String>,
+    /// Open one episode's detail row (index into the ORDERED episode
+    /// list as rendered on the page: changed episodes first by time,
+    /// then unchanged; index 0 is the earliest changed episode).
+    pub episode: Option<usize>,
+    /// Open one episode's prefix drill-down table.
+    pub prefixes: Option<usize>,
+    /// Focus mode: "timeline" collapses the episode table.
+    pub view: Option<String>,
 }
 
+/// Accept "1", "true", "yes", "on" as true for boolean query flags
+/// (serde_urlencoded parses raw strings, so `?changed=1` must work).
+fn de_bool_loose<'de, D>(deserializer: D) -> Result<bool, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let s = String::deserialize(deserializer)?;
+    Ok(matches!(
+        s.trim().to_lowercase().as_str(),
+        "1" | "true" | "yes" | "on"
+    ))
+}
 #[derive(Debug, Default, Deserialize)]
 pub struct EventListFilters {
     pub lifecycle: Option<String>,
@@ -107,7 +137,6 @@ pub async fn case_study_detail(
 }
 
 /// Event incident workbench — the dense NOC view for one event.
-/// Event incident workbench — the dense NOC view for one event.
 ///
 /// No analysis or MRT parsing happens on this request path: the view
 /// reads catalog tables (indexed), reviewed data files, and immutable
@@ -123,16 +152,14 @@ pub async fn event_workbench(
     QUERY_COUNT.store(0, std::sync::atomic::Ordering::Relaxed);
     #[allow(deprecated)] // connection-local tracer; replaced by trace_v2 in later rusqlite
     db.trace(Some(trace_counter));
-    let mut view = match super::view::load_event_workbench(&db, &event_id, &state.catalog_root) {
-        Ok(Some(view)) => view,
-        Ok(None) => return not_found("event"),
-        Err(e) => return server_error(&e),
-    };
+    let mut view =
+        match super::view::load_event_workbench(&db, &event_id, &state.catalog_root, &params) {
+            Ok(Some(view)) => view,
+            Ok(None) => return not_found("event"),
+            Err(e) => return server_error(&e),
+        };
     view.timing.sql_query_count = QUERY_COUNT.load(std::sync::atomic::Ordering::Relaxed);
     view.timing.model_time_ms = started.elapsed().as_secs_f64() * 1000.0;
-    if params.expand {
-        view.expanded = true;
-    }
     render(view)
 }
 
@@ -153,17 +180,19 @@ pub fn query_count_debug() -> usize {
 pub async fn case_study_workbench(
     State(state): State<SharedState>,
     AxumPath(slug): AxumPath<String>,
+    Query(params): Query<WorkbenchQuery>,
 ) -> Response {
     let mut db = state.db.lock().unwrap();
     let started = std::time::Instant::now();
     QUERY_COUNT.store(0, std::sync::atomic::Ordering::Relaxed);
     #[allow(deprecated)] // connection-local tracer
     db.trace(Some(trace_counter));
-    let mut view = match super::view::load_case_study_workbench(&db, &slug, &state.catalog_root) {
-        Ok(Some(view)) => view,
-        Ok(None) => return not_found("case study"),
-        Err(e) => return server_error(&e),
-    };
+    let mut view =
+        match super::view::load_case_study_workbench(&db, &slug, &state.catalog_root, &params) {
+            Ok(Some(view)) => view,
+            Ok(None) => return not_found("case study"),
+            Err(e) => return server_error(&e),
+        };
     view.timing.sql_query_count = QUERY_COUNT.load(std::sync::atomic::Ordering::Relaxed);
     view.timing.model_time_ms = started.elapsed().as_secs_f64() * 1000.0;
     render(view)

@@ -16,16 +16,18 @@ use crate::catalog::web::SharedState;
 // ── CSS ─────────────────────────────────────────────────────────────
 
 pub const APP_CSS: &str = r#"
-:root { --ink: #1a1a1a; --muted: #555; --line: #ddd; --bg: #fafafa; }
+:root { --ink: #1a1a1a; --muted: #555; --line: #ddd; --bg: #fafafa; --link: #1a4f8b; }
 * { box-sizing: border-box; }
-body { font-family: ui-sans-serif, system-ui, sans-serif; margin: 0; color: var(--ink); background: var(--bg); }
-header { padding: 0.75rem 1rem; border-bottom: 1px solid var(--line); background: #fff; }
-header h1 { font-size: 1.1rem; margin: 0; }
-nav a { margin-right: 1rem; }
-main { padding: 1rem; max-width: 1100px; }
+body { font-family: ui-sans-serif, system-ui, sans-serif; margin: 0; color: var(--ink); background: var(--bg); font-size: 14px; line-height: 1.4; }
+header { padding: 0.6rem 1rem; border-bottom: 1px solid var(--line); background: #fff; }
+header h1 { font-size: 1.05rem; margin: 0; }
+nav { margin-top: 0.25rem; }
+nav a { margin-right: 1rem; font-size: 0.85rem; }
+nav a.active { font-weight: 700; text-decoration: underline; }
+main { padding: 0.75rem 16px 2rem; max-width: 1440px; margin: 0 auto; }
 table { border-collapse: collapse; width: 100%; background: #fff; }
-th, td { text-align: left; padding: 0.4rem 0.6rem; border-bottom: 1px solid var(--line); vertical-align: top; }
-th { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
+th, td { text-align: left; padding: 0.35rem 0.5rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); }
 .tag { display: inline-block; padding: 0.1rem 0.45rem; border-radius: 3px; font-size: 0.78rem; border: 1px solid var(--line); }
 .tag.stale { background: #fff3cd; border-color: #e0c060; }
 .tag.blocked { background: #fdecea; border-color: #e0a0a0; }
@@ -39,33 +41,115 @@ form.filter { margin-bottom: 0.75rem; }
 form.filter input, form.filter select { margin-right: 0.5rem; }
 ul.flat { margin: 0.25rem 0; padding-left: 1.2rem; }
 
-/* ── NOC incident workbench (Session 36, Part 8) ────────────────────
-   Old-school operations-console HCI: rectangular panels, square or
-   nearly square corners, thin borders, strong section headers, compact
-   line height, monospaced timestamps and AS paths, dense sortable
-   tables, explicit text status, restrained operational colors,
-   underlined conventional links, visible focus states. No oversized
-   rounded cards, gradients, glass effects, or decorative whitespace. */
+/* ── NOC incident workbench (Sessions 36–37) ────────────────────────
+   Old-school operations-console HCI: square corners, thin rules,
+   conventional blue underlined links, restrained grey headers, compact
+   vertical rhythm, tabular/monospaced technical values, no decorative
+   animation, no external fonts, no CDN assets, no SPA. Color is always
+   an ADDITIONAL signal — every state carries explicit text. */
+.wb-title { font-size: 1.15rem; margin: 0.5rem 0 0.1rem; }
+.wb-subtitle { margin: 0 0 0.75rem; font-size: 0.85rem; }
+.wb-section { font-size: 1rem; margin: 1.25rem 0 0.4rem; border-bottom: 1px solid #444; padding-bottom: 0.2rem; }
+.wb-subsection { font-size: 0.9rem; margin: 0.6rem 0 0.3rem; }
 .wb-panel { border: 1px solid var(--line); border-radius: 0; background: #fff; padding: 0.6rem 0.8rem; }
-.wb-panel h3 { margin: 0 0 0.4rem; font-size: 0.95rem; text-transform: uppercase; letter-spacing: 0.05em; }
-.wb-table { border-collapse: collapse; width: 100%; background: #fff; font-size: 0.82rem; line-height: 1.25; table-layout: fixed; }
-.wb-table th { text-align: left; padding: 0.3rem 0.5rem; border-bottom: 2px solid #444; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; color: #333; background: #f0f0f0; overflow-wrap: anywhere; position: sticky; top: 0; z-index: 1; }
-.wb-table td { padding: 0.28rem 0.5rem; border-bottom: 1px solid var(--line); vertical-align: top; overflow-wrap: anywhere; }
-.wb-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.78rem; }
-.wb-sentence { font-size: 0.85rem; margin: 0.3rem 0; }
-.wb-detail td { background: #f7f7f5; border-left: 3px solid #888; }
-.wb-episode-row { cursor: pointer; }
-.wb-episode-row:hover td { background: #eef3f8; }
+.wb-panel h3 { margin: 0 0 0.3rem; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; }
+.wb-facts { display: flex; flex-wrap: wrap; gap: 0.1rem 1.2rem; margin: 0 0 0.5rem; }
+.wb-facts > div { display: flex; gap: 0.5rem; min-width: 240px; }
+.wb-facts dt { color: var(--muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; min-width: 10rem; }
+.wb-facts dd { margin: 0; font-size: 0.85rem; }
+.wb-observed { border-top: 1px solid var(--line); padding-top: 0.4rem; }
+.wb-result { font-size: 0.95rem; margin: 0.2rem 0; }
+.wb-scope { margin: 0.2rem 0; color: #7a4a00; border-left: 3px solid #c8962e; padding-left: 0.5rem; }
+.wb-links { margin: 0.4rem 0 0; font-size: 0.85rem; }
+.wb-links a { color: var(--link); text-decoration: underline; }
 .wb-note { font-size: 0.78rem; }
-.wb-cue { font-size: 0.82rem; }
+.wb-table { border-collapse: collapse; width: 100%; background: #fff; font-size: 0.8rem; line-height: 1.3; }
+.wb-table th { text-align: left; padding: 0.3rem 0.5rem; border-bottom: 2px solid #444; font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.04em; color: #333; background: #f0f0f0; white-space: nowrap; position: sticky; top: 0; z-index: 1; }
+.wb-table td { padding: 0.28rem 0.5rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+.wb-table.wb-narrow { width: auto; min-width: 60%; }
+.wb-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.76rem; }
+.wb-nowrap { white-space: nowrap; }
+.wb-num { text-align: right; font-variant-numeric: tabular-nums; }
+.wb-region { font-weight: 600; }
+.wb-peer { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.76rem; }
+.wb-change { font-weight: 600; }
+.wb-denominator { font-size: 0.85rem; margin: 0.2rem 0; }
+.wb-filters { font-size: 0.8rem; margin: 0.2rem 0 0.5rem; }
+.wb-filters a { margin-right: 0.5rem; color: var(--link); text-decoration: underline; }
+.wb-filters a.wb-filter-active { background: #e8eef6; font-weight: 700; }
+.wb-sentence { font-size: 0.85rem; margin: 0.3rem 0; }
+.wb-episode-row td { background: #fff; }
+.wb-episode-row.wb-changed td { background: #fdf6ec; border-left: 3px solid #c8962e; }
+.wb-episode-row.wb-changed:hover td { background: #f9edd6; }
+.wb-episode-row.wb-unchanged td { background: #f7f7f5; color: #444; }
+.wb-episode-row.wb-unchanged:hover td { background: #efefec; }
+.wb-episode-row:focus-within td { outline: 2px solid var(--link); outline-offset: -2px; }
+.wb-episode-details summary, .wb-prefix-drilldown summary, .wb-collapsed summary, .wb-analysis-history summary { cursor: pointer; font-size: 0.8rem; color: var(--link); text-decoration: underline; }
+.wb-episode-details[open] summary { font-weight: 700; }
+.wb-episode-expanded { border: 1px solid var(--line); background: #fff; padding: 0.5rem 0.6rem; margin: 0.4rem 0; }
+.wb-end { font-size: 0.78rem; }
+.wb-end-restored { color: #1d5c1d; }
+.wb-end-changed { color: #8a4a00; font-weight: 600; }
+.wb-end-unresolved { color: #8a5a00; }
+.wb-end-plain { color: var(--muted); }
 .wb-status { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.03em; }
 .wb-unresolved { color: #8a5a00; }
-.wb-drilldown summary { cursor: pointer; font-size: 0.8rem; color: #1a4f8b; }
-a { color: #1a4f8b; text-decoration: underline; }
-a:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px solid #1a4f8b; outline-offset: 1px; }
+.wb-breadth-changed { background: #fdf3e3; color: #7a4a00; font-weight: 700; }
+.wb-breadth-unchanged { background: #eef4ee; color: #3d6b3d; }
+.wb-breadth-none { background: repeating-linear-gradient(45deg, #f0f0f0, #f0f0f0 4px, #e6e6e6 4px, #e6e6e6 8px); color: #666; }
+.wb-change-tag { padding: 0.05rem 0.35rem; border: 1px solid currentColor; }
+.wb-nobaseline-row td { background: repeating-linear-gradient(45deg, #f4f4f2, #f4f4f2 4px, #ececea 4px, #ececea 8px); }
+.wb-cue-groups { padding-left: 0; list-style: none; }
+.wb-cue-group { margin: 0.35rem 0; padding-left: 0.8rem; border-left: 3px solid #888; }
+.wb-cue-title { font-weight: 700; font-size: 0.85rem; display: block; }
+.wb-cue-text { font-size: 0.83rem; }
+.wb-cue-group a { color: var(--link); text-decoration: underline; font-size: 0.8rem; }
+.wb-collapsed, .wb-analysis-history { margin: 0.5rem 0; }
+.wb-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; border: 1px solid var(--line); }
+.wb-scroll::-webkit-scrollbar { height: 8px; }
+.wb-scroll::-webkit-scrollbar-thumb { background: #bbb; }
+.wb-timeline-svg { width: 100%; height: auto; display: block; background: #fff; border: 1px solid var(--line); }
+.tl-lane-label { font-size: 12px; fill: #333; }
+.tl-lane-line { stroke: #ddd; stroke-width: 1; }
+.tl-axis line { stroke: #555; stroke-width: 1; }
+.tl-tick { stroke: #999; stroke-width: 1; }
+.tl-tick-label { font-size: 10px; fill: #555; }
+.tl-absence { fill: #c0392b; opacity: 0.85; }
+.tl-path { fill: #c8962e; opacity: 0.85; }
+.tl-restore { fill: #1d7a1d; }
+.tl-bgp { fill: #1a4f8b; }
+.tl-op-marker { fill: none; stroke: #1a4f8b; stroke-width: 1.5; }
+.tl-op-label { font-size: 10px; fill: #1a4f8b; }
+.tl-changed-end { stroke: #8a4a00; stroke-width: 1.5; }
+.tl-legend-item { font-size: 10px; fill: #555; }
+a { color: var(--link); text-decoration: underline; }
+a:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px solid var(--link); outline-offset: 1px; }
 .wb-sortable th { cursor: pointer; user-select: none; }
 .wb-sortable th.sorted-asc::after { content: " ▲"; }
 .wb-sortable th.sorted-desc::after { content: " ▼"; }
+
+/* ── Narrow / mobile (Part 12): stacked header, scrollable tables,
+   definition-list episode rows. Text never shrinks below readable size;
+   timestamps, ASNs, and prefixes never break. */
+@media (max-width: 640px) {
+  body { font-size: 13px; }
+  main { padding: 0.5rem 8px 1.5rem; }
+  .wb-facts { display: block; }
+  .wb-facts > div { display: block; }
+  .wb-facts dt { margin-top: 0.2rem; }
+  .wb-facts dd { font-size: 12px; }
+  .wb-table { font-size: 12px; }
+  .wb-table th { font-size: 11px; }
+  table.wb-episodes, table.wb-episodes tbody, table.wb-episodes tr, table.wb-episodes td { display: block; width: 100%; }
+  table.wb-episodes thead { display: none; }
+  table.wb-episodes tr { border: 1px solid var(--line); margin-bottom: 0.5rem; padding: 0.25rem; }
+  table.wb-episodes td { border: none; padding: 0.15rem 0.3rem 0.15rem 8.5rem; position: relative; min-height: 1.3em; }
+  table.wb-episodes td::before { content: attr(data-label); position: absolute; left: 0.3rem; top: 0.15rem; font-size: 10px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--muted); }
+  table.wb-episodes td:last-child { padding-left: 0.3rem; }
+  .wb-timeline-svg { min-width: 0; }
+  .wb-scroll { border: none; }
+  .wb-timeline-scroll .wb-timeline-svg { width: 640px; }
+}
 "#;
 
 // ── Templates ───────────────────────────────────────────────────────
@@ -2751,6 +2835,7 @@ pub fn load_event_workbench(
     conn: &rusqlite::Connection,
     event_id: &str,
     catalog_root: &std::path::Path,
+    query: &crate::catalog::web::handlers::WorkbenchQuery,
 ) -> Result<Option<WorkbenchView>, String> {
     let event = db::get_event_by_external(conn, "local-repository", event_id)?.or(
         db::get_event_by_external(conn, "grnoc-public-task-viewer", event_id)?,
@@ -2774,7 +2859,9 @@ pub fn load_event_workbench(
     let mut vm = vm;
     vm.subject_kind = event.source_kind.clone();
     vm.lifecycle = event_lifecycle(conn, event.id)?;
-    vm.expectation_assessment = latest_expectation(conn, event.id)?.unwrap_or_default();
+    // The expectation assessment comes from the first completed run's
+    // assessment (model); the manifest target label is a title, not an
+    // assessment, and is never rendered here (Session 37, Part 1.1).
     let title = latest_title(conn, event.id)?;
     if !title.is_empty() {
         vm.title = title;
@@ -2790,7 +2877,7 @@ pub fn load_event_workbench(
             }
         }
     }
-    Ok(Some(WorkbenchView::from_vm(vm)))
+    Ok(Some(WorkbenchView::from_vm(vm, query)))
 }
 
 /// Case-study workbench: linked runs through the same shared model.
@@ -2798,6 +2885,7 @@ pub fn load_case_study_workbench(
     conn: &rusqlite::Connection,
     slug: &str,
     catalog_root: &std::path::Path,
+    query: &crate::catalog::web::handlers::WorkbenchQuery,
 ) -> Result<Option<WorkbenchView>, String> {
     let Some(cs) = crate::catalog::archive_plan::find_case_study(conn, slug) else {
         return Ok(None);
@@ -2822,8 +2910,9 @@ pub fn load_case_study_workbench(
         "Open"
     }
     .to_string();
-    vm.expectation_assessment = cs.summary.clone();
-    Ok(Some(WorkbenchView::from_vm(vm)))
+    // No incident-wide expectation assessment exists for a case study;
+    // the model already states this (Session 37, Part 1.1).
+    Ok(Some(WorkbenchView::from_vm(vm, query)))
 }
 
 fn event_lifecycle(conn: &rusqlite::Connection, event_id: i64) -> Result<String, String> {
@@ -2855,17 +2944,60 @@ fn latest_title(conn: &rusqlite::Connection, event_id: i64) -> Result<String, St
 pub struct WorkbenchView {
     pub vm: crate::catalog::workbench::IncidentWorkbenchViewModel,
     pub episodes: Vec<WorkbenchEpisodeRow>,
+    /// No-change rows, rendered collapsed but discoverable (Part 6).
+    pub unchanged_episodes: Vec<WorkbenchEpisodeRow>,
     pub breadth: Vec<WorkbenchBreadthRow>,
     pub timeline: Vec<WorkbenchTimelineRow>,
+    pub timeline_svg: String,
     pub anchors: Vec<WorkbenchAnchorRow>,
     pub coverage: Vec<WorkbenchCoverageRow>,
     pub cues: Vec<crate::catalog::workbench::InvestigationCue>,
+    pub grouped_cues: Vec<crate::catalog::workbench::GroupedCue>,
     pub runs: Vec<crate::catalog::workbench::WorkbenchRunView>,
+    /// Denominator line: "10 eligible observer sessions: 8 changed,
+    /// 2 unchanged, 1 no qualifying baseline."
+    pub denominator: String,
+    /// Active filter state (for filter links and title).
+    pub filters: WorkbenchFilters,
     /// Per-request performance measurement (Part 13). All timings are
     /// wall-clock; the model is deterministic regardless of timing.
     pub timing: WorkbenchTiming,
-    /// Render all episode detail rows open (?expand=1).
-    pub expanded: bool,
+    /// Focus mode: timeline (episode table collapsed).
+    pub timeline_focus: bool,
+}
+
+/// Active workbench filter state (Part 6). Filter values are plain
+/// strings so the template can compare them with literals.
+#[derive(Debug, Clone, Default, Serialize)]
+pub struct WorkbenchFilters {
+    pub changed: bool,
+    pub region: String,
+    pub rel: String,
+    pub kind: String,
+    /// Render every episode detail open (?expand=1).
+    pub expand_all: bool,
+    /// Opened episode index (server-rendered drill-down, Part 8).
+    pub episode: Option<usize>,
+    pub prefixes: Option<usize>,
+}
+
+impl WorkbenchFilters {
+    fn from_query(q: &crate::catalog::web::handlers::WorkbenchQuery) -> Self {
+        WorkbenchFilters {
+            changed: q.changed,
+            region: q.region.clone().unwrap_or_default(),
+            rel: q.rel.clone().unwrap_or_default(),
+            kind: q.kind.clone().unwrap_or_default(),
+            episode: q.episode,
+            prefixes: q.prefixes,
+            expand_all: false,
+        }
+    }
+
+    /// Whether a filter (other than drill-down) is active.
+    pub fn active(&self) -> bool {
+        self.changed || !self.region.is_empty() || !self.rel.is_empty() || !self.kind.is_empty()
+    }
 }
 
 /// Performance measurement for one workbench request.
@@ -2884,24 +3016,52 @@ pub struct WorkbenchTiming {
 }
 
 impl WorkbenchView {
-    fn from_vm(vm: crate::catalog::workbench::IncidentWorkbenchViewModel) -> Self {
+    fn from_vm(
+        vm: crate::catalog::workbench::IncidentWorkbenchViewModel,
+        filters: &crate::catalog::web::handlers::WorkbenchQuery,
+    ) -> Self {
         let start = std::time::Instant::now();
-        let episodes = episode_rows(&vm);
+        let mut f = WorkbenchFilters::from_query(filters);
+        f.expand_all = filters.expand;
+        let (episodes, unchanged, denominator) = episode_rows(&vm, &f);
         let breadth = breadth_rows(&vm);
         let timeline = timeline_rows(&vm);
+        let timeline_svg =
+            crate::catalog::workbench::render_timeline_svg(&vm.timeline, &vm.operator_anchors);
         let anchors = anchor_rows(&vm);
         let coverage = coverage_rows(&vm);
         let cues = vm.cues.clone();
-        let runs = vm.runs.clone();
+        let grouped_cues = vm.grouped_cues.clone();
+        // Run history is a secondary provenance section, but timestamps
+        // still render timezone-explicit (Part 4).
+        let runs: Vec<crate::catalog::workbench::WorkbenchRunView> = vm
+            .runs
+            .iter()
+            .map(|r| {
+                let mut r = r.clone();
+                if !r.completed_at.is_empty() {
+                    r.completed_at = crate::catalog::workbench::workbench_time(
+                        &r.completed_at,
+                        &vm.window_start,
+                    );
+                }
+                r
+            })
+            .collect();
         let render_time_ms = start.elapsed().as_secs_f64() * 1000.0;
         WorkbenchView {
             episodes,
+            unchanged_episodes: unchanged,
             breadth,
             timeline,
+            timeline_svg,
             anchors,
             coverage,
             cues,
+            grouped_cues,
             runs,
+            denominator,
+            filters: f,
             timing: WorkbenchTiming {
                 sql_query_count: 0,
                 db_time_ms: 0.0,
@@ -2909,7 +3069,7 @@ impl WorkbenchView {
                 render_time_ms,
                 response_size_bytes: 0,
             },
-            expanded: false,
+            timeline_focus: filters.view.as_deref() == Some("timeline"),
             vm,
         }
     }
@@ -2926,14 +3086,12 @@ pub fn load_run_workbench_slice(
     let registry = crate::catalog::netprofile::CollectorLocationRegistry::default();
     let streams: Vec<crate::catalog::domain::StreamLifecycleSummary> = evidence.streams;
     let transitions: Vec<crate::catalog::domain::RunTransitionRecord> = evidence.transitions;
-    let waves: Vec<crate::catalog::domain::SemanticWaveSummary> = evidence.waves;
     let peers = std::collections::BTreeMap::new();
     let mut eps = crate::catalog::workbench::build_episodes(
         run_id,
         "",
         &streams,
         &transitions,
-        &waves,
         &registry,
         &peers,
         "no reviewed plane",
@@ -2959,7 +3117,6 @@ pub fn load_run_breadth_slice(
         "",
         &evidence.streams,
         &evidence.transitions,
-        &evidence.waves,
         &registry,
         &peers,
         "no reviewed plane",
@@ -2968,133 +3125,430 @@ pub fn load_run_breadth_slice(
     Ok(Some(serde_json::to_value(breadth).unwrap_or_default()))
 }
 
-/// Pre-rendered episode row for the workbench template (no Option fields;
-/// askama renders plain strings only — all presentation logic lives in
-/// the shared view model, never in the template).
+/// Pre-rendered episode row for the workbench template (Part 6).
+///
+/// All presentation logic (human labels, HH:MM:SS times, combined
+/// PEER+VIEW cell, grouped signatures) lives here — the template only
+/// places strings. Exact timestamps and raw labels remain available for
+/// the expanded drill-down.
 #[derive(Serialize)]
 pub struct WorkbenchEpisodeRow {
-    pub first_change: String,
+    pub first: String,
     pub region: String,
-    pub site: String,
-    pub peer_asn: String,
-    pub peer_role: String,
+    pub observer: String,
+    pub peer_view: String,
+    pub change: String,
+    pub streams: String,
+    pub prefixes: String,
+    pub restored: String,
+    pub end_state: String,
+    pub end_state_class: String,
+    pub changed: bool,
+    pub session: String,
+    pub sentence: String,
+    pub family: String,
     pub relationship: String,
     pub plane: String,
-    pub changed_streams: String,
-    pub prefixes: String,
-    pub signature: String,
-    pub restoration: String,
-    pub status: String,
-    pub sentence: String,
-    pub session: String,
+    pub baseline_plane_state: String,
+    pub changed_plane_state: String,
+    pub first_exact: String,
+    pub last_exact: String,
+    pub restoration_exact: String,
     pub baseline_streams: String,
     pub route_instances: String,
     pub unresolved: String,
-    pub stream_count: String,
-    pub streams: Vec<WorkbenchStreamRow>,
+    pub signatures: Vec<WorkbenchSignatureRow>,
+    pub evidence_refs: String,
+    pub expanded: bool,
+    pub prefixes_open: bool,
+    pub stream_rows: Vec<WorkbenchStreamRow>,
+}
+
+/// One grouped prefix signature (category → human label + prefixes).
+#[derive(Serialize)]
+pub struct WorkbenchSignatureRow {
+    pub category: String,
+    pub human: String,
+    pub count: usize,
+    pub prefixes: String,
 }
 
 #[derive(Serialize)]
 pub struct WorkbenchStreamRow {
     pub prefix: String,
-    pub category: String,
-    pub withdrawn: String,
-    pub restored: String,
-    pub baseline_instances: String,
-    pub transitions: String,
-    pub ambiguous: String,
+    pub baseline: String,
+    pub change: String,
+    pub first: String,
+    pub restoration: String,
+    pub end_state: String,
+    pub evidence: String,
 }
 
-/// Convert shared-model episodes into pre-rendered template rows.
+/// Convert shared-model episodes into pre-rendered template rows,
+/// applying the active filters (Part 6). Returns the rows and the
+/// denominator line. Changed episodes sort first (model already orders
+/// them); unchanged/no-baseline rows are discoverable below.
 fn episode_rows(
     vm: &crate::catalog::workbench::IncidentWorkbenchViewModel,
-) -> Vec<WorkbenchEpisodeRow> {
-    vm.episodes
+    f: &WorkbenchFilters,
+) -> (Vec<WorkbenchEpisodeRow>, Vec<WorkbenchEpisodeRow>, String) {
+    let _window = &vm.window_start;
+    let all: Vec<WorkbenchEpisodeRow> = vm
+        .episodes
         .iter()
-        .map(|e| {
-            let restoration =
-                if e.effect_kind == crate::catalog::workbench::EffectKind::NoRouteStateChange {
-                    "—".to_string()
-                } else {
-                    match (&e.restoration_start, &e.restoration_end) {
-                        (Some(a), Some(b)) if a != b => format!("{a} → {b}"),
-                        (Some(a), _) => a.clone(),
-                        _ => "unresolved".to_string(),
-                    }
-                };
-            WorkbenchEpisodeRow {
-                first_change: e.first_change.clone().unwrap_or_default(),
-                region: e.observer_region.clone(),
-                site: e.observer_site.clone(),
-                peer_asn: e
-                    .peer_asn
-                    .map(|a| format!("AS{a}"))
-                    .unwrap_or_else(|| "unreviewed".to_string()),
-                peer_role: e.peer_role.clone(),
-                relationship: e.relationship.label().to_string(),
-                plane: e.named_path_plane.clone(),
-                changed_streams: e.changed_stream_count.to_string(),
-                prefixes: e.distinct_prefix_count.to_string(),
-                signature: e.effect_kind.label().to_string(),
-                restoration,
-                status: e.coverage_status.label().to_string(),
-                sentence: e.representative_evidence.clone(),
-                session: e.observer_session.clone(),
-                baseline_streams: e.baseline_stream_count.to_string(),
-                route_instances: e.route_instance_count.to_string(),
-                unresolved: e.unresolved_count.to_string(),
-                stream_count: e.streams.len().to_string(),
-                streams: e
-                    .streams
-                    .iter()
-                    .map(|s| WorkbenchStreamRow {
-                        prefix: s.prefix.clone(),
-                        category: s.category.clone(),
-                        withdrawn: s.withdrawn.to_string(),
-                        restored: s.restored.to_string(),
-                        baseline_instances: s.baseline_instances.to_string(),
-                        transitions: s.transition_count.to_string(),
-                        ambiguous: s.add_path_ambiguous.to_string(),
-                    })
-                    .collect(),
-            }
-        })
-        .collect()
+        .enumerate()
+        .filter(|(_, e)| matches_episode_filter(e, f))
+        .map(|(idx, e)| episode_row(vm, e, idx, f))
+        .collect();
+    let total_changed = vm
+        .episodes
+        .iter()
+        .filter(|e| e.effect_kind != crate::catalog::workbench::EffectKind::NoRouteStateChange)
+        .count();
+    let total_unchanged = vm
+        .episodes
+        .iter()
+        .filter(|e| e.effect_kind == crate::catalog::workbench::EffectKind::NoRouteStateChange)
+        .count();
+    let no_baseline = vm.no_baseline_sessions.len();
+    let incomplete = vm.incomplete_sessions.len();
+    let eligible = total_changed + total_unchanged;
+    let mut denominator = format!(
+        "{eligible} eligible observer session{}: {total_changed} changed, {total_unchanged} unchanged",
+        if eligible == 1 { "" } else { "s" }
+    );
+    if no_baseline > 0 {
+        denominator.push_str(&format!(
+            ", {no_baseline} no qualifying baseline{}",
+            if no_baseline == 1 { "" } else { "s" }
+        ));
+    }
+    if incomplete > 0 {
+        denominator.push_str(&format!(", {incomplete} incomplete coverage"));
+    }
+    denominator.push('.');
+    // Split changed and unchanged lists. The unchanged rows stay
+    // discoverable (collapsed section) and their denominator remains
+    // visible on the page (Part 6).
+    let (mut changed_rows, mut unchanged_rows): (Vec<_>, Vec<_>) =
+        all.into_iter().partition(|r| r.changed);
+    if f.changed {
+        unchanged_rows.clear();
+    }
+    if !f.kind.is_empty() {
+        if f.kind == "unchanged" {
+            changed_rows.clear();
+        } else {
+            unchanged_rows.clear();
+        }
+    }
+    (changed_rows, unchanged_rows, denominator)
 }
 
-/// Pre-rendered breadth row for the template.
+fn matches_episode_filter(
+    e: &crate::catalog::workbench::ObserverEpisode,
+    f: &WorkbenchFilters,
+) -> bool {
+    if !f.kind.is_empty() && effect_slug(&e.effect_kind) != f.kind {
+        return false;
+    }
+    if f.changed && e.effect_kind == crate::catalog::workbench::EffectKind::NoRouteStateChange {
+        return false;
+    }
+    if !f.region.is_empty() && e.observer_region != f.region {
+        return false;
+    }
+    if !f.rel.is_empty() && e.relationship.label().to_lowercase() != f.rel {
+        return false;
+    }
+    true
+}
+
+/// Human slug for effect-kind filters.
+fn effect_slug(kind: &crate::catalog::workbench::EffectKind) -> &'static str {
+    use crate::catalog::workbench::EffectKind as K;
+    match kind {
+        K::TemporaryStreamAbsence => "absent",
+        K::RouteWithdrawal => "withdrawn",
+        K::PathReplacement => "path",
+        K::NamedPlaneDeparture | K::NamedPlaneReturn => "plane",
+        K::PrependChange => "prepend",
+        K::MixedRouteChange => "mixed",
+        K::NoRouteStateChange => "unchanged",
+    }
+}
+
+fn episode_row(
+    vm: &crate::catalog::workbench::IncidentWorkbenchViewModel,
+    e: &crate::catalog::workbench::ObserverEpisode,
+    idx: usize,
+    f: &WorkbenchFilters,
+) -> WorkbenchEpisodeRow {
+    use crate::catalog::workbench::{EffectKind as K, EndState as ES};
+    let window = &vm.window_start;
+    let changed = e.effect_kind != K::NoRouteStateChange;
+    let collector =
+        crate::catalog::workbench::collector_from_session(&e.observer_session).to_string();
+    let observer = if e.observer_site == collector {
+        collector.clone()
+    } else {
+        format!("{collector} · {}", e.observer_site)
+    };
+    let relationship = e.relationship.label().to_lowercase();
+    let peer = match e.peer_asn {
+        Some(asn) => format!("AS{asn}"),
+        None => "peer ASN not in reviewed evidence".to_string(),
+    };
+    let peer_view = format!("{peer} · {relationship} {}", e.named_path_plane);
+    let restored = if changed {
+        match (&e.restoration_start, &e.restoration_end) {
+            (Some(a), Some(b)) if a != b => {
+                format!("{}–{}", wb_time(a, window), wb_time(b, window))
+            }
+            (Some(a), _) => wb_time(a, window),
+            _ => "—".to_string(),
+        }
+    } else {
+        "—".to_string()
+    };
+    let (end_state, end_state_class) = match e.end_state {
+        ES::BaselineRestored => ("Baseline restored".to_string(), "wb-end-restored"),
+        ES::VisibilityRestored => (
+            "Visibility restored on changed path".to_string(),
+            "wb-end-restored",
+        ),
+        ES::StillChangedAtWindowEnd => {
+            ("Still changed at window end".to_string(), "wb-end-changed")
+        }
+        ES::AbsentAtWindowEnd => ("Absent at window end".to_string(), "wb-end-changed"),
+        ES::NoRouteStateChange => ("No route-state change".to_string(), "wb-end-plain"),
+        ES::Unresolved => ("Unresolved".to_string(), "wb-end-unresolved"),
+    };
+
+    // Baseline and changed path-plane state for the expanded view.
+    let baseline_plane_state = format!(
+        "{} baseline stream{} via {}",
+        e.baseline_stream_count,
+        if e.baseline_stream_count == 1 {
+            ""
+        } else {
+            "s"
+        },
+        e.named_path_plane
+    );
+    let mut changed_parts: Vec<String> = Vec::new();
+    let mut by_cat: std::collections::BTreeMap<&str, usize> = std::collections::BTreeMap::new();
+    for s in &e.streams {
+        *by_cat.entry(s.category.as_str()).or_default() += 1;
+    }
+    for (cat, count) in &by_cat {
+        changed_parts.push(format!(
+            "{count} {}",
+            stream_category_human(cat, &e.named_path_plane)
+        ));
+    }
+    let changed_plane_state = if changed_parts.is_empty() {
+        "no route-state change".to_string()
+    } else {
+        changed_parts.join("; ")
+    };
+
+    // Grouped prefix signatures (category → prefix list).
+    let mut signatures: Vec<WorkbenchSignatureRow> = Vec::new();
+    for (cat, count) in &by_cat {
+        let prefixes: Vec<&str> = e
+            .streams
+            .iter()
+            .filter(|s| s.category == *cat)
+            .map(|s| s.prefix.as_str())
+            .collect();
+        signatures.push(WorkbenchSignatureRow {
+            category: cat.to_string(),
+            human: stream_category_human(cat, &e.named_path_plane),
+            count: *count,
+            prefixes: prefixes.join(", "),
+        });
+    }
+
+    // Representative evidence references (unique, bounded).
+    let mut refs: Vec<String> = Vec::new();
+    for s in &e.streams {
+        if let Ok(v) = serde_json::from_str::<serde_json::Value>(&s.evidence_refs) {
+            if let Some(items) = v.as_array() {
+                for it in items {
+                    if let Some(r) = it.as_str() {
+                        if !refs.contains(&r.to_string()) && refs.len() < 6 {
+                            refs.push(r.to_string());
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    let streams: Vec<WorkbenchStreamRow> = e
+        .streams
+        .iter()
+        .map(|s| {
+            let first = s
+                .first_change_utc
+                .as_ref()
+                .map(|t| wb_time(t, window))
+                .unwrap_or_else(|| "—".to_string());
+            let restoration = s
+                .restoration_time_utc
+                .as_ref()
+                .map(|t| wb_time(t, window))
+                .unwrap_or_else(|| "—".to_string());
+            let end_state = stream_end_state_human(s);
+            WorkbenchStreamRow {
+                prefix: s.prefix.clone(),
+                baseline: format!("via {}", e.named_path_plane),
+                change: stream_category_human(&s.category, &e.named_path_plane),
+                first,
+                restoration,
+                end_state,
+                evidence: if s.evidence_refs.is_empty() || s.evidence_refs == "[]" {
+                    "—".to_string()
+                } else {
+                    s.evidence_refs.clone()
+                },
+            }
+        })
+        .collect();
+
+    WorkbenchEpisodeRow {
+        first: e
+            .first_change
+            .as_ref()
+            .map(|t| wb_time(t, window))
+            .unwrap_or_else(|| "—".to_string()),
+        region: e.observer_region.clone(),
+        observer,
+        peer_view,
+        change: e.effect_kind.human_label().to_string(),
+        streams: e.changed_stream_count.to_string(),
+        prefixes: e.distinct_prefix_count.to_string(),
+        restored,
+        end_state,
+        end_state_class: end_state_class.to_string(),
+        changed,
+        session: e.observer_session.clone(),
+        sentence: e.representative_evidence.clone(),
+        family: crate::catalog::workbench::family_from_session(&e.observer_session).to_string(),
+        relationship,
+        plane: e.named_path_plane.clone(),
+        baseline_plane_state,
+        changed_plane_state,
+        first_exact: e.first_change.clone().unwrap_or_default(),
+        last_exact: e.last_change.clone().unwrap_or_default(),
+        restoration_exact: e
+            .restoration_end
+            .clone()
+            .or_else(|| e.restoration_start.clone())
+            .unwrap_or_default(),
+        baseline_streams: e.baseline_stream_count.to_string(),
+        route_instances: e.route_instance_count.to_string(),
+        unresolved: e.unresolved_count.to_string(),
+        signatures,
+        evidence_refs: refs.join(", "),
+        // The prefix drill-down is nested inside the episode details,
+        // so opening prefixes opens the parent episode too; ?expand=1
+        // opens every episode (Session 36 harness compatibility).
+        expanded: f.episode == Some(idx) || f.prefixes == Some(idx) || f.expand_all,
+        prefixes_open: f.prefixes == Some(idx),
+        stream_rows: streams,
+    }
+}
+
+/// Human label for one stream category (Part 1.8 / 8).
+fn stream_category_human(category: &str, plane: &str) -> String {
+    match category {
+        "Withdrawn" => "withdrawn (absent)".to_string(),
+        "DepartedTransitPath" => format!("departed the {plane} path"),
+        "PathChangedStillViaTransit" => format!("path changed via {plane}"),
+        "PrependOnly" => "AS-path prepending changed".to_string(),
+        "ReturnedToTransitPath" => format!("returned to the {plane} path"),
+        "Unchanged" => "no change".to_string(),
+        other => other.to_string(),
+    }
+}
+
+/// Per-stream end state at the analysis-window end (Part 8).
+fn stream_end_state_human(s: &crate::catalog::workbench::EpisodeStream) -> String {
+    if s.withdrawn && !s.restored {
+        return "Absent at window end".to_string();
+    }
+    if s.withdrawn && s.restored {
+        return "Visibility restored".to_string();
+    }
+    if s.restoration_time_utc.is_some() {
+        return "Baseline restored".to_string();
+    }
+    if s.category != "Unchanged" {
+        return "Still changed at window end".to_string();
+    }
+    "No change".to_string()
+}
+
+/// Display-time renderer (Part 4): HH:MM:SS UTC for same-day rows.
+fn wb_time(ts: &str, window_start: &str) -> String {
+    crate::catalog::workbench::workbench_time(ts, window_start)
+}
+
+/// Pre-rendered breadth row for the template (Part 5): a glanceable
+/// matrix — combined CHANGED/ELIGIBLE and STREAMS/BASELINE cells.
 #[derive(Serialize)]
 pub struct WorkbenchBreadthRow {
     pub region: String,
-    pub eligible: String,
-    pub changed: String,
-    pub unchanged: String,
-    pub no_baseline: String,
-    pub incomplete: String,
-    pub changed_streams: String,
-    pub baseline_streams: String,
-    pub changed_prefixes: String,
+    pub changed_eligible: String,
+    pub streams_baseline: String,
+    pub prefixes: String,
     pub first_change: String,
     pub last_restoration: String,
+    pub gaps: String,
+    pub changed_class: String,
 }
 
 fn breadth_rows(
     vm: &crate::catalog::workbench::IncidentWorkbenchViewModel,
 ) -> Vec<WorkbenchBreadthRow> {
+    let window = &vm.window_start;
     vm.breadth
         .iter()
-        .map(|b| WorkbenchBreadthRow {
-            region: b.region.clone(),
-            eligible: b.eligible_observer_sessions.to_string(),
-            changed: b.changed_observer_sessions.to_string(),
-            unchanged: b.unchanged_observer_sessions.to_string(),
-            no_baseline: b.sessions_without_baseline_visibility.to_string(),
-            incomplete: b.sessions_with_incomplete_coverage.to_string(),
-            changed_streams: b.changed_streams.to_string(),
-            baseline_streams: b.baseline_streams.to_string(),
-            changed_prefixes: b.changed_prefixes.to_string(),
-            first_change: b.first_change.clone().unwrap_or_default(),
-            last_restoration: b.last_restoration.clone().unwrap_or_default(),
+        .map(|b| {
+            let changed = b.changed_observer_sessions > 0;
+            let eligible = b.eligible_observer_sessions > 0;
+            let changed_class = if changed {
+                "wb-breadth-changed"
+            } else if eligible {
+                "wb-breadth-unchanged"
+            } else {
+                "wb-breadth-none"
+            };
+            WorkbenchBreadthRow {
+                region: b.region.clone(),
+                changed_eligible: format!(
+                    "{}/{}",
+                    b.changed_observer_sessions, b.eligible_observer_sessions
+                ),
+                streams_baseline: format!("{}/{}", b.changed_streams, b.baseline_streams),
+                prefixes: b.changed_prefixes.to_string(),
+                first_change: b
+                    .first_change
+                    .as_ref()
+                    .map(|t| wb_time(t, window))
+                    .unwrap_or_else(|| "—".to_string()),
+                last_restoration: b
+                    .last_restoration
+                    .as_ref()
+                    .map(|t| wb_time(t, window))
+                    .unwrap_or_else(|| "—".to_string()),
+                gaps: (b.sessions_without_baseline_visibility
+                    + b.sessions_with_incomplete_coverage)
+                    .to_string(),
+                changed_class: changed_class.to_string(),
+            }
         })
         .collect()
 }
@@ -3115,31 +3569,42 @@ pub struct WorkbenchTimelineRow {
 fn timeline_rows(
     vm: &crate::catalog::workbench::IncidentWorkbenchViewModel,
 ) -> Vec<WorkbenchTimelineRow> {
+    let window = &vm.window_start;
     vm.timeline
         .iter()
         .map(|l| WorkbenchTimelineRow {
             session: l.observer_session.clone(),
             region: l.region.clone(),
-            window: format!("{} → {}", l.window_start, l.window_end),
+            window: format!(
+                "{} – {}",
+                wb_time(&l.window_start, window),
+                wb_time(&l.window_end, window)
+            ),
             first_change: l
                 .first_route_change
                 .as_ref()
-                .map(|m| m.timestamp_utc.clone())
-                .unwrap_or_default(),
+                .map(|m| wb_time(&m.timestamp_utc, window))
+                .unwrap_or_else(|| "—".to_string()),
             absence: l
                 .absence_interval
                 .as_ref()
-                .map(|(a, b)| format!("{a} → {b}"))
+                .map(|(a, b)| format!("{} – {}", wb_time(a, window), wb_time(b, window)))
                 .unwrap_or_else(|| "—".to_string()),
             path_change: l
                 .path_change_interval
                 .as_ref()
-                .map(|(a, b)| format!("{a} → {b}"))
+                .map(|(a, b)| format!("{} – {}", wb_time(a, window), wb_time(b, window)))
                 .unwrap_or_else(|| "—".to_string()),
             restoration: l
                 .restoration_interval
                 .as_ref()
-                .map(|(a, b)| format!("{a} → {b}"))
+                .map(|(a, b)| {
+                    if a == b {
+                        wb_time(a, window)
+                    } else {
+                        format!("{} – {}", wb_time(a, window), wb_time(b, window))
+                    }
+                })
                 .unwrap_or_else(|| "—".to_string()),
             end_state: if l.unresolved_end_state {
                 "unresolved".to_string()

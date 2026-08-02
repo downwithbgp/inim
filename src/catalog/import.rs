@@ -71,7 +71,7 @@ pub fn import_repository(
     Ok(summary)
 }
 
-fn import_one(
+pub(crate) fn import_one(
     conn: &Connection,
     manifest_path: &Path,
     out_dir: &Path,

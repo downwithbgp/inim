@@ -1261,3 +1261,835 @@ async fn workbench_result_is_deterministic() {
     let (_, b) = get(&app, "/events/INC0299001/workbench").await;
     assert_eq!(a, b, "workbench HTML must be byte-identical across GETs");
 }
+
+// ── Session 37: workbench semantic invariants (Parts 1, 2, 4, 6, 8, 11) ──
+//
+// Token discipline: src/ must stay free of the reviewed plane ASN
+// literals and the lowercase `internet2` token. Where a test must match
+// a runtime label containing such data, the expected string is read
+// from the reviewed data files rather than written as a literal.
+
+/// Read a string field from a reviewed pilot data file (runtime data).
+fn pilot_data_string(file: &str, field: &str) -> String {
+    let raw = std::fs::read_to_string(format!("case-studies/manlan-2019/pilot/{file}"))
+        .unwrap_or_else(|e| panic!("read {file}: {e}"));
+    let v: serde_json::Value = serde_json::from_str(&raw).unwrap_or_default();
+    v.get(field)
+        .and_then(|x| x.as_str())
+        .unwrap_or("")
+        .to_string()
+}
+
+async fn manlan_workbench() -> (StatusCode, String) {
+    manlan_workbench_q("").await
+}
+
+async fn manlan_workbench_q(query: &str) -> (StatusCode, String) {
+    if !repo_artifacts_available() {
+        return (StatusCode::OK, String::new());
+    }
+    let (dbdir, rootdir) = setup_catalog();
+    // Import the reviewed case study, its four RE-plane pilot runs, and
+    // link them (the repository import does not carry case-study data).
+    {
+        let conn = db::open_catalog(&dbdir.path().join("catalog.sqlite")).unwrap();
+        let summary = crate::catalog::case_study_import::import_case_study(
+            &conn,
+            std::path::Path::new("case-studies/manlan-2019"),
+        )
+        .unwrap();
+        let mut import_summary = crate::catalog::import::ImportSummary::default();
+        for collector in ["RRC00", "RRC06", "RRC15", "RV2"] {
+            // The pilot manifest file names carry the case-study slug in
+            // data; discover them by suffix so no incident literal
+            // enters src/.
+            let suffix = format!("-NORDUNET-PILOT-RE-{collector}.json");
+            let manifests_dir =
+                std::fs::read_dir("case-studies/manlan-2019/pilot/manifests").unwrap();
+            let manifest = manifests_dir
+                .filter_map(|e| e.ok().map(|e| e.path()))
+                .find(|p| {
+                    p.file_name()
+                        .and_then(|n| n.to_str())
+                        .map(|n| n.ends_with(&suffix))
+                        .unwrap_or(false)
+                })
+                .expect("pilot manifest present");
+            // import_one joins out_dir with the manifest event id, so
+            // the out_dir is the pilot out/ parent.
+            let out_dir = "case-studies/manlan-2019/pilot/out";
+            crate::catalog::import::import_one(
+                &conn,
+                &manifest,
+                std::path::Path::new(out_dir),
+                "0.1.0",
+                None,
+                &mut import_summary,
+            )
+            .unwrap();
+        }
+        // Link the imported pilot runs (they are the runs whose plans
+        // were just created; ids are assigned in import order).
+        let pilot_run_ids: Vec<i64> = conn
+            .prepare("SELECT id FROM analysis_runs ORDER BY id")
+            .unwrap()
+            .query_map([], |r| r.get::<_, i64>(0))
+            .unwrap()
+            .filter_map(|r| r.ok())
+            .filter(|id| *id > 2)
+            .collect();
+        for run_id in pilot_run_ids {
+            crate::catalog::store::insert_case_study_analysis_link(
+                &conn,
+                &crate::catalog::domain::CaseStudyAnalysisLink {
+                    id: 0,
+                    case_study_id: summary.case_study_id,
+                    run_id,
+                    role: "PilotObservation".to_string(),
+                    reviewed_note: None,
+                },
+            )
+            .unwrap();
+        }
+    }
+    let app = build_app(state_from(&dbdir, &rootdir));
+    let uri = if query.is_empty() {
+        "/case-studies/manlan-2019/workbench".to_string()
+    } else {
+        format!("/case-studies/manlan-2019/workbench?{query}")
+    };
+    get(&app, &uri).await
+}
+
+async fn event_workbench(event_id: &str) -> (StatusCode, String) {
+    if !repo_artifacts_available() {
+        return (StatusCode::OK, String::new());
+    }
+    let (dbdir, rootdir) = setup_catalog();
+    let app = build_app(state_from(&dbdir, &rootdir));
+    get(&app, &format!("/events/{event_id}/workbench")).await
+}
+
+#[tokio::test]
+async fn changed_episode_cannot_have_no_change_result() {
+    let (status, body) = manlan_workbench().await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    // Every changed episode row carries an effect-specific result;
+    // "NoChange" never appears as an episode status.
+    assert!(!body.contains(">NoChange<"), "raw NoChange status leaked");
+    assert!(body.contains("AS path changed"), "effect-specific result");
+    assert!(
+        body.contains("Temporarily absent"),
+        "effect-specific result"
+    );
+    // No changed row may render the no-change result (the no-change rows
+    // live in the collapsed section and legitimately show it).
+    for chunk in body.split("wb-episode-row wb-changed").skip(1) {
+        let row = chunk.split("wb-episode-row").next().unwrap_or("");
+        assert!(
+            !row.contains("No route-state change"),
+            "changed row must not render the no-change result"
+        );
+    }
+}
+
+#[tokio::test]
+async fn temporary_absence_with_restoration_has_restored_end_state() {
+    let (status, body) = manlan_workbench().await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    assert!(
+        body.contains("Visibility restored on changed path"),
+        "withdrawn+restored episode must show the restored end state"
+    );
+    assert!(
+        body.contains("16:45:27 UTC"),
+        "restoration time rendered as HH:MM:SS UTC"
+    );
+}
+
+#[tokio::test]
+async fn case_study_pilot_has_no_incident_wide_verdict() {
+    let (status, body) = manlan_workbench().await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    assert!(
+        body.contains("No complete MAN LAN incident-wide BGP assessment has been performed."),
+        "case-study header must state there is no incident-wide verdict"
+    );
+    assert!(
+        body.contains("This is a single-target historical pilot"),
+        "scope limit present"
+    );
+}
+
+#[tokio::test]
+async fn expectation_assessment_uses_assessment_not_title() {
+    let (status, body) = event_workbench("INC0302574").await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    assert!(
+        body.contains(
+            "Expectation assessment</dt><dd>Consistent with the redundant-attachment expectation."
+        ),
+        "assessment text from the run assessment renders in the assessment field"
+    );
+    assert!(
+        !body.contains("Expectation assessment</dt><dd>RIPE via NYIIX"),
+        "target label must not render as the expectation assessment"
+    );
+    let (_, uva) = event_workbench("INC0299001").await;
+    assert!(
+        uva.contains(
+            "Partially consistent with the participant-relationship-unavailable expectation."
+        ),
+        "UVA assessment from the run assessment"
+    );
+    assert!(
+        !uva.contains("Expectation assessment</dt><dd>UVA via Internet2"),
+        "target label not expectation"
+    );
+}
+
+#[tokio::test]
+async fn pilot_window_is_distinct_from_incident_horizon() {
+    let (status, body) = manlan_workbench().await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    assert!(body.contains("Operator incident horizon"), "horizon label");
+    assert!(body.contains("Displayed BGP pilot"), "pilot label");
+    assert!(
+        body.contains("2019-08-21T04:00:00Z"),
+        "incident horizon start 04:00"
+    );
+    assert!(
+        body.contains("2019-08-21T22:38:00Z"),
+        "incident horizon end 22:38"
+    );
+    assert!(
+        body.contains("2019-08-21T16:00:00Z"),
+        "pilot window start 16:00"
+    );
+    assert!(
+        body.contains("2019-08-21T17:30:00Z"),
+        "pilot window end 17:30"
+    );
+}
+
+#[tokio::test]
+async fn region_key_is_valid() {
+    let (status, body) = manlan_workbench().await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    // Every region cell rendered is one of the four canonical keys; the
+    // RRC11 coverage session is AMER, never a collector id as a region.
+    let regions: Vec<&str> = body
+        .split("wb-region\">")
+        .skip(1)
+        .map(|s| s.split('<').next().unwrap_or(""))
+        .collect();
+    assert!(!regions.is_empty(), "region cells present");
+    for r in &regions {
+        assert!(
+            matches!(*r, "AMER" | "EMEA" | "APAC" | "Unknown"),
+            "invalid region key rendered: {r}"
+        );
+    }
+    assert!(
+        body.contains("wb-region\">AMER<"),
+        "the RRC11 coverage session renders under AMER"
+    );
+    assert!(
+        !body.contains(">rrc11<"),
+        "collector id must not render as a region key"
+    );
+    assert!(
+        body.contains("No qualifying baseline"),
+        "coverage status human label for the RRC11 session"
+    );
+}
+
+#[tokio::test]
+async fn observed_peer_asn_is_never_rendered_as_unreviewed() {
+    let (status, body) = manlan_workbench().await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    // Reviewed pilot sessions render the observed ASN as AS<n>.
+    assert!(body.contains("AS1916"), "observed peer ASN rendered");
+    assert!(
+        !body.to_lowercase().contains("peer asn: unreviewed"),
+        "an observed ASN is never labeled unreviewed"
+    );
+    // Events without reviewed peer evidence say the ASN is not in
+    // reviewed evidence — a fact about evidence, not a review verdict.
+    let (_, ripe) = event_workbench("INC0302574").await;
+    assert!(
+        ripe.contains("peer ASN not in reviewed evidence"),
+        "absence of peer ASN evidence rendered honestly"
+    );
+    assert!(!ripe.contains("ASN: unreviewed"));
+}
+
+#[tokio::test]
+async fn primary_ui_contains_no_raw_predicate_json() {
+    for (subject, is_case) in [
+        ("/case-studies/manlan-2019/workbench", true),
+        ("/events/INC0302574/workbench", false),
+        ("/events/INC0299001/workbench", false),
+    ] {
+        let (status, body) = if is_case {
+            manlan_workbench().await
+        } else if subject.contains("INC0302574") {
+            event_workbench("INC0302574").await
+        } else {
+            event_workbench("INC0299001").await
+        };
+        if body.is_empty() {
+            continue;
+        }
+        assert_eq!(status, StatusCode::OK, "{subject}");
+        assert!(
+            !body.contains("reviewed transit"),
+            "raw predicate fallback leaked on {subject}"
+        );
+        assert!(
+            !body.contains("ContainsAny"),
+            "serialized predicate JSON leaked on {subject}"
+        );
+        assert!(
+            !body.contains("{\""),
+            "JSON object leaked into the primary UI on {subject}"
+        );
+    }
+}
+
+#[tokio::test]
+async fn primary_ui_contains_no_raw_internal_enum_labels() {
+    let (status, body) = manlan_workbench().await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    for raw in [
+        "NoRouteStateChange",
+        "PathReplacement",
+        "TemporaryStreamAbsence",
+        "NoBaselineVisibility",
+        "IncompleteCoverage",
+        "PrependChange",
+    ] {
+        assert!(
+            !body.contains(&format!(">{raw}<")),
+            "raw enum label rendered in the primary UI: {raw}"
+        );
+    }
+    assert!(body.contains("AS path changed"));
+    assert!(body.contains("No route-state change"));
+    assert!(body.contains("Temporarily absent"));
+}
+
+#[tokio::test]
+async fn first_screen_contains_observed_result() {
+    let (status, body) = manlan_workbench().await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    assert!(body.contains("Observed result"));
+    assert!(
+        body.contains("Route-state changes appeared at"),
+        "generated observed-result sentence"
+    );
+    assert!(body.contains("baseline streams changed"), "stream totals");
+}
+
+#[tokio::test]
+async fn first_screen_contains_observer_denominator() {
+    let (status, body) = manlan_workbench().await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    assert!(
+        body.contains("of 10 eligible observer sessions"),
+        "denominator always visible on the first screen"
+    );
+    assert!(
+        body.contains("1 additional session had no qualifying baseline."),
+        "no-baseline session counted separately"
+    );
+}
+
+#[tokio::test]
+async fn case_study_first_screen_contains_scope_limit() {
+    let (status, body) = manlan_workbench().await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    assert!(body.contains("Scope limit:"));
+    assert!(
+        body.contains("not a complete MAN LAN incident assessment"),
+        "single-target pilot scope stated on the first screen"
+    );
+}
+
+#[tokio::test]
+async fn first_screen_does_not_contain_long_source_narrative() {
+    let (status, body) = manlan_workbench().await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    assert!(
+        !body.contains("Operator-authored after-action report"),
+        "long operator narrative must not be in the first summary block"
+    );
+    assert!(
+        !body.contains("traffic-replication incident associated"),
+        "AAR narrative must not be the observed result"
+    );
+}
+
+#[tokio::test]
+async fn same_day_workbench_time_uses_hms() {
+    let (status, body) = manlan_workbench().await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    assert!(body.contains("16:35:38 UTC"), "HH:MM:SS UTC rendering");
+    // The primary episode-table cells render HH:MM:SS UTC (the exact
+    // timestamps legitimately remain inside the closed detail blocks).
+    assert!(
+        body.contains("data-label=\"First\">16:35:38 UTC<"),
+        "primary first-change cell uses HH:MM:SS"
+    );
+    assert!(
+        body.contains("data-label=\"Restored\">16:45:27 UTC<"),
+        "primary restored cell uses HH:MM:SS"
+    );
+}
+
+#[tokio::test]
+async fn cross_day_time_includes_date() {
+    // Model-level cross-day rendering is covered by workbench unit
+    // tests; here the same-day rule holds for the RIPE page.
+    let (status, body) = event_workbench("INC0302574").await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    assert!(body.contains("UTC"), "timezone explicit");
+}
+
+#[tokio::test]
+async fn exact_timestamp_remains_in_details() {
+    let (status, body) = manlan_workbench_q("episode=3").await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    assert!(
+        body.contains("2019-08-21T16:45:25"),
+        "exact timestamp in expanded evidence details"
+    );
+    assert!(
+        body.contains("wb-mono\">2019-08-21T16:45:25+00:00"),
+        "exact timestamps retained in the details block"
+    );
+}
+
+#[tokio::test]
+async fn timezone_is_always_explicit() {
+    let (status, body) = manlan_workbench().await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    // Every timestamp-looking cell (contains a clock colon) carries
+    // "UTC"; prefixes and ASNs are not timestamps and are skipped.
+    let cells: Vec<&str> = body
+        .split("wb-mono wb-nowrap\">")
+        .skip(1)
+        .map(|s| s.split('<').next().unwrap_or(""))
+        .filter(|s| s.contains(':') && !s.contains('/'))
+        .collect();
+    assert!(!cells.is_empty(), "timestamp cells present");
+    for c in cells {
+        assert!(c.contains("UTC"), "timestamp without explicit zone: {c}");
+    }
+}
+
+#[tokio::test]
+async fn changed_rows_sort_before_unchanged_rows() {
+    let (status, body) = manlan_workbench().await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    // The first episode row is the earliest changed row.
+    let first = body.find("16:35:38 UTC").expect("first change present");
+    let collapse = body.find("No-change sessions").unwrap_or(usize::MAX);
+    assert!(
+        first < collapse,
+        "changed rows must precede the unchanged collapse"
+    );
+    // Changed rows are time-ordered: 16:35:38 before 16:45:25.
+    assert!(body.find("16:35:38 UTC").unwrap() < body.find("16:45:25 UTC").unwrap());
+}
+
+#[tokio::test]
+async fn observer_and_site_are_rendered_together() {
+    let (status, body) = manlan_workbench().await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    assert!(
+        body.contains("rrc15 · Sao Paulo, Brazil"),
+        "collector and site in one cell"
+    );
+    assert!(
+        body.contains("route-views2 · Eugene, Oregon, US"),
+        "collector and site for RouteViews"
+    );
+}
+
+#[tokio::test]
+async fn peer_asn_and_relationship_are_rendered_together() {
+    let (status, body) = manlan_workbench().await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    assert!(
+        body.contains("AS1916 · indirect"),
+        "peer ASN and relationship in one readable cell"
+    );
+    // Direct relationship: the reviewed session audit (runtime data)
+    // contains a direct peer ASN for route-views2; its ASN must render
+    // together with the direct relationship marker.
+    let audit: serde_json::Value = serde_json::from_str(
+        &std::fs::read_to_string("case-studies/manlan-2019/pilot/session-audit-2019.json")
+            .unwrap_or_default(),
+    )
+    .unwrap_or_default();
+    // Direct relationship: peer ASN is a member of a reviewed plane's
+    // ASN set (network profile, runtime data).
+    let profile: serde_json::Value = serde_json::from_str(
+        &std::fs::read_to_string("case-studies/manlan-2019/pilot/network-profile.json")
+            .unwrap_or_default(),
+    )
+    .unwrap_or_default();
+    let plane_asns: Vec<u64> = profile
+        .get("service_planes")
+        .and_then(|p| p.as_array())
+        .unwrap_or(&vec![])
+        .iter()
+        .filter_map(|p| p.get("asns").and_then(|a| a.as_array()))
+        .flatten()
+        .filter_map(|a| a.as_u64())
+        .collect();
+    let direct_asn = audit
+        .as_array()
+        .and_then(|rows| {
+            rows.iter().find(|r| {
+                r.get("collector").and_then(|c| c.as_str()) == Some("route-views2")
+                    && r.get("peer_asn")
+                        .and_then(|a| a.as_u64())
+                        .map(|a| plane_asns.contains(&a))
+                        .unwrap_or(false)
+            })
+        })
+        .and_then(|r| r.get("peer_asn").and_then(|a| a.as_u64()))
+        .unwrap_or(0);
+    if direct_asn > 0 {
+        assert!(
+            body.contains(&format!("AS{direct_asn} · direct")),
+            "direct peer ASN {direct_asn} rendered with its relationship"
+        );
+    }
+}
+
+#[tokio::test]
+async fn changed_row_has_effect_specific_result() {
+    let (status, body) = manlan_workbench().await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    let changed_rows: Vec<&str> = body
+        .split("wb-episode-row wb-changed")
+        .skip(1)
+        .map(|s| s.split("wb-episode-row").next().unwrap_or(""))
+        .collect();
+    assert!(!changed_rows.is_empty(), "changed rows present");
+    for row in changed_rows {
+        assert!(
+            !row.contains("No route-state change"),
+            "changed row must have an effect-specific result"
+        );
+    }
+}
+
+#[tokio::test]
+async fn end_state_matches_lifecycle() {
+    let (status, body) = manlan_workbench().await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    assert!(
+        body.contains("Visibility restored on changed path"),
+        "absence episode end state from lifecycle restoration"
+    );
+    assert!(
+        body.contains("Still changed at window end"),
+        "unrestored episodes end changed at window end"
+    );
+}
+
+#[tokio::test]
+async fn no_change_rows_remain_discoverable() {
+    let (status, body) = manlan_workbench().await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    assert!(
+        body.contains("No-change sessions (2)"),
+        "unchanged rows collapsed but discoverable with visible count"
+    );
+    assert!(
+        body.contains("10 eligible observer sessions"),
+        "denominator"
+    );
+}
+
+#[tokio::test]
+async fn expanded_episode_contains_episode_specific_marker() {
+    let (status, body) = manlan_workbench_q("episode=3").await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    assert!(
+        body.contains("<details class=\"wb-episode-details\" open"),
+        "the requested episode detail is open"
+    );
+    assert!(
+        body.contains("become absent"),
+        "episode-specific sentence present in the expanded state"
+    );
+    assert!(
+        body.contains("RouteViews/route-views2 peer"),
+        "exact collector and peer identity in the expanded state"
+    );
+}
+
+#[tokio::test]
+async fn prefix_drilldown_contains_prefix_rows() {
+    let (status, body) = manlan_workbench_q("prefixes=3").await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    assert!(
+        body.contains("<details class=\"wb-prefix-drilldown\" open"),
+        "prefix drill-down table open"
+    );
+    assert!(
+        body.contains("109.105.112.0/21"),
+        "prefix rows rendered in the drill-down"
+    );
+    assert!(body.contains("Baseline path"), "drill-down column header");
+}
+
+#[tokio::test]
+async fn timeline_capture_contains_timeline_marker() {
+    let (status, body) = manlan_workbench_q("view=timeline").await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    assert!(
+        body.contains("wb-timeline-svg"),
+        "the timeline capture contains the lane-timeline marker"
+    );
+    assert!(body.contains("tl-lane"), "observer lanes present");
+}
+
+#[tokio::test]
+async fn ordinary_workbench_does_not_contain_expanded_content() {
+    let (status, body) = manlan_workbench().await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    assert!(
+        !body.contains("<details class=\"wb-episode-details\" open"),
+        "no episode expanded in the ordinary workbench"
+    );
+    assert!(
+        !body.contains("<details class=\"wb-prefix-drilldown\" open"),
+        "no prefix drill-down open in the ordinary workbench"
+    );
+}
+
+#[tokio::test]
+async fn drilldown_uses_no_raw_mrt_parse() {
+    // The drill-down is served from catalog state; no MRT/archive parse
+    // pipeline runs. The request completes with a normal page and the
+    // drill-down content, and no parse error marker appears.
+    let (status, body) = manlan_workbench_q("prefixes=3").await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    assert!(body.contains("Prefix drill-down"));
+    assert!(!body.contains("cannot parse"), "no parse error surfaced");
+    assert!(!body.contains("archive fetch failed"), "no archive read");
+}
+
+#[tokio::test]
+async fn expand_one_opens_every_episode() {
+    // Session 36 harness compatibility: ?expand=1 renders every episode
+    // detail open, deterministically.
+    let (status, body) = manlan_workbench_q("expand=1").await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    let opened = body
+        .matches("<details class=\"wb-episode-details\" open")
+        .count();
+    let total = body
+        .matches("<details class=\"wb-episode-details\"")
+        .count();
+    assert!(total > 0, "episode details present");
+    assert_eq!(
+        opened, total,
+        "?expand=1 must open every episode detail ({opened}/{total})"
+    );
+}
+
+#[tokio::test]
+async fn combined_filters_apply_all_dimensions() {
+    // ?changed=1&region=AMER keeps only changed AMER rows; ?rel=indirect
+    // further narrows to indirect sessions.
+    let (status, body) = manlan_workbench_q("changed=1&region=AMER&rel=indirect").await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    let changed_rows = body.matches("wb-episode-row wb-changed").count();
+    assert!(changed_rows >= 1, "changed AMER indirect rows present");
+    // The direct route-views2 absence episode is excluded by rel=indirect.
+    assert!(
+        !body.contains("Temporarily absent"),
+        "direct-only episode must not survive the indirect filter"
+    );
+    // Region filter excludes APAC rows.
+    assert!(
+        !body.contains("Otemachi, Tokyo, Japan"),
+        "APAC rows must not survive the AMER filter"
+    );
+}
+
+#[tokio::test]
+async fn case_study_does_not_render_blank_ticket_fields() {
+    let (status, body) = manlan_workbench().await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    assert!(
+        body.contains("Not applicable — multi-ticket case study"),
+        "source task type states non-applicability, not blank"
+    );
+    assert!(
+        body.contains("Multi-ticket operator incident"),
+        "reviewed incident role rendered"
+    );
+    // Linked source tickets are runtime data (case-study.json
+    // related_events); the first identifier must be displayed.
+    let cs: serde_json::Value = serde_json::from_str(
+        &std::fs::read_to_string("case-studies/manlan-2019/case-study.json").unwrap_or_default(),
+    )
+    .unwrap_or_default();
+    let first_ticket = cs
+        .get("related_events")
+        .and_then(|r| r.as_array())
+        .and_then(|r| r.first())
+        .and_then(|t| t.get("external_identifier"))
+        .and_then(|t| t.as_str())
+        .unwrap_or("");
+    assert!(!first_ticket.is_empty());
+    assert!(
+        body.contains(first_ticket),
+        "linked source tickets displayed: {first_ticket}"
+    );
+}
+
+#[tokio::test]
+async fn not_applicable_is_distinct_from_not_reviewed() {
+    let (status, body) = manlan_workbench().await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    assert!(
+        !body.contains("not reviewed"),
+        "N/A concepts are never rendered as 'not reviewed'"
+    );
+}
+
+#[tokio::test]
+async fn case_study_header_names_selected_pilot() {
+    let (status, body) = manlan_workbench().await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    // The pilot label is runtime data (pilot-result.json target); read
+    // it from the reviewed file to avoid a token literal in src/.
+    let target = pilot_data_string("pilot-result.json", "target");
+    assert!(!target.is_empty());
+    assert!(
+        body.contains(&target),
+        "header must name the selected pilot: {target}"
+    );
+}
+
+#[tokio::test]
+async fn case_study_header_states_no_incident_wide_verdict() {
+    let (status, body) = manlan_workbench().await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    assert!(
+        body.contains("No complete MAN LAN incident-wide BGP assessment has been performed."),
+        "no incident-wide verdict statement"
+    );
+    assert!(
+        body.contains("No incident-wide expectation assessment exists"),
+        "no incident-wide expectation assessment"
+    );
+}
