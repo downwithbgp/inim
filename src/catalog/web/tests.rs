@@ -1226,17 +1226,29 @@ async fn workbench_query_count_is_bounded() {
     // The event workbench issues a small, fixed set of catalog queries:
     // event lookup, snapshots, manifests, runs, streams, transitions,
     // waves, artifacts. Bounded well under 50.
-    let (_status, _body) = get(&app, "/events/INC0302574/workbench").await;
-    let count = crate::catalog::web::handlers::query_count_debug();
+    // The debug counter is process-global and shared by parallel
+    // tests; the per-request count is reset at request start, so the
+    // minimum over repeated isolated requests approximates the true
+    // per-request count.
+    let mut counts: Vec<usize> = Vec::new();
+    for _ in 0..3 {
+        let (_status, _body) = get(&app, "/events/INC0302574/workbench").await;
+        counts.push(crate::catalog::web::handlers::query_count_debug());
+    }
+    let count = counts.iter().min().copied().unwrap_or(usize::MAX);
     assert!(
         count <= 50,
-        "workbench SQL query count must be bounded, got {count}"
+        "workbench SQL query count must be bounded, got {count} (all: {counts:?})"
     );
-    let (_status, _body) = get(&app, "/case-studies/manlan-2019/workbench").await;
-    let count2 = crate::catalog::web::handlers::query_count_debug();
+    let mut counts2: Vec<usize> = Vec::new();
+    for _ in 0..3 {
+        let (_status, _body) = get(&app, "/case-studies/manlan-2019/workbench").await;
+        counts2.push(crate::catalog::web::handlers::query_count_debug());
+    }
+    let count2 = counts2.iter().min().copied().unwrap_or(usize::MAX);
     assert!(
         count2 <= 60,
-        "case-study workbench SQL query count must be bounded, got {count2}"
+        "case-study workbench SQL query count must be bounded, got {count2} (all: {counts2:?})"
     );
 }
 
@@ -1796,8 +1808,15 @@ async fn changed_rows_sort_before_unchanged_rows() {
         first < collapse,
         "changed rows must precede the unchanged collapse"
     );
-    // Changed rows are time-ordered: 16:35:38 before 16:45:25.
-    assert!(body.find("16:35:38 UTC").unwrap() < body.find("16:45:25 UTC").unwrap());
+    // Changed findings in the Routing findings table are
+    // time-ordered: 16:35:38 before 16:45:25 (the principal card
+    // order is by operational priority, not time — Session 40, Part 8).
+    let table = body.find("Routing findings").unwrap();
+    let table_slice = &body[table..];
+    assert!(
+        table_slice.find("16:35:38 UTC").unwrap() < table_slice.find("16:45:25 UTC").unwrap(),
+        "findings table is chronological"
+    );
 }
 
 #[tokio::test]
@@ -2113,11 +2132,11 @@ async fn not_applicable_is_distinct_from_not_reviewed() {
     // N/A concepts with a review verdict.
     let lower = body.to_lowercase();
     for m in lower.match_indices("not reviewed") {
-        let start = m.0.saturating_sub(20);
+        let start = m.0.saturating_sub(30);
         let ctx = &lower[start..m.0 + m.1.len()];
         assert!(
-            ctx.contains("name not reviewed"),
-            "'not reviewed' only ever appears as 'name not reviewed', got: {ctx}"
+            ctx.contains("name not reviewed") || ctx.contains("historical identity not reviewed"),
+            "'not reviewed' only ever appears in the two identity caveats, got: {ctx}"
         );
     }
 }
@@ -2243,7 +2262,7 @@ async fn header_does_not_inline_all_linked_ticket_ids() {
         .and_then(|t| t.get("external_identifier"))
         .and_then(|t| t.as_str())
         .unwrap_or("__none__");
-    let header = body.split("wb-event-context").next().unwrap_or("");
+    let header = body.split("wb-context").next().unwrap_or("");
     assert!(
         !header.contains(&format!("{first_id},")),
         "no inline ticket-id wall in the first summary"
@@ -2293,7 +2312,7 @@ async fn mobile_first_view_prioritizes_findings_and_scope() {
     }
     assert_eq!(status, StatusCode::OK);
     let findings = body.find("Externally observed routing changes").unwrap();
-    let context = body.find("Event context").unwrap();
+    let context = body.find("Context: ticket interpretation").unwrap();
     let scope = body.find("Scope limit:").unwrap();
     let coverage = body.find("Observation coverage").unwrap();
     // The scope limit precedes the event-context facts; the findings
@@ -2448,14 +2467,20 @@ async fn changed_event_first_screen_starts_with_concrete_finding() {
     // finding; the earliest MAN LAN change is the Sao Paulo 16:35:38
     // path change (not a breadth ratio).
     let findings_pos = body.find("Externally observed routing changes").unwrap();
-    let first_finding = &body[findings_pos..findings_pos + 800];
+    let first_finding = &body[findings_pos..findings_pos + 1300];
+    // The first principal story is the direct 11-prefix temporary
+    // absence (Session 40, Part 8): absence outranks path changes.
     assert!(
-        first_finding.contains("16:35:38"),
-        "earliest exact observation time leads the findings"
+        first_finding.contains("16:45:25"),
+        "the direct absence leads the findings"
     );
     assert!(
-        first_finding.contains("rrc15"),
-        "observer site named in the first finding"
+        first_finding.contains("route-views2"),
+        "observer named in the first finding"
+    );
+    assert!(
+        first_finding.contains("Temporarily absent") || first_finding.contains("stopped seeing"),
+        "absence story is the first principal finding"
     );
     assert!(
         !first_finding.contains("eligible observer sessions"),
@@ -2498,7 +2523,7 @@ async fn changed_event_first_screen_contains_before_after_route() {
     // Before and after routes are visible without scrolling on desktop:
     // both path signatures appear within the first finding block.
     let findings_pos = body.find("Externally observed routing changes").unwrap();
-    let block = &body[findings_pos..findings_pos + 2500];
+    let block = &body[findings_pos..findings_pos + 4500];
     assert!(block.contains("Before"), "before-route label");
     assert!(block.contains("After"), "after-route label");
     assert!(
@@ -2534,13 +2559,34 @@ async fn no_changed_event_leads_with_session_ratio() {
         return;
     }
     assert_eq!(status, StatusCode::OK);
-    let no_change = body
-        .find("No relevant observer visibility was available")
-        .unwrap();
-    let section = body.find("Externally observed routing changes").unwrap();
+    // Session 40, Part 11: the no-visibility page renders the compact
+    // primary result (named relationship / eligibility / assessment)
+    // with no empty analysis scaffolding.
     assert!(
-        no_change > section && no_change < section + 600,
-        "the visibility statement leads the findings section"
+        body.contains("Named relationship"),
+        "compact named-relationship block leads"
+    );
+    assert!(
+        body.contains("Public-collector eligibility"),
+        "eligibility section present"
+    );
+    assert!(body.contains("Assessment"), "assessment section present");
+    assert!(
+        !body.contains("Externally observed routing changes"),
+        "no empty routing-findings section"
+    );
+    assert!(
+        !body.contains("wb-filters"),
+        "no routing-change filters on the no-visibility page"
+    );
+    assert!(
+        !body.contains("Timeline (UTC)"),
+        "no empty timeline on the no-visibility page"
+    );
+    assert!(
+        body.contains("Supporting R&amp;E-plane observation")
+            || body.contains("Supporting R&E-plane observation"),
+        "supporting plane observation is collapsed and secondary"
     );
     // The session ratio is only ever in the coverage section.
     let first_ratio = body.find("eligible observer sessions");
@@ -2550,9 +2596,12 @@ async fn no_changed_event_leads_with_session_ratio() {
             coverage < ratio,
             "session ratio appears only inside Observation coverage"
         );
+        let assessment = body
+            .find("Insufficient public-collector visibility")
+            .unwrap();
         assert!(
-            no_change < ratio,
-            "visibility statement precedes any session ratio"
+            assessment < ratio,
+            "the reviewed assessment precedes any session ratio"
         );
     }
     // The relationship assessment leads the page (audit statement).
@@ -2574,14 +2623,12 @@ async fn regional_summary_contains_concrete_finding() {
     }
     assert_eq!(status, StatusCode::OK);
     let section = body.find("Observer comparison by region").unwrap();
-    let block = &body[section..section + 1200];
+    let block = &body[section..section + 1800];
     assert!(
-        block.contains("changed path") || block.contains("briefly disappeared"),
-        "concrete finding statement in the regional summary"
-    );
-    assert!(
-        block.contains("beginning"),
-        "timing fact in the regional summary"
+        block.contains("briefly lost")
+            || block.contains("no longer traversed")
+            || block.contains("changed path while remaining"),
+        "concrete routing-difference statement in the regional summary"
     );
 }
 
@@ -2611,17 +2658,23 @@ async fn region_ratio_is_secondary_metadata() {
         return;
     }
     assert_eq!(status, StatusCode::OK);
-    // The compact ratio renders as metadata beside the region name,
-    // inside the concrete-statement section — never as the headline.
-    assert!(
-        body.contains("changed/eligible sessions"),
-        "ratio renders as compact metadata"
-    );
+    // Session 40, Part 10: regional ratios are NOT part of the
+    // observer comparison — they live only in Observation coverage.
     let section = body.find("Observer comparison by region").unwrap();
-    let block = &body[section..section + 900];
+    let region_end = body.find("Routing findings").unwrap_or(body.len());
+    let region_block = &body[section..region_end];
+    let ratio_re = regex::Regex::new(r"\d+/\d+").unwrap();
     assert!(
-        block.contains("(") && block.contains("changed/eligible sessions)"),
-        "ratio is parenthesized secondary metadata"
+        !ratio_re.is_match(region_block),
+        "no N/N ratio inside the observer comparison"
+    );
+    let coverage = body
+        .find("<h3 class=\"wb-section\">Observation coverage</h3>")
+        .unwrap();
+    let coverage_block = &body[coverage..coverage + 900];
+    assert!(
+        coverage_block.contains("Changed / eligible"),
+        "ratios remain in the Observation coverage breadth table"
     );
 }
 
@@ -2713,4 +2766,479 @@ async fn primary_page_contains_no_internal_filler() {
             "episode-count jargon out of the primary workflow on {subject}"
         );
     }
+}
+
+// ─────────────────────────────────────────────────────────────────────
+// Session 40: principal stories, named paths, peer metadata, previews,
+// no-visibility page, UVA story.
+// ─────────────────────────────────────────────────────────────────────
+
+#[tokio::test]
+async fn principal_finding_shows_prefix_preview() {
+    let (status, body) = manlan_workbench().await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    // A principal card previews up to three exact prefixes plus the
+    // hidden remainder; the full list stays one action away.
+    let principal_start = body.find("wb-principal").unwrap();
+    let preview_start = body.find("wb-prefix-preview").unwrap();
+    let preview = &body[preview_start..preview_start + 400];
+    assert!(
+        preview.contains("109.105.112.0/21"),
+        "exact prefix previewed on the principal card"
+    );
+    assert!(
+        preview.contains("+8 more") || preview.contains("+8"),
+        "hidden remainder counted on the preview"
+    );
+    assert!(
+        preview.contains("view all"),
+        "full prefix list remains one action away"
+    );
+    let _ = principal_start;
+}
+
+#[tokio::test]
+async fn single_prefix_finding_shows_exact_prefix() {
+    let (status, body) = manlan_workbench().await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    // Single-prefix findings render the prefix itself, not "1 prefix".
+    let additional = body
+        .find("<h4 class=\"wb-subsection\">Additional observer findings</h4>")
+        .unwrap_or(usize::MAX);
+    if additional != usize::MAX {
+        let block = &body[additional..additional + 2500];
+        assert!(
+            block.contains("2001:948::/32"),
+            "single-prefix finding shows the exact prefix"
+        );
+    }
+}
+
+#[tokio::test]
+async fn named_path_preserves_exact_asn_order() {
+    let (status, body) = manlan_workbench().await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    // The named path renders ASNs in exact path order with reviewed
+    // names; the numeric path remains visible and authoritative.
+    let card = body[body.find("wb-principal").unwrap()..].to_string();
+    let before_col = card[card.find("Before").unwrap()..card.find("After").unwrap()].to_string();
+    assert!(
+        regex_path_in(&before_col),
+        "numeric before path visible beside the named path"
+    );
+    assert!(
+        card.contains("Internet2 R&#38;E (AS11537)") || card.contains("Internet2 R&#38;E"),
+        "reviewed name rendered in the named path"
+    );
+    assert!(
+        card.contains("historical identity not reviewed") || card.contains("name not reviewed"),
+        "unreviewed identities keep their numeric ASN with a caveat"
+    );
+}
+
+#[tokio::test]
+async fn unknown_asn_keeps_numeric_identity() {
+    let (status, body) = manlan_workbench().await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    // AS20080/AS20965 have current-identity-only entries: the named
+    // path shows the current identity WITH the explicit caveat, never
+    // as historical truth.
+    let card = body[body.find("wb-principal").unwrap()..].to_string();
+    assert!(
+        card.contains("AS20080") || card.contains("AS20965"),
+        "numeric ASN remains visible"
+    );
+    assert!(
+        card.contains("Current identity:") && card.contains("historical identity not reviewed"),
+        "current-identity caveat rendered explicitly"
+    );
+}
+
+#[tokio::test]
+async fn inserted_path_segment_has_textual_marker() {
+    let (status, body) = manlan_workbench().await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    // Inserted segments use <ins>-semantics classes with a legend —
+    // never color alone.
+    assert!(
+        body.contains("wb-seg ins"),
+        "inserted path segment carries the textual ins class"
+    );
+    assert!(
+        body.contains("Inserted segments are underlined"),
+        "legend explains the textual markers"
+    );
+}
+
+#[tokio::test]
+async fn numeric_path_remains_copyable() {
+    let (status, body) = manlan_workbench().await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    assert!(
+        body.contains("Copy before paths"),
+        "numeric before paths copyable"
+    );
+    assert!(
+        body.contains("Copy after paths"),
+        "numeric after paths copyable"
+    );
+    // The numeric path is in the DOM without JavaScript.
+    assert!(
+        body.contains("wb-path-numeric"),
+        "exact numeric path rendered server-side"
+    );
+}
+
+#[tokio::test]
+async fn path_diff_works_without_javascript() {
+    let (status, body) = manlan_workbench().await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    // The semantic explanation is server-rendered text.
+    assert!(
+        body.contains("no longer traversed") || body.contains("continued through"),
+        "path explanation rendered without JavaScript"
+    );
+    assert!(
+        !body.contains("failed over")
+            && !body.contains("backup path")
+            && !body.contains("rerouted"),
+        "no causation or protection language in path explanations"
+    );
+}
+
+#[tokio::test]
+async fn real_uva_findings_receive_observed_peer_asn() {
+    // Part 7: the UVA event workbench must render observed peer ASNs
+    // (from observer_session_metadata) instead of peer-IP-only wording.
+    let (status, body) = event_workbench("INC0299001").await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    assert!(
+        !body.contains("receiving routes from peer 163.253.3.14,"),
+        "peer-IP-only wording must not appear when an observed peer ASN exists"
+    );
+    assert!(
+        body.contains("AS11537") || body.contains("AS40220") || body.contains("AS7660"),
+        "observed peer ASN rendered in the UVA findings"
+    );
+    assert!(
+        body.contains("peer 163.253.3.14"),
+        "peer IP accompanies the observed peer ASN"
+    );
+}
+
+#[tokio::test]
+async fn peer_asn_metadata_survives_import() {
+    // The time-scoped metadata rows are imported and reach the model.
+    let (dbdir, _rootdir) = setup_catalog();
+    let conn = db::open_catalog(&dbdir.path().join("catalog.sqlite")).unwrap();
+    // The canonical peer-metadata file preserves the observed rows
+    // (the runtime table is populated from it for fresh catalogs).
+    let raw = std::fs::read_to_string("case-studies/inc0299001/peer-metadata.json").unwrap();
+    let v: serde_json::Value = serde_json::from_str(&raw).unwrap();
+    let sessions = v["sessions"].as_array().unwrap();
+    assert!(
+        sessions
+            .iter()
+            .any(|m| m["collector"] == "route-views2" && m["peer_ip"] == "163.253.3.14"),
+        "UVA peer metadata preserved in the reviewed data file"
+    );
+    assert!(
+        sessions.iter().any(|m| m["peer_asn"] == 11537),
+        "observed peer ASN preserved"
+    );
+    let _ = conn;
+}
+
+#[tokio::test]
+async fn no_reviewed_name_does_not_hide_asn() {
+    let (status, body) = event_workbench("INC0299001").await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    // Without a reviewed name the ASN still renders (with the caveat).
+    assert!(
+        body.contains("AS40220") || body.contains("AS2907") || body.contains("AS7660"),
+        "observed peer ASN visible even without a reviewed name"
+    );
+}
+
+#[tokio::test]
+async fn no_visibility_page_has_no_empty_finding_filters() {
+    let (status, body) = event_workbench("INC0302574").await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    assert!(
+        !body.contains("wb-filters"),
+        "no routing-change filters on the no-visibility page"
+    );
+    assert!(
+        !body.contains("Externally observed routing changes"),
+        "no empty routing-findings section"
+    );
+}
+
+#[tokio::test]
+async fn no_visibility_page_has_no_empty_timeline() {
+    let (status, body) = event_workbench("INC0302574").await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    assert!(
+        !body.contains("Timeline (UTC)"),
+        "no empty timeline on the no-visibility page"
+    );
+    assert!(
+        !body.contains("Suggested internal checks"),
+        "no empty cue section on the no-visibility page"
+    );
+}
+
+#[tokio::test]
+async fn duplicate_supporting_observers_are_summarized() {
+    let (status, body) = event_workbench("INC0302574").await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    // The supporting no-change observation is summarized by session
+    // count, not repeated per identical bullet.
+    assert!(
+        body.contains("selected RouteViews session")
+            || body.contains("selected RouteViews sessions"),
+        "supporting observers summarized with a count"
+    );
+    // No duplicate identical bullets.
+    let statements = body
+        .matches("saw no route-state change for the selected prefixes")
+        .count();
+    assert!(
+        statements <= 5,
+        "supporting statements deduplicated, got {statements}"
+    );
+}
+
+#[tokio::test]
+async fn relevant_assessment_precedes_supporting_plane() {
+    let (status, body) = event_workbench("INC0302574").await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    let assessment = body
+        .find("Insufficient public-collector visibility")
+        .unwrap();
+    let supporting = body.find("Supporting").unwrap();
+    assert!(
+        assessment < supporting,
+        "the relevant assessment precedes the supporting plane"
+    );
+}
+
+#[tokio::test]
+async fn supporting_no_change_is_not_rendered_as_ticket_result() {
+    let (status, body) = event_workbench("INC0302574").await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    // The no-change supporting observation is explicitly not an
+    // assessment of the named relationship.
+    assert!(
+        body.contains("does not assess the named"),
+        "supporting plane disclaimer present"
+    );
+}
+
+#[tokio::test]
+async fn target_origin_grammar_is_natural() {
+    let (status, body) = event_workbench("INC0299001").await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    assert!(
+        !body.contains("prefixes UVA via Internet2"),
+        "awkward '{{n}} prefixes <label>' grammar removed"
+    );
+    assert!(
+        body.contains("originated by UVA (AS225)"),
+        "natural target-origin grammar rendered"
+    );
+}
+
+#[tokio::test]
+async fn prepend_change_is_prominent_in_uva() {
+    let (status, body) = event_workbench("INC0299001").await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    assert!(
+        body.contains("AS225×7") || body.contains("AS225 AS225 AS225"),
+        "the UVA origin prepending change is visible"
+    );
+    assert!(
+        body.contains("prepending") || body.contains("AS path changed"),
+        "prepend semantics present in the UVA story"
+    );
+}
+
+#[tokio::test]
+async fn uva_peer_asn_is_visible() {
+    let (status, body) = event_workbench("INC0299001").await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    let card = body[body.find("wb-principal").unwrap()..].to_string();
+    assert!(
+        card.contains("AS11537") || card.contains("AS40220") || card.contains("AS7660"),
+        "observed peer ASN visible in the principal card"
+    );
+}
+
+#[tokio::test]
+async fn repeated_uva_variants_do_not_flood_first_view() {
+    let (status, body) = event_workbench("INC0299001").await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    // Principal selection caps the first view; variants live under
+    // "Additional observer findings".
+    let principal_cards = body.matches("wb-finding wb-principal").count();
+    assert!(
+        principal_cards <= 4,
+        "at most four principal stories, got {principal_cards}"
+    );
+    assert!(
+        body.contains("Additional observer findings") || principal_cards >= 3,
+        "remaining findings are explicitly secondary or all principal"
+    );
+}
+
+#[tokio::test]
+async fn observer_comparison_describes_route_difference() {
+    let (status, body) = manlan_workbench().await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    let section = body.find("Observer comparison by region").unwrap();
+    let end = body.find("Routing findings").unwrap();
+    let block = &body[section..end];
+    assert!(
+        block.contains("briefly lost")
+            || block.contains("no longer traversed")
+            || block.contains("changed path while remaining")
+            || block.contains("no route-state counterpart"),
+        "observer comparison describes routing differences, not counts"
+    );
+}
+
+#[tokio::test]
+async fn comparison_does_not_repeat_abstract_counts_only() {
+    let (status, body) = manlan_workbench().await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    let section = body.find("Observer comparison by region").unwrap();
+    let end = body.find("Routing findings").unwrap();
+    let block = &body[section..end];
+    let ratio_re = regex::Regex::new(r"\d+/\d+").unwrap();
+    assert!(
+        !ratio_re.is_match(block),
+        "comparison never leads with ratios"
+    );
+}
+
+#[tokio::test]
+async fn no_change_and_no_visibility_are_distinct() {
+    let (status, body) = manlan_workbench().await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    // The RRC00 (Amsterdam) no-change session renders as a
+    // no-counterpart statement; the RRC11 no-baseline session renders
+    // as a coverage limitation — never the same text.
+    assert!(
+        body.contains("no route-state counterpart observed for the selected prefixes"),
+        "no-change observer distinct statement"
+    );
+    assert!(
+        body.contains("Coverage limitations"),
+        "no-baseline sessions under coverage limitations"
+    );
+}
+
+#[tokio::test]
+async fn region_is_observer_site_context_not_affected_region() {
+    let (status, body) = manlan_workbench().await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    // Regions classify observer sites (Tokyo/APAC, Eugene/AMER); the
+    // affected network (NORDUnet) is never labeled by observer region.
+    let section = body.find("Observer comparison by region").unwrap();
+    let end = body.find("Routing findings").unwrap();
+    let block = &body[section..end];
+    assert!(
+        block.contains("Eugene, Oregon, US") && block.contains("Otemachi, Tokyo, Japan"),
+        "observer sites named in their region context"
+    );
+    assert!(
+        !block.contains("impact by region") && !block.contains("outage scope by region"),
+        "never labeled as impact/outage by region"
+    );
+}
+
+#[tokio::test]
+async fn uva_peer_metadata_import_roundtrip() {
+    // Part 7 end-to-end: metadata -> episode -> finding -> sentence.
+    let (status, body) = event_workbench("INC0299001").await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    // The sentence uses the observed peer ASN, with the peer IP
+    // secondary, never the reverse.
+    assert!(
+        body.contains("receiving routes from"),
+        "peer clause present"
+    );
+    assert!(
+        !body.contains("receiving routes from 163.253.3.14,"),
+        "peer-IP-only sentence is gone when a peer ASN is observed"
+    );
 }

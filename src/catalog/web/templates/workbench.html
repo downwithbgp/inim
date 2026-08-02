@@ -3,13 +3,12 @@
 {% block content %}
 <h2 class="wb-title">Incident workbench — {{ vm.title }}</h2>
 <p class="muted wb-subtitle">{{ vm.subject_id }} · {{ vm.subject_kind }}{% if !vm.pilot_label.is_empty() %} · historical pilot {{ vm.pilot_label }}{% endif %}</p>
+{% if !compact_scope_line.is_empty() %}
+<p class="wb-scope-line">{{ compact_scope_line }}</p>
+{% endif %}
 
 <div class="wb-panel wb-header">
   <div class="wb-observed">
-    <h3>Displayed analysis scope</h3>
-    {% if !header_pilot_range.is_empty() %}
-    <p class="wb-pilot-range">{{ header_pilot_range }}</p>
-    {% endif %}
     {% if !vm.scope_limit.is_empty() %}
     <p class="wb-scope">Scope limit: {{ vm.scope_limit }}</p>
     {% endif %}
@@ -18,44 +17,44 @@
     <p class="muted wb-note">{{ vm.relationship_audit.as_ref().unwrap().supporting_note }}</p>
     {% endif %}
   </div>
-
-  <p class="wb-links">
-    <a href="{% if vm.subject_kind == "case-study" %}/case-studies/{{ vm.subject_id }}{% else %}/events/{{ vm.subject_id }}{% endif %}">Ticket interpretation</a>
-    · <a href="{% if vm.subject_kind == "case-study" %}/case-studies/{{ vm.subject_id }}{% else %}/events/{{ vm.subject_id }}{% endif %}">Source documents</a>
-    · <a href="/analyses/{% if !vm.runs.is_empty() %}{{ vm.runs[0].id }}{% else %}0{% endif %}">Analysis details</a>
-    · <a href="{% if vm.subject_kind == "case-study" %}/case-studies/{{ vm.subject_id }}{% else %}/events/{{ vm.subject_id }}{% endif %}">Provenance</a>
-  </p>
-
-  <details class="wb-event-context">
-    <summary>Event context</summary>
-    <dl class="wb-facts">
-      <div><dt>Source task type</dt><dd>{{ vm.source_task_type }}</dd></div>
-      <div><dt>Reviewed incident role</dt><dd>{{ vm.reviewed_incident_role }}</dd></div>
-      <div><dt>Lifecycle</dt><dd>{{ vm.lifecycle }}</dd></div>
-      {% if !vm.expectation_assessment.is_empty() %}
-      <div><dt>Expectation assessment</dt><dd>{{ vm.expectation_assessment }}</dd></div>
-      {% endif %}
-      {% if !vm.linked_tickets.is_empty() %}
-      <div><dt>Linked source tickets</dt><dd>{{ linked_ticket_count }}
-        <details class="wb-ticket-list"><summary>View tickets</summary>
-          <span class="wb-mono">{{ vm.linked_tickets | join(", ") }}</span>
-        </details>
-      </dd></div>
-      {% endif %}
-      {% if !header_incident_range.is_empty() %}
-      <div><dt>Operator incident</dt><dd class="wb-nowrap">{{ header_incident_range }}</dd></div>
-      {% endif %}
-      <div><dt>Displayed BGP pilot</dt><dd class="wb-nowrap">{{ header_pilot_range }}</dd></div>
-    </dl>
-  </details>
 </div>
 
 <!-- ================================================================
      PRIMARY: EXTERNALLY OBSERVED ROUTING CHANGES
-     Changed findings first, chronological, each with exact time,
-     observer site, peer ASN, prefix access, before/after routes, and
-     restoration/outcome. Breadth ratios never precede this section.
+     Principal routing stories first (Session 40, Part 8): a small set
+     of distinct operational stories selected for meaning, not the
+     cardinality of internal analysis records. Secondary findings
+     remain fully accessible under "Additional observer findings".
      ================================================================ -->
+{% if vm.relationship_audit.is_some() && findings.is_empty() %}
+<!-- No-relevant-visibility presentation (Session 40, Part 11):
+     compact primary result; no empty scaffolding. -->
+<div class="wb-novis">
+  <h3 class="wb-section">Named relationship</h3>
+  <p class="wb-novis-relationship">{{ vm.relationship_audit.as_ref().unwrap().relationship }}</p>
+  <h3 class="wb-section">Public-collector eligibility</h3>
+  {% if vm.relationship_audit.as_ref().unwrap().direct_sessions.is_empty() %}
+  <p class="muted">No direct sessions recorded in the reviewed audit.</p>
+  {% else %}
+  <ul class="flat wb-novis-eligibility">
+  {% for s in vm.relationship_audit.as_ref().unwrap().direct_sessions %}
+    <li>{{ s.collector }} ({{ s.address_family }}) had a direct AS{{ s.peer_asn }} session; {{ s.origin_route_count }} event-origin route{% if s.origin_route_count == 1 %}{% else %}s{% endif %} visible through it at baseline.</li>
+  {% endfor %}
+  </ul>
+  {% endif %}
+  <h3 class="wb-section">Assessment</h3>
+  <p class="wb-novis-assessment">{{ vm.relationship_audit.as_ref().unwrap().assessment }}</p>
+  <details class="wb-collapsed">
+    <summary>Supporting R&amp;E-plane observation ({{ no_change_statements.len() }})</summary>
+    <p class="wb-note">{{ no_change_statements.len() }} selected RouteViews session{% if no_change_statements.len() == 1 %}{% else %}s{% endif %} showed no route-state change. This does not assess the named I2PX relationship.</p>
+    <ul class="flat wb-nochange-statements">
+    {% for s in no_change_statements %}
+      <li>{{ s }}</li>
+    {% endfor %}
+    </ul>
+  </details>
+</div>
+{% else %}
 <h3 class="wb-section">Externally observed routing changes</h3>
 <p class="wb-filters">
   Filters:
@@ -83,7 +82,8 @@
 {% endif %}
 {% else %}
 {% for f in findings %}
-<div class="wb-finding" id="finding-{{ f.stable_id }}">
+{% if f.principal %}
+<div class="wb-finding{% if f.principal %} wb-principal{% endif %}" id="finding-{{ f.stable_id }}">
   <div class="wb-finding-head">
     <span class="wb-mono wb-nowrap">{{ f.time }}</span>
     <span class="wb-nowrap">{{ f.observer }}{% if !f.region.is_empty() %}, {{ f.region }}{% endif %}</span>
@@ -93,12 +93,37 @@
     <span class="wb-change">{{ f.change }}</span>
   </div>
   <p class="wb-finding-statement">{{ f.statement }}</p>
+  {% if !f.path_explanation.is_empty() %}
+  <p class="wb-path-explanation">{{ f.path_explanation }}</p>
+  {% endif %}
   <div class="wb-finding-paths">
-    <span class="wb-path-label">Before</span>
-    <span class="wb-mono wb-path">{{ f.before }}</span>
-    <span class="wb-path-label">After</span>
-    <span class="wb-mono wb-path">{{ f.after }}</span>
+    <div class="wb-path-col">
+      <span class="wb-path-label">Before</span>
+      <ol class="wb-named-path">
+      {% for seg in f.named_before %}
+        <li class="wb-seg {{ seg.mark }}"><span class="wb-seg-mark">{{ seg.asn }}</span>{{ seg.label }}</li>
+      {% endfor %}
+      </ol>
+      <span class="wb-mono wb-path-numeric">{{ f.numeric_before }}</span>
+    </div>
+    <div class="wb-path-col">
+      <span class="wb-path-label">After</span>
+      <ol class="wb-named-path">
+      {% for seg in f.named_after %}
+        <li class="wb-seg {{ seg.mark }}"><span class="wb-seg-mark">{{ seg.asn }}</span>{{ seg.label }}</li>
+      {% endfor %}
+      </ol>
+      <span class="wb-mono wb-path-numeric">{{ f.numeric_after }}</span>
+    </div>
   </div>
+  <p class="wb-path-legend muted wb-note">Inserted segments are underlined; removed segments are struck through. The exact numeric AS path is shown beneath each named path and remains authoritative.</p>
+  <p class="wb-prefix-preview">
+    {% if f.preview_prefixes.is_empty() %}{% else %}
+    <span class="wb-mono">{{ f.preview_prefixes | join(", ") }}</span>
+    {% if f.hidden_prefix_count > 0 %}<span class="muted">+{{ f.hidden_prefix_count }} more</span>{% endif %}
+    · <a href="#prefixes-{{ f.stable_id }}">view all {{ f.prefix_count }}</a>
+    {% endif %}
+  </p>
   <p class="wb-finding-outcome"><span class="wb-path-label">Outcome</span> {{ f.outcome }}</p>
   <details class="wb-prefix-drilldown" id="prefixes-{{ f.stable_id }}"{% if f.prefixes_open %} open{% endif %}>
     <summary>View prefixes ({{ f.exact_prefixes.len() }})</summary>
@@ -135,12 +160,89 @@
     {% endif %}
   </details>
 </div>
+{% endif %}
 {% endfor %}
+
+{% if !additional_findings.is_empty() %}
+<h4 class="wb-subsection">Additional observer findings</h4>
+{% for f in additional_findings %}
+<div class="wb-finding wb-secondary" id="finding-{{ f.stable_id }}">
+  <div class="wb-finding-head">
+    <span class="wb-mono wb-nowrap">{{ f.time }}</span>
+    <span class="wb-nowrap">{{ f.observer }}{% if !f.region.is_empty() %}, {{ f.region }}{% endif %}</span>
+    <span class="wb-nowrap wb-peer">{{ f.peer }}</span>
+    {% if !f.relationship.is_empty() %}<span class="muted wb-nowrap">{{ f.relationship }}</span>{% endif %}
+    <a class="wb-prefix-link" href="#prefixes-{{ f.stable_id }}">{{ f.prefixes }}</a>
+    <span class="wb-change">{{ f.change }}</span>
+  </div>
+  <p class="wb-finding-statement">{{ f.statement }}</p>
+  <details class="wb-prefix-drilldown" id="prefixes-{{ f.stable_id }}"{% if f.prefixes_open %} open{% endif %}>
+    <summary>View prefixes ({{ f.exact_prefixes.len() }})</summary>
+    <div class="wb-scroll">
+    <table class="wb-table wb-finding-prefixes">
+      <thead><tr>
+        <th>Prefix</th><th>Before path</th><th>After path</th><th>Final path</th>
+        <th>First change</th><th>Visibility restored</th><th>Baseline restored</th><th>Evidence</th>
+      </tr></thead>
+      <tbody>
+      {% for s in f.stream_rows %}
+      <tr>
+        <td class="wb-mono wb-nowrap">{{ s.prefix }}</td>
+        <td class="wb-nowrap">{{ s.baseline }}</td>
+        <td class="wb-nowrap">{{ s.after }}</td>
+        <td class="wb-nowrap">{{ s.final_path }}</td>
+        <td class="wb-mono wb-nowrap">{{ s.first }}</td>
+        <td class="wb-mono wb-nowrap">{{ s.vis_restored }}</td>
+        <td class="wb-mono wb-nowrap">{{ s.base_restored }}</td>
+        <td class="wb-mono wb-evidence">{{ s.evidence }}</td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+  </details>
+</div>
+{% endfor %}
+{% endif %}
+{% endif %}
 {% endif %}
 
 <!-- ================================================================
-     SECONDARY: OBSERVER COMPARISON BY REGION
-     Concrete per-site statements; compact ratios as metadata only.
+     CONTEXT (moved below the first findings for the mobile viewport,
+     Session 40, Part 13)
+     ================================================================ -->
+<details class="wb-context">
+  <summary>Context: ticket interpretation · source documents · analysis details · provenance</summary>
+  <p class="wb-links">
+    <a href="{% if vm.subject_kind == "case-study" %}/case-studies/{{ vm.subject_id }}{% else %}/events/{{ vm.subject_id }}{% endif %}">Ticket interpretation</a>
+    · <a href="{% if vm.subject_kind == "case-study" %}/case-studies/{{ vm.subject_id }}{% else %}/events/{{ vm.subject_id }}{% endif %}">Source documents</a>
+    · <a href="/analyses/{% if !vm.runs.is_empty() %}{{ vm.runs[0].id }}{% else %}0{% endif %}">Analysis details</a>
+    · <a href="{% if vm.subject_kind == "case-study" %}/case-studies/{{ vm.subject_id }}{% else %}/events/{{ vm.subject_id }}{% endif %}">Provenance</a>
+  </p>
+  <dl class="wb-facts">
+    <div><dt>Source task type</dt><dd>{{ vm.source_task_type }}</dd></div>
+    <div><dt>Reviewed incident role</dt><dd>{{ vm.reviewed_incident_role }}</dd></div>
+    <div><dt>Lifecycle</dt><dd>{{ vm.lifecycle }}</dd></div>
+    {% if !vm.expectation_assessment.is_empty() %}
+    <div><dt>Expectation assessment</dt><dd>{{ vm.expectation_assessment }}</dd></div>
+    {% endif %}
+    {% if !vm.linked_tickets.is_empty() %}
+    <div><dt>Linked source tickets</dt><dd>{{ linked_ticket_count }}
+      <details class="wb-ticket-list"><summary>View tickets</summary>
+        <span class="wb-mono">{{ vm.linked_tickets | join(", ") }}</span>
+      </details>
+    </dd></div>
+    {% endif %}
+    {% if !header_incident_range.is_empty() %}
+    <div><dt>Operator incident</dt><dd class="wb-nowrap">{{ header_incident_range }}</dd></div>
+    {% endif %}
+    <div><dt>Displayed BGP pilot</dt><dd class="wb-nowrap">{{ header_pilot_range }}</dd></div>
+  </dl>
+</details>
+
+<!-- ================================================================
+     SECONDARY: OBSERVER COMPARISON BY REGION (narrative; ratios live
+     in Observation coverage, Session 40, Part 10)
      ================================================================ -->
 <h3 class="wb-section">Observer comparison by region</h3>
 {% if region_comparison.is_empty() %}
@@ -148,7 +250,7 @@
 {% else %}
 {% for r in region_comparison %}
 <div class="wb-region">
-  <h4 class="wb-subsection">{{ r.region }}{% if r.ratio != "—" %} <span class="muted wb-region-ratio">({{ r.ratio }} changed/eligible sessions)</span>{% endif %}</h4>
+  <h4 class="wb-subsection">{{ r.region }}</h4>
   <ul class="flat wb-region-statements">
   {% for s in r.statements %}
     <li>{{ s }}</li>
@@ -179,7 +281,7 @@
   <th>Details</th>
 </tr></thead>
 <tbody>
-{% for f in findings %}
+{% for f in findings_table %}
 <tr class="wb-finding-row" id="row-{{ f.stable_id }}">
   <td class="wb-mono wb-nowrap" data-label="Time">{{ f.time }}</td>
   <td class="wb-nowrap" data-label="Observer / site">{{ f.observer }}{% if !f.region.is_empty() %}, {{ f.region }}{% endif %}</td>
@@ -214,8 +316,10 @@
 </div>
 {% endif %}
 
+{% if !no_visibility_page %}
 <!-- ================================================================
-     TIMELINE (secondary to the textual findings)
+     TIMELINE (secondary to the textual findings; hidden when there is
+     no relevant evidence, Session 40, Part 11)
      ================================================================ -->
 <h3 class="wb-section">Timeline (UTC)</h3>
 {% if timeline.is_empty() %}
@@ -263,6 +367,7 @@
 </li>
 {% endfor %}
 </ul>
+{% endif %}
 {% endif %}
 
 <!-- ================================================================
@@ -332,7 +437,7 @@
 </div>
 {% endif %}
 
-{% if !no_change_statements.is_empty() %}
+{% if !no_change_statements.is_empty() && findings.is_empty() == false %}
 <h4 class="wb-subsection">Other selected observers</h4>
 <ul class="flat wb-nochange-statements">
 {% for s in no_change_statements %}
@@ -468,24 +573,7 @@
             <div><dt>Path plane</dt><dd>{{ e.plane }}</dd></div>
             <div><dt>Baseline</dt><dd>{{ e.baseline_plane_state }}</dd></div>
             <div><dt>Changed</dt><dd>{{ e.changed_plane_state }}</dd></div>
-            <div><dt>First change</dt><dd class="wb-mono">{{ e.first_exact }}</dd></div>
-            <div><dt>Last change</dt><dd class="wb-mono">{{ e.last_exact }}</dd></div>
-            <div><dt>Restoration</dt><dd class="wb-mono">{{ e.restoration_exact }}</dd></div>
-            <div><dt>Baseline streams</dt><dd>{{ e.baseline_streams }}</dd></div>
-            <div><dt>Route instances</dt><dd>{{ e.route_instances }}</dd></div>
-            <div><dt>Unresolved</dt><dd>{{ e.unresolved }}</dd></div>
           </dl>
-          {% if !e.signatures.is_empty() %}
-          <h5 class="wb-subsection">Grouped prefix signatures</h5>
-          <ul class="flat">
-          {% for s in e.signatures %}
-            <li><span class="wb-mono">{{ s.count }}</span> {{ s.human }}: <span class="wb-mono">{{ s.prefixes }}</span></li>
-          {% endfor %}
-          </ul>
-          {% endif %}
-          {% if !e.evidence_refs.is_empty() %}
-          <p class="wb-note">Representative evidence: <span class="wb-mono">{{ e.evidence_refs }}</span></p>
-          {% endif %}
         </div>
       </details>
     </td>
@@ -502,7 +590,7 @@
    and works without JavaScript. */
 (function () {
   if (window.matchMedia && window.matchMedia('(max-width: 640px)').matches) {
-    var ctx = document.querySelector('.wb-event-context');
+    var ctx = document.querySelector('.wb-context');
     if (ctx) { ctx.removeAttribute('open'); }
   }
   /* copy buttons (progressive enhancement; payloads are data-attributes) */

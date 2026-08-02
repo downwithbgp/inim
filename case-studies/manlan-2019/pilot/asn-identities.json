@@ -5,76 +5,220 @@
   "provenance": "Reviewed analyst interpretation (Session 39). Names and roles are taken ONLY from the reviewed network profile (network-profile.json, Session 35) and the reviewed session audit (session-audit-2019.md, Session 34/35) for the 2019-08-21 pilot baseline. No ASN role or name is inferred from memory or from current registry data; identities without a reviewed label render as 'name not reviewed'.",
   "identities": [
     {
-      "asn": 11537,
-      "display_name": "Internet2 R&E",
-      "role": "research-education routing plane",
+      "asn": 174,
+      "display_name": "Cogent",
+      "role": "transit provider",
       "valid_from": "2019-08-21",
-      "valid_to": null,
-      "provenance": "network-profile.json service_planes (reviewed, Session 35)",
-      "review_status": "reviewed"
+      "valid_to": "2019-08-21",
+      "provenance": "RIPE stat as-overview (current holder, retrieved 2026-08-02); current identity only, historical identity not reviewed",
+      "review_status": "CurrentIdentityOnly"
     },
     {
-      "asn": 11164,
-      "display_name": "Internet2 Peer Exchange",
-      "role": "settlement-free/public peering plane",
+      "asn": 1251,
+      "display_name": "FAPESP",
+      "role": "research-education network",
       "valid_from": "2019-08-21",
-      "valid_to": null,
-      "provenance": "network-profile.json service_planes (reviewed, Session 35)",
-      "review_status": "reviewed"
+      "valid_to": "2019-08-21",
+      "provenance": "RIPE stat as-overview (current holder, retrieved 2026-08-02); current identity only, historical identity not reviewed",
+      "review_status": "CurrentIdentityOnly"
     },
     {
-      "asn": 2603,
-      "display_name": "NORDUnet",
-      "role": "national research-education network (target origin)",
+      "asn": 1299,
+      "display_name": "Arelion (Telia Carrier)",
+      "role": "transit provider",
       "valid_from": "2019-08-21",
-      "valid_to": null,
-      "provenance": "pilot-result.json target + network-profile.json asn_roles (reviewed)",
-      "review_status": "reviewed"
-    },
-    {
-      "asn": 2152,
-      "display_name": "CENIC",
-      "role": "California research-education network",
-      "valid_from": "2019-08-21",
-      "valid_to": null,
-      "provenance": "session-audit-2019.md (reviewed, Session 34/35)",
-      "review_status": "reviewed"
-    },
-    {
-      "asn": 7660,
-      "display_name": "APAN-JP",
-      "role": "Asia-Pacific research-education network",
-      "valid_from": "2019-08-21",
-      "valid_to": null,
-      "provenance": "session-audit-2019.md (reviewed, Session 34/35)",
-      "review_status": "reviewed"
-    },
-    {
-      "asn": 4608,
-      "display_name": "CNNIC",
-      "role": "not reviewed",
-      "valid_from": "2019-08-21",
-      "valid_to": null,
-      "provenance": "session-audit-2019.md (reviewed, Session 34/35)",
-      "review_status": "reviewed"
-    },
-    {
-      "asn": 4777,
-      "display_name": "ARTERIA Networks",
-      "role": "not reviewed",
-      "valid_from": "2019-08-21",
-      "valid_to": null,
-      "provenance": "session-audit-2019.md (reviewed, Session 34/35)",
-      "review_status": "reviewed"
+      "valid_to": "2019-08-21",
+      "provenance": "RIPE stat as-overview (current holder, retrieved 2026-08-02); current identity only, historical identity not reviewed",
+      "review_status": "CurrentIdentityOnly"
     },
     {
       "asn": 1916,
       "display_name": "RNP",
       "role": "Brazilian national research-education network",
       "valid_from": "2019-08-21",
-      "valid_to": null,
-      "provenance": "session-audit-2019.md (reviewed, Session 34/35)",
-      "review_status": "reviewed"
+      "valid_to": "2019-08-21",
+      "provenance": "session-audit-2019.md (reviewed, Session 34/35) (HistoricallyReviewed for 2019-08-21)",
+      "review_status": "HistoricallyReviewed"
+    },
+    {
+      "asn": 2152,
+      "display_name": "CENIC",
+      "role": "California research-education network",
+      "valid_from": "2019-08-21",
+      "valid_to": "2019-08-21",
+      "provenance": "session-audit-2019.md (reviewed, Session 34/35) (HistoricallyReviewed for 2019-08-21)",
+      "review_status": "HistoricallyReviewed"
+    },
+    {
+      "asn": 2500,
+      "display_name": "WIDE Project",
+      "role": "research-education network",
+      "valid_from": "2019-08-21",
+      "valid_to": "2019-08-21",
+      "provenance": "RIPE stat as-overview (current holder, retrieved 2026-08-02); current identity only, historical identity not reviewed",
+      "review_status": "CurrentIdentityOnly"
+    },
+    {
+      "asn": 2603,
+      "display_name": "NORDUnet",
+      "role": "national research-education network (target origin)",
+      "valid_from": "2019-08-21",
+      "valid_to": "2019-08-21",
+      "provenance": "pilot-result.json target + network-profile.json asn_roles (reviewed) (HistoricallyReviewed for 2019-08-21)",
+      "review_status": "HistoricallyReviewed"
+    },
+    {
+      "asn": 2907,
+      "display_name": "SINET (NII)",
+      "role": "national research-education network",
+      "valid_from": "2019-08-21",
+      "valid_to": "2019-08-21",
+      "provenance": "RIPE stat as-overview (current holder, retrieved 2026-08-02); current identity only, historical identity not reviewed",
+      "review_status": "CurrentIdentityOnly"
+    },
+    {
+      "asn": 3356,
+      "display_name": "Lumen (Level 3)",
+      "role": "transit provider",
+      "valid_from": "2019-08-21",
+      "valid_to": "2019-08-21",
+      "provenance": "RIPE stat as-overview (current holder, retrieved 2026-08-02); current identity only, historical identity not reviewed",
+      "review_status": "CurrentIdentityOnly"
+    },
+    {
+      "asn": 4608,
+      "display_name": "CNNIC",
+      "role": "not reviewed",
+      "valid_from": "2019-08-21",
+      "valid_to": "2019-08-21",
+      "provenance": "session-audit-2019.md (reviewed, Session 34/35) (HistoricallyReviewed for 2019-08-21)",
+      "review_status": "HistoricallyReviewed"
+    },
+    {
+      "asn": 4777,
+      "display_name": "ARTERIA Networks",
+      "role": "not reviewed",
+      "valid_from": "2019-08-21",
+      "valid_to": "2019-08-21",
+      "provenance": "session-audit-2019.md (reviewed, Session 34/35) (HistoricallyReviewed for 2019-08-21)",
+      "review_status": "HistoricallyReviewed"
+    },
+    {
+      "asn": 6939,
+      "display_name": "Hurricane Electric",
+      "role": "transit provider",
+      "valid_from": "2019-08-21",
+      "valid_to": "2019-08-21",
+      "provenance": "RIPE stat as-overview (current holder, retrieved 2026-08-02); current identity only, historical identity not reviewed",
+      "review_status": "CurrentIdentityOnly"
+    },
+    {
+      "asn": 7660,
+      "display_name": "APAN-JP",
+      "role": "Asia-Pacific research-education network",
+      "valid_from": "2019-08-21",
+      "valid_to": "2019-08-21",
+      "provenance": "session-audit-2019.md (reviewed, Session 34/35) (HistoricallyReviewed for 2019-08-21)",
+      "review_status": "HistoricallyReviewed"
+    },
+    {
+      "asn": 11164,
+      "display_name": "Internet2 Peer Exchange",
+      "role": "settlement-free/public peering plane",
+      "valid_from": "2019-08-21",
+      "valid_to": "2019-08-21",
+      "provenance": "network-profile.json service_planes (reviewed, Session 35) (HistoricallyReviewed for 2019-08-21)",
+      "review_status": "HistoricallyReviewed"
+    },
+    {
+      "asn": 11537,
+      "display_name": "Internet2 R&E",
+      "role": "research-education routing plane",
+      "valid_from": "2019-08-21",
+      "valid_to": "2019-08-21",
+      "provenance": "network-profile.json service_planes (reviewed, Session 35) (HistoricallyReviewed for 2019-08-21)",
+      "review_status": "HistoricallyReviewed"
+    },
+    {
+      "asn": 20080,
+      "display_name": "AMPATH (Florida International University)",
+      "role": "internet exchange / research-education",
+      "valid_from": "2019-08-21",
+      "valid_to": "2019-08-21",
+      "provenance": "RIPE stat as-overview (current holder, retrieved 2026-08-02); current identity only, historical identity not reviewed",
+      "review_status": "CurrentIdentityOnly"
+    },
+    {
+      "asn": 20965,
+      "display_name": "GEANT",
+      "role": "research-education network",
+      "valid_from": "2019-08-21",
+      "valid_to": "2019-08-21",
+      "provenance": "RIPE stat as-overview (current holder, retrieved 2026-08-02); current identity only, historical identity not reviewed",
+      "review_status": "CurrentIdentityOnly"
+    },
+    {
+      "asn": 22388,
+      "display_name": "TRANSPAC (Indiana University)",
+      "role": "research-education transit",
+      "valid_from": "2019-08-21",
+      "valid_to": "2019-08-21",
+      "provenance": "RIPE stat as-overview (current holder, retrieved 2026-08-02); current identity only, historical identity not reviewed",
+      "review_status": "CurrentIdentityOnly"
+    },
+    {
+      "asn": 24287,
+      "display_name": "TEIN2 JP (NII)",
+      "role": "research-education network",
+      "valid_from": "2019-08-21",
+      "valid_to": "2019-08-21",
+      "provenance": "RIPE stat as-overview (current holder, retrieved 2026-08-02); current identity only, historical identity not reviewed",
+      "review_status": "CurrentIdentityOnly"
+    },
+    {
+      "asn": 24489,
+      "display_name": "TEIN2 North (APAN)",
+      "role": "research-education network",
+      "valid_from": "2019-08-21",
+      "valid_to": "2019-08-21",
+      "provenance": "RIPE stat as-overview (current holder, retrieved 2026-08-02); current identity only, historical identity not reviewed",
+      "review_status": "CurrentIdentityOnly"
+    },
+    {
+      "asn": 24490,
+      "display_name": "TEIN2 SG (APAN)",
+      "role": "research-education network",
+      "valid_from": "2019-08-21",
+      "valid_to": "2019-08-21",
+      "provenance": "RIPE stat as-overview (current holder, retrieved 2026-08-02); current identity only, historical identity not reviewed",
+      "review_status": "CurrentIdentityOnly"
+    },
+    {
+      "asn": 28571,
+      "display_name": "Universidade de Sao Paulo",
+      "role": "university network",
+      "valid_from": "2019-08-21",
+      "valid_to": "2019-08-21",
+      "provenance": "RIPE stat as-overview (current holder, retrieved 2026-08-02); current identity only, historical identity not reviewed",
+      "review_status": "CurrentIdentityOnly"
+    },
+    {
+      "asn": 40220,
+      "display_name": "Virginia Tech (MARIA)",
+      "role": "university network",
+      "valid_from": "2019-08-21",
+      "valid_to": "2019-08-21",
+      "provenance": "RIPE stat as-overview (current holder, retrieved 2026-08-02); current identity only, historical identity not reviewed",
+      "review_status": "CurrentIdentityOnly"
+    },
+    {
+      "asn": 52888,
+      "display_name": "Universidade Federal de Sao Carlos",
+      "role": "university network",
+      "valid_from": "2019-08-21",
+      "valid_to": "2019-08-21",
+      "provenance": "RIPE stat as-overview (current holder, retrieved 2026-08-02); current identity only, historical identity not reviewed",
+      "review_status": "CurrentIdentityOnly"
     }
   ]
 }

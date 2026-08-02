@@ -145,6 +145,9 @@ pub struct SemanticWaveSummary {
 /// the session's ASN is ambiguous and must be rendered as such.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ObserverSessionMetadata {
+    /// Row identity; defaults to 0 when parsed from a reviewed data
+    /// file (never written back).
+    #[serde(default)]
     pub id: i64,
     pub source_family: String,
     pub collector: String,

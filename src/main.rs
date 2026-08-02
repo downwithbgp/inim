@@ -232,6 +232,18 @@ enum CatalogCommands {
         #[arg(long, value_name = "ID")]
         subject: String,
     },
+    /// Write the exact finding-audit record for a subject
+    /// (Session 40, Part 1). The prose renderer uses these exact
+    /// fields; output is written to --out or stdout.
+    FindingAudit {
+        #[arg(long, value_name = "PATH")]
+        db: PathBuf,
+        /// Event id (e.g. INC0302574) or case-study slug (e.g. manlan-2019).
+        #[arg(long, value_name = "ID")]
+        subject: String,
+        #[arg(long, value_name = "PATH")]
+        out: Option<PathBuf>,
+    },
     /// Manage incident case studies.
     #[command(subcommand)]
     CaseStudy(CaseStudyCommands),
@@ -1327,6 +1339,65 @@ fn cmd_catalog(stdout: &mut dyn Write, command: &CatalogCommands) -> i32 {
                     EXIT_INVALID_INPUT
                 }
             }
+        }
+        CatalogCommands::FindingAudit { db, subject, out } => {
+            let conn = match inim::catalog::db::open_catalog(db) {
+                Ok(c) => c,
+                Err(e) => {
+                    let _ = writeln!(stdout, "error: {e}");
+                    return EXIT_INVALID_INPUT;
+                }
+            };
+            let vm = match inim::catalog::web::view::load_event_workbench(
+                &conn,
+                subject,
+                std::path::Path::new("."),
+                &inim::catalog::web::handlers::WorkbenchQuery::default(),
+            ) {
+                Ok(Some(v)) => Some(v.vm),
+                Ok(None) => {
+                    match inim::catalog::web::view::load_case_study_workbench(
+                        &conn,
+                        subject,
+                        std::path::Path::new("."),
+                        &inim::catalog::web::handlers::WorkbenchQuery::default(),
+                    ) {
+                        Ok(v) => v.map(|v| v.vm),
+                        Err(e) => {
+                            let _ = writeln!(stdout, "error: {e}");
+                            return EXIT_INVALID_INPUT;
+                        }
+                    }
+                }
+                Err(e) => {
+                    let _ = writeln!(stdout, "error: {e}");
+                    return EXIT_INVALID_INPUT;
+                }
+            };
+            let Some(vm) = vm else {
+                let _ = writeln!(stdout, "error: no event or case study matches {subject}");
+                return EXIT_INVALID_INPUT;
+            };
+            let audit = inim::catalog::workbench::FindingAudit::from_vm(&vm);
+            let json = match serde_json::to_string_pretty(&audit) {
+                Ok(j) => j,
+                Err(e) => {
+                    let _ = writeln!(stdout, "error: cannot serialize audit: {e}");
+                    return EXIT_INVALID_INPUT;
+                }
+            };
+            match out {
+                Some(path) => {
+                    if let Err(e) = std::fs::write(path, json) {
+                        let _ = writeln!(stdout, "error: cannot write {}: {e}", path.display());
+                        return EXIT_INVALID_INPUT;
+                    }
+                }
+                None => {
+                    let _ = writeln!(stdout, "{json}");
+                }
+            }
+            EXIT_SUCCESS
         }
         CatalogCommands::Sync(source) => match source {
             SyncSource::Grnoc {

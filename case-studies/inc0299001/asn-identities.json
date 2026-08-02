@@ -1,0 +1,80 @@
+{
+  "schema_version": 1,
+  "case_study_slug": "inc0299001",
+  "reviewed_at": "2026-08-02",
+  "provenance": "Reviewed analyst interpretation (Session 40, Part 6/12). Identities are CURRENT holder lookups (RIPE stat as-overview, retrieved 2026-08-02) scoped to the 2026-07-14 event date; none is claimed as historical truth. The event-date holder of an ASN may differ; renderings carry the 'historical identity not reviewed' caveat.",
+  "identities": [
+    {
+      "asn": 225,
+      "display_name": "University of Virginia",
+      "role": "university network (event origin)",
+      "valid_from": "2026-07-14",
+      "valid_to": "2026-07-14",
+      "provenance": "RIPE stat as-overview (current holder, retrieved 2026-08-02); the reviewed manifest target label names the participant 'UVA'",
+      "review_status": "CurrentIdentityOnly"
+    },
+    {
+      "asn": 11537,
+      "display_name": "Internet2",
+      "role": "research-education network",
+      "valid_from": "2026-07-14",
+      "valid_to": "2026-07-14",
+      "provenance": "RIPE stat as-overview (current holder, retrieved 2026-08-02); current identity only, historical identity not reviewed",
+      "review_status": "CurrentIdentityOnly"
+    },
+    {
+      "asn": 40220,
+      "display_name": "Virginia Tech (MARIA)",
+      "role": "university network (observed peer)",
+      "valid_from": "2026-07-14",
+      "valid_to": "2026-07-14",
+      "provenance": "RIPE stat as-overview (current holder, retrieved 2026-08-02); current identity only, historical identity not reviewed",
+      "review_status": "CurrentIdentityOnly"
+    },
+    {
+      "asn": 2907,
+      "display_name": "SINET (NII)",
+      "role": "national research-education network",
+      "valid_from": "2026-07-14",
+      "valid_to": "2026-07-14",
+      "provenance": "RIPE stat as-overview (current holder, retrieved 2026-08-02); current identity only, historical identity not reviewed",
+      "review_status": "CurrentIdentityOnly"
+    },
+    {
+      "asn": 7660,
+      "display_name": "APAN-JP",
+      "role": "research-education network",
+      "valid_from": "2026-07-14",
+      "valid_to": "2026-07-14",
+      "provenance": "RIPE stat as-overview (current holder, retrieved 2026-08-02); current identity only, historical identity not reviewed",
+      "review_status": "CurrentIdentityOnly"
+    },
+    {
+      "asn": 2152,
+      "display_name": "CENIC",
+      "role": "regional research-education network",
+      "valid_from": "2026-07-14",
+      "valid_to": "2026-07-14",
+      "provenance": "RIPE stat as-overview (current holder, retrieved 2026-08-02); current identity only, historical identity not reviewed",
+      "review_status": "CurrentIdentityOnly"
+    },
+    {
+      "asn": 3356,
+      "display_name": "Lumen (Level 3)",
+      "role": "transit provider",
+      "valid_from": "2026-07-14",
+      "valid_to": "2026-07-14",
+      "provenance": "RIPE stat as-overview (current holder, retrieved 2026-08-02); current identity only, historical identity not reviewed",
+      "review_status": "CurrentIdentityOnly"
+    },
+    {
+      "asn": 174,
+      "display_name": "Cogent",
+      "role": "transit provider",
+      "valid_from": "2026-07-14",
+      "valid_to": "2026-07-14",
+      "provenance": "RIPE stat as-overview (current holder, retrieved 2026-08-02); current identity only, historical identity not reviewed",
+      "review_status": "CurrentIdentityOnly"
+    }
+  ]
+}

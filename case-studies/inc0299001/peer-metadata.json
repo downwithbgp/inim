@@ -1,0 +1,228 @@
+{
+  "schema_version": 1,
+  "case_study_slug": "inc0299001",
+  "reviewed_at": "2026-08-02",
+  "provenance": "Observed peer-session metadata derived from the event-date RIB (route-views2 rib.20260714.0400, sha256 recorded per row). Session 38 backfill exported verbatim; the peer ASN is a protocol fact from the MRT peer table, never inferred from path content.",
+  "sessions": [
+    {
+      "source_family": "RouteViews",
+      "collector": "route-views2",
+      "peer_ip": "105.16.0.247",
+      "address_family": "ipv4",
+      "peer_asn": 37100,
+      "valid_from": "2026-07-14T04:00:00Z",
+      "valid_to": null,
+      "source_archive": "cache/route-views2/rib/rib.20260714.0400.bz2",
+      "source_sha256": "b75d89b5366ba32c244b3b429b5463f3eef5046decf2670da950bfb1be2ce481"
+    },
+    {
+      "source_family": "RouteViews",
+      "collector": "route-views2",
+      "peer_ip": "12.0.1.63",
+      "address_family": "ipv4",
+      "peer_asn": 7018,
+      "valid_from": "2026-07-14T04:00:00Z",
+      "valid_to": null,
+      "source_archive": "cache/route-views2/rib/rib.20260714.0400.bz2",
+      "source_sha256": "b75d89b5366ba32c244b3b429b5463f3eef5046decf2670da950bfb1be2ce481"
+    },
+    {
+      "source_family": "RouteViews",
+      "collector": "route-views2",
+      "peer_ip": "129.250.1.71",
+      "address_family": "ipv4",
+      "peer_asn": 2914,
+      "valid_from": "2026-07-14T04:00:00Z",
+      "valid_to": null,
+      "source_archive": "cache/route-views2/rib/rib.20260714.0400.bz2",
+      "source_sha256": "b75d89b5366ba32c244b3b429b5463f3eef5046decf2670da950bfb1be2ce481"
+    },
+    {
+      "source_family": "RouteViews",
+      "collector": "route-views2",
+      "peer_ip": "137.164.16.84",
+      "address_family": "ipv4",
+      "peer_asn": 2152,
+      "valid_from": "2026-07-14T04:00:00Z",
+      "valid_to": null,
+      "source_archive": "cache/route-views2/rib/rib.20260714.0400.bz2",
+      "source_sha256": "b75d89b5366ba32c244b3b429b5463f3eef5046decf2670da950bfb1be2ce481"
+    },
+    {
+      "source_family": "RouteViews",
+      "collector": "route-views2",
+      "peer_ip": "140.192.8.16",
+      "address_family": "ipv4",
+      "peer_asn": 20130,
+      "valid_from": "2026-07-14T04:00:00Z",
+      "valid_to": null,
+      "source_archive": "cache/route-views2/rib/rib.20260714.0400.bz2",
+      "source_sha256": "b75d89b5366ba32c244b3b429b5463f3eef5046decf2670da950bfb1be2ce481"
+    },
+    {
+      "source_family": "RouteViews",
+      "collector": "route-views2",
+      "peer_ip": "147.28.0.3",
+      "address_family": "ipv4",
+      "peer_asn": 3130,
+      "valid_from": "2026-07-14T04:00:00Z",
+      "valid_to": null,
+      "source_archive": "cache/route-views2/rib/rib.20260714.0400.bz2",
+      "source_sha256": "b75d89b5366ba32c244b3b429b5463f3eef5046decf2670da950bfb1be2ce481"
+    },
+    {
+      "source_family": "RouteViews",
+      "collector": "route-views2",
+      "peer_ip": "162.251.163.2",
+      "address_family": "ipv4",
+      "peer_asn": 53767,
+      "valid_from": "2026-07-14T04:00:00Z",
+      "valid_to": null,
+      "source_archive": "cache/route-views2/rib/rib.20260714.0400.bz2",
+      "source_sha256": "b75d89b5366ba32c244b3b429b5463f3eef5046decf2670da950bfb1be2ce481"
+    },
+    {
+      "source_family": "RouteViews",
+      "collector": "route-views2",
+      "peer_ip": "163.253.3.14",
+      "address_family": "ipv4",
+      "peer_asn": 11537,
+      "valid_from": "2026-07-14T04:00:00Z",
+      "valid_to": null,
+      "source_archive": "cache/route-views2/rib/rib.20260714.0400.bz2",
+      "source_sha256": "b75d89b5366ba32c244b3b429b5463f3eef5046decf2670da950bfb1be2ce481"
+    },
+    {
+      "source_family": "RouteViews",
+      "collector": "route-views2",
+      "peer_ip": "168.209.255.56",
+      "address_family": "ipv4",
+      "peer_asn": 3741,
+      "valid_from": "2026-07-14T04:00:00Z",
+      "valid_to": null,
+      "source_archive": "cache/route-views2/rib/rib.20260714.0400.bz2",
+      "source_sha256": "b75d89b5366ba32c244b3b429b5463f3eef5046decf2670da950bfb1be2ce481"
+    },
+    {
+      "source_family": "RouteViews",
+      "collector": "route-views2",
+      "peer_ip": "198.129.33.85",
+      "address_family": "ipv4",
+      "peer_asn": 293,
+      "valid_from": "2026-07-14T04:00:00Z",
+      "valid_to": null,
+      "source_archive": "cache/route-views2/rib/rib.20260714.0400.bz2",
+      "source_sha256": "b75d89b5366ba32c244b3b429b5463f3eef5046decf2670da950bfb1be2ce481"
+    },
+    {
+      "source_family": "RouteViews",
+      "collector": "route-views2",
+      "peer_ip": "198.58.198.252",
+      "address_family": "ipv4",
+      "peer_asn": 1403,
+      "valid_from": "2026-07-14T04:00:00Z",
+      "valid_to": null,
+      "source_archive": "cache/route-views2/rib/rib.20260714.0400.bz2",
+      "source_sha256": "b75d89b5366ba32c244b3b429b5463f3eef5046decf2670da950bfb1be2ce481"
+    },
+    {
+      "source_family": "RouteViews",
+      "collector": "route-views2",
+      "peer_ip": "202.232.0.3",
+      "address_family": "ipv4",
+      "peer_asn": 2497,
+      "valid_from": "2026-07-14T04:00:00Z",
+      "valid_to": null,
+      "source_archive": "cache/route-views2/rib/rib.20260714.0400.bz2",
+      "source_sha256": "b75d89b5366ba32c244b3b429b5463f3eef5046decf2670da950bfb1be2ce481"
+    },
+    {
+      "source_family": "RouteViews",
+      "collector": "route-views2",
+      "peer_ip": "203.181.248.195",
+      "address_family": "ipv4",
+      "peer_asn": 7660,
+      "valid_from": "2026-07-14T04:00:00Z",
+      "valid_to": null,
+      "source_archive": "cache/route-views2/rib/rib.20260714.0400.bz2",
+      "source_sha256": "b75d89b5366ba32c244b3b429b5463f3eef5046decf2670da950bfb1be2ce481"
+    },
+    {
+      "source_family": "RouteViews",
+      "collector": "route-views2",
+      "peer_ip": "208.51.134.255",
+      "address_family": "ipv4",
+      "peer_asn": 3549,
+      "valid_from": "2026-07-14T04:00:00Z",
+      "valid_to": null,
+      "source_archive": "cache/route-views2/rib/rib.20260714.0400.bz2",
+      "source_sha256": "b75d89b5366ba32c244b3b429b5463f3eef5046decf2670da950bfb1be2ce481"
+    },
+    {
+      "source_family": "RouteViews",
+      "collector": "route-views2",
+      "peer_ip": "217.192.89.50",
+      "address_family": "ipv4",
+      "peer_asn": 3303,
+      "valid_from": "2026-07-14T04:00:00Z",
+      "valid_to": null,
+      "source_archive": "cache/route-views2/rib/rib.20260714.0400.bz2",
+      "source_sha256": "b75d89b5366ba32c244b3b429b5463f3eef5046decf2670da950bfb1be2ce481"
+    },
+    {
+      "source_family": "RouteViews",
+      "collector": "route-views2",
+      "peer_ip": "37.139.139.17",
+      "address_family": "ipv4",
+      "peer_asn": 57866,
+      "valid_from": "2026-07-14T04:00:00Z",
+      "valid_to": null,
+      "source_archive": "cache/route-views2/rib/rib.20260714.0400.bz2",
+      "source_sha256": "b75d89b5366ba32c244b3b429b5463f3eef5046decf2670da950bfb1be2ce481"
+    },
+    {
+      "source_family": "RouteViews",
+      "collector": "route-views2",
+      "peer_ip": "45.61.0.85",
+      "address_family": "ipv4",
+      "peer_asn": 22652,
+      "valid_from": "2026-07-14T04:00:00Z",
+      "valid_to": null,
+      "source_archive": "cache/route-views2/rib/rib.20260714.0400.bz2",
+      "source_sha256": "b75d89b5366ba32c244b3b429b5463f3eef5046decf2670da950bfb1be2ce481"
+    },
+    {
+      "source_family": "RouteViews",
+      "collector": "route-views2",
+      "peer_ip": "64.71.137.241",
+      "address_family": "ipv4",
+      "peer_asn": 6939,
+      "valid_from": "2026-07-14T04:00:00Z",
+      "valid_to": null,
+      "source_archive": "cache/route-views2/rib/rib.20260714.0400.bz2",
+      "source_sha256": "b75d89b5366ba32c244b3b429b5463f3eef5046decf2670da950bfb1be2ce481"
+    },
+    {
+      "source_family": "RouteViews",
+      "collector": "route-views2",
+      "peer_ip": "89.149.178.10",
+      "address_family": "ipv4",
+      "peer_asn": 3257,
+      "valid_from": "2026-07-14T04:00:00Z",
+      "valid_to": null,
+      "source_archive": "cache/route-views2/rib/rib.20260714.0400.bz2",
+      "source_sha256": "b75d89b5366ba32c244b3b429b5463f3eef5046decf2670da950bfb1be2ce481"
+    },
+    {
+      "source_family": "RouteViews",
+      "collector": "route-views2",
+      "peer_ip": "91.218.184.60",
+      "address_family": "ipv4",
+      "peer_asn": 49788,
+      "valid_from": "2026-07-14T04:00:00Z",
+      "valid_to": null,
+      "source_archive": "cache/route-views2/rib/rib.20260714.0400.bz2",
+      "source_sha256": "b75d89b5366ba32c244b3b429b5463f3eef5046decf2670da950bfb1be2ce481"
+    }
+  ]
+}

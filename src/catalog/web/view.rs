@@ -150,6 +150,31 @@ a:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px soli
 .wb-nochange-statements { margin: 0.2rem 0 0.4rem; font-size: 0.85rem; }
 .wb-episode-detail { margin: 0.5rem 0; }
 
+/* ── Session 40: principal stories, named paths, no-visibility. */
+.wb-scope-line { font-size: 0.82rem; color: #555; margin: 0 0 0.5rem; }
+.wb-principal { border-left: 3px solid #2e6da4; }
+.wb-secondary { border-left: 3px solid #bbb; }
+.wb-path-explanation { font-size: 0.85rem; margin: 0.3rem 0; color: #222; }
+.wb-finding-paths { display: flex; flex-wrap: wrap; gap: 0.4rem 2rem; margin: 0.3rem 0; }
+.wb-path-col { min-width: 260px; }
+.wb-named-path { list-style: none; margin: 0.2rem 0; padding: 0; font-size: 0.82rem; }
+.wb-named-path li { position: relative; padding: 0.1rem 0 0.1rem 1.1rem; white-space: nowrap; }
+.wb-named-path li::before { content: "\2192"; position: absolute; left: 0.2rem; color: #777; }
+.wb-named-path li:first-child::before { content: "\25CF"; font-size: 0.6rem; top: 0.35rem; left: 0.3rem; }
+.wb-seg-mark { display: inline-block; min-width: 3.2rem; color: #555; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.7rem; }
+.wb-seg.ins { text-decoration: underline; text-decoration-thickness: 2px; background: #eef6ee; }
+.wb-seg.del { text-decoration: line-through; text-decoration-thickness: 1px; color: #666; background: #f6eeee; }
+.wb-path-numeric { display: block; margin-top: 0.15rem; color: #444; }
+.wb-path-legend { margin: 0.15rem 0 0.3rem; }
+.wb-prefix-preview { font-size: 0.82rem; margin: 0.3rem 0; }
+.wb-prefix-preview a { color: var(--link); text-decoration: underline; }
+.wb-context { margin: 0.6rem 0; }
+.wb-context summary { cursor: pointer; color: var(--link); text-decoration: underline; font-size: 0.8rem; }
+.wb-novis { border: 1px solid var(--line); background: #fff; padding: 0.6rem 0.8rem; }
+.wb-novis-relationship { font-size: 0.95rem; margin: 0.2rem 0; }
+.wb-novis-eligibility { margin: 0.2rem 0 0.5rem; font-size: 0.85rem; }
+.wb-novis-assessment { font-size: 0.88rem; margin: 0.2rem 0; line-height: 1.45; }
+
 /* ── Narrow / mobile (Part 12): stacked header, scrollable tables,
    definition-list episode rows. Text never shrinks below readable size;
    timestamps, ASNs, and prefixes never break. */
@@ -163,6 +188,10 @@ a:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px soli
   .wb-facts dd { font-size: 12px; }
   .wb-table { font-size: 12px; }
   .wb-table th { font-size: 11px; }
+  .wb-named-path li { white-space: normal; }
+  .wb-seg-mark { display: block; }
+  .wb-finding-head { font-size: 13px; }
+  .wb-path-numeric { word-break: break-word; }
   table.wb-episodes, table.wb-episodes tbody, table.wb-episodes tr, table.wb-episodes td { display: block; width: 100%; }
   table.wb-episodes thead { display: none; }
   table.wb-episodes tr { border: 1px solid var(--line); margin-bottom: 0.5rem; padding: 0.25rem; }
@@ -2869,7 +2898,39 @@ pub fn load_event_workbench(
     let mut context = crate::catalog::workbench::WorkbenchContext::load_registry_only(
         std::path::Path::new("case-studies/manlan-2019/pilot"),
     );
+    // Event-scoped ASN identities (Session 40, Part 6): a registry for
+    // this event, when one exists, augments the shared pilot registry.
+    let event_registry = std::path::Path::new("case-studies")
+        .join(event_id.to_lowercase())
+        .join("asn-identities.json");
+    if event_registry.is_file() {
+        let event_identities =
+            crate::catalog::workbench::AsnIdentityRegistry::load(&event_registry);
+        context.asn_identities.merge(&event_identities);
+    }
     crate::catalog::workbench::WorkbenchContext::load_session_metadata(conn, &mut context);
+    // Reviewed peer-session metadata for this event (Session 40,
+    // Part 7): the canonical data file preserves the observed peer
+    // ASNs when the runtime catalog lacks the backfilled rows.
+    let metadata_file = std::path::Path::new("case-studies")
+        .join(event_id.to_lowercase())
+        .join("peer-metadata.json");
+    if metadata_file.is_file() {
+        if let Ok(raw) = std::fs::read_to_string(&metadata_file) {
+            if let Ok(v) = serde_json::from_str::<serde_json::Value>(&raw) {
+                if let Some(sessions) = v.get("sessions").and_then(|x| x.as_array()) {
+                    for row in sessions {
+                        if let Ok(m) = serde_json::from_value::<
+                            crate::catalog::domain::ObserverSessionMetadata,
+                        >(row.clone())
+                        {
+                            context.session_metadata.push(m);
+                        }
+                    }
+                }
+            }
+        }
+    }
     crate::catalog::workbench::WorkbenchContext::load_relationship_audit(&mut context, event_id);
     let Some(vm) = crate::catalog::workbench::IncidentWorkbenchViewModel::for_event(
         conn,
@@ -2974,6 +3035,20 @@ pub struct WorkbenchView {
     pub unchanged_episodes: Vec<WorkbenchEpisodeRow>,
     /// Operator-facing routing findings (Session 39, Parts 3-5, 8).
     pub findings: Vec<WorkbenchFindingRow>,
+    /// Secondary findings under "Additional observer findings"
+    /// (Session 40, Part 8): fully accessible, not on the first screen.
+    pub additional_findings: Vec<WorkbenchFindingRow>,
+    /// All findings in chronological model order (the Routing findings
+    /// table); principal card order is by operational priority.
+    pub findings_table: Vec<WorkbenchFindingRow>,
+    /// True when the named relationship has no qualifying public
+    /// visibility (Session 40, Part 11): renders the compact primary
+    /// result and hides empty analysis scaffolding.
+    pub no_visibility_page: bool,
+    /// Compact case-study scope line for the mobile first viewport
+    /// (Session 40, Part 13): "<pilot label> · <pilot range> UTC ·
+    /// not incident-wide".
+    pub compact_scope_line: String,
     /// Concrete per-region observer comparison (Part 9).
     pub region_comparison: Vec<WorkbenchRegionComparisonRow>,
     pub breadth: Vec<WorkbenchBreadthRow>,
@@ -3063,8 +3138,29 @@ impl WorkbenchView {
         let mut f = WorkbenchFilters::from_query(filters);
         f.expand_all = filters.expand;
         let (episodes, unchanged, denominator) = episode_rows(&vm, &f);
-        let findings = finding_rows(&vm, &f);
+        let mut findings_table = finding_rows(&vm, &f);
+        // finding_rows returns selector priority order (principal
+        // first, then additional). Record it, then re-sort the table
+        // chronologically (exact ISO) while keeping the principal
+        // cards in operational-priority order.
+        let priority: std::collections::HashMap<String, usize> = findings_table
+            .iter()
+            .enumerate()
+            .map(|(i, r)| (r.stable_id.clone(), i))
+            .collect();
+        findings_table.sort_by(|a, b| {
+            a.first_exact
+                .cmp(&b.first_exact)
+                .then_with(|| a.stable_id.cmp(&b.stable_id))
+        });
+        let (mut findings, additional_findings): (Vec<_>, Vec<_>) = findings_table
+            .clone()
+            .into_iter()
+            .partition(|r| r.principal);
+        findings.sort_by_key(|r| priority.get(&r.stable_id).copied().unwrap_or(usize::MAX));
+        let no_visibility_page = findings.is_empty() && vm.relationship_audit.is_some();
         let region_comparison = region_comparison_rows(&vm, &f);
+
         let no_change_statements = no_change_statements(&vm);
         let breadth = breadth_rows(&vm);
         let timeline = timeline_rows(&vm, &f);
@@ -3095,6 +3191,9 @@ impl WorkbenchView {
             episodes,
             unchanged_episodes: unchanged,
             findings,
+            additional_findings,
+            findings_table,
+            no_visibility_page,
             region_comparison,
             breadth,
             timeline,
@@ -3112,6 +3211,15 @@ impl WorkbenchView {
                 human_date_range(&vm.incident_horizon_start, &vm.incident_horizon_end)
             },
             header_pilot_range: human_pilot_range(&vm.window_start, &vm.window_end),
+            compact_scope_line: if vm.subject_kind == "case-study" && !vm.pilot_label.is_empty() {
+                format!(
+                    "{} · {} · not incident-wide",
+                    vm.pilot_label,
+                    human_pilot_range(&vm.window_start, &vm.window_end)
+                )
+            } else {
+                String::new()
+            },
             linked_ticket_count: vm.linked_tickets.len(),
             filters: f,
             timing: WorkbenchTiming {
@@ -3647,23 +3755,44 @@ pub struct WorkbenchFindingRow {
     /// "RRC15 · São Paulo" (region in `region`).
     pub observer: String,
     pub region: String,
-    /// "RNP · AS1916" or "AS1916 · name not reviewed".
+    /// "RNP (AS1916)" or "AS1916 — name not reviewed"; ambiguity and
+    /// peer-IP-only fallbacks are explicit.
     pub peer: String,
+    pub peer_ip: String,
     pub relationship: String,
-    /// "11 prefixes" (exact list in `exact_prefixes`).
+    /// "11 prefixes" (exact list in `exact_prefixes`); single-prefix
+    /// findings label with the exact prefix itself (Session 40, Part 9).
     pub prefixes: String,
     pub prefix_count: usize,
+    /// Principal story (Session 40, Part 8): selected for operational
+    /// meaning; secondary findings render under "Additional observer
+    /// findings".
+    pub principal: bool,
     /// Observed route change label (effect vocabulary, Part 4).
     pub change: String,
     /// Compact before-path signature (space-joined ASN sequence).
     pub before: String,
     /// Compact after-path signature, or "absent" for pure absences.
     pub after: String,
+    /// Exact numeric paths (authoritative; names never replace them).
+    pub numeric_before: String,
+    pub numeric_after: String,
+    /// Named path segments with textual inserted/removed markers
+    /// (Session 40, Part 5).
+    pub named_before: Vec<PathSegmentRow>,
+    pub named_after: Vec<PathSegmentRow>,
+    /// Factual semantic explanation of the before/after pair
+    /// (Session 40, Part 4) — never causation.
+    pub path_explanation: String,
     /// Outcome text: restoration(s) or "still changed" state.
     pub outcome: String,
     /// One concise operational statement (Part 4).
     pub statement: String,
     pub exact_prefixes: Vec<String>,
+    /// Prefix preview (Session 40, Part 9): up to three prefixes plus
+    /// the hidden remainder count; the full list stays one action away.
+    pub preview_prefixes: Vec<String>,
+    pub hidden_prefix_count: usize,
     /// Copy payloads (progressive enhancement only; the exact data is
     /// visible without JavaScript). Each line is one prefix/path.
     pub copy_prefixes: String,
@@ -3679,6 +3808,16 @@ pub struct WorkbenchFindingRow {
     pub baseline_restored_exact: String,
     pub expanded: bool,
     pub prefixes_open: bool,
+}
+
+/// One named path segment with a textual diff marker (Session 40,
+/// Part 5): `same`, `ins` (appeared), or `del` (removed). Markers are
+/// textual classes, never color alone.
+#[derive(Debug, Clone, Serialize)]
+pub struct PathSegmentRow {
+    pub asn: u32,
+    pub label: String,
+    pub mark: &'static str,
 }
 
 /// One prefix row of a finding drill-down (exact paths, Part 5).
@@ -3733,19 +3872,31 @@ fn finding_rows(
     vm: &crate::catalog::workbench::IncidentWorkbenchViewModel,
     f: &WorkbenchFilters,
 ) -> Vec<WorkbenchFindingRow> {
-    use crate::catalog::workbench::RoutingEffect as RE;
+    use crate::catalog::workbench::{select_principal_findings, RoutingEffect as RE};
     let window = &vm.window_start;
-    vm.findings
+    let event_date = crate::catalog::workbench::window_date(&vm.window_start);
+    // Principal stories first (Session 40, Part 8); secondary findings
+    // remain fully accessible under "Additional observer findings".
+    let (principal, additional) = select_principal_findings(vm.findings.clone(), &vm.plane_asns, 4);
+    let ordered: Vec<&crate::catalog::workbench::RoutingFinding> = principal
+        .iter()
+        .chain(additional.iter())
+        .filter(|finding| matches_finding_filter(finding, f))
+        .collect();
+    let principal_ids: std::collections::BTreeSet<&str> =
+        principal.iter().map(|f| f.stable_id.as_str()).collect();
+    ordered
         .iter()
         .enumerate()
-        .filter(|(_, finding)| matches_finding_filter(finding, f))
         .map(|(idx, finding)| {
             let peer = match finding.peer_asn {
                 Some(asn) => {
-                    if finding.peer_name == "name not reviewed" {
-                        format!("AS{asn} · name not reviewed")
+                    if finding.peer_asn_ambiguous {
+                        format!("peer ASN ambiguous (observed {})", finding.peer_ip)
+                    } else if finding.peer_name == "name not reviewed" {
+                        format!("AS{asn} — name not reviewed")
                     } else {
-                        format!("{} · AS{asn}", finding.peer_name)
+                        format!("{} (AS{asn})", finding.peer_name)
                     }
                 }
                 None => "peer ASN not observed in source evidence".to_string(),
@@ -3768,6 +3919,43 @@ fn finding_rows(
                 .as_deref()
                 .map(|t| wb_time(t, window))
                 .unwrap_or_else(|| "—".to_string());
+            // Exact numeric paths from the most frequent member paths.
+            let (baseline_exact, changed_exact) = finding_path_pair(finding);
+            let name_for = |asn: u32| -> String {
+                match vm
+                    .asn_identities
+                    .iter()
+                    .find(|i| i.asn == asn && i.valid_at(&event_date) && i.has_display_name())
+                {
+                    Some(i) if i.review_status == "CurrentIdentityOnly" => format!(
+                        "Current identity: {} (AS{}) — historical identity not reviewed",
+                        i.display_name, asn
+                    ),
+                    Some(i) => format!("{} (AS{})", i.display_name, asn),
+                    None => format!("AS{asn} — name not reviewed"),
+                }
+            };
+            let plane = vm
+                .plane_asns
+                .first()
+                .map(|_| finding.named_path_plane.clone())
+                .unwrap_or_default();
+            let diff = crate::catalog::workbench::diff_paths(
+                &baseline_exact,
+                &changed_exact,
+                &vm.plane_asns,
+            );
+            let named_before = named_segments(&baseline_exact, &diff, false, &name_for);
+            let named_after = named_segments(&changed_exact, &diff, true, &name_for);
+            let path_explanation = crate::catalog::workbench::explain_path_diff(
+                &baseline_exact,
+                &changed_exact,
+                &vm.plane_asns,
+                &plane,
+                &|asn| name_for(asn),
+            );
+            let preview: Vec<String> = finding.exact_prefixes.iter().take(3).cloned().collect();
+            let hidden = finding.exact_prefixes.len().saturating_sub(preview.len());
             let stream_rows: Vec<WorkbenchFindingStreamRow> = finding
                 .streams
                 .iter()
@@ -3800,7 +3988,7 @@ fn finding_rows(
                         .map(|t| wb_time(t, window))
                         .unwrap_or_else(|| "—".to_string()),
                     base_restored: s
-                        .baseline_restored_at
+                        .exact_baseline_restored_at
                         .as_deref()
                         .map(|t| wb_time(t, window))
                         .unwrap_or_else(|| "—".to_string()),
@@ -3813,19 +4001,43 @@ fn finding_rows(
                 observer: format!("{} · {}", finding.collector, finding.observer_site),
                 region: finding.observer_region.clone(),
                 peer,
+                peer_ip: finding.peer_ip.clone(),
                 relationship,
                 prefixes: if finding.distinct_prefixes == 1 {
-                    "1 prefix".to_string()
+                    finding
+                        .exact_prefixes
+                        .first()
+                        .cloned()
+                        .unwrap_or_else(|| "1 prefix".to_string())
                 } else {
                     format!("{} prefixes", finding.distinct_prefixes)
                 },
                 prefix_count: finding.distinct_prefixes,
+                principal: principal_ids.contains(finding.stable_id.as_str()),
                 change: finding.effect.label().to_string(),
                 before,
                 after,
+                numeric_before: exact_path_display(&baseline_exact),
+                numeric_after: if changed_exact.is_empty() {
+                    if matches!(
+                        finding.effect,
+                        RE::PrefixesTemporarilyAbsent | RE::PrefixesWithdrawn
+                    ) {
+                        "absent".to_string()
+                    } else {
+                        "—".to_string()
+                    }
+                } else {
+                    exact_path_display(&changed_exact)
+                },
+                named_before,
+                named_after,
+                path_explanation,
                 outcome,
                 statement: crate::catalog::workbench::finding_statement(finding),
                 exact_prefixes: finding.exact_prefixes.clone(),
+                preview_prefixes: preview,
+                hidden_prefix_count: hidden,
                 copy_prefixes: finding.exact_prefixes.join("\n"),
                 copy_before_paths: finding
                     .streams
@@ -3856,7 +4068,10 @@ fn finding_rows(
                     .visibility_restored_at
                     .clone()
                     .unwrap_or_default(),
-                baseline_restored_exact: finding.baseline_restored_at.clone().unwrap_or_default(),
+                baseline_restored_exact: finding
+                    .exact_baseline_restored_at
+                    .clone()
+                    .unwrap_or_default(),
                 expanded: f.expand_all || f.episode == Some(idx),
                 prefixes_open: f.prefixes == Some(idx),
             }
@@ -3864,6 +4079,69 @@ fn finding_rows(
         .collect()
 }
 
+/// Most frequent baseline/changed exact path pair across a finding's
+/// member streams (the summary signatures' exact counterparts).
+fn finding_path_pair(f: &crate::catalog::workbench::RoutingFinding) -> (Vec<u32>, Vec<u32>) {
+    let most_frequent = |pick: &dyn Fn(
+        &crate::catalog::workbench::FindingStream,
+    ) -> Option<Vec<u32>>|
+     -> Vec<u32> {
+        let mut counts: std::collections::BTreeMap<Vec<u32>, usize> =
+            std::collections::BTreeMap::new();
+        for s in &f.streams {
+            if let Some(p) = pick(s) {
+                *counts.entry(p).or_default() += 1;
+            }
+        }
+        counts
+            .iter()
+            .max_by_key(|(p, c)| (*c, p.len()))
+            .map(|(p, _)| p.clone())
+            .unwrap_or_default()
+    };
+    (
+        most_frequent(&|s| {
+            if s.baseline_path.is_empty() {
+                None
+            } else {
+                Some(s.baseline_path.clone())
+            }
+        }),
+        most_frequent(&|s| s.changed_path.clone()),
+    )
+}
+
+/// Named path segments with textual diff markers (Session 40, Part 5).
+fn named_segments(
+    path: &[u32],
+    diff: &crate::catalog::workbench::PathDiff,
+    is_after: bool,
+    name_for: &dyn Fn(u32) -> String,
+) -> Vec<PathSegmentRow> {
+    let mut rows: Vec<PathSegmentRow> = Vec::new();
+    if path.is_empty() {
+        return rows;
+    }
+    for asn in path {
+        let mark = if is_after {
+            if diff.inserted.contains(asn) {
+                "ins"
+            } else {
+                "same"
+            }
+        } else if diff.removed.contains(asn) {
+            "del"
+        } else {
+            "same"
+        };
+        rows.push(PathSegmentRow {
+            asn: *asn,
+            label: name_for(*asn),
+            mark,
+        });
+    }
+    rows
+}
 /// Exact AS path display: plain space-joined ASN sequence. The compact
 /// ×N collapse is only used in the summary signature, never here.
 fn exact_path_display(path: &[u32]) -> String {
@@ -3883,7 +4161,7 @@ fn finding_outcome(f: &crate::catalog::workbench::RoutingFinding) -> String {
     let time = |t: &str| wb_time(t, window);
     match (
         &f.visibility_restored_at,
-        &f.baseline_restored_at,
+        &f.exact_baseline_restored_at,
         &f.state_at_window_end,
     ) {
         (Some(v), Some(b), _) => format!("Visibility {} · baseline {}", time(v), time(b)),
@@ -3896,104 +4174,147 @@ fn finding_outcome(f: &crate::catalog::workbench::RoutingFinding) -> String {
     }
 }
 
-/// Observer comparison by region (Session 39, Part 9): one concrete
-/// statement per observer site, then the compact ratio as metadata.
+/// Observer comparison by region (Session 40, Part 10): narrative
+/// routing differences per observer site. Regional ratios are NOT part
+/// of this section — they live in Observation coverage.
 fn region_comparison_rows(
     vm: &crate::catalog::workbench::IncidentWorkbenchViewModel,
     f: &WorkbenchFilters,
 ) -> Vec<WorkbenchRegionComparisonRow> {
-    let mut by_region: std::collections::BTreeMap<String, Vec<String>> =
-        std::collections::BTreeMap::new();
-    let mut by_region_ratio: std::collections::BTreeMap<String, (usize, usize)> =
-        std::collections::BTreeMap::new();
-    let mut changed_sessions: std::collections::BTreeSet<String> =
-        std::collections::BTreeSet::new();
-    for fnd in vm
-        .findings
+    use crate::catalog::workbench::select_principal_findings;
+    let event_date = crate::catalog::workbench::window_date(&vm.window_start);
+    let (principal, _) = select_principal_findings(vm.findings.clone(), &vm.plane_asns, 4);
+    let principal: Vec<&crate::catalog::workbench::RoutingFinding> = principal
         .iter()
         .filter(|fnd| matches_finding_filter(fnd, f))
-    {
+        .collect();
+    let mut by_region: std::collections::BTreeMap<String, Vec<String>> =
+        std::collections::BTreeMap::new();
+    let mut changed_sites: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
+    // One narrative line per observer site, from the site's principal
+    // story (the highest-ranked finding at that session).
+    let mut by_site: std::collections::BTreeMap<
+        String,
+        &crate::catalog::workbench::RoutingFinding,
+    > = std::collections::BTreeMap::new();
+    for fnd in &principal {
+        by_site.entry(fnd.observer_site.clone()).or_insert(fnd);
+    }
+    for fnd in by_site.values() {
         by_region
             .entry(fnd.observer_region.clone())
             .or_default()
-            .push(format!(
-                "{}: {} beginning {}",
-                fnd.observer_site,
-                finding_region_phrase(fnd),
-                fnd.first_observed
-                    .as_deref()
-                    .map(|t| wb_time(t, &vm.window_start))
-                    .unwrap_or_else(|| "the observed time".to_string())
+            .push(region_site_narrative(
+                fnd,
+                &vm.plane_asns,
+                &event_date,
+                &vm.asn_identities,
             ));
-        changed_sessions.insert(fnd.observer_site.clone());
+        changed_sites.insert(fnd.observer_site.clone());
     }
     // No-change sessions per region: "no route-state counterpart".
     for e in &vm.episodes {
         if e.effect_kind == crate::catalog::workbench::EffectKind::NoRouteStateChange {
             let site = e.observer_site.clone();
-            if !changed_sessions.contains(&site) {
+            if !changed_sites.contains(&site) {
                 by_region
                     .entry(e.observer_region.clone())
                     .or_default()
-                    .push(format!("{}: no route-state counterpart observed", site));
+                    .push(format!(
+                        "{}: no route-state counterpart observed for the selected prefixes.",
+                        site
+                    ));
             }
         }
-    }
-    // Eligible-per-region ratios from the breadth summary.
-    for b in &vm.breadth {
-        let (ch, el) = by_region_ratio.entry(b.region.clone()).or_default();
-        *ch = b.changed_observer_sessions;
-        *el = b.eligible_observer_sessions;
     }
     by_region
         .into_iter()
         .map(|(region, mut statements)| {
             statements.sort();
-            let (ch, el) = by_region_ratio.get(&region).copied().unwrap_or((0, 0));
             WorkbenchRegionComparisonRow {
                 region,
                 statements,
-                ratio: if el == 0 {
-                    "—".to_string()
-                } else {
-                    format!("{ch}/{el}")
-                },
+                ratio: String::new(),
             }
         })
         .collect()
 }
 
-/// Short concrete phrase for one finding in the regional summary.
-fn finding_region_phrase(f: &crate::catalog::workbench::RoutingFinding) -> String {
-    use crate::catalog::workbench::{EndState as ES, RoutingEffect as RE};
+/// One narrative sentence for an observer site (Session 40, Part 10),
+/// built from the site's principal finding and its path semantics.
+fn region_site_narrative(
+    f: &crate::catalog::workbench::RoutingFinding,
+    plane_asns: &[u32],
+    event_date: &str,
+    identities: &[crate::catalog::workbench::AsnIdentity],
+) -> String {
+    use crate::catalog::workbench::{diff_paths, RoutingEffect as RE};
+    let name_for = |asn: u32| -> String {
+        match identities
+            .iter()
+            .find(|i| i.asn == asn && i.valid_at(event_date) && i.has_display_name())
+        {
+            Some(i) => format!("{} (AS{})", i.display_name, asn),
+            None => format!("AS{asn} — name not reviewed"),
+        }
+    };
+    let plane = if f.named_path_plane.is_empty() {
+        "the reviewed path plane".to_string()
+    } else {
+        f.named_path_plane.clone()
+    };
+    let (baseline, changed) = finding_path_pair(f);
+    let d = diff_paths(&baseline, &changed, plane_asns);
     let n = f.distinct_prefixes;
-    let unit = if n == 1 {
-        "1 prefix".to_string()
+    let group = if n == 1 {
+        "a single prefix".to_string()
     } else {
         format!("{n} prefixes")
     };
-    let changed = match f.effect {
-        RE::PrefixesTemporarilyAbsent => "briefly disappeared",
-        RE::PrefixesWithdrawn => "became absent",
-        RE::AsPathChanged => "changed path",
-        RE::PrependingChanged => "changed prepending",
-        RE::NamedPlaneDeparted => "left the reviewed plane",
-        RE::NamedPlaneReturned => "returned to the reviewed plane",
-        RE::VisibilityRestored => "returned to visibility",
-        RE::BaselinePathRestored => "restored the baseline path",
-        RE::MixedChange => "showed mixed route-state changes",
-    };
-    let mut s = format!("{unit} {changed}");
-    match (&f.baseline_restored_at, &f.state_at_window_end) {
-        (Some(t), _) => s.push_str(&format!(
-            "; earlier path state returned by {}",
-            wb_time(t, f.first_observed.as_deref().unwrap_or(""))
-        )),
-        (None, ES::StillChangedAtWindowEnd) => s.push_str("; still changed at window end"),
-        (None, ES::AbsentAtWindowEnd) => s.push_str("; absent at window end"),
-        _ => {}
+    let site = f.observer_site.clone();
+    match f.effect {
+        RE::PrefixesTemporarilyAbsent | RE::PrefixesWithdrawn => {
+            if f.visibility_restored_at.is_some() {
+                format!(
+                    "The {} view briefly lost {} and then saw them return on a different path.",
+                    site, group
+                )
+            } else {
+                format!("The {} view lost {} and they remained absent.", site, group)
+            }
+        }
+        _ if d.plane_departed => {
+            format!(
+                "The selected prefixes remained visible at {}, but the new path no longer traversed {}.",
+                site, plane
+            )
+        }
+        RE::AsPathChanged | RE::PrependingChanged if d.plane_retained => {
+            if f.exact_baseline_restored_at.is_none()
+                && f.state_at_window_end
+                    == crate::catalog::workbench::EndState::StillChangedAtWindowEnd
+            {
+                format!(
+                    "{} at {} remained on {} and were still changed at the event-window end.",
+                    group, site, plane
+                )
+            } else if d.longer {
+                format!(
+                    "{} at {} changed path while remaining on {} through a longer path.",
+                    group, site, plane
+                )
+            } else {
+                format!(
+                    "{} at {} changed path while remaining on {}.",
+                    group, site, plane
+                )
+            }
+        }
+        _ => {
+            let _ = &name_for;
+            format!("{} at {} showed a route-state change.", group, site)
+        }
     }
-    s
 }
 
 /// Display-time renderer (Part 4): HH:MM:SS UTC for same-day rows.
@@ -4102,26 +4423,34 @@ fn timeline_rows(
 ) -> Vec<WorkbenchTimelineRow> {
     use crate::catalog::workbench::session_key_of;
     let window = &vm.window_start;
-    // Lane labels (Session 39, Part 10): collector site + peer identity
-    // from the episode/finding evidence, e.g. "RRC15 Sao Paulo, Brazil
-    // · RNP AS1916".
+    // Lane labels (Session 39, Part 10; Session 40, Part 3): collector
+    // site + peer identity from the episode/finding evidence, e.g.
+    // "RRC15 Sao Paulo, Brazil · RNP (AS1916)". Identities are
+    // time-scoped to the event date.
+    let event_date = crate::catalog::workbench::window_date(&vm.window_start);
     let mut lane_labels: std::collections::HashMap<String, String> =
         std::collections::HashMap::new();
     for e in &vm.episodes {
         let key = session_key_of(&e.observer_session);
         let collector = key.collector.clone();
-        let peer = match e.peer_asn {
+        let peer = match e.peer_asn.or_else(|| {
+            if e.observed_peer_asns.len() == 1 {
+                Some(e.observed_peer_asns[0])
+            } else {
+                None
+            }
+        }) {
             Some(asn) => {
                 let name = vm
                     .asn_identities
                     .iter()
-                    .find(|i| i.asn == asn && i.review_status == "reviewed")
+                    .find(|i| i.asn == asn && i.valid_at(&event_date) && i.has_display_name())
                     .map(|i| i.display_name.as_str())
                     .unwrap_or("");
                 if name.is_empty() {
                     format!("AS{asn}")
                 } else {
-                    format!("{name} AS{asn}")
+                    format!("{name} (AS{asn})")
                 }
             }
             None => "peer ASN unreviewed".to_string(),
