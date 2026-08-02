@@ -119,7 +119,7 @@
     {% endif %}
   </p>
   <p class="wb-finding-links">
-    <details class="wb-route-sequence">
+    <details class="wb-route-sequence"{% if f.expanded %} open{% endif %}>
       <summary>Route sequence ▸</summary>
       <div class="wb-scroll">
       <table class="wb-table wb-chronology">
