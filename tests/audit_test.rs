@@ -48,8 +48,9 @@ struct AuditEntry {
 }
 
 fn inventory() -> BTreeMap<String, AuditEntry> {
-    let raw: serde_json::Value = serde_json::from_str(&read("docs/audits/repository-inventory.json"))
-        .expect("inventory JSON parses");
+    let raw: serde_json::Value =
+        serde_json::from_str(&read("docs/audits/repository-inventory.json"))
+            .expect("inventory JSON parses");
     let arr = raw.as_array().expect("inventory is an array");
     let mut map = BTreeMap::new();
     for v in arr {
@@ -57,7 +58,10 @@ fn inventory() -> BTreeMap<String, AuditEntry> {
             path: v["path"].as_str().expect("path").to_string(),
             category: v["category"].as_str().expect("category").to_string(),
             audience: v["audience"].as_str().expect("audience").to_string(),
-            authoritative: v["authoritative"].as_str().expect("authoritative").to_string(),
+            authoritative: v["authoritative"]
+                .as_str()
+                .expect("authoritative")
+                .to_string(),
             generated: v["generated"].as_bool().expect("generated"),
             current: v["current"].as_bool().expect("current"),
         };
