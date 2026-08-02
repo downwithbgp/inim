@@ -299,6 +299,25 @@ pub async fn api_event_workbench(
     }
 }
 
+/// GET /api/v1/case-studies/:slug/workbench — full workbench view model
+/// for a case study (same shared model as the page).
+pub async fn api_case_study_workbench(
+    State(state): State<SharedState>,
+    AxumPath(slug): AxumPath<String>,
+) -> Response {
+    let db = state.db.lock().unwrap();
+    match super::view::load_case_study_workbench(
+        &db,
+        &slug,
+        &state.catalog_root,
+        &crate::catalog::web::handlers::WorkbenchQuery::default(),
+    ) {
+        Ok(Some(v)) => envelope(serde_json::to_value(v.vm).unwrap_or_default()),
+        Ok(None) => super::handlers::json_error(StatusCode::NOT_FOUND, "case study not found"),
+        Err(e) => super::handlers::json_error(StatusCode::INTERNAL_SERVER_ERROR, &e),
+    }
+}
+
 /// GET /api/v1/analyses/:run_id/observer-episodes — episodes of one run.
 ///
 /// No absolute paths are exposed; every field is presentation data.

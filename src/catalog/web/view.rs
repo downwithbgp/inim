@@ -134,6 +134,7 @@ a:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px soli
 @media (max-width: 640px) {
   body { font-size: 13px; }
   main { padding: 0.5rem 8px 1.5rem; }
+  .wb-event-context summary { cursor: pointer; color: var(--link); text-decoration: underline; font-size: 0.8rem; }
   .wb-facts { display: block; }
   .wb-facts > div { display: block; }
   .wb-facts dt { margin-top: 0.2rem; }
@@ -2959,6 +2960,11 @@ pub struct WorkbenchView {
     /// Denominator line: "10 eligible observer sessions: 8 changed,
     /// 2 unchanged, 1 no qualifying baseline."
     pub denominator: String,
+    /// Header human ranges (Part 9): exact ISO stays in the model/API.
+    pub header_incident_range: String,
+    pub header_pilot_range: String,
+    /// Linked-ticket count for the compact header.
+    pub linked_ticket_count: usize,
     /// Active filter state (for filter links and title).
     pub filters: WorkbenchFilters,
     /// Per-request performance measurement (Part 13). All timings are
@@ -3063,6 +3069,13 @@ impl WorkbenchView {
             grouped_cues,
             runs,
             denominator,
+            header_incident_range: if vm.incident_horizon_start.is_empty() {
+                String::new()
+            } else {
+                human_date_range(&vm.incident_horizon_start, &vm.incident_horizon_end)
+            },
+            header_pilot_range: human_pilot_range(&vm.window_start, &vm.window_end),
+            linked_ticket_count: vm.linked_tickets.len(),
             filters: f,
             timing: WorkbenchTiming {
                 sql_query_count: 0,
@@ -3563,6 +3576,25 @@ fn stream_end_state_human(s: &crate::catalog::workbench::EpisodeStream) -> Strin
 /// Display-time renderer (Part 4): HH:MM:SS UTC for same-day rows.
 fn wb_time(ts: &str, window_start: &str) -> String {
     crate::catalog::workbench::workbench_time(ts, window_start)
+}
+
+/// "HH:MM" of a timestamp (header ranges, Part 9).
+fn hhmm(ts: &str) -> String {
+    ts.get(11..16)
+        .map(|s| s.to_string())
+        .unwrap_or_else(|| ts.to_string())
+}
+
+/// "YYYY-MM-DD HH:MM–HH:MM UTC" (operator incident range, Part 9).
+fn human_date_range(start: &str, end: &str) -> String {
+    let date = start.get(0..10).unwrap_or("");
+    format!("{date} {}–{} UTC", hhmm(start), hhmm(end))
+}
+
+/// "HH:MM–HH:MM UTC" (pilot range; the date appears in the incident
+/// line of the same header, Part 9).
+fn human_pilot_range(start: &str, end: &str) -> String {
+    format!("{}–{} UTC", hhmm(start), hhmm(end))
 }
 
 /// Pre-rendered breadth row for the template (Part 5): a glanceable

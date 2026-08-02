@@ -122,6 +122,10 @@ pub fn build_router(state: SharedState) -> Router {
             axum::routing::get(api::api_event_workbench),
         )
         .route(
+            "/api/v1/case-studies/{slug}/workbench",
+            axum::routing::get(api::api_case_study_workbench),
+        )
+        .route(
             "/api/v1/analyses/{run_id}/observer-episodes",
             axum::routing::get(api::api_run_observer_episodes),
         )

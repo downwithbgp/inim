@@ -5,22 +5,6 @@
 <p class="muted wb-subtitle">{{ vm.subject_id }} · {{ vm.subject_kind }}{% if !vm.pilot_label.is_empty() %} · historical pilot {{ vm.pilot_label }}{% endif %}</p>
 
 <div class="wb-panel wb-header">
-  <dl class="wb-facts">
-    <div><dt>Source task type</dt><dd>{{ vm.source_task_type }}</dd></div>
-    <div><dt>Reviewed incident role</dt><dd>{{ vm.reviewed_incident_role }}</dd></div>
-    <div><dt>Lifecycle</dt><dd>{{ vm.lifecycle }}</dd></div>
-    {% if !vm.expectation_assessment.is_empty() %}
-    <div><dt>Expectation assessment</dt><dd>{{ vm.expectation_assessment }}</dd></div>
-    {% endif %}
-    {% if !vm.linked_tickets.is_empty() %}
-    <div><dt>Linked source tickets</dt><dd>{{ vm.linked_tickets | join(", ") }}</dd></div>
-    {% endif %}
-    {% if !vm.incident_horizon_start.is_empty() %}
-    <div><dt>Operator incident horizon</dt><dd class="wb-mono wb-nowrap">{{ vm.incident_horizon_start }} → {{ vm.incident_horizon_end }} UTC</dd></div>
-    {% endif %}
-    <div><dt>Displayed BGP pilot</dt><dd class="wb-mono wb-nowrap">{{ vm.window_start }} → {{ vm.window_end }} UTC</dd></div>
-  </dl>
-
   <div class="wb-observed">
     <h3>Observed result</h3>
     <p class="wb-result">{{ vm.observed_result }}</p>
@@ -38,6 +22,29 @@
     · <a href="/analyses/{% if !vm.runs.is_empty() %}{{ vm.runs[0].id }}{% else %}0{% endif %}">Analysis details</a>
     · <a href="{% if vm.subject_kind == "case-study" %}/case-studies/{{ vm.subject_id }}{% else %}/events/{{ vm.subject_id }}{% endif %}">Provenance</a>
   </p>
+
+  <details class="wb-event-context" open>
+    <summary>Event context</summary>
+    <dl class="wb-facts">
+      <div><dt>Source task type</dt><dd>{{ vm.source_task_type }}</dd></div>
+      <div><dt>Reviewed incident role</dt><dd>{{ vm.reviewed_incident_role }}</dd></div>
+      <div><dt>Lifecycle</dt><dd>{{ vm.lifecycle }}</dd></div>
+      {% if !vm.expectation_assessment.is_empty() %}
+      <div><dt>Expectation assessment</dt><dd>{{ vm.expectation_assessment }}</dd></div>
+      {% endif %}
+      {% if !vm.linked_tickets.is_empty() %}
+      <div><dt>Linked source tickets</dt><dd>{{ linked_ticket_count }}
+        <details class="wb-ticket-list"><summary>View tickets</summary>
+          <span class="wb-mono">{{ vm.linked_tickets | join(", ") }}</span>
+        </details>
+      </dd></div>
+      {% endif %}
+      {% if !header_incident_range.is_empty() %}
+      <div><dt>Operator incident</dt><dd class="wb-nowrap">{{ header_incident_range }}</dd></div>
+      {% endif %}
+      <div><dt>Displayed BGP pilot</dt><dd class="wb-nowrap">{{ header_pilot_range }}</dd></div>
+    </dl>
+  </details>
 </div>
 
 <h3 class="wb-section">Observed breadth by region</h3>
@@ -323,9 +330,15 @@
 </details>
 
 <script>
-/* Progressive enhancement only: column sorting. Episode expansion uses
-   native <details> and works without JavaScript. */
+/* Progressive enhancement only: column sorting + mobile event-context
+   collapse. Episode expansion uses native <details> and works without
+   JavaScript. */
 (function () {
+  if (window.matchMedia && window.matchMedia('(max-width: 640px)').matches) {
+    var ctx = document.querySelector('.wb-event-context');
+    if (ctx) { ctx.removeAttribute('open'); }
+  }
+  /* column sorting below */
   document.querySelectorAll('table[data-sortable]').forEach(function (table) {
     var headers = table.querySelectorAll('th');
     var tbody = table.querySelector('tbody');

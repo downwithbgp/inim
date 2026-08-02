@@ -1284,9 +1284,10 @@ async fn manlan_workbench() -> (StatusCode, String) {
     manlan_workbench_q("").await
 }
 
-async fn manlan_workbench_q(query: &str) -> (StatusCode, String) {
+/// Build the MAN LAN app (case study + pilot runs + links imported).
+async fn manlan_app() -> Option<(tempfile::TempDir, axum::Router)> {
     if !repo_artifacts_available() {
-        return (StatusCode::OK, String::new());
+        return None;
     }
     let (dbdir, rootdir) = setup_catalog();
     // Import the reviewed case study, its four RE-plane pilot runs, and
@@ -1353,6 +1354,13 @@ async fn manlan_workbench_q(query: &str) -> (StatusCode, String) {
         }
     }
     let app = build_app(state_from(&dbdir, &rootdir));
+    Some((dbdir, app))
+}
+
+async fn manlan_workbench_q(query: &str) -> (StatusCode, String) {
+    let Some((_dbdir, app)) = manlan_app().await else {
+        return (StatusCode::OK, String::new());
+    };
     let uri = if query.is_empty() {
         "/case-studies/manlan-2019/workbench".to_string()
     } else {
@@ -1467,24 +1475,26 @@ async fn pilot_window_is_distinct_from_incident_horizon() {
         return;
     }
     assert_eq!(status, StatusCode::OK);
-    assert!(body.contains("Operator incident horizon"), "horizon label");
+    // Part 9 header: human-readable ranges, exact ISO retained in the
+    // JSON API (asserted via the API endpoint below).
+    assert!(body.contains("Operator incident"), "horizon label");
     assert!(body.contains("Displayed BGP pilot"), "pilot label");
     assert!(
-        body.contains("2019-08-21T04:00:00Z"),
-        "incident horizon start 04:00"
+        body.contains("2019-08-21 04:00–22:38 UTC"),
+        "incident horizon as a human date range"
     );
     assert!(
-        body.contains("2019-08-21T22:38:00Z"),
-        "incident horizon end 22:38"
+        body.contains("16:00–17:30 UTC"),
+        "pilot window as a human range (date implied)"
     );
-    assert!(
-        body.contains("2019-08-21T16:00:00Z"),
-        "pilot window start 16:00"
-    );
-    assert!(
-        body.contains("2019-08-21T17:30:00Z"),
-        "pilot window end 17:30"
-    );
+    // Exact ISO survives in the API.
+    let Some((_dbdir, app)) = manlan_app().await else {
+        return;
+    };
+    let (status, api) = get(&app, "/api/v1/case-studies/manlan-2019/workbench").await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(api.contains("2019-08-21T04:00:00Z"), "exact ISO in API");
+    assert!(api.contains("2019-08-21T17:30:00Z"), "exact ISO in API");
 }
 
 #[tokio::test]
@@ -2150,4 +2160,77 @@ async fn manlan_global_distinct_prefix_count_is_not_stream_total() {
     // Regional cells: AMER 12 distinct prefixes with 46 streams.
     assert!(body.contains("46/57"), "AMER stream cell");
     assert!(body.contains(">12<"), "AMER distinct prefix cell");
+}
+
+// ── Session 38: compact header (Part 9) ─────────────────────────────
+
+#[tokio::test]
+async fn header_does_not_inline_all_linked_ticket_ids() {
+    let (status, body) = manlan_workbench().await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    // The header shows the count and a "View tickets" toggle, not the
+    // comma-separated wall of identifiers.
+    assert!(
+        body.contains("Linked source tickets</dt><dd>12"),
+        "ticket count shown"
+    );
+    assert!(body.contains("View tickets"), "toggle present");
+    // The identifiers are inside the toggle's content; the header line
+    // itself must not contain the full list.
+    let header = body.split("wb-event-context").next().unwrap_or("");
+    assert!(
+        !header.contains("CHG0038258, INC0040257"),
+        "no inline ticket-id wall in the first summary"
+    );
+}
+
+#[tokio::test]
+async fn header_uses_human_time_range() {
+    let (status, body) = manlan_workbench().await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    assert!(
+        body.contains("Operator incident</dt><dd class=\"wb-nowrap\">2019-08-21 04:00–22:38 UTC"),
+        "incident range human-readable with date"
+    );
+    assert!(
+        body.contains("Displayed BGP pilot</dt><dd class=\"wb-nowrap\">16:00–17:30 UTC"),
+        "pilot range human-readable, date implied"
+    );
+}
+
+#[tokio::test]
+async fn exact_iso_time_remains_in_details() {
+    // The exact ISO values stay in the expanded details and the API.
+    let (status, body) = manlan_workbench_q("episode=3").await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    assert!(
+        body.contains("2019-08-21T16:45:25"),
+        "exact timestamp in expanded details"
+    );
+}
+
+#[tokio::test]
+async fn mobile_first_view_prioritizes_result_and_scope() {
+    // In the DOM, the observed result and scope limit precede the event
+    // context facts, so the first mobile viewport shows title + result
+    // + scope before any secondary metadata.
+    let (status, body) = manlan_workbench().await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    let result = body.find("Observed result").unwrap();
+    let context = body.find("Event context").unwrap();
+    let scope = body.find("Scope limit:").unwrap();
+    assert!(result < context, "observed result precedes event context");
+    assert!(scope < context, "scope limit precedes event context");
 }
