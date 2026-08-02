@@ -62,9 +62,9 @@ All synthetic observation data used in unit tests is generated in code
 
 ### 3b. Public Task Viewer response fixtures — `grnoc/viewer/*.json`
 
-- **Purpose:** drive viewer-response parsing tests (Session 33,
-  Part 1): envelope parsing, lossless raw-value preservation, unknown
-  field tolerance, per-item failure isolation.
+- **Purpose:** drive viewer-response parsing tests: envelope parsing,
+  lossless raw-value preservation, unknown field tolerance, per-item
+  failure isolation.
 - **Source:** the GlobalNOC Public Task Viewer JSON responses captured
   during the protocol audit on 2026-08-01
   (`https://ticket-viewer.grnoc.iu.edu/api/get_incidents` and
@@ -93,15 +93,35 @@ All synthetic observation data used in unit tests is generated in code
 - **Packaging:** **include** — required for the viewer-response parsing
   tests to run from a packaged crate.
 
-### 3c. RIS format-compatibility note
+### 3c. RIPE RIS archive fixture — `ris/updates.20190821.1600.gz`
 
-No separate RIS MRT fixture is committed: RIPE RIS publishes the same
-BGP4MP MRT format as RouteViews, so `mrt/update-example.gz` (section 2)
-is upstream-format-compatible with RIS `updates.*.gz` archives. RIS
-archive-SELECTION behavior (URLs, cadence, bview naming, gzip
-compression) is exercised in `src/catalog/archive_plan.rs` against the
-planner's family-aware URL builder; see
-`docs/ADRs/RIPE-RIS-SUPPORT.md`.
+- **Purpose:** drive RIPE RIS execution tests: the same
+  ingestion/reconstruction pipeline must accept RIS MRT archives
+  (BGP4MP, gzip) exactly like RouteViews archives.
+- **Source:** RIPE RIS route collector `rrc00`
+  (`https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1600.gz`),
+  captured 2026-08-01.
+- **Exact or minimized:** exact copy of the 5-minute UPDATE archive as
+  served (1,758,208 bytes; SHA-256
+  `cd4ed1d6ca379344064ce30b3bd6a2691dfc7aba04bd49e25e7760f82257da19`).
+- **Original author/project:** RIPE NCC (public BGP data).
+- **Upstream license:** RIPE NCC public data; RIPE RIS data is publicly
+  available for research and operational use.
+- **Why redistribution is permitted:** RIPE RIS archives are published
+  for unrestricted public download; this single 5-minute sample is a
+  documented fixture.
+- **Packaging:** **include** — required for the RIS execution tests.
+
+### 3d. RIS format-compatibility note
+
+No separate RouteViews-vs-RIS format fixture is needed: RIPE RIS
+publishes the same BGP4MP MRT format as RouteViews, so
+`mrt/update-example.gz` (section 2) is upstream-format-compatible with
+RIS `updates.*.gz` archives, and the committed RIS archive (section 3c)
+exercises the real RIS path. RIS archive-SELECTION behavior (URLs,
+cadence, bview naming, gzip compression) is exercised in
+`src/catalog/archive_plan.rs` against the planner's family-aware URL
+builder; see `docs/ADRs/RIPE-RIS-SUPPORT.md`.
 
 ### 4. Generated expected-output fixtures (none committed)
 
@@ -121,21 +141,3 @@ and `out/` (excluded from the package).
 The fixture JSON shapes and the test harness around them are original inim
 code (MIT). The upstream MRT bytes and the public ticket facts are not
 inim's own work and retain their own provenance above.
-
-### 3c. RIPE RIS archive fixture — `ris/updates.20190821.1600.gz`
-
-- **Purpose:** drive RIPE RIS execution tests (Session 34, Part 4):
-  the same ingestion/reconstruction pipeline must accept RIS MRT
-  archives (BGP4MP, gzip) exactly like RouteViews archives.
-- **Source:** RIPE RIS route collector `rrc00`
-  (`https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1600.gz`),
-  captured 2026-08-01.
-- **Exact or minimized:** exact copy of the 5-minute UPDATE archive as
-  served (1,758,208 bytes; SHA-256
-  `cd4ed1d6ca379344064ce30b3bd6a2691dfc7aba04bd49e25e7760f82257da19`).
-- **Original author/project:** RIPE NCC (public BGP data).
-- **Upstream license:** RIPE NCC public data; RIPE RIS data is publicly
-  available for research and operational use.
-- **Why redistribution is permitted:** RIPE RIS archives are published
-  for unrestricted public download; this single 5-minute sample is a
-  documented fixture.

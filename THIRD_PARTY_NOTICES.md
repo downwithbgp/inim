@@ -36,6 +36,18 @@ MIT License — Copyright (c) BGPKIT contributors:
 > TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 > SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
+## RIPE RIS archive fixture — `tests/fixtures/ris/updates.20190821.1600.gz`
+
+- **Source:** RIPE RIS route collector `rrc00`
+  (`https://data.ris.ripe.net/rrc00/2019.08/updates.20190821.1600.gz`,
+  2026-08-01), exact copy, SHA-256
+  `cd4ed1d6ca379344064ce30b3bd6a2691dfc7aba04bd49e25e7760f82257da19`.
+- **License/status:** RIPE NCC public BGP data; RIPE RIS archives are
+  published for unrestricted public download. No separate license text
+  is distributed with the data; RIPE NCC's data policy applies.
+- **Use:** exercise the RIS ingestion path in tests only.
+- **Provenance:** see `tests/fixtures/README.md`.
+
 ## Public operational ticket fixtures — `tests/fixtures/internet2/`, `tests/fixtures/grnoc/`
 
 Public operational announcements (Internet2 GRNOC task records and an
