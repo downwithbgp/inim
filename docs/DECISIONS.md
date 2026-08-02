@@ -35,6 +35,13 @@ streaming parsers.
 - Lower cognitive overhead for contributors
 - Can introduce async later for live scraping or streaming if needed
 
+**Follow-up (2026-08-02):** Partially superseded by the local catalog
+and web decision (`docs/ADRs/LOCAL-CATALOG-AND-WEB.md`). The web layer
+now uses async (Axum over Tokio) and the GRNOC viewer sync performs live
+HTTP acquisition; the CLI analysis path remains synchronous by design
+(see `docs/DESIGN.md`). The original decision is retained as written —
+it correctly scoped the initial CLI-only product.
+
 ---
 
 ## ADR-003: Module boundaries, not workspace crates

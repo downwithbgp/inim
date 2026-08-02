@@ -170,3 +170,15 @@ every related ticket.
   (`collector-locations.json`, as-of 2019-09-05): location describes
   where the collector is hosted, not the path taken by observed routes,
   and it never defines a network's role.
+
+## Current status (2026-08-02)
+
+Accepted and still applicable. The case-study layer has grown the
+reviewed-interpretation tables (`ticket_reviews`, V7) and the
+relationship-graph layer on top of the original schema v2 decision;
+the association path `CaseStudy → AnalysisRun → stream lifecycle →
+route-instance evidence` is unchanged.
+
+## Follow-up
+
+None outstanding.

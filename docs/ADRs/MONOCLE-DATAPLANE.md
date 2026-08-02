@@ -79,3 +79,14 @@ blocker.
   full Monocle dependency tree.
 - **Defer decision:** rejected — leaving an unused production dependency and
   unproven adapter stub violates the project's "no dormant code" principle.
+
+## Current status (2026-08-02)
+
+Accepted and still fully applicable. The `monocle` dependency remains
+removed; bgpkit-parser + bgpkit-broker plus the custom archive cache,
+derived caches, and parallel pipeline remain the production data plane.
+
+## Follow-up
+
+Revisit only if a future Monocle release exposes library-mode raw MRT
+caching and broker-query caching.

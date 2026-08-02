@@ -152,7 +152,8 @@ in templates.
   reviewed data in `collector-locations.json`; the region classifies the
   observer site only.
 - Regional observed breadth always shows the denominator
-  (`changed / eligible`); NoChange, NoBaselineVisibility, and
+  (`changed / eligible`); NoRouteStateChange (an observed
+  signature with Complete coverage), NoBaselineVisibility, and
   IncompleteCoverage never collapse into one zero; no severity score.
 - Old-school NOC HCI: rectangular panels, square corners, thin borders,
   strong headers, compact line height, monospaced timestamps, dense
@@ -167,3 +168,15 @@ in templates.
   no MRT parsing**; main queries use existing indexes (verified with
   `EXPLAIN QUERY PLAN`); per-request SQL query count and timings are
   captured (demo catalog: ~16–23 ms median).
+
+## Current status (2026-08-02)
+
+Accepted and extended by ADR-003 (case-study layer). The SQLite catalog
+and the read-only, server-rendered web workbench are the primary analyst
+interface; the CLI remains the administration and analysis boundary.
+The web layer is async (Axum over Tokio); the CLI analysis path is
+synchronous by design (see `docs/DESIGN.md`).
+
+## Follow-up
+
+None outstanding.

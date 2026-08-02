@@ -110,3 +110,14 @@ route count) and reports EVERY peer in the MRT peer table. Results
 Direct (peer ASN equals the plane ASN) and indirect (plane ASN in the
 AS path) remain separate evidence classes; "no AS2603 routes via the
 session" and "no session at all" are distinct facts.
+
+## Current status (2026-08-02)
+
+Accepted. RIS execution (download + parse) is supported end-to-end
+through the same evidence-bearing engine as RouteViews; the RRC11
+historical audit confirms the direct peering-plane relationship was
+unassessable at the selected 2019 observers (`RequiredSessionAbsent`).
+
+## Follow-up
+
+None outstanding.
