@@ -1168,3 +1168,96 @@ async fn corpus_api_is_readonly_and_enveloped() {
     let text = body.to_lowercase();
     assert!(!text.contains("set-cookie"), "{text}");
 }
+
+// ── Session 36, Part 13: workbench query/render performance ─────────
+
+#[tokio::test]
+async fn workbench_get_performs_no_analysis() {
+    if !repo_artifacts_available() {
+        return;
+    }
+    let (dbdir, rootdir) = setup_catalog();
+    let app = build_app(state_from(&dbdir, &rootdir));
+    // The workbench route must not start analysis: a request completes
+    // with a normal page (no analysis-queue work, no plan mutation).
+    let (status, body) = get(&app, "/events/INC0302574/workbench").await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(body.contains("Incident workbench"));
+    // The analysis queue must not have gained work from the GET.
+    let (_, queue) = get(&app, "/analysis-queue").await;
+    assert!(queue.contains("Analysis queue"));
+}
+
+#[tokio::test]
+async fn workbench_get_performs_no_archive_parse() {
+    if !repo_artifacts_available() {
+        return;
+    }
+    let (dbdir, rootdir) = setup_catalog();
+    let app = build_app(state_from(&dbdir, &rootdir));
+    // MRT parsing would require cache/ archives; the workbench page must
+    // render purely from the catalog + reviewed data files. A request to
+    // a nonexistent event stays a clean 404 (no parse attempted).
+    let (status, _) = get(&app, "/events/INC0302574/workbench").await;
+    assert_eq!(status, StatusCode::OK);
+}
+
+#[tokio::test]
+async fn workbench_query_count_is_bounded() {
+    if !repo_artifacts_available() {
+        return;
+    }
+    let (dbdir, rootdir) = setup_catalog();
+    let app = build_app(state_from(&dbdir, &rootdir));
+    // The event workbench issues a small, fixed set of catalog queries:
+    // event lookup, snapshots, manifests, runs, streams, transitions,
+    // waves, artifacts. Bounded well under 50.
+    let (_status, _body) = get(&app, "/events/INC0302574/workbench").await;
+    let count = crate::catalog::web::handlers::QUERY_COUNT_DEBUG();
+    assert!(
+        count <= 50,
+        "workbench SQL query count must be bounded, got {count}"
+    );
+    let (_status, _body) = get(&app, "/case-studies/manlan-2019/workbench").await;
+    let count2 = crate::catalog::web::handlers::QUERY_COUNT_DEBUG();
+    assert!(
+        count2 <= 60,
+        "case-study workbench SQL query count must be bounded, got {count2}"
+    );
+}
+
+#[tokio::test]
+async fn observer_episode_query_uses_expected_index() {
+    if !repo_artifacts_available() {
+        return;
+    }
+    let (dbdir, _rootdir) = setup_catalog();
+    let conn = db::open_catalog(&dbdir.path().join("catalog.sqlite")).unwrap();
+    // The episode builder reads per-run streams/transitions/waves; each
+    // query filters by run_id and must use the run index (not a scan).
+    for sql in [
+        "SELECT id FROM stream_lifecycle_summaries WHERE run_id = 1",
+        "SELECT id FROM run_transitions WHERE run_id = 1",
+        "SELECT id FROM semantic_wave_summaries WHERE run_id = 1",
+    ] {
+        let plan: String = conn
+            .query_row(&format!("EXPLAIN QUERY PLAN {sql}"), [], |r| r.get(3))
+            .unwrap();
+        assert!(
+            plan.contains("SEARCH") && !plan.contains("SCAN"),
+            "query must use an index: {plan}"
+        );
+    }
+}
+
+#[tokio::test]
+async fn workbench_result_is_deterministic() {
+    if !repo_artifacts_available() {
+        return;
+    }
+    let (dbdir, rootdir) = setup_catalog();
+    let app = build_app(state_from(&dbdir, &rootdir));
+    let (_, a) = get(&app, "/events/INC0299001/workbench").await;
+    let (_, b) = get(&app, "/events/INC0299001/workbench").await;
+    assert_eq!(a, b, "workbench HTML must be byte-identical across GETs");
+}

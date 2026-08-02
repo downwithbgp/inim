@@ -2861,18 +2861,52 @@ pub struct WorkbenchView {
     pub coverage: Vec<WorkbenchCoverageRow>,
     pub cues: Vec<crate::catalog::workbench::InvestigationCue>,
     pub runs: Vec<crate::catalog::workbench::WorkbenchRunView>,
+    /// Per-request performance measurement (Part 13). All timings are
+    /// wall-clock; the model is deterministic regardless of timing.
+    pub timing: WorkbenchTiming,
+}
+
+/// Performance measurement for one workbench request.
+///
+/// The workbench performs NO BGP parsing and NO archive reads on the
+/// request path: it reads catalog tables (indexed), reviewed data files,
+/// and immutable report artifacts only. `sql_query_count` is bounded and
+/// asserted by tests.
+#[derive(Serialize, Default)]
+pub struct WorkbenchTiming {
+    pub sql_query_count: usize,
+    pub db_time_ms: f64,
+    pub model_time_ms: f64,
+    pub render_time_ms: f64,
+    pub response_size_bytes: usize,
 }
 
 impl WorkbenchView {
     fn from_vm(vm: crate::catalog::workbench::IncidentWorkbenchViewModel) -> Self {
+        let start = std::time::Instant::now();
+        let episodes = episode_rows(&vm);
+        let breadth = breadth_rows(&vm);
+        let timeline = timeline_rows(&vm);
+        let anchors = anchor_rows(&vm);
+        let coverage = coverage_rows(&vm);
+        let cues = vm.cues.clone();
+        let runs = vm.runs.clone();
+        let render_time_ms = start.elapsed().as_secs_f64() * 1000.0;
         WorkbenchView {
-            episodes: episode_rows(&vm),
-            breadth: breadth_rows(&vm),
-            timeline: timeline_rows(&vm),
-            anchors: anchor_rows(&vm),
-            coverage: coverage_rows(&vm),
-            cues: vm.cues.clone(),
-            runs: vm.runs.clone(),
+            episodes,
+            breadth,
+            timeline,
+            anchors,
+            coverage,
+            cues,
+            runs,
+            timing: WorkbenchTiming {
+                sql_query_count: 0,
+                db_time_ms: 0.0,
+                model_time_ms: 0.0,
+                render_time_ms,
+                response_size_bytes: 0,
+            },
             vm,
         }
     }
@@ -3163,4 +3197,45 @@ fn coverage_rows(
         note: s.note.clone(),
     }));
     out
+}
+
+/// A read-only wrapper that counts SQL statements executed through it.
+///
+/// Used to bound the workbench's catalog query count (Part 13). Only the
+/// query counter and elapsed time are tracked; no statement content is
+/// logged.
+pub struct CountingConnection<'a> {
+    pub conn: &'a rusqlite::Connection,
+    pub query_count: usize,
+    pub elapsed_ms: f64,
+}
+
+impl<'a> CountingConnection<'a> {
+    pub fn new(conn: &'a rusqlite::Connection) -> Self {
+        CountingConnection {
+            conn,
+            query_count: 0,
+            elapsed_ms: 0.0,
+        }
+    }
+
+    pub fn prepare(&mut self, sql: &str) -> Result<rusqlite::Statement<'_>, rusqlite::Error> {
+        let start = std::time::Instant::now();
+        let stmt = self.conn.prepare(sql)?;
+        self.elapsed_ms += start.elapsed().as_secs_f64() * 1000.0;
+        self.query_count += 1;
+        Ok(stmt)
+    }
+
+    pub fn query_row<T, F, P>(&mut self, sql: &str, params: P, f: F) -> Result<T, rusqlite::Error>
+    where
+        F: FnOnce(&rusqlite::Row<'_>) -> rusqlite::Result<T>,
+        P: rusqlite::Params,
+    {
+        let start = std::time::Instant::now();
+        let out = self.conn.query_row(sql, params, f);
+        self.elapsed_ms += start.elapsed().as_secs_f64() * 1000.0;
+        self.query_count += 1;
+        out
+    }
 }

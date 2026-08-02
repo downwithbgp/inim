@@ -35,7 +35,7 @@ sha2 = "0.10"
 flate2 = "1"
 reqwest = { version = "0.12", features = ["blocking"] }
 tokio = { version = "1", features = ["macros", "net", "rt", "rt-multi-thread", "signal"] }
-rusqlite = { version = "0.40.1", features = ["bundled"] }
+rusqlite = { version = "0.40.1", features = ["bundled", "trace"] }
 axum = "0.8.9"
 askama = "0.16.0"
 

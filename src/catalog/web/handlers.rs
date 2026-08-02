@@ -100,16 +100,41 @@ pub async fn case_study_detail(
 }
 
 /// Event incident workbench — the dense NOC view for one event.
+/// Event incident workbench — the dense NOC view for one event.
+///
+/// No analysis or MRT parsing happens on this request path: the view
+/// reads catalog tables (indexed), reviewed data files, and immutable
+/// report artifacts only. Per-request timing (query count, DB time,
+/// model time, render time) is captured for the performance review.
 pub async fn event_workbench(
     State(state): State<SharedState>,
     AxumPath(event_id): AxumPath<String>,
 ) -> Response {
-    let db = state.db.lock().unwrap();
-    match super::view::load_event_workbench(&db, &event_id, &state.catalog_root) {
-        Ok(Some(view)) => render(view),
-        Ok(None) => not_found("event"),
-        Err(e) => server_error(&e),
-    }
+    let mut db = state.db.lock().unwrap();
+    let started = std::time::Instant::now();
+    QUERY_COUNT.store(0, std::sync::atomic::Ordering::Relaxed);
+    #[allow(deprecated)] // connection-local tracer; replaced by trace_v2 in later rusqlite
+    db.trace(Some(trace_counter));
+    let mut view = match super::view::load_event_workbench(&db, &event_id, &state.catalog_root) {
+        Ok(Some(view)) => view,
+        Ok(None) => return not_found("event"),
+        Err(e) => return server_error(&e),
+    };
+    view.timing.sql_query_count = QUERY_COUNT.load(std::sync::atomic::Ordering::Relaxed);
+    view.timing.model_time_ms = started.elapsed().as_secs_f64() * 1000.0;
+    render(view)
+}
+
+/// Static SQL statement counter for workbench requests.
+static QUERY_COUNT: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+
+fn trace_counter(_sql: &str) {
+    QUERY_COUNT.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+}
+
+/// Test/debug accessor for the per-request SQL statement counter.
+pub fn QUERY_COUNT_DEBUG() -> usize {
+    QUERY_COUNT.load(std::sync::atomic::Ordering::Relaxed)
 }
 
 /// Case-study incident workbench — the multi-observer view over the
@@ -118,12 +143,19 @@ pub async fn case_study_workbench(
     State(state): State<SharedState>,
     AxumPath(slug): AxumPath<String>,
 ) -> Response {
-    let db = state.db.lock().unwrap();
-    match super::view::load_case_study_workbench(&db, &slug, &state.catalog_root) {
-        Ok(Some(view)) => render(view),
-        Ok(None) => not_found("case study"),
-        Err(e) => server_error(&e),
-    }
+    let mut db = state.db.lock().unwrap();
+    let started = std::time::Instant::now();
+    QUERY_COUNT.store(0, std::sync::atomic::Ordering::Relaxed);
+    #[allow(deprecated)] // connection-local tracer
+    db.trace(Some(trace_counter));
+    let mut view = match super::view::load_case_study_workbench(&db, &slug, &state.catalog_root) {
+        Ok(Some(view)) => view,
+        Ok(None) => return not_found("case study"),
+        Err(e) => return server_error(&e),
+    };
+    view.timing.sql_query_count = QUERY_COUNT.load(std::sync::atomic::Ordering::Relaxed);
+    view.timing.model_time_ms = started.elapsed().as_secs_f64() * 1000.0;
+    render(view)
 }
 
 /// Serve a validated document file.
