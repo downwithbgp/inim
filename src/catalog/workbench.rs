@@ -145,6 +145,53 @@ impl CoverageStatus {
     }
 }
 
+/// Why an observer session is (or is not) part of the eligible
+/// measurement (Session 38, Part 4). These are distinct conditions and
+/// must never collapse into one "no baseline" bucket:
+/// - `EligibleWithBaseline`: the session exists and the target is
+///   visible; it is part of the eligible denominator.
+/// - `SessionPresentNoTargetBaseline`: the reviewed observer session
+///   exists, but the target is not visible through it.
+/// - `RequiredSessionAbsent`: no historical session matching the
+///   reviewed observer relationship exists.
+/// - `PredicateNotMatched`: origin routes exist, but none satisfy the
+///   reviewed path condition.
+/// - `ArchiveIncomplete`: the observation could not be completed.
+/// - `UnsupportedSource`: the source family is not supported.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum CoverageReason {
+    EligibleWithBaseline,
+    SessionPresentNoTargetBaseline,
+    RequiredSessionAbsent,
+    PredicateNotMatched,
+    ArchiveIncomplete,
+    UnsupportedSource,
+}
+
+impl CoverageReason {
+    pub fn label(&self) -> &'static str {
+        match self {
+            CoverageReason::EligibleWithBaseline => "EligibleWithBaseline",
+            CoverageReason::SessionPresentNoTargetBaseline => "SessionPresentNoTargetBaseline",
+            CoverageReason::RequiredSessionAbsent => "RequiredSessionAbsent",
+            CoverageReason::PredicateNotMatched => "PredicateNotMatched",
+            CoverageReason::ArchiveIncomplete => "ArchiveIncomplete",
+            CoverageReason::UnsupportedSource => "UnsupportedSource",
+        }
+    }
+
+    pub fn human_label(&self) -> &'static str {
+        match self {
+            CoverageReason::EligibleWithBaseline => "Eligible with baseline",
+            CoverageReason::SessionPresentNoTargetBaseline => "Session present, no target baseline",
+            CoverageReason::RequiredSessionAbsent => "Required session absent",
+            CoverageReason::PredicateNotMatched => "Predicate not matched",
+            CoverageReason::ArchiveIncomplete => "Archive incomplete",
+            CoverageReason::UnsupportedSource => "Unsupported source",
+        }
+    }
+}
+
 /// End state of one episode at the analysis-window end, derived ONLY
 /// from lifecycle evidence (withdrawal/restoration flags and exact
 /// restoration timestamps) — never from an optional presentation field.
@@ -223,6 +270,9 @@ pub struct ObserverEpisode {
     pub route_instance_count: usize,
     /// Changed streams whose restoration is unresolved.
     pub unresolved_count: usize,
+    /// Evidenced route-state transitions at this session (from the run's
+    /// transition index; 0 when the artifact is absent — never guessed).
+    pub transition_count: usize,
     /// End state at the analysis-window end, derived from lifecycle
     /// evidence (Part 1.3/1.4). NEVER "NoChange" for changed episodes.
     pub end_state: EndState,
@@ -241,6 +291,7 @@ pub struct EpisodeStream {
     pub withdrawn: bool,
     pub restored: bool,
     pub baseline_instances: i64,
+    pub max_active_instances: i64,
     pub transition_count: i64,
     pub add_path_ambiguous: bool,
     /// Exact lifecycle timestamps (drill-down only; primary UI renders
@@ -425,6 +476,10 @@ pub fn build_episodes(
                 }
             }
         }
+        let session_transition_count = transitions
+            .iter()
+            .filter(|t| t.collector == collector && t.peer_ip == peer_ip)
+            .count();
         for t in transitions {
             if t.collector == collector && t.peer_ip == peer_ip {
                 let ts = t.occurred_utc.clone();
@@ -519,6 +574,7 @@ pub fn build_episodes(
             distinct_prefix_count: distinct_prefixes.len(),
             route_instance_count: route_instances,
             unresolved_count: unresolved,
+            transition_count: session_transition_count,
             end_state,
             coverage_status: coverage,
             representative_evidence: String::new(), // filled by sentence renderer
@@ -530,6 +586,7 @@ pub fn build_episodes(
                     withdrawn: s.withdrawn,
                     restored: s.restored,
                     baseline_instances: s.baseline_instances,
+                    max_active_instances: s.max_active_instances,
                     transition_count: s.transition_count,
                     add_path_ambiguous: s.add_path_ambiguous,
                     first_change_utc: s.first_change_utc.clone(),
@@ -927,6 +984,50 @@ fn escape_svg(s: &str) -> String {
         .replace('>', "&gt;")
 }
 
+/// One unique time-scoped observer session (Session 38, Part 1).
+///
+/// Identity: source family, collector, peer IP, address family. The
+/// address family is derived deterministically from the peer IP literal
+/// (contains ':' → ipv6, else ipv4) because the stream schema carries
+/// no AF column. This key is what breadth counts deduplicate on: one
+/// session may produce several episodes and must never inflate the
+/// session denominator.
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct SessionKey {
+    pub source_family: String,
+    pub collector: String,
+    pub peer_ip: String,
+    pub address_family: String,
+}
+
+/// Address family of a peer IP literal (deterministic).
+pub fn address_family_of(peer_ip: &str) -> &'static str {
+    if peer_ip.contains(':') {
+        "ipv6"
+    } else {
+        "ipv4"
+    }
+}
+
+/// Parse "<family>/<collector> peer <ip>" into a SessionKey.
+pub fn session_key_of(observer_session: &str) -> SessionKey {
+    let (family, rest) = match observer_session.split_once('/') {
+        Some((f, r)) => (f.to_string(), r.to_string()),
+        None => (String::new(), observer_session.to_string()),
+    };
+    let (collector, peer_ip) = match rest.split_once(" peer ") {
+        Some((c, p)) => (c.to_string(), p.to_string()),
+        None => (rest.clone(), String::new()),
+    };
+    let address_family = address_family_of(&peer_ip).to_string();
+    SessionKey {
+        source_family: family,
+        collector,
+        peer_ip,
+        address_family,
+    }
+}
+
 /// Extract the collector label from an observer session string of the
 /// form "<family>/<collector> peer <ip>".
 pub fn collector_from_session(session: &str) -> &str {
@@ -998,6 +1099,8 @@ mod sentence_tests {
             route_instance_count: 11,
             restored_stream_count: 0,
             unresolved_count: 0,
+
+            transition_count: 0,
             end_state: EndState::NoRouteStateChange,
             coverage_status: CoverageStatus::Complete,
             representative_evidence: String::new(),
@@ -1613,20 +1716,40 @@ mod tests {
 pub struct RegionObservationSummary {
     pub region: String,
     /// Sessions with a qualifying baseline at this region (denominator).
+    /// Counted on UNIQUE SessionKeys — episodes never inflate it.
     pub eligible_observer_sessions: usize,
+    /// Unique sessions having at least one changed episode.
     pub changed_observer_sessions: usize,
     pub unchanged_observer_sessions: usize,
     /// Sessions where the target was not visible (no qualifying baseline).
     pub sessions_without_baseline_visibility: usize,
     /// Sessions where the observation could not be completed.
     pub sessions_with_incomplete_coverage: usize,
+    /// Presentation episodes at this region (one session may produce
+    /// several; the count is intentionally session-independent).
+    pub episode_count: usize,
+    /// Unique changed ObserverPrefixKeys (collector, peer, prefix).
     pub changed_streams: usize,
     pub baseline_streams: usize,
+    /// Unique prefixes in this region (union across sessions and peers).
     pub changed_prefixes: usize,
+    /// Route instances across unique changed streams (ADD-PATH-aware).
+    pub route_instances: usize,
+    /// Evidenced route-state transitions at this region's sessions.
+    pub transition_count: usize,
     /// First observed change in this region (UTC), if any.
     pub first_change: Option<String>,
-    /// Last observed restoration in this region (UTC), if any.
+    /// Last restoration observed INSIDE the analysis window (UTC).
     pub last_restoration: Option<String>,
+    // Internal aggregation bookkeeping (never serialized).
+    #[serde(skip)]
+    pub changed_session_keys: std::collections::BTreeSet<SessionKey>,
+    #[serde(skip)]
+    pub unchanged_session_keys: std::collections::BTreeSet<SessionKey>,
+    #[serde(skip)]
+    pub changed_stream_keys: std::collections::BTreeSet<(String, String)>,
+    #[serde(skip)]
+    pub changed_prefix_set: std::collections::BTreeSet<String>,
 }
 
 /// Build regional breadth summaries from episodes.
@@ -1640,37 +1763,48 @@ pub struct RegionObservationSummary {
 /// omitted (they carry no observation to summarize).
 pub fn regional_breadth(
     episodes: &[ObserverEpisode],
-    no_baseline_sessions: &[(String, String, String)],
-    incomplete_sessions: &[(String, String, String)],
+    no_baseline_sessions: &[(String, String, String, CoverageReason, String)],
+    incomplete_sessions: &[(String, String, String, CoverageReason, String)],
 ) -> Vec<RegionObservationSummary> {
     let mut by_region: BTreeMap<String, RegionObservationSummary> = BTreeMap::new();
 
-    // Count per-region eligible/changed sessions and stream/prefix totals.
+    // Per-region aggregates over UNIQUE session keys and UNIQUE
+    // ObserverPrefixKeys (Session 38, Part 1): one session may produce
+    // several episodes, and one prefix may appear at several peers; the
+    // denominator counts sessions, streams count (collector, peer,
+    // prefix) keys, and prefixes are set unions per region.
     for ep in episodes {
         let r = by_region
             .entry(ep.observer_region.clone())
-            .or_insert_with(|| RegionObservationSummary {
-                region: ep.observer_region.clone(),
-                eligible_observer_sessions: 0,
-                changed_observer_sessions: 0,
-                unchanged_observer_sessions: 0,
-                sessions_without_baseline_visibility: 0,
-                sessions_with_incomplete_coverage: 0,
-                changed_streams: 0,
-                baseline_streams: 0,
-                changed_prefixes: 0,
-                first_change: None,
-                last_restoration: None,
-            });
-        r.eligible_observer_sessions += 1;
-        if ep.effect_kind != EffectKind::NoRouteStateChange {
-            r.changed_observer_sessions += 1;
-        } else {
+            .or_insert_with(|| empty_region(&ep.observer_region));
+        let key = session_key_of(&ep.observer_session);
+        let changed = ep.effect_kind != EffectKind::NoRouteStateChange;
+        // Unique session sets for the denominator.
+        if changed {
+            if !r.changed_session_keys.contains(&key) {
+                r.changed_observer_sessions += 1;
+                r.changed_session_keys.insert(key);
+            }
+        } else if !r.unchanged_session_keys.contains(&key) {
             r.unchanged_observer_sessions += 1;
+            r.unchanged_session_keys.insert(key);
         }
+        r.episode_count += 1;
         r.baseline_streams += ep.baseline_stream_count;
-        r.changed_streams += ep.changed_stream_count;
-        r.changed_prefixes += ep.distinct_prefix_count;
+        r.transition_count += ep.transition_count;
+        // Streams and prefixes are counted on the episode's member
+        // streams: unique (collector, peer, prefix) keys and the union
+        // of prefixes, independent of peer identity.
+        for s in &ep.streams {
+            let stream_key = (ep.observer_session.clone(), s.prefix.clone());
+            if changed {
+                if r.changed_stream_keys.insert(stream_key) {
+                    r.changed_streams += 1;
+                    r.route_instances += s.max_active_instances.max(1) as usize;
+                }
+                r.changed_prefix_set.insert(s.prefix.clone());
+            }
+        }
         if let Some(fc) = &ep.first_change {
             if r.first_change
                 .as_deref()
@@ -1680,6 +1814,9 @@ pub fn regional_breadth(
                 r.first_change = Some(fc.clone());
             }
         }
+        // In-window restoration only: lifecycle restoration timestamps
+        // observed within the analysis window (cooldown outcomes are
+        // reported separately, Part 7).
         if let Some(lr) = &ep.restoration_end {
             if r.last_restoration
                 .as_deref()
@@ -1692,45 +1829,53 @@ pub fn regional_breadth(
     }
 
     // No-baseline and incomplete sessions are per-region facts derived
-    // from run coverage; they are never added to the unchanged count.
-    for (_collector, region, _session) in no_baseline_sessions {
+    // from run coverage; they are never added to the eligible or
+    // unchanged counts (Part 4: an excluded session never enters the
+    // denominator).
+    for (_collector, region, _session, _reason, _detail) in no_baseline_sessions {
         let r = by_region
             .entry(region.clone())
-            .or_insert_with(|| RegionObservationSummary {
-                region: region.clone(),
-                eligible_observer_sessions: 0,
-                changed_observer_sessions: 0,
-                unchanged_observer_sessions: 0,
-                sessions_without_baseline_visibility: 0,
-                sessions_with_incomplete_coverage: 0,
-                changed_streams: 0,
-                baseline_streams: 0,
-                changed_prefixes: 0,
-                first_change: None,
-                last_restoration: None,
-            });
+            .or_insert_with(|| empty_region(region));
         r.sessions_without_baseline_visibility += 1;
     }
-    for (_collector, region, _session) in incomplete_sessions {
+    for (_collector, region, _session, _reason, _detail) in incomplete_sessions {
         let r = by_region
             .entry(region.clone())
-            .or_insert_with(|| RegionObservationSummary {
-                region: region.clone(),
-                eligible_observer_sessions: 0,
-                changed_observer_sessions: 0,
-                unchanged_observer_sessions: 0,
-                sessions_without_baseline_visibility: 0,
-                sessions_with_incomplete_coverage: 0,
-                changed_streams: 0,
-                baseline_streams: 0,
-                changed_prefixes: 0,
-                first_change: None,
-                last_restoration: None,
-            });
+            .or_insert_with(|| empty_region(region));
         r.sessions_with_incomplete_coverage += 1;
     }
 
-    by_region.into_values().collect()
+    // Finalize: eligible = changed + unchanged unique sessions;
+    // changed_prefixes = the region's prefix union.
+    let mut out: Vec<RegionObservationSummary> = by_region.into_values().collect();
+    for r in &mut out {
+        r.eligible_observer_sessions = r.changed_observer_sessions + r.unchanged_observer_sessions;
+        r.changed_prefixes = r.changed_prefix_set.len();
+    }
+    out
+}
+
+fn empty_region(region: &str) -> RegionObservationSummary {
+    RegionObservationSummary {
+        region: region.to_string(),
+        eligible_observer_sessions: 0,
+        changed_observer_sessions: 0,
+        unchanged_observer_sessions: 0,
+        sessions_without_baseline_visibility: 0,
+        sessions_with_incomplete_coverage: 0,
+        episode_count: 0,
+        changed_streams: 0,
+        baseline_streams: 0,
+        changed_prefixes: 0,
+        route_instances: 0,
+        transition_count: 0,
+        first_change: None,
+        last_restoration: None,
+        changed_session_keys: std::collections::BTreeSet::new(),
+        unchanged_session_keys: std::collections::BTreeSet::new(),
+        changed_stream_keys: std::collections::BTreeSet::new(),
+        changed_prefix_set: std::collections::BTreeSet::new(),
+    }
 }
 
 #[cfg(test)]
@@ -1754,7 +1899,7 @@ mod breadth_tests {
             peer_role: "regional-re".to_string(),
             relationship: RelationshipKind::Direct,
             named_path_plane: "Plane A".to_string(),
-            effect_kind: kind,
+            effect_kind: kind.clone(),
             first_change: Some(first.to_string()),
             last_change: Some(first.to_string()),
             restoration_start: None,
@@ -1765,10 +1910,30 @@ mod breadth_tests {
             route_instance_count: changed_streams,
             restored_stream_count: 0,
             unresolved_count: 0,
-            end_state: EndState::NoRouteStateChange,
+
+            transition_count: 0,
+            end_state: if kind == EffectKind::NoRouteStateChange {
+                EndState::NoRouteStateChange
+            } else {
+                EndState::StillChangedAtWindowEnd
+            },
             coverage_status: CoverageStatus::Complete,
             representative_evidence: String::new(),
-            streams: Vec::new(),
+            streams: (0..changed_streams)
+                .map(|i| EpisodeStream {
+                    prefix: format!("198.51.{}.0/24", 100 + (i % prefixes.max(1))),
+                    category: "DepartedTransitPath".to_string(),
+                    withdrawn: false,
+                    restored: false,
+                    baseline_instances: 1,
+                    max_active_instances: 1,
+                    transition_count: 1,
+                    add_path_ambiguous: false,
+                    first_change_utc: Some(first.to_string()),
+                    restoration_time_utc: None,
+                    evidence_refs: "[]".to_string(),
+                })
+                .collect(),
         }
     }
 
@@ -1810,7 +1975,13 @@ mod breadth_tests {
         )];
         let rows = regional_breadth(
             &episodes,
-            &[("rrc01".to_string(), "APAC".to_string(), "s1".to_string())],
+            &[(
+                "rrc01".to_string(),
+                "APAC".to_string(),
+                "s1".to_string(),
+                CoverageReason::RequiredSessionAbsent,
+                "preflight detail".to_string(),
+            )],
             &[],
         );
         let apac = rows.iter().find(|r| r.region == "APAC").unwrap();
@@ -1834,7 +2005,13 @@ mod breadth_tests {
         let rows = regional_breadth(
             &episodes,
             &[],
-            &[("rrc05".to_string(), "EMEA".to_string(), "s9".to_string())],
+            &[(
+                "rrc05".to_string(),
+                "EMEA".to_string(),
+                "s9".to_string(),
+                CoverageReason::ArchiveIncomplete,
+                "archive gap".to_string(),
+            )],
         );
         let emea = rows.iter().find(|r| r.region == "EMEA").unwrap();
         assert_eq!(emea.unchanged_observer_sessions, 1);
@@ -2113,6 +2290,8 @@ mod timeline_tests {
             route_instance_count: 1,
             restored_stream_count: 0,
             unresolved_count: 0,
+
+            transition_count: 0,
             end_state: EndState::NoRouteStateChange,
             coverage_status: CoverageStatus::Complete,
             representative_evidence: String::new(),
@@ -2408,6 +2587,8 @@ mod cue_tests {
             route_instance_count: 1,
             restored_stream_count: 0,
             unresolved_count: 0,
+
+            transition_count: 0,
             end_state: EndState::NoRouteStateChange,
             coverage_status: CoverageStatus::Complete,
             representative_evidence: String::new(),
@@ -2417,6 +2598,7 @@ mod cue_tests {
                 withdrawn: true,
                 restored: true,
                 baseline_instances: 1,
+                max_active_instances: 1,
                 transition_count: 2,
                 add_path_ambiguous: false,
                 first_change_utc: None,
@@ -2689,22 +2871,26 @@ pub fn build_grouped_cues(
                 .iter()
                 .position(|x| x.observer_session == e.observer_session)
         });
+        // Distinct prefixes across the restored episodes: set union of
+        // the member streams' prefixes, never a sum of per-episode
+        // counts (the same prefix may appear at several peers).
+        let restored_prefix_union: std::collections::BTreeSet<&str> = restored
+            .iter()
+            .flat_map(|e| e.streams.iter().map(|s| s.prefix.as_str()))
+            .collect();
+        let restored_streams: usize = restored.iter().map(|e| e.restored_stream_count).sum();
         out.push(GroupedCue {
             title: "Restoration quality".to_string(),
             text: format!(
-                "Verify whether {} externally restored {} returned to the expected baseline path, not merely to visibility ({} restored stream{} at {} session{}).",
-                restored.iter().map(|e| e.distinct_prefix_count).sum::<usize>(),
-                if restored.iter().map(|e| e.distinct_prefix_count).sum::<usize>() == 1 {
-                    "prefix"
-                } else {
-                    "prefixes"
-                },
-                restored.iter().map(|e| e.restored_stream_count).sum::<usize>(),
-                if restored.iter().map(|e| e.restored_stream_count).sum::<usize>() == 1 { "" } else { "s" },
+                "Verify whether {} restored observer-prefix stream{} covering {} distinct {} returned to the expected baseline path, not merely to visibility (at {} session{}).",
+                restored_streams,
+                if restored_streams == 1 { "" } else { "s" },
+                restored_prefix_union.len(),
+                if restored_prefix_union.len() == 1 { "prefix" } else { "prefixes" },
                 restored.len(),
                 if restored.len() == 1 { "" } else { "s" },
             ),
-            prefix_count: restored.iter().map(|e| e.distinct_prefix_count).sum(),
+            prefix_count: restored_prefix_union.len(),
             time_range: range.clone(),
             session_count: restored.len(),
             drill_down: first_restored_idx,
@@ -2754,17 +2940,18 @@ pub fn render_observed_result(vm: &IncidentWorkbenchViewModel) -> String {
     let changed: usize = vm.breadth.iter().map(|b| b.changed_observer_sessions).sum();
     let baseline: usize = vm.breadth.iter().map(|b| b.baseline_streams).sum();
     let changed_streams: usize = vm.breadth.iter().map(|b| b.changed_streams).sum();
+    let distinct = vm.units.distinct_prefix_count;
     let mut out = if changed == 0 {
         format!(
             "No route-state change at {eligible} of {eligible} eligible observer sessions covering {baseline} baseline streams."
         )
     } else if changed == eligible {
         format!(
-            "Route-state changes at {changed} of {eligible} eligible observer sessions covering {baseline} streams."
+            "Route-state changes at {changed} of {eligible} eligible observer sessions covering {baseline} observer-prefix streams ({distinct} distinct prefixes)."
         )
     } else {
         format!(
-            "Route-state changes appeared at {changed} of {eligible} eligible observer sessions. {changed_streams} of {baseline} baseline streams changed."
+            "Route-state changes appeared at {changed} of {eligible} eligible observer sessions. {changed_streams} of {baseline} baseline streams changed ({distinct} distinct prefixes)."
         )
     };
     let no_baseline = vm.no_baseline_sessions.len() + vm.incomplete_sessions.len();
@@ -2775,6 +2962,59 @@ pub fn render_observed_result(vm: &IncidentWorkbenchViewModel) -> String {
         ));
     }
     out
+}
+
+/// Machine-readable unit totals (Session 38, Part 1/10).
+///
+/// One source of truth for the page, the JSON API, the text report,
+/// and the unit-audit output. Every field has an exact unit:
+/// - `session_count` / `changed_session_count`: unique SessionKeys
+///   (family, collector, peer IP, address family).
+/// - `episode_count`: presentation groupings (one session may produce
+///   several).
+/// - `stream_count`: unique ObserverPrefixKeys (collector, peer,
+///   prefix).
+/// - `distinct_prefix_count`: union of prefixes after removing observer
+///   identity (across ALL regions).
+/// - `route_instance_count`: RouteKeys including path_id.
+/// - `transition_count`: evidenced route-state transitions.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct WorkbenchUnits {
+    pub session_count: usize,
+    pub changed_session_count: usize,
+    pub episode_count: usize,
+    pub stream_count: usize,
+    pub distinct_prefix_count: usize,
+    pub route_instance_count: usize,
+    pub transition_count: usize,
+}
+
+impl WorkbenchUnits {
+    fn from_parts(breadth: &[RegionObservationSummary], episodes: &[ObserverEpisode]) -> Self {
+        let session_count: usize = breadth.iter().map(|b| b.eligible_observer_sessions).sum();
+        let changed_session_count: usize =
+            breadth.iter().map(|b| b.changed_observer_sessions).sum();
+        let episode_count = episodes.len();
+        let stream_count: usize = breadth.iter().map(|b| b.changed_streams).sum();
+        let route_instance_count: usize = breadth.iter().map(|b| b.route_instances).sum();
+        let transition_count: usize = breadth.iter().map(|b| b.transition_count).sum();
+        // Global distinct prefixes: union across regions (the same
+        // prefix may appear in several regions; summing regions would
+        // double-count it).
+        let mut all_prefixes: std::collections::BTreeSet<&str> = std::collections::BTreeSet::new();
+        for b in breadth {
+            all_prefixes.extend(b.changed_prefix_set.iter().map(|s| s.as_str()));
+        }
+        WorkbenchUnits {
+            session_count,
+            changed_session_count,
+            episode_count,
+            stream_count,
+            distinct_prefix_count: all_prefixes.len(),
+            route_instance_count,
+            transition_count,
+        }
+    }
 }
 
 // ── Incident workbench view model (Parts 7, 12) ─────────────────────
@@ -2814,6 +3054,8 @@ pub struct IncidentWorkbenchViewModel {
     pub linked_tickets: Vec<String>,
     /// Reviewed path-plane ASNs (runtime data) for cue text.
     pub plane_asns: Vec<u32>,
+    /// Machine-readable unit totals (Part 1/10).
+    pub units: WorkbenchUnits,
     pub runs: Vec<WorkbenchRunView>,
     pub episodes: Vec<ObserverEpisode>,
     pub breadth: Vec<RegionObservationSummary>,
@@ -2852,7 +3094,10 @@ pub struct CoverageSessionView {
     pub region: String,
     pub collector: String,
     pub coverage_status: CoverageStatus,
-    pub note: String,
+    /// WHY the session is excluded or included (Part 4).
+    pub reason: CoverageReason,
+    /// Exact preflight/decision evidence detail (runtime data).
+    pub detail: String,
 }
 
 /// Reviewed session context for workbench building.
@@ -2868,10 +3113,10 @@ pub struct WorkbenchContext {
     pub pilot_target: String,
     /// Operator-reported anchors (case-study phases/claims).
     pub operator_anchors: Vec<TimelineMarker>,
-    /// Sessions with no qualifying baseline (collector, region, label).
-    pub no_baseline_sessions: Vec<(String, String, String)>,
-    /// Sessions with incomplete coverage (collector, region, label).
-    pub incomplete_sessions: Vec<(String, String, String)>,
+    /// Excluded sessions (collector, region, label, reason, detail).
+    pub no_baseline_sessions: Vec<(String, String, String, CoverageReason, String)>,
+    /// Incomplete sessions (collector, region, label, reason, detail).
+    pub incomplete_sessions: Vec<(String, String, String, CoverageReason, String)>,
 }
 
 impl IncidentWorkbenchViewModel {
@@ -3098,24 +3343,30 @@ impl IncidentWorkbenchViewModel {
         let no_baseline_views: Vec<CoverageSessionView> = context
             .no_baseline_sessions
             .iter()
-            .map(|(collector, region, label)| CoverageSessionView {
-                observer_session: label.clone(),
-                region: region.clone(),
-                collector: collector.clone(),
-                coverage_status: CoverageStatus::NoBaselineVisibility,
-                note: "no qualifying baseline at this observer".to_string(),
-            })
+            .map(
+                |(collector, region, label, reason, detail)| CoverageSessionView {
+                    observer_session: label.clone(),
+                    region: region.clone(),
+                    collector: collector.clone(),
+                    coverage_status: CoverageStatus::NoBaselineVisibility,
+                    reason: reason.clone(),
+                    detail: detail.clone(),
+                },
+            )
             .collect();
         let incomplete_views: Vec<CoverageSessionView> = context
             .incomplete_sessions
             .iter()
-            .map(|(collector, region, label)| CoverageSessionView {
-                observer_session: label.clone(),
-                region: region.clone(),
-                collector: collector.clone(),
-                coverage_status: CoverageStatus::IncompleteCoverage,
-                note: "observation could not be completed".to_string(),
-            })
+            .map(
+                |(collector, region, label, reason, detail)| CoverageSessionView {
+                    observer_session: label.clone(),
+                    region: region.clone(),
+                    collector: collector.clone(),
+                    coverage_status: CoverageStatus::IncompleteCoverage,
+                    reason: reason.clone(),
+                    detail: detail.clone(),
+                },
+            )
             .collect();
 
         let timeline = build_timeline(&episodes, &window_start, &window_end, &BTreeMap::new());
@@ -3123,6 +3374,7 @@ impl IncidentWorkbenchViewModel {
         let cues = build_investigation_cues(&episodes);
         let plane_label = named_planes.first().cloned().unwrap_or_default();
         let grouped_cues = build_grouped_cues(&episodes, &plane_label, &plane_asns);
+        let units = WorkbenchUnits::from_parts(&breadth, &episodes);
         let vm = IncidentWorkbenchViewModel {
             subject_id: subject_id.to_string(),
             subject_kind: subject_kind.to_string(),
@@ -3142,6 +3394,7 @@ impl IncidentWorkbenchViewModel {
             pilot_label: String::new(),
             linked_tickets: Vec::new(),
             plane_asns,
+            units,
             runs: run_views,
             episodes,
             breadth,
@@ -3459,6 +3712,15 @@ mod workbench_view_tests {
             pilot_label: String::new(),
             linked_tickets: vec![],
             plane_asns: vec![],
+            units: WorkbenchUnits {
+                session_count: 0,
+                changed_session_count: 0,
+                episode_count: 0,
+                stream_count: 0,
+                distinct_prefix_count: 0,
+                route_instance_count: 0,
+                transition_count: 0,
+            },
             runs: vec![],
             episodes: vec![],
             breadth: vec![],
@@ -3527,10 +3789,17 @@ impl WorkbenchContext {
                         .as_ref()
                         .map(|r| r.region_by_collector(&collector))
                         .unwrap_or_else(|| "Unknown".to_string());
+                    let detail = v
+                        .get("blocking_reason")
+                        .and_then(|b| b.as_str())
+                        .unwrap_or("no reviewed preflight detail")
+                        .to_string();
                     ctx.no_baseline_sessions.push((
                         collector.clone(),
                         region,
                         format!("{collector} (reviewed peering-plane pilot decision)"),
+                        CoverageReason::RequiredSessionAbsent,
+                        detail,
                     ));
                 }
             }
@@ -3638,6 +3907,16 @@ impl IncidentWorkbenchViewModel {
             "  current observed result: {}\n  expectation: {}\n  archive coverage: {}\n",
             self.current_result, self.expectation_assessment, self.archive_coverage
         ));
+        out.push_str(&format!(
+            "  units: {} observer session(s), {} changed, {} episode(s), {} stream(s), {} distinct prefix(es), {} route instance(s), {} transition(s)\n",
+            self.units.session_count,
+            self.units.changed_session_count,
+            self.units.episode_count,
+            self.units.stream_count,
+            self.units.distinct_prefix_count,
+            self.units.route_instance_count,
+            self.units.transition_count,
+        ));
 
         out.push_str("\nObserved breadth by region\n");
         if self.breadth.is_empty() {
@@ -3645,15 +3924,18 @@ impl IncidentWorkbenchViewModel {
         }
         for b in &self.breadth {
             out.push_str(&format!(
-                "  {}: changed {}/{} eligible, {} unchanged, {} no-baseline, {} incomplete; {} changed streams / {} prefixes\n",
+                "  {}: changed {}/{} eligible session(s), {} unchanged, {} no-baseline, {} incomplete; {} episode(s), {} changed stream(s), {} distinct prefix(es), {} route instance(s), {} transition(s)\n",
                 b.region,
                 b.changed_observer_sessions,
                 b.eligible_observer_sessions,
                 b.unchanged_observer_sessions,
                 b.sessions_without_baseline_visibility,
                 b.sessions_with_incomplete_coverage,
+                b.episode_count,
                 b.changed_streams,
                 b.changed_prefixes,
+                b.route_instances,
+                b.transition_count,
             ));
         }
 
@@ -3688,10 +3970,11 @@ impl IncidentWorkbenchViewModel {
             .chain(self.incomplete_sessions.iter())
         {
             out.push_str(&format!(
-                "  {} | {} | {}\n",
+                "  {} | {} | {}: {}\n",
                 s.observer_session,
                 s.coverage_status.label(),
-                s.note
+                s.reason.human_label(),
+                s.detail
             ));
         }
         if self.no_baseline_sessions.is_empty() && self.incomplete_sessions.is_empty() {
@@ -3774,6 +4057,15 @@ mod text_report_tests {
             pilot_label: String::new(),
             linked_tickets: vec![],
             plane_asns: vec![],
+            units: WorkbenchUnits {
+                session_count: 0,
+                changed_session_count: 0,
+                episode_count: 0,
+                stream_count: 0,
+                distinct_prefix_count: 0,
+                route_instance_count: 0,
+                transition_count: 0,
+            },
             runs: vec![],
             episodes: vec![ObserverEpisode {
                 analysis_run: 1,
@@ -3796,6 +4088,8 @@ mod text_report_tests {
                 route_instance_count: 2,
                 restored_stream_count: 0,
                 unresolved_count: 0,
+
+                transition_count: 0,
                 end_state: EndState::NoRouteStateChange,
                 coverage_status: CoverageStatus::Complete,
                 representative_evidence: "evidence sentence".to_string(),
@@ -3811,8 +4105,15 @@ mod text_report_tests {
                 changed_streams: 2,
                 baseline_streams: 2,
                 changed_prefixes: 2,
+                route_instances: 2,
+                transition_count: 0,
+                episode_count: 1,
                 first_change: Some("2019-08-21T16:45:25Z".to_string()),
                 last_restoration: Some("2019-08-21T16:45:27Z".to_string()),
+                changed_session_keys: std::collections::BTreeSet::new(),
+                unchanged_session_keys: std::collections::BTreeSet::new(),
+                changed_stream_keys: std::collections::BTreeSet::new(),
+                changed_prefix_set: std::collections::BTreeSet::new(),
             }],
             timeline: vec![],
             operator_anchors: vec![],
@@ -3893,6 +4194,7 @@ mod session37_semantic_tests {
             distinct_prefix_count: changed,
             route_instance_count: 1,
             unresolved_count: if withdrawn && !restored { 1 } else { 0 },
+            transition_count: 0,
             end_state,
             coverage_status: CoverageStatus::Complete,
             representative_evidence: String::new(),
@@ -3902,6 +4204,7 @@ mod session37_semantic_tests {
                 withdrawn,
                 restored,
                 baseline_instances: 1,
+                max_active_instances: 1,
                 transition_count: 1,
                 add_path_ambiguous: false,
                 first_change_utc: Some("2019-08-21T16:45:25Z".to_string()),
@@ -4262,5 +4565,522 @@ mod session37_timeline_tests {
             "2019-08-21T16:45:27Z"
         );
         assert!(l.unresolved_end_state);
+    }
+}
+
+// ── Session 38: counting units (Part 1) ─────────────────────────────
+
+#[cfg(test)]
+mod session38_unit_tests {
+    use super::*;
+
+    fn ep_at(session: &str, region: &str, kind: EffectKind, prefix: &str) -> ObserverEpisode {
+        ObserverEpisode {
+            analysis_run: 1,
+            observer_session: session.to_string(),
+            observer_site: "site".to_string(),
+            observer_region: region.to_string(),
+            peer_asn: Some(64500),
+            peer_label: "AS64500".to_string(),
+            peer_role: "unclassified observed ASN".to_string(),
+            relationship: RelationshipKind::Indirect,
+            named_path_plane: "Plane A".to_string(),
+            effect_kind: kind.clone(),
+            first_change: Some("2019-08-21T16:45:25Z".to_string()),
+            last_change: Some("2019-08-21T16:45:27Z".to_string()),
+            restoration_start: None,
+            restoration_end: None,
+            baseline_stream_count: 1,
+            changed_stream_count: if kind == EffectKind::NoRouteStateChange {
+                0
+            } else {
+                1
+            },
+            restored_stream_count: 0,
+            distinct_prefix_count: 1,
+            route_instance_count: 1,
+            unresolved_count: 0,
+            transition_count: if kind == EffectKind::NoRouteStateChange {
+                0
+            } else {
+                3
+            },
+            end_state: if kind == EffectKind::NoRouteStateChange {
+                EndState::NoRouteStateChange
+            } else {
+                EndState::StillChangedAtWindowEnd
+            },
+            coverage_status: CoverageStatus::Complete,
+            representative_evidence: String::new(),
+            streams: vec![EpisodeStream {
+                prefix: prefix.to_string(),
+                category: "DepartedTransitPath".to_string(),
+                withdrawn: false,
+                restored: false,
+                baseline_instances: 1,
+                max_active_instances: 1,
+                transition_count: 3,
+                add_path_ambiguous: false,
+                first_change_utc: Some("2019-08-21T16:45:25Z".to_string()),
+                restoration_time_utc: None,
+                evidence_refs: "[]".to_string(),
+            }],
+        }
+    }
+
+    #[test]
+    fn two_episode_types_at_one_peer_count_as_one_changed_session() {
+        // One session, two presentation groupings (absence + path
+        // change): the session denominator counts ONE changed session.
+        let episodes = vec![
+            ep_at(
+                "ris/rrc06 peer 192.0.2.1",
+                "APAC",
+                EffectKind::TemporaryStreamAbsence,
+                "198.51.100.0/24",
+            ),
+            ep_at(
+                "ris/rrc06 peer 192.0.2.1",
+                "APAC",
+                EffectKind::PathReplacement,
+                "198.51.100.0/24",
+            ),
+        ];
+        let rows = regional_breadth(&episodes, &[], &[]);
+        let apac = rows.iter().find(|r| r.region == "APAC").unwrap();
+        assert_eq!(apac.eligible_observer_sessions, 1, "one unique session");
+        assert_eq!(apac.changed_observer_sessions, 1);
+        assert_eq!(apac.episode_count, 2, "two episodes at one session");
+    }
+
+    #[test]
+    fn regional_session_count_deduplicates_episode_rows() {
+        // Three episodes across two sessions → two eligible sessions.
+        let episodes = vec![
+            ep_at(
+                "ris/rrc06 peer 192.0.2.1",
+                "APAC",
+                EffectKind::TemporaryStreamAbsence,
+                "198.51.100.0/24",
+            ),
+            ep_at(
+                "ris/rrc06 peer 192.0.2.1",
+                "APAC",
+                EffectKind::PathReplacement,
+                "198.51.100.0/25",
+            ),
+            ep_at(
+                "ris/rrc06 peer 192.0.2.2",
+                "APAC",
+                EffectKind::PathReplacement,
+                "198.51.100.0/24",
+            ),
+        ];
+        let rows = regional_breadth(&episodes, &[], &[]);
+        let apac = rows.iter().find(|r| r.region == "APAC").unwrap();
+        assert_eq!(apac.eligible_observer_sessions, 2);
+        assert_eq!(apac.episode_count, 3);
+        assert_eq!(apac.changed_observer_sessions, 2);
+    }
+
+    #[test]
+    fn distinct_prefix_count_deduplicates_across_peers() {
+        // The same prefix seen at two peers: two streams, ONE distinct
+        // prefix in the region.
+        let episodes = vec![
+            ep_at(
+                "ris/rrc06 peer 192.0.2.1",
+                "APAC",
+                EffectKind::PathReplacement,
+                "198.51.100.0/24",
+            ),
+            ep_at(
+                "ris/rrc06 peer 192.0.2.2",
+                "APAC",
+                EffectKind::PathReplacement,
+                "198.51.100.0/24",
+            ),
+        ];
+        let rows = regional_breadth(&episodes, &[], &[]);
+        let apac = rows.iter().find(|r| r.region == "APAC").unwrap();
+        assert_eq!(apac.changed_streams, 2, "peer dimension preserved");
+        assert_eq!(
+            apac.changed_prefixes, 1,
+            "distinct prefixes deduplicate across peers"
+        );
+    }
+
+    #[test]
+    fn stream_count_preserves_peer_dimension() {
+        let episodes = vec![
+            ep_at(
+                "ris/rrc06 peer 192.0.2.1",
+                "APAC",
+                EffectKind::PathReplacement,
+                "198.51.100.0/24",
+            ),
+            ep_at(
+                "ris/rrc06 peer 192.0.2.2",
+                "APAC",
+                EffectKind::PathReplacement,
+                "198.51.100.0/24",
+            ),
+        ];
+        let rows = regional_breadth(&episodes, &[], &[]);
+        let apac = rows.iter().find(|r| r.region == "APAC").unwrap();
+        assert_eq!(apac.changed_streams, 2);
+        let units = WorkbenchUnits::from_parts(&rows, &episodes);
+        assert_eq!(units.stream_count, 2);
+        assert_eq!(units.distinct_prefix_count, 1);
+        assert_eq!(units.session_count, 2);
+    }
+
+    #[test]
+    fn transition_count_is_not_rendered_as_stream_count() {
+        // 3 transitions at the session are NOT stream counts.
+        let episodes = vec![ep_at(
+            "ris/rrc06 peer 192.0.2.1",
+            "APAC",
+            EffectKind::PathReplacement,
+            "198.51.100.0/24",
+        )];
+        let rows = regional_breadth(&episodes, &[], &[]);
+        let apac = rows.iter().find(|r| r.region == "APAC").unwrap();
+        assert_eq!(apac.changed_streams, 1);
+        assert_eq!(apac.transition_count, 3);
+        assert_ne!(apac.transition_count, apac.changed_streams);
+        assert_eq!(episodes[0].transition_count, 3);
+    }
+
+    #[test]
+    fn count_units_are_named_in_api_and_text_output() {
+        let episodes = vec![ep_at(
+            "ris/rrc06 peer 192.0.2.1",
+            "APAC",
+            EffectKind::PathReplacement,
+            "198.51.100.0/24",
+        )];
+        let rows = regional_breadth(&episodes, &[], &[]);
+        let units = WorkbenchUnits::from_parts(&rows, &episodes);
+        let json = serde_json::to_value(&units).unwrap();
+        for key in [
+            "session_count",
+            "changed_session_count",
+            "episode_count",
+            "stream_count",
+            "distinct_prefix_count",
+            "route_instance_count",
+            "transition_count",
+        ] {
+            assert!(json.get(key).is_some(), "API unit {key} present");
+        }
+        // The text report names the units.
+        let vm = IncidentWorkbenchViewModel {
+            subject_id: "EV-1".to_string(),
+            subject_kind: "event".to_string(),
+            title: "Test".to_string(),
+            source_task_type: "incident".to_string(),
+            reviewed_incident_role: String::new(),
+            lifecycle: "Closed".to_string(),
+            window_start: "2019-08-21T16:00:00Z".to_string(),
+            window_end: "2019-08-21T17:30:00Z".to_string(),
+            current_result: "Partial".to_string(),
+            expectation_assessment: String::new(),
+            archive_coverage: "Complete".to_string(),
+            observed_result: String::new(),
+            scope_limit: String::new(),
+            incident_horizon_start: String::new(),
+            incident_horizon_end: String::new(),
+            pilot_label: String::new(),
+            linked_tickets: vec![],
+            plane_asns: vec![],
+            units,
+            runs: vec![],
+            episodes: episodes.clone(),
+            breadth: rows,
+            timeline: vec![],
+            operator_anchors: vec![],
+            cues: vec![],
+            grouped_cues: vec![],
+            no_baseline_sessions: vec![],
+            incomplete_sessions: vec![],
+        };
+        let text = vm.render_text();
+        assert!(text.contains("observer session(s)"), "unit named");
+        assert!(text.contains("distinct prefix(es)"), "unit named");
+        assert!(text.contains("route instance(s)"), "unit named");
+        assert!(text.contains("transition(s)"), "unit named");
+    }
+}
+
+// ── Session 38: prefix breadth units (Parts 2-3) ────────────────────
+
+#[cfg(test)]
+mod session38_prefix_tests {
+    use super::*;
+
+    fn ep_with(
+        region: &str,
+        session: &str,
+        kind: EffectKind,
+        prefixes: &[&str],
+    ) -> ObserverEpisode {
+        ObserverEpisode {
+            analysis_run: 1,
+            observer_session: session.to_string(),
+            observer_site: "site".to_string(),
+            observer_region: region.to_string(),
+            peer_asn: Some(64500),
+            peer_label: "AS64500".to_string(),
+            peer_role: "unclassified observed ASN".to_string(),
+            relationship: RelationshipKind::Indirect,
+            named_path_plane: "Plane A".to_string(),
+            effect_kind: kind.clone(),
+            first_change: Some("2019-08-21T16:45:25Z".to_string()),
+            last_change: Some("2019-08-21T16:45:27Z".to_string()),
+            restoration_start: None,
+            restoration_end: None,
+            baseline_stream_count: prefixes.len(),
+            changed_stream_count: if kind == EffectKind::NoRouteStateChange {
+                0
+            } else {
+                prefixes.len()
+            },
+            restored_stream_count: 0,
+            distinct_prefix_count: prefixes.len(),
+            route_instance_count: prefixes.len(),
+            unresolved_count: 0,
+            transition_count: prefixes.len() as usize * 2,
+            end_state: if kind == EffectKind::NoRouteStateChange {
+                EndState::NoRouteStateChange
+            } else {
+                EndState::StillChangedAtWindowEnd
+            },
+            coverage_status: CoverageStatus::Complete,
+            representative_evidence: String::new(),
+            streams: prefixes
+                .iter()
+                .map(|p| EpisodeStream {
+                    prefix: p.to_string(),
+                    category: "DepartedTransitPath".to_string(),
+                    withdrawn: false,
+                    restored: false,
+                    baseline_instances: 1,
+                    max_active_instances: 1,
+                    transition_count: 2,
+                    add_path_ambiguous: false,
+                    first_change_utc: Some("2019-08-21T16:45:25Z".to_string()),
+                    restoration_time_utc: None,
+                    evidence_refs: "[]".to_string(),
+                })
+                .collect(),
+        }
+    }
+
+    #[test]
+    fn regional_prefix_count_is_union_within_region() {
+        // Same prefix at two peers in the SAME region: one distinct
+        // prefix in that region.
+        let episodes = vec![
+            ep_with(
+                "AMER",
+                "ris/rrc06 peer 192.0.2.1",
+                EffectKind::PathReplacement,
+                &["198.51.100.0/24", "198.51.100.0/25"],
+            ),
+            ep_with(
+                "AMER",
+                "ris/rrc06 peer 192.0.2.2",
+                EffectKind::PathReplacement,
+                &["198.51.100.0/24", "198.51.101.0/24"],
+            ),
+        ];
+        let rows = regional_breadth(&episodes, &[], &[]);
+        let amer = rows.iter().find(|r| r.region == "AMER").unwrap();
+        assert_eq!(amer.changed_streams, 4, "streams keep peer dimension");
+        assert_eq!(
+            amer.changed_prefixes, 3,
+            "regional prefix count is the in-region union"
+        );
+    }
+
+    #[test]
+    fn global_prefix_count_is_union_across_regions() {
+        // The same prefix seen in AMER and APAC: the GLOBAL union is 3,
+        // never the sum of regional unions (3 + 2 = 5).
+        let episodes = vec![
+            ep_with(
+                "AMER",
+                "ris/rrc06 peer 192.0.2.1",
+                EffectKind::PathReplacement,
+                &["198.51.100.0/24", "198.51.100.0/25", "198.51.100.0/26"],
+            ),
+            ep_with(
+                "APAC",
+                "ris/rrc06 peer 192.0.2.2",
+                EffectKind::PathReplacement,
+                &["198.51.100.0/24", "198.51.100.0/27"],
+            ),
+        ];
+        let rows = regional_breadth(&episodes, &[], &[]);
+        let units = WorkbenchUnits::from_parts(&rows, &episodes);
+        let regional_sum: usize = rows.iter().map(|r| r.changed_prefixes).sum();
+        assert_eq!(regional_sum, 5, "regional unions overlap");
+        assert_eq!(
+            units.distinct_prefix_count, 4,
+            "global prefix count is the union across regions"
+        );
+    }
+
+    #[test]
+    fn same_prefix_seen_by_three_peers_counts_as_three_streams_one_prefix() {
+        let episodes = vec![
+            ep_with(
+                "AMER",
+                "ris/rrc06 peer 192.0.2.1",
+                EffectKind::PathReplacement,
+                &["198.51.100.0/24"],
+            ),
+            ep_with(
+                "AMER",
+                "ris/rrc06 peer 192.0.2.2",
+                EffectKind::PathReplacement,
+                &["198.51.100.0/24"],
+            ),
+            ep_with(
+                "AMER",
+                "ris/rrc06 peer 192.0.2.3",
+                EffectKind::PathReplacement,
+                &["198.51.100.0/24"],
+            ),
+        ];
+        let rows = regional_breadth(&episodes, &[], &[]);
+        let amer = rows.iter().find(|r| r.region == "AMER").unwrap();
+        assert_eq!(amer.changed_streams, 3);
+        assert_eq!(amer.changed_prefixes, 1);
+        let units = WorkbenchUnits::from_parts(&rows, &episodes);
+        assert_eq!(units.stream_count, 3);
+        assert_eq!(units.distinct_prefix_count, 1);
+    }
+
+    #[test]
+    fn investigation_cue_names_streams_and_distinct_prefixes_correctly() {
+        // Two peers see the same two prefixes and both restore: the cue
+        // must say "4 restored observer-prefix streams covering 2
+        // distinct prefixes", never "4 externally restored prefixes".
+        let mut e1 = ep_with(
+            "AMER",
+            "ris/rrc06 peer 192.0.2.1",
+            EffectKind::TemporaryStreamAbsence,
+            &["198.51.100.0/24", "198.51.100.0/25"],
+        );
+        e1.restored_stream_count = 2;
+        let mut e2 = ep_with(
+            "AMER",
+            "ris/rrc06 peer 192.0.2.2",
+            EffectKind::TemporaryStreamAbsence,
+            &["198.51.100.0/24", "198.51.100.0/25"],
+        );
+        e2.restored_stream_count = 2;
+        let episodes = vec![e1, e2];
+        let cues = build_grouped_cues(&episodes, "Plane A", &[64500]);
+        let restoration = cues
+            .iter()
+            .find(|c| c.title == "Restoration quality")
+            .expect("restoration cue");
+        assert!(
+            restoration
+                .text
+                .contains("4 restored observer-prefix streams covering 2 distinct prefixes"),
+            "cue units: {}",
+            restoration.text
+        );
+        assert!(
+            !restoration.text.contains("4 externally restored prefixes"),
+            "prefix count must not be a stream count: {}",
+            restoration.text
+        );
+    }
+}
+
+// ── Session 38: coverage reasons (Part 4) ───────────────────────────
+
+#[cfg(test)]
+mod session38_coverage_tests {
+    use super::*;
+
+    #[test]
+    fn absent_required_session_is_not_no_target_baseline() {
+        // RequiredSessionAbsent (no historical session) is a DIFFERENT
+        // condition from SessionPresentNoTargetBaseline (session exists,
+        // target not visible). Their labels must differ.
+        assert_ne!(
+            CoverageReason::RequiredSessionAbsent.human_label(),
+            CoverageReason::SessionPresentNoTargetBaseline.human_label()
+        );
+        assert_ne!(
+            CoverageReason::RequiredSessionAbsent.label(),
+            CoverageReason::SessionPresentNoTargetBaseline.label()
+        );
+        assert!(CoverageReason::RequiredSessionAbsent
+            .human_label()
+            .contains("Required session absent"));
+        assert!(CoverageReason::SessionPresentNoTargetBaseline
+            .human_label()
+            .contains("no target baseline"));
+    }
+
+    #[test]
+    fn target_not_visible_is_distinct_from_predicate_not_matched() {
+        assert_ne!(
+            CoverageReason::SessionPresentNoTargetBaseline.label(),
+            CoverageReason::PredicateNotMatched.label()
+        );
+        assert!(CoverageReason::PredicateNotMatched
+            .human_label()
+            .contains("Predicate not matched"));
+    }
+
+    #[test]
+    fn excluded_session_is_not_added_to_eligible_denominator() {
+        // An excluded session (RequiredSessionAbsent) must not enter the
+        // eligible denominator, and must not count as unchanged.
+        let rows = regional_breadth(
+            &[],
+            &[(
+                "rrc11".to_string(),
+                "AMER".to_string(),
+                "rrc11 (reviewed peering-plane pilot decision)".to_string(),
+                CoverageReason::RequiredSessionAbsent,
+                "no direct session in the historical baseline".to_string(),
+            )],
+            &[],
+        );
+        let amer = rows.iter().find(|r| r.region == "AMER").unwrap();
+        assert_eq!(amer.eligible_observer_sessions, 0);
+        assert_eq!(amer.unchanged_observer_sessions, 0);
+        assert_eq!(amer.sessions_without_baseline_visibility, 1);
+    }
+
+    #[test]
+    fn coverage_reason_preserves_exact_preflight_evidence() {
+        // The reason carries the EXACT preflight evidence text.
+        let view = CoverageSessionView {
+            observer_session: "rrc11 (reviewed peering-plane pilot decision)".to_string(),
+            region: "AMER".to_string(),
+            collector: "rrc11".to_string(),
+            coverage_status: CoverageStatus::NoBaselineVisibility,
+            reason: CoverageReason::RequiredSessionAbsent,
+            detail: "No direct session exists in the historical baseline bview.".to_string(),
+        };
+        assert_eq!(view.reason, CoverageReason::RequiredSessionAbsent);
+        assert!(view
+            .detail
+            .contains("No direct session exists in the historical baseline bview."));
+        let json = serde_json::to_value(&view).unwrap();
+        assert_eq!(
+            json.get("reason").and_then(|r| r.as_str()),
+            Some("RequiredSessionAbsent")
+        );
     }
 }

@@ -2093,3 +2093,61 @@ async fn case_study_header_states_no_incident_wide_verdict() {
         "no incident-wide expectation assessment"
     );
 }
+
+// ── Session 38: golden unit assertions (Parts 2, 3, 10) ─────────────
+
+#[tokio::test]
+async fn uva_session_episode_stream_and_prefix_counts_are_distinct() {
+    // UVA: 4 unique peer sessions, 7 episodes, 48 streams, 12 distinct
+    // prefixes. The workbench must never render episodes as sessions.
+    let (status, body) = event_workbench("INC0299001").await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    assert!(
+        body.contains("4 of 4 eligible observer sessions"),
+        "session count is the unique-session count, not the episode count"
+    );
+    assert!(
+        body.contains("48 observer-prefix streams (12 distinct prefixes)"),
+        "streams and distinct prefixes named with correct units"
+    );
+    assert!(
+        !body.contains("7 of 7 eligible"),
+        "episodes must not inflate the session denominator"
+    );
+    // Breadth matrix: 4/4 sessions, 7 episodes, 48 streams, 12 prefixes.
+    assert!(
+        body.contains("4/4</span> sessions"),
+        "changed/eligible cell"
+    );
+    assert!(body.contains(">7<"), "episode column value present");
+    assert!(body.contains(">48<"), "stream column value present");
+    assert!(
+        body.contains(">12<"),
+        "distinct prefix column value present"
+    );
+}
+
+#[tokio::test]
+async fn manlan_global_distinct_prefix_count_is_not_stream_total() {
+    // MAN LAN: 58 changed streams but only 12 distinct prefixes
+    // globally; the first screen names both units.
+    let (status, body) = manlan_workbench().await;
+    if body.is_empty() {
+        return;
+    }
+    assert_eq!(status, StatusCode::OK);
+    assert!(
+        body.contains("58 of 80 baseline streams changed (12 distinct prefixes)"),
+        "global distinct-prefix count is a union, not the stream total"
+    );
+    assert!(
+        !body.contains("58 distinct prefixes"),
+        "stream count must not render as a prefix count"
+    );
+    // Regional cells: AMER 12 distinct prefixes with 46 streams.
+    assert!(body.contains("46/57"), "AMER stream cell");
+    assert!(body.contains(">12<"), "AMER distinct prefix cell");
+}

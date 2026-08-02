@@ -49,10 +49,13 @@
 <thead><tr>
   <th>Region</th>
   <th>Changed / eligible</th>
+  <th>Episodes</th>
   <th>Streams changed / baseline</th>
-  <th>Prefixes</th>
+  <th>Distinct prefixes</th>
+  <th>Route instances</th>
+  <th>Transitions</th>
   <th>First change</th>
-  <th>Restored</th>
+  <th>Last in-window restoration</th>
   <th>Coverage gaps</th>
 </tr></thead>
 <tbody>
@@ -60,8 +63,11 @@
 <tr>
   <td class="wb-nowrap wb-region">{{ b.region }}</td>
   <td class="wb-num {{ b.changed_class }}"><span class="wb-change-tag">{{ b.changed_eligible }}</span> sessions</td>
+  <td class="wb-num">{{ b.episodes }}</td>
   <td class="wb-num">{{ b.streams_baseline }}</td>
   <td class="wb-num">{{ b.prefixes }}</td>
+  <td class="wb-num">{{ b.route_instances }}</td>
+  <td class="wb-num">{{ b.transitions }}</td>
   <td class="wb-mono wb-nowrap">{{ b.first_change }}</td>
   <td class="wb-mono wb-nowrap">{{ b.last_restoration }}</td>
   <td class="wb-num">{{ b.gaps }}</td>
@@ -70,20 +76,21 @@
 </tbody>
 </table>
 </div>
-<p class="muted wb-note">Changed / eligible is one combined cell (e.g. 6/7): the denominator is always visible. Coverage gaps count sessions with no qualifying baseline or incomplete coverage; those are distinct states and never collapse into "unchanged".</p>
+<p class="muted wb-note">Units: changed / eligible counts unique observer sessions (one session may produce several episodes); streams are unique observer-prefix keys; distinct prefixes are the union across peers within the region; route instances include ADD-PATH instances. "Last in-window restoration" covers restorations observed inside the analysis window (cooldown outcomes are reported per episode). Coverage gaps count sessions with no qualifying baseline or incomplete coverage; those are distinct states and never collapse into "unchanged".</p>
 {% endif %}
 
 {% if !coverage.is_empty() %}
 <h4 class="wb-subsection">No qualifying baseline</h4>
 <div class="wb-scroll">
 <table class="wb-table wb-narrow">
-<thead><tr><th>Region</th><th>Session</th><th>Note</th></tr></thead>
+<thead><tr><th>Region</th><th>Session</th><th>Reason</th><th>Evidence detail</th></tr></thead>
 <tbody>
 {% for s in coverage %}
 <tr class="wb-nobaseline-row">
   <td class="wb-nowrap wb-region">{{ s.region }}</td>
   <td class="wb-nowrap">{{ s.session }}</td>
-  <td class="muted">{{ s.note }}</td>
+  <td>{{ s.reason }}</td>
+  <td class="muted">{{ s.detail }}</td>
 </tr>
 {% endfor %}
 </tbody>

@@ -3502,8 +3502,11 @@ fn wb_time(ts: &str, window_start: &str) -> String {
 pub struct WorkbenchBreadthRow {
     pub region: String,
     pub changed_eligible: String,
+    pub episodes: String,
     pub streams_baseline: String,
     pub prefixes: String,
+    pub route_instances: String,
+    pub transitions: String,
     pub first_change: String,
     pub last_restoration: String,
     pub gaps: String,
@@ -3532,8 +3535,11 @@ fn breadth_rows(
                     "{}/{}",
                     b.changed_observer_sessions, b.eligible_observer_sessions
                 ),
+                episodes: b.episode_count.to_string(),
                 streams_baseline: format!("{}/{}", b.changed_streams, b.baseline_streams),
                 prefixes: b.changed_prefixes.to_string(),
+                route_instances: b.route_instances.to_string(),
+                transitions: b.transition_count.to_string(),
                 first_change: b
                     .first_change
                     .as_ref()
@@ -3642,7 +3648,8 @@ pub struct WorkbenchCoverageRow {
     pub session: String,
     pub region: String,
     pub status: String,
-    pub note: String,
+    pub reason: String,
+    pub detail: String,
 }
 
 fn coverage_rows(
@@ -3655,14 +3662,16 @@ fn coverage_rows(
             session: s.observer_session.clone(),
             region: s.region.clone(),
             status: "NoBaselineVisibility".to_string(),
-            note: s.note.clone(),
+            reason: s.reason.human_label().to_string(),
+            detail: s.detail.clone(),
         })
         .collect();
     out.extend(vm.incomplete_sessions.iter().map(|s| WorkbenchCoverageRow {
         session: s.observer_session.clone(),
         region: s.region.clone(),
         status: "IncompleteCoverage".to_string(),
-        note: s.note.clone(),
+        reason: s.reason.human_label().to_string(),
+        detail: s.detail.clone(),
     }));
     out
 }
