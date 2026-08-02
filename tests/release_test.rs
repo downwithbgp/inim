@@ -161,7 +161,12 @@ fn readme_case_study_counts_match_current_artifacts() {
     // per-case-study READMEs are the home of these digests; the root
     // README links to them). Matching is whitespace-insensitive so
     // line wrapping never breaks the gate.
-    let normalize = |s: &str| s.split_whitespace().collect::<Vec<_>>().join(" ");
+    let normalize = |s: &str| {
+        s.split_whitespace()
+            .collect::<Vec<_>>()
+            .join(" ")
+            .replace("**", "")
+    };
     let uva_readme = normalize(&uva_readme);
     let ripe_readme = normalize(&ripe_readme);
     assert!(ripe_readme.contains(&format!("{ripe_streams} selected observer-prefix streams")));
