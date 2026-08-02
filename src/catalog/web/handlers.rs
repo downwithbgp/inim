@@ -316,7 +316,7 @@ pub fn run_view(state: &SharedState, run_id: i64) -> Result<Option<RunView>, Str
     super::view::load_run(&db, run_id, state)
 }
 
-// ── Session 33: corpus pages (read-only; no crawling on GET) ───────
+// ── corpus pages (read-only; no crawling on GET) ───────
 
 pub async fn corpus(State(state): State<SharedState>) -> Response {
     let db = state.db.lock().unwrap();

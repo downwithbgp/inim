@@ -136,7 +136,7 @@ pub struct SemanticWaveSummary {
     pub instance_count: i64,
 }
 
-/// Observed peer-session metadata (Session 38, Part 5).
+/// Observed peer-session metadata.
 ///
 /// The peer ASN is an OBSERVED protocol fact from baseline RIB
 /// evidence, time-scoped by the RIB timestamp — distinct from reviewed
@@ -188,7 +188,7 @@ pub struct CatalogSourceItem {
     pub normalized_json: String,
 }
 
-// ── Corpus discovery layer (Session 33, Parts 3–4) ────────────────
+// ── Corpus discovery layer  ────────────────
 //
 // Discovery records how a ticket identifier entered the corpus; fetch
 // records capture one HTTP fetch attempt per row. Event snapshots stay
@@ -245,7 +245,7 @@ pub struct SnapshotFetch {
     pub conditional_requested: bool,
 }
 
-// ── Ticket relationship graph (Session 33, Parts 6–7) ──────────────
+// ── Ticket relationship graph  ──────────────
 
 /// Neutral relationship kinds. A specific kind is used only where the
 /// surrounding source wording supports it; otherwise `References`.
@@ -260,7 +260,7 @@ pub const RELATIONSHIP_UNKNOWN_REFERENCE: &str = "UnknownReference";
 pub const RELATIONSHIP_TEMPORAL_OVERLAP: &str = "TemporalOverlap";
 /// Machine-derived shared-reviewed-entity overlap — NOT a causal edge.
 pub const RELATIONSHIP_ENTITY_OVERLAP: &str = "EntityOverlap";
-/// Session 34 reviewed kinds (assigned by analyst review, never by
+/// Reviewed kinds (assigned by analyst review, never by
 /// automatic wording classification).
 pub const RELATIONSHIP_ROLLBACK_FOR: &str = "RollbackFor";
 pub const RELATIONSHIP_PARTICIPANT_IMPACT_DURING: &str = "ParticipantImpactDuring";
@@ -300,7 +300,7 @@ pub struct TicketRelationship {
     pub created_utc: String,
 }
 
-// ── Case-study layer (Session 30) ──────────────────────────────────
+// ── Case-study layer ──────────────────────────────────
 //
 // A CaseStudy is a reviewed grouping and interpretation of several sources
 // and analysis runs. It never owns observations: evidence continues to
@@ -536,7 +536,7 @@ pub struct IncidentGroupCandidate {
     pub updated_utc: String,
 }
 
-// ── Reviewed ticket interpretation (Session 34, Part 1) ────────────
+// ── Reviewed ticket interpretation ────────────
 
 /// Reviewed case-study roles for a ticket. These are analyst-reviewed
 /// case-study roles and NEVER replace the source task type.

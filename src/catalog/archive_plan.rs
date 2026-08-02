@@ -1,4 +1,4 @@
-//! Historical-archive planning for a case study (Session 30, Part 8).
+//! Historical-archive planning for a case study.
 //!
 //! The planner computes a reproducible initial analysis horizon and the
 //! expected 2019 RouteViews archive files for it — **without downloading
@@ -27,7 +27,7 @@ fn default_family() -> String {
 /// RIPE RIS collector candidates (route collectors) that existed in 2019.
 pub const RIS_COLLECTOR_CANDIDATES_2019: &[&str] = &["rrc00", "rrc01"];
 
-/// BGP archive source family (Session 33, Part 10).
+/// BGP archive source family.
 ///
 /// RouteViews and RIPE RIS are distinct observer sources: distinct
 /// archive bases, file conventions, RIB cadences, and compression. A
@@ -120,7 +120,7 @@ pub struct ExpectedFile {
 pub struct CollectorPlan {
     pub collector: String,
     /// Source family this collector belongs to (RouteViews | RipeRis).
-    /// Defaults to RouteViews so plans stored before Session 33 parse.
+    /// Defaults to RouteViews so plans stored before RIPE RIS support parse.
     #[serde(default = "default_family")]
     pub source_family: String,
     /// Availability in 2019: candidate until verified at execution time.
@@ -922,7 +922,7 @@ mod tests {
         assert_eq!(p.collectors.len(), 2);
     }
 
-    // ── Session 33 Part 10: RouteViews/RIS source-family inventory ──
+    // ── RouteViews/RIS source-family inventory ──
 
     #[test]
     fn routeviews_and_ris_collectors_have_distinct_identity() {

@@ -1,5 +1,5 @@
 //! Shared archive planning across events — CorrelationBatch
-//! (Session 33, Part 11).
+//!
 //!
 //! A corpus must not download and parse the same raw archive
 //! independently for every ticket. The batch planner groups candidate

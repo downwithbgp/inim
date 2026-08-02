@@ -1,4 +1,4 @@
-//! Reviewed target-research application (Session 31, Parts 4-5).
+//! Reviewed target-research application.
 //!
 //! The reviewed research record (`case-studies/<slug>/target-research.json`)
 //! is the canonical artifact for historical target mappings. Applying it

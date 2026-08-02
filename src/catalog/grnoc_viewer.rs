@@ -1,5 +1,5 @@
-//! Polite live adapter for the GRNOC Public Task Viewer (Session 33,
-//! Part 5).
+//! Polite live adapter for the GRNOC Public Task Viewer
+//! .
 //!
 //! The viewer exposes undocumented POST JSON endpoints (see
 //! `docs/sources/GRNOC_PUBLIC_TASK_VIEWER.md`):

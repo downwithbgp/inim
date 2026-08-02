@@ -549,7 +549,7 @@ pub const TRANSITION_IMPORT_LIMIT: usize = 1_000_000;
 /// Import per-transition records from `transitions.json` into
 /// `run_transitions` (one row per (run, seq), idempotent).
 ///
-/// Storage audit (Session 31): `run_transitions` is a COMPACT SEARCHABLE
+/// Storage audit: `run_transitions` is a COMPACT SEARCHABLE
 /// INDEX — it stores only the fields needed for phase assignment,
 /// filtering, summary counts, and evidence lookup (kind, timestamp, key,
 /// path_id, effect facets, observation id, archive checksum). Complete

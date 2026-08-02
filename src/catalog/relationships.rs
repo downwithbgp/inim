@@ -1,4 +1,4 @@
-//! Ticket relationship extraction and graph (Session 33, Parts 6–7).
+//! Ticket relationship extraction and graph.
 //!
 //! Ticket identifiers are extracted from public source text with a
 //! conservative syntax (exact spans preserved). The relationship kind is

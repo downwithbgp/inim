@@ -1,4 +1,4 @@
-//! Bounded two-stage pipeline engine (Session 32, Parts 6-8).
+//! Bounded two-stage pipeline engine.
 //!
 //! `run_bounded_pipeline` executes an ordered list of items through a
 //! download stage (bounded by `download_jobs`) into a parse stage (bounded

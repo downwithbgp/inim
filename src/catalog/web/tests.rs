@@ -636,7 +636,7 @@ fn event_list_filters_are_server_side() {
     assert_eq!(filters.lifecycle.as_deref(), Some("Open"));
 }
 
-// ── Case-study + document tests (Session 30, Parts 11-13) ──────────
+// ── Case-study + document tests  ──────────
 
 use axum::http::HeaderMap;
 
@@ -1090,7 +1090,7 @@ async fn approved_document_is_served_inline() {
     assert!(body.contains("%PDF-1.4"), "served bytes are the document");
 }
 
-// ── Session 33: corpus pages and API ───────────────────────────────
+// ── corpus pages and API ───────────────────────────────
 
 #[tokio::test]
 async fn corpus_pages_render_with_corpus_data() {
@@ -1288,7 +1288,7 @@ async fn workbench_result_is_deterministic() {
     assert_eq!(a, b, "workbench HTML must be byte-identical across GETs");
 }
 
-// ── Session 37: workbench semantic invariants (Parts 1, 2, 4, 6, 8, 11) ──
+// ── workbench semantic invariants (Parts 1, 2, 4, 6, 8, 11) ──
 //
 // Token discipline: src/ must stay free of the reviewed plane ASN
 // literals and the lowercase `internet2` token. Where a test must match
@@ -1449,7 +1449,7 @@ async fn temporary_absence_with_restoration_has_restored_end_state() {
 
 #[tokio::test]
 async fn false_prepend_link_is_not_rendered() {
-    // Part 0 (Session 45): the MAN LAN direct-absence finding must not
+    // Part 0: the MAN LAN direct-absence finding must not
     // render an earlier-change link claiming origin prepending when the
     // canonical evidence holds no origin prepend delta (equal occurrence
     // counts). A related route transition alone is not a prepend change.
@@ -1607,7 +1607,7 @@ async fn observed_peer_asn_is_never_rendered_as_unreviewed() {
         "an observed ASN is never labeled unreviewed"
     );
     // The no-visibility page no longer carries the internal episodes
-    // peer cells (Session 43, Part 4); it never labels peers with a
+    // peer cells ; it never labels peers with a
     // review verdict.
     let (_, ripe) = event_workbench("INC0302574").await;
     assert!(!ripe.contains("ASN: unreviewed"));
@@ -1693,7 +1693,7 @@ async fn first_screen_leads_with_findings_and_covers_breadth() {
     }
     assert_eq!(status, StatusCode::OK);
     // The generated observed-result sentence now lives in the
-    // secondary Observation coverage section (Session 39, Part 7); the
+    // secondary Observation coverage section ; the
     // breadth ratio never precedes the concrete findings.
     let findings = body.find("Externally observed routing changes").unwrap();
     let coverage = body.find("Observation coverage").unwrap();
@@ -2208,7 +2208,7 @@ async fn case_study_header_states_no_incident_wide_verdict() {
     );
 }
 
-// ── Session 38: golden unit assertions (Parts 2, 3, 10) ─────────────
+// ── golden unit assertions (Parts 2, 3, 10) ─────────────
 
 #[tokio::test]
 async fn uva_session_episode_stream_and_prefix_counts_are_distinct() {
@@ -2266,7 +2266,7 @@ async fn manlan_global_distinct_prefix_count_is_not_stream_total() {
     assert!(body.contains(">12<"), "AMER distinct prefix cell");
 }
 
-// ── Session 38: compact header (Part 9) ─────────────────────────────
+// ── compact header (Part 9) ─────────────────────────────
 
 #[tokio::test]
 async fn header_does_not_inline_all_linked_ticket_ids() {
@@ -2338,7 +2338,7 @@ async fn mobile_first_view_prioritizes_findings_and_scope() {
     // In the DOM, the findings and scope limit precede the event
     // context facts and the coverage ratios, so the first mobile
     // viewport shows title + findings + scope before any secondary
-    // metadata (Session 39, Part 7).
+    // metadata.
     let (status, body) = manlan_workbench().await;
     if body.is_empty() {
         return;
@@ -2357,7 +2357,7 @@ async fn mobile_first_view_prioritizes_findings_and_scope() {
 }
 
 // ─────────────────────────────────────────────────────────────────────
-// Session 39: operator-first routing findings (Parts 5, 7, 9, 12).
+// operator-first routing findings (Parts 5, 7, 9, 12).
 // ─────────────────────────────────────────────────────────────────────
 
 /// True when the text contains an AS path (ASN sequence). Incident
@@ -2502,7 +2502,7 @@ async fn changed_event_first_screen_starts_with_concrete_finding() {
     let findings_pos = body.find("Externally observed routing changes").unwrap();
     let first_finding = &body[findings_pos..findings_pos + 1300];
     // The first principal story is the direct 11-prefix temporary
-    // absence (Session 40, Part 8): absence outranks path changes.
+    // absence: absence outranks path changes.
     assert!(
         first_finding.contains("16:45:25"),
         "the direct absence leads the findings"
@@ -2554,7 +2554,7 @@ async fn changed_event_first_screen_contains_before_after_route() {
     }
     assert_eq!(status, StatusCode::OK);
     // Before and after routes are one expansion away: the Route
-    // sequence chronology shows the numeric paths (Session 41, Part 5);
+    // sequence chronology shows the numeric paths ;
     // the named paths live under ASN identity notes.
     let findings_pos = body.find("Externally observed routing changes").unwrap();
     let block = &body[findings_pos..findings_pos + 4500];
@@ -2654,7 +2654,7 @@ async fn no_changed_event_leads_with_session_ratio() {
     }
     // The relationship assessment lives once: as the primary
     // statement, with the longer assessment in collapsed context
-    // (Session 43, Part 4: no duplication).
+    //.
     assert!(
         body.contains("Relationship assessment"),
         "assessment reachable in collapsed context"
@@ -2825,7 +2825,7 @@ async fn primary_page_contains_no_internal_filler() {
 }
 
 // ─────────────────────────────────────────────────────────────────────
-// Session 40: principal stories, named paths, peer metadata, previews,
+// principal stories, named paths, peer metadata, previews,
 // no-visibility page, UVA story.
 // ─────────────────────────────────────────────────────────────────────
 
@@ -3304,7 +3304,7 @@ async fn uva_peer_metadata_import_roundtrip() {
 }
 
 // ─────────────────────────────────────────────────────────────────────
-// Session 41: compact findings, route chronology, identity policy.
+// compact findings, route chronology, identity policy.
 // ─────────────────────────────────────────────────────────────────────
 
 #[tokio::test]
@@ -3720,7 +3720,7 @@ async fn primary_page_contains_only_relationship_relevant_evidence() {
 }
 
 // ─────────────────────────────────────────────────────────────────────
-// Session 42: semantic cleanup (Parts 1-5).
+// semantic cleanup (Parts 1-5).
 // ─────────────────────────────────────────────────────────────────────
 
 #[tokio::test]
@@ -4108,7 +4108,7 @@ async fn supporting_plane_details_remain_accessible() {
 }
 
 // ─────────────────────────────────────────────────────────────────────
-// Session 43: UVA chronology gate (Parts 1-4).
+// UVA chronology gate (Parts 1-4).
 // ─────────────────────────────────────────────────────────────────────
 
 /// Load the committed finding-chronology audit artifact.
@@ -4509,7 +4509,7 @@ async fn analysis_end_summary_names_present_route_state() {
 }
 
 // ─────────────────────────────────────────────────────────────────────
-// Session 44: baseline semantics (Parts 1-3).
+// baseline semantics (Parts 1-3).
 // ─────────────────────────────────────────────────────────────────────
 
 #[tokio::test]

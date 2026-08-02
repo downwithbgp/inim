@@ -1,5 +1,5 @@
-//! Phase-conditioned summaries over one complete AnalysisRun (Session 30,
-//! Part 9).
+//! Phase-conditioned summaries over one complete AnalysisRun
+//! .
 //!
 //! Read-only derivation: given one run and the reviewed case-study phases,
 //! each phase is summarized from the run's stored transitions (imported

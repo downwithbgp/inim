@@ -1,4 +1,4 @@
-//! Origin-only inventory (Session 35, Part 5).
+//! Origin-only inventory.
 //!
 //! Classifies ALL origin-matching baseline routes at each selected
 //! observer against the manifest's named path classifiers (a route may

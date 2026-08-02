@@ -1,4 +1,4 @@
-//! Case-study data-file import (Session 30, Part 15).
+//! Case-study data-file import.
 //!
 //! A reviewed case-study data file (`case-studies/<slug>/case-study.json`)
 //! is the canonical representation of an `IncidentCaseStudy`: documents,

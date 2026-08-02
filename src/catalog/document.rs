@@ -1,4 +1,4 @@
-//! Reference-document import (Session 30, Part 3).
+//! Reference-document import.
 //!
 //! Immutable external supporting material (e.g. an after-action report) is
 //! stored as local catalog data under `<root>/data/documents/<sha12>/` with a

@@ -155,7 +155,7 @@ struct TicketFixture {
     timezone: Option<String>,
 }
 
-/// Parse a "YYYY-MM-DD HH:MM:SS" timestamp into a DateTime<Utc>.
+/// Parse a "YYYY-MM-DD HH:MM:SS" timestamp into a `DateTime<Utc>`.
 ///
 /// If the fixture declares a `timezone` field, the times are interpreted
 /// in that local timezone and normalized to UTC. Common Internet2 values:

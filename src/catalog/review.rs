@@ -1,4 +1,4 @@
-//! Reviewed ticket interpretation (Session 34, Parts 1–2).
+//! Reviewed ticket interpretation.
 //!
 //! A reviewed interpretation is analyst-reviewed case-study context for a
 //! catalog ticket, stored SEPARATELY from its immutable source snapshot.

@@ -1,4 +1,4 @@
-//! Case-study comparison model (Session 30, Part 10).
+//! Case-study comparison model.
 //!
 //! A reviewed presentation model pairing operator-reported claims with
 //! public-BGP observation derived from linked AnalysisRuns. A comparison is

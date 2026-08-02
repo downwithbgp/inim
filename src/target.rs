@@ -34,7 +34,7 @@ pub struct TargetStream {
 ///
 /// Only observer-prefix streams matching ALL criteria are selected:
 /// 1. Origin AS is in `target_origin_asns`
-/// 2. Baseline AS path satisfies `transit_predicate` (e.g. ContainsAny[11537])
+/// 2. Baseline AS path satisfies `transit_predicate` (e.g. ContainsAny\[11537\])
 ///
 /// Collectors with no relevant streams receive an empty entry.
 pub fn scan_rib_and_freeze(

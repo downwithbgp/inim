@@ -1,4 +1,4 @@
-//! NOC incident-workbench presentation model (Session 36).
+//! NOC incident-workbench presentation model.
 //!
 //! `ObserverEpisode` groups observer-prefix streams at ONE observer
 //! session (collector + peer) that share a meaningful, temporally
@@ -146,7 +146,7 @@ impl CoverageStatus {
 }
 
 /// Why an observer session is (or is not) part of the eligible
-/// measurement (Session 38, Part 4). These are distinct conditions and
+/// measurement. These are distinct conditions and
 /// must never collapse into one "no baseline" bucket:
 /// - `EligibleWithBaseline`: the session exists and the target is
 ///   visible; it is part of the eligible denominator.
@@ -236,7 +236,7 @@ impl EndState {
 }
 
 /// Outcome observed AFTER the event-window end, during the analysis
-/// cooldown (Session 38, Part 7). The event-window end state and the
+/// cooldown. The event-window end state and the
 /// final analysis state are INDEPENDENT facts: an episode can be
 /// "still changed at window end" and later restore in cooldown.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -257,7 +257,7 @@ pub enum CooldownOutcome {
 pub struct ObserverEpisode {
     /// Analysis run id this episode is derived from.
     pub analysis_run: i64,
-    /// Observer session identity: "<family>/<collector> peer <peer_ip>".
+    /// Observer session identity: "`<family>/<collector>` peer `<peer_ip>`".
     pub observer_session: String,
     pub observer_site: String,
     pub observer_region: String,
@@ -323,7 +323,7 @@ pub struct EpisodeStream {
     pub evidence_refs: String,
 }
 
-/// Operator-facing routing effect vocabulary (Session 39, Part 3).
+/// Operator-facing routing effect vocabulary.
 ///
 /// A presentation label derived one-to-one from the existing
 /// `EffectKind` (+ end-state) evidence — no new transition semantics.
@@ -380,8 +380,8 @@ impl RoutingEffect {
     }
 }
 
-/// Reviewed, time-scoped ASN identity enrichment (Session 39, Part 6;
-/// Session 40, Part 6).
+/// Reviewed, time-scoped ASN identity enrichment
+/// .
 ///
 /// Names and roles come from reviewed case-study data or from current
 /// registry lookups with explicit status. `valid_from`/`valid_to` bound
@@ -476,8 +476,8 @@ impl AsnIdentityRegistry {
             .map(|i| i.role.as_str())
     }
 
-    /// Primary display name for historical path rendering (Session 41,
-    /// Part 6): only HistoricallyReviewed names are primary; current
+    /// Primary display name for historical path rendering
+    /// : only HistoricallyReviewed names are primary; current
     /// registry identities are provenance, not primary labels.
     pub fn primary_display_name(&self, asn: u32, date: &str) -> Option<&str> {
         self.lookup(asn, date)
@@ -511,7 +511,7 @@ impl AsnIdentityRegistry {
     }
 }
 
-/// One lifecycle transition with exact paths (Session 41, Part 1):
+/// One lifecycle transition with exact paths:
 /// the ordered route-state list of one prefix.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PathTransition {
@@ -903,8 +903,8 @@ pub struct FindingStream {
     pub evidence_refs: String,
 }
 
-/// A related earlier change at the same session (Session 44,
-/// Part 4): the visible prepend/path-change event that preceded a
+/// A related earlier change at the same session
+/// : the visible prepend/path-change event that preceded a
 /// withdrawal finding. The related finding stays separate; this is a
 /// visible link, never a merge.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -915,7 +915,7 @@ pub struct EarlierChange {
     pub label: String,
 }
 
-/// Operator-facing routing finding (Session 39, Part 3).
+/// Operator-facing routing finding.
 ///
 /// One coherent routing story at one observer session: which prefixes,
 /// what changed, what the paths were, and how the episode ended. A
@@ -937,7 +937,7 @@ pub struct RoutingFinding {
     /// finding's first transition). Empty when the evidence is absent.
     pub event_baseline_path_signature: String,
     /// The related earlier change at this session, when the finding
-    /// was split from one (Session 44, Part 4).
+    /// was split from one.
     pub earlier_change: Option<EarlierChange>,
     pub observer_site: String,
     pub observer_region: String,
@@ -985,7 +985,7 @@ pub struct RoutingFinding {
 /// Load all runs' streams and transitions for a set of run ids.
 ///
 /// Semantic waves are run-scoped aggregates without session identity;
-/// they do not feed the episode presentation model (Session 37 audit)
+/// they do not feed the episode presentation model
 /// and are therefore not loaded here.
 #[derive(Debug, Default)]
 pub struct RunEvidence {
@@ -1574,7 +1574,7 @@ pub fn render_episode_sentence(episode: &ObserverEpisode) -> String {
 }
 
 /// Build operator-facing routing findings from observer episodes
-/// (Session 39, Part 3).
+///
 ///
 /// One changed episode becomes one finding: the episode grouping
 /// (observer session + effect kind) already enforces the same
@@ -1610,7 +1610,7 @@ pub fn build_findings(
         // chronology is materially different — a different baseline
         // path or first-changed path, multiplicity-aware — never share
         // one finding: a finding's route story must be true for every
-        // prefix (Session 42, Part 1).
+        // prefix.
         struct StreamRecord {
             stream: FindingStream,
             baseline: Vec<u32>,
@@ -1807,7 +1807,7 @@ pub fn build_findings(
             }
         };
         let split = partitions.len() > 1;
-        // Session 43, Part 2: a partition whose streams carry BOTH a
+        // A partition whose streams carry BOTH a
         // Withdrawal and earlier visible path-change transitions
         // presents two distinct routing events. A prepend reduction is
         // never headed "Temporarily absent": split the partition into a
@@ -1921,8 +1921,8 @@ pub fn build_findings(
             };
 
             // Peer ASN: the reviewed session context wins; otherwise the
-            // observed peer ASNs from source RIB evidence (Session 40,
-            // Part 7). Multiple distinct observed ASNs are ambiguous and
+            // observed peer ASNs from source RIB evidence
+            // . Multiple distinct observed ASNs are ambiguous and
             // never silently resolved.
             let peer_asn = e.peer_asn.or_else(|| {
                 let observed = &e.observed_peer_asns;
@@ -2146,7 +2146,7 @@ pub fn build_findings(
 }
 
 /// Render one concise operational statement for a changed finding
-/// (Session 39, Part 4).
+///
 ///
 /// Exact verbs only: stopped seeing / became absent / withdrew /
 /// changed AS path / reduced prepending / left the reviewed path plane
@@ -2154,7 +2154,7 @@ pub fn build_findings(
 /// changed. Never: protected, failed over, backup path, rerouted,
 /// traffic restored.
 /// Short target name from a reviewed target label for natural
-/// grammar: "UVA via <transit>" -> "UVA", "TARGET (AS2603)" ->
+/// grammar: "UVA via `<transit>`" -> "UVA", "TARGET (AS2603)" ->
 /// "TARGET". Never invented: the input is the reviewed manifest/pilot
 /// label.
 pub fn target_name_from_label(label: &str) -> String {
@@ -2188,7 +2188,7 @@ pub fn finding_time(iso: &str) -> String {
 
 pub fn finding_statement(f: &RoutingFinding) -> String {
     let n = f.distinct_prefixes;
-    // Natural target grammar (Session 40, Part 12): "12 prefixes
+    // Natural target grammar: "12 prefixes
     // originated by UVA (AS225)" — never "{n} prefixes UVA via ...".
     let unit = if n == 1 {
         match origin_clause(f) {
@@ -2207,7 +2207,7 @@ pub fn finding_statement(f: &RoutingFinding) -> String {
             .unwrap_or_else(|| "the observed time".to_string())
     };
     let observer = format!("{} in {}", f.collector, f.observer_site);
-    // Peer clause (Session 40, Part 7): reviewed name + ASN, with the
+    // Peer clause: reviewed name + ASN, with the
     // peer IP alongside whenever a peer ASN is known; peer-IP-only
     // wording is reserved for sessions with no peer-ASN evidence.
     let peer = match f.peer_asn {
@@ -2266,7 +2266,7 @@ pub fn finding_statement(f: &RoutingFinding) -> String {
         }
         RoutingEffect::PrependingChanged => {
             // The evidence-derived direction with the origin counts
-            // (Session 44, Part 5 marker: "AS225×7 → AS225×1").
+            //.
             let direction = f
                 .target_origin_asns
                 .first()
@@ -2320,7 +2320,7 @@ pub fn finding_statement(f: &RoutingFinding) -> String {
         }
     };
 
-    // Precise restoration outcomes (Session 40, Part 2): each sentence
+    // Precise restoration outcomes: each sentence
     // states exactly which restoration class the audit record supports.
     let exact_times: Vec<&str> = f
         .streams
@@ -2438,7 +2438,7 @@ pub fn finding_statement(f: &RoutingFinding) -> String {
             ));
         }
     }
-    // Analysis-end outcome (Session 40, Part 3): never hide a
+    // Analysis-end outcome: never hide a
     // restoration that failed or a change that continued after the
     // event window.
     use CooldownOutcome as CO;
@@ -2485,7 +2485,7 @@ fn origin_clause(f: &RoutingFinding) -> Option<String> {
     Some(format!("originated by {name}"))
 }
 
-/// Path-diff semantics for operator explanations (Session 40, Part 4).
+/// Path-diff semantics for operator explanations.
 ///
 /// Generic, factual path effects derived from two exact AS paths. Never
 /// assigns cause: no "because", no failure, no reroute language.
@@ -2555,8 +2555,8 @@ pub fn diff_paths(before: &[u32], after: &[u32], plane_asns: &[u32]) -> PathDiff
     d
 }
 
-/// Render a factual, generic explanation of a before/after path pair
-/// (Session 40, Part 4). `names` maps an ASN to a display label
+/// Render a factual, generic explanation of a before/after path pair.
+/// `names` maps an ASN to a display label
 /// (e.g. a reviewed plane label or "AS20080 — name not reviewed"); `plane`
 /// is the reviewed plane display label. The exact numeric path is
 /// never replaced — it remains authoritative alongside.
@@ -2572,7 +2572,7 @@ pub fn explain_path_diff(
 
 /// `explain_path_diff` with explicit target-origin ASNs: the
 /// "origin-AS prepending" phrase is used only when the repeated ASN is
-/// a target origin (Session 41, Part 7); intermediate repetition is
+/// a target origin ; intermediate repetition is
 /// never called origin prepending.
 pub fn explain_path_diff_with_origins(
     before: &[u32],
@@ -2694,7 +2694,7 @@ pub fn explain_path_diff_with_origins(
     sentence
 }
 
-/// Principal-finding selection (Session 40, Part 8).
+/// Principal-finding selection.
 ///
 /// Deterministic selection of the operational stories that lead the
 /// workbench, prioritizing distinct stories over internal record
@@ -2856,7 +2856,7 @@ pub fn select_principal_findings(
     (principal, rest)
 }
 
-/// One auditable finding record (Session 40, Part 1). Serialized to
+/// One auditable finding record. Serialized to
 /// `finding-audit.json`; the prose renderer reads the exact same
 /// fields, so a sentence can never state a restoration the audit
 /// record does not support.
@@ -2977,8 +2977,8 @@ impl FindingAudit {
     }
 }
 
-/// One ordered step of a finding's route chronology (Session 41,
-/// Part 1). Derived from canonical evidence only; absent fields are
+/// One ordered step of a finding's route chronology
+/// . Derived from canonical evidence only; absent fields are
 /// omitted, never guessed.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct ChronologyStep {
@@ -2997,7 +2997,7 @@ pub struct ChronologyStep {
     pub restoration: Option<&'static str>,
 }
 
-/// Ordered route chronology of one finding (Session 41, Part 1).
+/// Ordered route chronology of one finding.
 ///
 /// Never flattens restoration events into one ambiguous outcome: the
 /// final observed state is always a distinct step.
@@ -3019,8 +3019,8 @@ pub fn route_chronology(f: &RoutingFinding, window_end: &str) -> RouteChronology
 
     // 1. EventBaseline (the frozen route at the event start) and the
     // PreFindingState (the route immediately before this finding's
-    // first transition). They are distinct states (Session 44,
-    // Part 1): the pre-finding route is never labeled "baseline" when
+    // first transition). They are distinct states
+    // : the pre-finding route is never labeled "baseline" when
     // the event baseline differs from it.
     let event_sig =
         if f.event_baseline_path_signature.is_empty() || f.event_baseline_path_signature == "—" {
@@ -3078,7 +3078,7 @@ pub fn route_chronology(f: &RoutingFinding, window_end: &str) -> RouteChronology
     }
     // 2-3. Absence interval + first replacement (withdrawals).
     // The interval is anchored on the actual Withdrawal transitions
-    // (Session 42, Part 1), never on the episode's first observed
+    // , never on the episode's first observed
     // change; the replacement path is the first path observed after
     // the withdrawal, not an arbitrary changed state.
     if matches!(
@@ -3195,7 +3195,7 @@ pub fn route_chronology(f: &RoutingFinding, window_end: &str) -> RouteChronology
             format!("at {} UTC", finding_time(t))
         };
         // The "exact baseline" claim is only valid when the returned
-        // path equals the EventBaseline (Session 44, Part 1); a return
+        // path equals the EventBaseline ; a return
         // of the pre-finding route is labeled as such.
         let return_label = if event_sig == f.baseline_path_signature {
             "Exact baseline return"
@@ -3342,7 +3342,7 @@ pub fn route_chronology(f: &RoutingFinding, window_end: &str) -> RouteChronology
 /// observed after visibility returned, aggregated per prefix to the
 /// most frequent (before, return) pair. The ordered pair around the
 /// withdrawal — never a baseline-vs-arbitrary-transition comparison —
-/// is the only basis for absence prepend wording (Session 42, Part 1).
+/// is the only basis for absence prepend wording.
 pub struct AbsenceStory {
     /// Earliest Withdrawal transition across the finding's prefixes.
     pub withdrawal_at: Option<String>,
@@ -3421,7 +3421,7 @@ pub fn withdrawal_story(f: &RoutingFinding) -> Option<AbsenceStory> {
 }
 
 /// Human event-window-end statement derived from the ACTUAL final
-/// route (Session 42, Part 2): compare the final observed path with
+/// route: compare the final observed path with
 /// the baseline instead of echoing internal enum names.
 pub fn human_window_end_state(f: &RoutingFinding) -> String {
     use EndState as ES;
@@ -3433,7 +3433,7 @@ pub fn human_window_end_state(f: &RoutingFinding) -> String {
                 "No route observed after restoration".to_string()
             } else if f.final_path_signature == f.baseline_path_signature {
                 // The "exact baseline" claim requires EventBaseline
-                // equality (Session 44, Part 1); a final route that
+                // equality ; a final route that
                 // only matches the pre-finding state is labeled as
                 // such, never as the baseline.
                 if f.event_baseline_path_signature.is_empty()
@@ -3453,7 +3453,7 @@ pub fn human_window_end_state(f: &RoutingFinding) -> String {
     }
 }
 
-/// Human analysis-end statement (Session 42, Part 2): "No later change
+/// Human analysis-end statement: "No later change
 /// observed" when a route state exists and the follow-up window was
 /// quiet; "No route observed after restoration" when the prefixes
 /// stayed absent.
@@ -3465,9 +3465,9 @@ pub fn human_analysis_end_state(f: &RoutingFinding) -> String {
                 "No route observed after restoration".to_string()
             } else if f.final_path_signature == f.baseline_path_signature {
                 // The route state is the operator's primary fact
-                // (Session 43, Part 4); the quiet follow-up stays
+                // ; the quiet follow-up stays
                 // supplemental. The "exact baseline" claim requires
-                // EventBaseline equality (Session 44, Part 1).
+                // EventBaseline equality.
                 if f.event_baseline_path_signature.is_empty()
                     || f.event_baseline_path_signature == "\u{2014}"
                     || f.event_baseline_path_signature == f.baseline_path_signature
@@ -3793,7 +3793,7 @@ fn escape_svg(s: &str) -> String {
         .replace('>', "&gt;")
 }
 
-/// One unique time-scoped observer session (Session 38, Part 1).
+/// One unique time-scoped observer session.
 ///
 /// Identity: source family, collector, peer IP, address family. The
 /// address family is derived deterministically from the peer IP literal
@@ -3818,7 +3818,7 @@ pub fn address_family_of(peer_ip: &str) -> &'static str {
     }
 }
 
-/// Parse "<family>/<collector> peer <ip>" into a SessionKey.
+/// Parse "`<family>/<collector>` peer `<ip>`" into a SessionKey.
 pub fn session_key_of(observer_session: &str) -> SessionKey {
     let (family, rest) = match observer_session.split_once('/') {
         Some((f, r)) => (f.to_string(), r.to_string()),
@@ -3838,7 +3838,7 @@ pub fn session_key_of(observer_session: &str) -> SessionKey {
 }
 
 /// Extract the collector label from an observer session string of the
-/// form "<family>/<collector> peer <ip>".
+/// form "`<family>/<collector>` peer `<ip>`".
 pub fn collector_from_session(session: &str) -> &str {
     match session.split_once('/') {
         Some((_, rest)) => match rest.split_once(" peer ") {
@@ -3849,7 +3849,7 @@ pub fn collector_from_session(session: &str) -> &str {
     }
 }
 
-/// Extract the source family from "<family>/<collector> peer <ip>".
+/// Extract the source family from "`<family>/<collector>` peer `<ip>`".
 pub fn family_from_session(session: &str) -> &str {
     match session.split_once('/') {
         Some((f, _)) => f,
@@ -4583,7 +4583,7 @@ pub fn regional_breadth(
     let mut by_region: BTreeMap<String, RegionObservationSummary> = BTreeMap::new();
 
     // Per-region aggregates over UNIQUE session keys and UNIQUE
-    // ObserverPrefixKeys (Session 38, Part 1): one session may produce
+    // ObserverPrefixKeys: one session may produce
     // several episodes, and one prefix may appear at several peers; the
     // denominator counts sessions, streams count (collector, peer,
     // prefix) keys, and prefixes are set unions per region.
@@ -4790,8 +4790,7 @@ mod breadth_tests {
         let rows = regional_breadth(&episodes, &[], &[]);
         let amer = rows.iter().find(|r| r.region == "AMER").unwrap();
         // One session produced both a changed and an unchanged episode:
-        // it is ONE eligible session and counts as changed (Session 38
-        // denominator fix).
+        // it is ONE eligible session and counts as changed (denominator fix).
         assert_eq!(amer.eligible_observer_sessions, 1, "denominator visible");
         assert_eq!(amer.changed_observer_sessions, 1);
         assert_eq!(amer.unchanged_observer_sessions, 0);
@@ -5277,7 +5276,7 @@ mod timeline_tests {
         );
         e.restoration_start = None;
         e.restoration_end = None;
-        // Unresolved is a determinate end-state verdict (Session 37);
+        // Unresolved is a determinate end-state verdict ;
         // an unresolved episode must never fabricate a restoration.
         e.end_state = EndState::Unresolved;
         let lanes = build_timeline(&[e], "W0", "W1", &BTreeMap::new());
@@ -5293,7 +5292,7 @@ mod timeline_tests {
     fn absent_withdrawal_is_determinate_not_unresolved() {
         // A withdrawal without restoration is the determinate end state
         // "Absent at window end" — the timeline must not label it as an
-        // unresolved observation (Session 37 semantic correction).
+        // unresolved observation.
         let mut e = ep(
             EffectKind::RouteWithdrawal,
             "catalog/rrc06 peer 192.0.2.1",
@@ -5329,9 +5328,9 @@ pub struct InvestigationCue {
 ///
 /// Cue templates only reference reviewed identities: the collector site,
 /// the reviewed plane label, the observer session, and the analysis
-/// interval. "Check advertisements for these prefixes toward <plane>"
+/// interval. "Check advertisements for these prefixes toward `<plane>`"
 /// and "Check the session corresponding to the reviewed attachment
-/// during <interval>" are the supported shapes.
+/// during `<interval>`" are the supported shapes.
 pub fn build_investigation_cues(episodes: &[ObserverEpisode]) -> Vec<InvestigationCue> {
     let mut cues = Vec::new();
     for ep in episodes {
@@ -5402,8 +5401,8 @@ pub fn build_investigation_cues(episodes: &[ObserverEpisode]) -> Vec<Investigati
     cues
 }
 
-/// Investigation cues derived from routing findings (Session 39,
-/// Part 11): exact path comparisons, still-changed reviews, and
+/// Investigation cues derived from routing findings
+/// : exact path comparisons, still-changed reviews, and
 /// cross-observer comparisons for the same prefix set. Every cue links
 /// to exact prefixes, exact observer session, and exact interval; a cue
 /// is only generated when an actionable external fact supports it.
@@ -5646,7 +5645,7 @@ mod cue_tests {
     }
 }
 
-// ── Grouped investigation cues (Session 37, Part 9) ────────────────
+// ── Grouped investigation cues ────────────────
 
 /// One grouped internal-investigation cue.
 ///
@@ -5664,7 +5663,7 @@ pub struct GroupedCue {
     /// "HH:MM:SS–HH:MM:SS UTC" (or window-wide).
     pub time_range: String,
     pub session_count: usize,
-    /// Drill-down target: episode index (server-rendered ?prefixes=<n>).
+    /// Drill-down target: episode index (server-rendered `?prefixes=<n>`).
     pub drill_down: Option<usize>,
 }
 
@@ -5907,7 +5906,7 @@ pub fn render_observed_result(vm: &IncidentWorkbenchViewModel) -> String {
     out
 }
 
-/// Reviewed ticket-relationship audit (Session 38, Part 8).
+/// Reviewed ticket-relationship audit.
 ///
 /// Loaded from the reviewed audit artifact (`out/{event_id}/
 /// relationship-audit.json`, runtime data). When present, the ticket's
@@ -5921,7 +5920,7 @@ pub struct TicketRelationshipAudit {
     pub assessment: String,
     pub supporting_run_classification: String,
     pub supporting_note: String,
-    /// Direct sessions at the named relationship (Session 40, Part 11):
+    /// Direct sessions at the named relationship:
     /// collector, peer identity, and how many event-origin routes were
     /// visible through the session at baseline.
     #[serde(default)]
@@ -5945,7 +5944,7 @@ pub struct DirectSessionRow {
     pub origin_route_count: u32,
 }
 
-/// Machine-readable unit totals (Session 38, Part 1/10).
+/// Machine-readable unit totals.
 ///
 /// One source of truth for the page, the JSON API, the text report,
 /// and the unit-audit output. Every field has an exact unit:
@@ -6042,7 +6041,7 @@ pub struct IncidentWorkbenchViewModel {
     pub relationship_audit: Option<TicketRelationshipAudit>,
     pub runs: Vec<WorkbenchRunView>,
     pub episodes: Vec<ObserverEpisode>,
-    /// Operator-facing routing findings (Session 39, Part 3).
+    /// Operator-facing routing findings.
     pub findings: Vec<RoutingFinding>,
     /// Reviewed target label + origin ASNs (manifest/pilot data) for
     /// natural origin naming on the no-visibility page and cards.
@@ -6117,7 +6116,7 @@ pub struct WorkbenchContext {
     pub no_baseline_sessions: Vec<(String, String, String, CoverageReason, String)>,
     /// Incomplete sessions (collector, region, label, reason, detail).
     pub incomplete_sessions: Vec<(String, String, String, CoverageReason, String)>,
-    /// Reviewed ASN identities (Session 39, Part 6).
+    /// Reviewed ASN identities.
     pub asn_identities: AsnIdentityRegistry,
 }
 
@@ -6413,7 +6412,7 @@ impl IncidentWorkbenchViewModel {
 
         let timeline = build_timeline(&episodes, &window_start, &window_end, &BTreeMap::new());
 
-        // Operator-facing routing findings (Session 39, Part 3):
+        // Operator-facing routing findings:
         // changed episodes + exact lifecycle paths + reviewed ASN
         // identities. Exact paths are read from the run lifecycle
         // artifacts; absent artifacts yield signatures "—" (never
@@ -6959,7 +6958,7 @@ impl WorkbenchContext {
 
     pub fn load_from_pilot_dir(pilot_dir: &std::path::Path) -> Self {
         let mut ctx = WorkbenchContext {
-            // Reviewed ASN identities (Session 39, Part 6).
+            // Reviewed ASN identities.
             asn_identities: AsnIdentityRegistry::load(&pilot_dir.join("asn-identities.json")),
             ..WorkbenchContext::default()
         };
@@ -7074,7 +7073,7 @@ impl WorkbenchContext {
     /// pilot-scoped evidence and must not be attributed to unrelated
     /// events.
     pub fn load_registry_only(pilot_dir: &std::path::Path) -> Self {
-        // Reviewed ASN identities (Session 39, Part 6): the manlan-2019
+        // Reviewed ASN identities: the manlan-2019
         // registry applies to the case-study workbench; other subjects
         // load their own file when one exists.
         let mut ctx = WorkbenchContext {
@@ -7391,7 +7390,7 @@ mod text_report_tests {
     }
 }
 
-// ── Session 37: presentation-semantics invariants (Part 1) ─────────
+// ── presentation-semantics invariants (Part 1) ─────────
 
 #[cfg(test)]
 mod session37_semantic_tests {
@@ -7714,7 +7713,7 @@ mod session37_semantic_tests {
     }
 }
 
-// ── Session 37: lane timeline (Part 7) ──────────────────────────────
+// ── lane timeline (Part 7) ──────────────────────────────
 
 #[cfg(test)]
 mod session37_timeline_tests {
@@ -7833,7 +7832,7 @@ mod session37_timeline_tests {
     }
 }
 
-// ── Session 38: counting units (Part 1) ─────────────────────────────
+// ── counting units (Part 1) ─────────────────────────────
 
 #[cfg(test)]
 mod session38_unit_tests {
@@ -8086,7 +8085,7 @@ mod session38_unit_tests {
     }
 }
 
-// ── Session 38: prefix breadth units (Parts 2-3) ────────────────────
+// ── prefix breadth units (Parts 2-3) ────────────────────
 
 #[cfg(test)]
 mod session38_prefix_tests {
@@ -8279,7 +8278,7 @@ mod session38_prefix_tests {
     }
 }
 
-// ── Session 38: coverage reasons (Part 4) ───────────────────────────
+// ── coverage reasons (Part 4) ───────────────────────────
 
 #[cfg(test)]
 mod session38_coverage_tests {
@@ -8361,7 +8360,7 @@ mod session38_coverage_tests {
     }
 }
 
-// ── Session 38: timeline context strip (Part 6) ─────────────────────
+// ── timeline context strip (Part 6) ─────────────────────
 
 #[cfg(test)]
 mod session38_timeline_tests {
@@ -8583,7 +8582,7 @@ mod session38_timeline_tests {
     }
 }
 
-// ── Session 38: window-end vs cooldown (Part 7) ─────────────────────
+// ── window-end vs cooldown (Part 7) ─────────────────────
 
 #[cfg(test)]
 mod session38_cooldown_tests {
@@ -8785,7 +8784,7 @@ mod session38_cooldown_tests {
     }
 }
 
-// ── Session 38: observed peer-session metadata (Part 5) ─────────────
+// ── observed peer-session metadata (Part 5) ─────────────
 
 #[cfg(test)]
 mod session38_metadata_tests {
@@ -8878,7 +8877,7 @@ mod session38_metadata_tests {
     }
 }
 
-/// Shared fixtures for RoutingFinding tests (Session 39).
+/// Shared fixtures for RoutingFinding tests.
 #[cfg(test)]
 mod finding_test_helpers {
     use super::*;
@@ -9625,7 +9624,7 @@ mod finding_test_helpers {
     }
 }
 
-/// ASN identity and path-renderer tests (Session 39, Part 6).
+/// ASN identity and path-renderer tests.
 #[cfg(test)]
 mod identity_tests {
     use super::finding_test_helpers::{absence_episode, build, episode, path_index_with};
@@ -10108,7 +10107,7 @@ mod session40_tests {
 
     #[test]
     fn rrc15_regression_peer_asn_in_labels_and_outcomes() {
-        // Regression (Session 40, Part 3): the RRC15 11-prefix finding
+        // Regression: the RRC15 11-prefix finding
         // restored in-window (17:03:32–17:03:35) but re-changed at
         // 17:52:16 during cooldown. The finding must carry the peer ASN
         // and must state BOTH outcomes.
@@ -11250,7 +11249,7 @@ mod session42_tests {
             "2026-07-14T08:56:00Z",
         );
         // The visible prepend reduction and the withdrawal are now
-        // DISTINCT findings (Session 43, Part 2).
+        // DISTINCT findings.
         assert_eq!(findings.len(), 2, "prepend + absence are separate findings");
         let prepend = findings
             .iter()
@@ -11552,7 +11551,7 @@ mod session42_tests {
 }
 
 // ─────────────────────────────────────────────────────────────────────
-// Session 43, Part 1: finding-chronology audit artifact.
+// Finding-chronology audit artifact.
 // ─────────────────────────────────────────────────────────────────────
 
 /// One ordered transition in the chronology audit, with the evidence
@@ -11587,8 +11586,8 @@ pub struct FindingChronologyPrefix {
 }
 
 /// Checked audit of the exact per-prefix chronology for one event,
-/// generated from the canonical lifecycle artifact (Session 43,
-/// Part 1). The rendered workbench prose and route sequence must
+/// generated from the canonical lifecycle artifact
+/// . The rendered workbench prose and route sequence must
 /// agree with this record.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct FindingChronologyAudit {
@@ -11728,7 +11727,7 @@ pub fn load_finding_chronology_audit(
                 .cloned()
         });
         // Fractional seconds: whole-second diff plus the sub-second
-        // parts, so a 54 ms absence reads 0.054 (Session 44, Part 3).
+        // parts, so a 54 ms absence reads 0.054.
         let frac_secs = |iso: &str| -> f64 {
             match iso.find('.') {
                 Some(dot) => {
@@ -11987,7 +11986,7 @@ mod session44_tests {
         assert_eq!(human_window_end_state(f), "Event baseline path present");
     }
 }
-/// Part 0 (Session 45): the earlier-change link between an absence
+/// Part 0: the earlier-change link between an absence
 /// finding and the separate visible prepend finding must be grounded in
 /// canonical transition semantics. A prepend-change relationship is
 /// displayed only when the canonical pre-withdrawal transition is a real

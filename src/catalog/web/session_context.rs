@@ -139,7 +139,7 @@ impl SessionContext {
 
     /// Narrow cross-plane conclusion built from the reviewed matrix.
     ///
-    /// Structure (Session 35, Part 12): different views; the RouteViews
+    /// Structure: different views; the RouteViews
     /// observer's temporary absence; indirect RIS departures without
     /// complete stream absence; direct peer-exchange observations
     /// reported separately (here: not historically available); the views

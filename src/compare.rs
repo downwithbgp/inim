@@ -496,7 +496,7 @@ mod tests {
         assert!(err.contains("schema"), "{err}");
     }
 
-    // ── Session 28: comparison redesign tests ─────────────────────
+    // ── comparison redesign tests ─────────────────────
 
     fn blocked_plan_json() -> serde_json::Value {
         serde_json::json!({

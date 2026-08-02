@@ -412,7 +412,7 @@ mod tests {
         );
     }
 
-    // ── Session 33: public-viewer response parsing (fixtures only) ──
+    // ── public-viewer response parsing (fixtures only) ──
 
     #[test]
     fn viewer_response_fixture_parses() {

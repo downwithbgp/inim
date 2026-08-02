@@ -1,4 +1,4 @@
-//! Candidate incident grouping (Session 33, Part 9; Session 34, Part 3).
+//! Candidate incident grouping.
 //!
 //! A correlation workspace groups tickets that MAY describe parts of one
 //! operational incident. Every candidate group states why it was

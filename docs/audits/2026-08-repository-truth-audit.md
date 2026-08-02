@@ -24,20 +24,20 @@ This audit verifies that every tracked file is classified, that every current st
 
 ## Summary
 
-Tracked files: **326** · inventory entries: **326**
+Tracked files: **336** · inventory entries: **336**
 
 | Category | Files |
 |---|---|
 | Immutable or generated evidence | 116 |
 | Production source | 82 |
+| Configuration | 22 |
+| Reviewed case-study interpretation | 22 |
 | Historical decision record | 22 |
-| Configuration | 21 |
-| Reviewed case-study interpretation | 20 |
-| Script or developer tool | 18 |
+| Script or developer tool | 19 |
 | Template or stylesheet | 16 |
+| Normative current documentation | 14 |
 | Test fixture | 11 |
-| Normative current documentation | 10 |
-| Test source | 4 |
+| Test source | 6 |
 | Packaging or release metadata | 3 |
 | License or third-party notice | 2 |
 | GitHub/community metadata | 1 |
@@ -53,10 +53,11 @@ Tracked files: **326** · inventory entries: **326**
 | `Cargo.lock` | Configuration | maintainers | reviewed operator configuration | no | current | reviewed in this audit | none | reviewed (unchanged) |
 | `Cargo.toml` | Packaging or release metadata | maintainers | release policy | no | current | reviewed in this audit | none | reviewed (unchanged) |
 | `LICENSE` | License or third-party notice | public readers | upstream license terms | no | current | reviewed in this audit | none | reviewed (unchanged) |
-| `README.md` | Normative current documentation | contributors and operators | implementation + canonical evidence (see docs/README authority map) | no | current | line-by-line reviewed in this audit | none | reviewed (unchanged) |
+| `README.md` | Normative current documentation | contributors and operators | implementation + canonical evidence (see docs/README authority map) | no | current | line-by-line reviewed in this audit | updated in this audit | reviewed + updated |
 | `RELEASING.md` | Packaging or release metadata | maintainers | release policy | no | current | reviewed in this audit | none | reviewed (unchanged) |
 | `THIRD_PARTY_NOTICES.md` | License or third-party notice | public readers | upstream license terms | no | current | reviewed in this audit | none | reviewed (unchanged) |
 | `askama.toml` | Configuration | maintainers | reviewed operator configuration | no | current | reviewed in this audit | none | reviewed (unchanged) |
+| `case-studies/inc0299001/README.md` | Reviewed case-study interpretation | network analysts | canonical evidence + operator sources (reviewed) | no | current | claims re-checked against canonical evidence in this audit | updated in this audit | reviewed + updated |
 | `case-studies/inc0299001/asn-identities.json` | Reviewed case-study interpretation | network analysts | canonical evidence + operator sources (reviewed) | no | current | claims re-checked against canonical evidence in this audit | none | reviewed (unchanged) |
 | `case-studies/inc0299001/finding-chronology-audit.json` | Immutable or generated evidence | network analysts | MRT/RIB/UPDATE archives + generator run (immutable) | yes | current | schema/container reviewed; contents canonical, not hand-edited | none | reviewed (unchanged) |
 | `case-studies/inc0299001/out/INC0299001/archive_manifest.json` | Immutable or generated evidence | network analysts | MRT/RIB/UPDATE archives + generator run (immutable) | yes | current | schema/container reviewed; contents canonical, not hand-edited | none | reviewed (unchanged) |
@@ -70,6 +71,7 @@ Tracked files: **326** · inventory entries: **326**
 | `case-studies/inc0299001/out/INC0299001/stdout.json` | Immutable or generated evidence | network analysts | MRT/RIB/UPDATE archives + generator run (immutable) | yes | current | schema/container reviewed; contents canonical, not hand-edited | none | reviewed (unchanged) |
 | `case-studies/inc0299001/out/INC0299001/withdrawal_audit.json` | Immutable or generated evidence | network analysts | MRT/RIB/UPDATE archives + generator run (immutable) | yes | current | schema/container reviewed; contents canonical, not hand-edited | none | reviewed (unchanged) |
 | `case-studies/inc0299001/peer-metadata.json` | Reviewed case-study interpretation | network analysts | canonical evidence + operator sources (reviewed) | no | current | claims re-checked against canonical evidence in this audit | none | reviewed (unchanged) |
+| `case-studies/inc0302574/README.md` | Reviewed case-study interpretation | network analysts | canonical evidence + operator sources (reviewed) | no | current | claims re-checked against canonical evidence in this audit | updated in this audit | reviewed + updated |
 | `case-studies/inc0302574/out/INC0302574/archive_manifest.json` | Immutable or generated evidence | network analysts | MRT/RIB/UPDATE archives + generator run (immutable) | yes | current | schema/container reviewed; contents canonical, not hand-edited | none | reviewed (unchanged) |
 | `case-studies/inc0302574/out/INC0302574/evidence_appendix.jsonl` | Immutable or generated evidence | network analysts | MRT/RIB/UPDATE archives + generator run (immutable) | yes | current | schema/container reviewed; contents canonical, not hand-edited | none | reviewed (unchanged) |
 | `case-studies/inc0302574/out/INC0302574/lifecycle.json` | Immutable or generated evidence | network analysts | MRT/RIB/UPDATE archives + generator run (immutable) | yes | current | schema/container reviewed; contents canonical, not hand-edited | none | reviewed (unchanged) |
@@ -81,7 +83,7 @@ Tracked files: **326** · inventory entries: **326**
 | `case-studies/inc0302574/out/INC0302574/stderr.log` | Immutable or generated evidence | network analysts | MRT/RIB/UPDATE archives + generator run (immutable) | yes | current | schema/container reviewed; contents canonical, not hand-edited | none | reviewed (unchanged) |
 | `case-studies/inc0302574/out/INC0302574/stdout.json` | Immutable or generated evidence | network analysts | MRT/RIB/UPDATE archives + generator run (immutable) | yes | current | schema/container reviewed; contents canonical, not hand-edited | none | reviewed (unchanged) |
 | `case-studies/inc0302574/out/INC0302574/withdrawal_audit.json` | Immutable or generated evidence | network analysts | MRT/RIB/UPDATE archives + generator run (immutable) | yes | current | schema/container reviewed; contents canonical, not hand-edited | none | reviewed (unchanged) |
-| `case-studies/manlan-2019/README.md` | Reviewed case-study interpretation | network analysts | canonical evidence + operator sources (reviewed) | no | current | claims re-checked against canonical evidence in this audit | none | reviewed (unchanged) |
+| `case-studies/manlan-2019/README.md` | Reviewed case-study interpretation | network analysts | canonical evidence + operator sources (reviewed) | no | current | claims re-checked against canonical evidence in this audit | updated in this audit | reviewed + updated |
 | `case-studies/manlan-2019/case-study.json` | Reviewed case-study interpretation | network analysts | canonical evidence + operator sources (reviewed) | no | current | claims re-checked against canonical evidence in this audit | none | reviewed (unchanged) |
 | `case-studies/manlan-2019/pilot/PILOT-SELECTION.md` | Reviewed case-study interpretation | network analysts | canonical evidence + operator sources (reviewed) | no | current | claims re-checked against canonical evidence in this audit | none | reviewed (unchanged) |
 | `case-studies/manlan-2019/pilot/absence-audit.json` | Immutable or generated evidence | network analysts | MRT/RIB/UPDATE archives + generator run (immutable) | yes | current | schema/container reviewed; contents canonical, not hand-edited | none | reviewed (unchanged) |
@@ -208,20 +210,25 @@ Tracked files: **326** · inventory entries: **326**
 | `case-studies/manlan-2019/pilot/ticket-reviews.json` | Reviewed case-study interpretation | network analysts | canonical evidence + operator sources (reviewed) | no | current | claims re-checked against canonical evidence in this audit | none | reviewed (unchanged) |
 | `case-studies/manlan-2019/target-research.json` | Reviewed case-study interpretation | network analysts | canonical evidence + operator sources (reviewed) | no | current | claims re-checked against canonical evidence in this audit | none | reviewed (unchanged) |
 | `deny.toml` | Configuration | maintainers | reviewed operator configuration | no | current | reviewed in this audit | none | reviewed (unchanged) |
-| `docs/ADRs/CASE-STUDY-LAYER.md` | Historical decision record | maintainers | decision context at time of writing | no | historical | status and applicability reviewed in this audit | none | reviewed (unchanged) |
-| `docs/ADRs/LOCAL-CATALOG-AND-WEB.md` | Historical decision record | maintainers | decision context at time of writing | no | historical | status and applicability reviewed in this audit | none | reviewed (unchanged) |
-| `docs/ADRs/MONOCLE-DATAPLANE.md` | Historical decision record | maintainers | decision context at time of writing | no | historical | status and applicability reviewed in this audit | none | reviewed (unchanged) |
-| `docs/ADRs/RIPE-RIS-SUPPORT.md` | Historical decision record | maintainers | decision context at time of writing | no | historical | status and applicability reviewed in this audit | none | reviewed (unchanged) |
-| `docs/BENCHMARK.md` | Normative current documentation | contributors and operators | implementation + canonical evidence (see docs/README authority map) | no | current | line-by-line reviewed in this audit | none | reviewed (unchanged) |
-| `docs/DATA_PROVENANCE.md` | Normative current documentation | contributors and operators | implementation + canonical evidence (see docs/README authority map) | no | current | line-by-line reviewed in this audit | none | reviewed (unchanged) |
-| `docs/DECISIONS.md` | Historical decision record | maintainers | decision context at time of writing | no | historical | status and applicability reviewed in this audit | none | reviewed (unchanged) |
-| `docs/DESIGN.md` | Normative current documentation | contributors and operators | implementation + canonical evidence (see docs/README authority map) | no | current | line-by-line reviewed in this audit | none | reviewed (unchanged) |
-| `docs/DOMAIN.md` | Normative current documentation | contributors and operators | implementation + canonical evidence (see docs/README authority map) | no | current | line-by-line reviewed in this audit | none | reviewed (unchanged) |
+| `docs/ADRs/CASE-STUDY-LAYER.md` | Historical decision record | maintainers | decision context at time of writing | no | historical | status and applicability reviewed in this audit | updated in this audit | reviewed + updated |
+| `docs/ADRs/LOCAL-CATALOG-AND-WEB.md` | Historical decision record | maintainers | decision context at time of writing | no | historical | status and applicability reviewed in this audit | updated in this audit | reviewed + updated |
+| `docs/ADRs/MONOCLE-DATAPLANE.md` | Historical decision record | maintainers | decision context at time of writing | no | historical | status and applicability reviewed in this audit | updated in this audit | reviewed + updated |
+| `docs/ADRs/README.md` | Normative current documentation | maintainers | ADR files themselves (historical decisions) | no | current | line-by-line reviewed in this audit | updated in this audit | reviewed + updated |
+| `docs/ADRs/RIPE-RIS-SUPPORT.md` | Historical decision record | maintainers | decision context at time of writing | no | historical | status and applicability reviewed in this audit | updated in this audit | reviewed + updated |
+| `docs/BENCHMARK.md` | Normative current documentation | contributors and operators | implementation + canonical evidence (see docs/README authority map) | no | current | line-by-line reviewed in this audit | updated in this audit | reviewed + updated |
+| `docs/DATA_PROVENANCE.md` | Normative current documentation | contributors and operators | implementation + canonical evidence (see docs/README authority map) | no | current | line-by-line reviewed in this audit | updated in this audit | reviewed + updated |
+| `docs/DECISIONS.md` | Historical decision record | maintainers | decision context at time of writing | no | historical | status and applicability reviewed in this audit | updated in this audit | reviewed + updated |
+| `docs/DESIGN.md` | Normative current documentation | contributors and operators | implementation + canonical evidence (see docs/README authority map) | no | current | line-by-line reviewed in this audit | updated in this audit | reviewed + updated |
+| `docs/DOMAIN.md` | Normative current documentation | contributors and operators | implementation + canonical evidence (see docs/README authority map) | no | current | line-by-line reviewed in this audit | updated in this audit | reviewed + updated |
+| `docs/GLOSSARY.md` | Normative current documentation | contributors and operators | implementation + canonical evidence (see docs/README authority map) | no | current | line-by-line reviewed in this audit | updated in this audit | reviewed + updated |
 | `docs/MONOCLE_EVALUATION.md` | Historical decision record | maintainers | decision context at time of writing | no | historical | status and applicability reviewed in this audit | none | reviewed (unchanged) |
-| `docs/OBSERVABILITY.md` | Normative current documentation | contributors and operators | implementation + canonical evidence (see docs/README authority map) | no | current | line-by-line reviewed in this audit | none | reviewed (unchanged) |
+| `docs/OBSERVABILITY.md` | Normative current documentation | contributors and operators | implementation + canonical evidence (see docs/README authority map) | no | current | line-by-line reviewed in this audit | updated in this audit | reviewed + updated |
+| `docs/README.md` | Normative current documentation | contributors and operators | implementation + canonical evidence (see docs/README authority map) | no | current | line-by-line reviewed in this audit | updated in this audit | reviewed + updated |
 | `docs/REQUIREMENTS.md` | Historical decision record | maintainers | decision context at time of writing | no | historical | status and applicability reviewed in this audit | none | reviewed (unchanged) |
 | `docs/TASKS.md` | Historical decision record | maintainers | decision context at time of writing | no | historical | status and applicability reviewed in this audit | none | reviewed (unchanged) |
-| `docs/UX.md` | Normative current documentation | contributors and operators | implementation + canonical evidence (see docs/README authority map) | no | current | line-by-line reviewed in this audit | none | reviewed (unchanged) |
+| `docs/UX.md` | Normative current documentation | contributors and operators | implementation + canonical evidence (see docs/README authority map) | no | current | line-by-line reviewed in this audit | updated in this audit | reviewed + updated |
+| `docs/audits/2026-08-repository-truth-audit.md` | Normative current documentation | maintainers | repository-inventory.json + git state (rendered, reviewed content) | no | current | line-by-line reviewed in this audit | updated in this audit | reviewed + updated |
+| `docs/audits/repository-inventory.json` | Configuration | maintainers | reviewed classification of tracked files | no | current | reviewed in this audit | updated in this audit | reviewed + updated |
 | `docs/session-10-baseline.md` | Historical decision record | maintainers | decision context at time of writing | no | historical | status and applicability reviewed in this audit | none | reviewed (unchanged) |
 | `docs/sources/GRNOC_BULK_ACCESS_REQUEST.md` | Normative current documentation | contributors and operators | implementation + canonical evidence (see docs/README authority map) | no | current | line-by-line reviewed in this audit | none | reviewed (unchanged) |
 | `docs/sources/GRNOC_PUBLIC_TASK_VIEWER.md` | Normative current documentation | contributors and operators | implementation + canonical evidence (see docs/README authority map) | no | current | line-by-line reviewed in this audit | none | reviewed (unchanged) |
@@ -231,6 +238,7 @@ Tracked files: **326** · inventory entries: **326**
 | `scripts/audit_pilot_absence.py` | Script or developer tool | maintainers | the command it wraps + its inputs | no | current | comments and usage strings audited in this audit | none | reviewed (unchanged) |
 | `scripts/bench_parse_scaling.sh` | Script or developer tool | maintainers | the command it wraps + its inputs | no | current | comments and usage strings audited in this audit | none | reviewed (unchanged) |
 | `scripts/build-cross-observer-matrix.py` | Script or developer tool | maintainers | the command it wraps + its inputs | no | current | comments and usage strings audited in this audit | none | reviewed (unchanged) |
+| `scripts/build-repo-audit.py` | Script or developer tool | maintainers | the command it wraps + its inputs | no | current | comments and usage strings audited in this audit | updated in this audit | reviewed + updated |
 | `scripts/build-rrc11-audit.py` | Script or developer tool | maintainers | the command it wraps + its inputs | no | current | comments and usage strings audited in this audit | none | reviewed (unchanged) |
 | `scripts/build-rrc11-i2px-decision.py` | Script or developer tool | maintainers | the command it wraps + its inputs | no | current | comments and usage strings audited in this audit | none | reviewed (unchanged) |
 | `scripts/compare_runs.py` | Script or developer tool | maintainers | the command it wraps + its inputs | no | current | comments and usage strings audited in this audit | none | reviewed (unchanged) |
@@ -312,7 +320,7 @@ Tracked files: **326** · inventory entries: **326**
 | `src/catalog/web/templates/sync_runs.html` | Template or stylesheet | operators (NOC analysts) | workbench view model + domain model | no | current | user-visible text audited in this audit | none | reviewed (unchanged) |
 | `src/catalog/web/templates/workbench.html` | Template or stylesheet | operators (NOC analysts) | workbench view model + domain model | no | current | user-visible text audited in this audit | none | reviewed (unchanged) |
 | `src/catalog/web/tests.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | updated in this audit | reviewed + updated |
-| `src/catalog/web/view.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed (unchanged) |
+| `src/catalog/web/view.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | updated in this audit | reviewed + updated |
 | `src/catalog/workbench.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | updated in this audit | reviewed + updated |
 | `src/cohort.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed (unchanged) |
 | `src/compare.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed (unchanged) |
@@ -357,6 +365,8 @@ Tracked files: **326** · inventory entries: **326**
 | `src/target.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed (unchanged) |
 | `src/tokenize.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed (unchanged) |
 | `src/waves.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed (unchanged) |
+| `tests/artifact_audit_test.rs` | Test source | maintainers | implementation behavior + fixtures | no | current | reviewed in this audit | updated in this audit | reviewed + updated |
+| `tests/audit_test.rs` | Test source | maintainers | implementation behavior + fixtures | no | current | reviewed in this audit | updated in this audit | reviewed + updated |
 | `tests/fixtures/README.md` | Test fixture | maintainers | upstream source or synthetic generator | no | current | provenance reviewed in this audit | none | reviewed (unchanged) |
 | `tests/fixtures/grnoc/INC0301970.json` | Test fixture | maintainers | upstream source or synthetic generator | no | current | provenance reviewed in this audit | none | reviewed (unchanged) |
 | `tests/fixtures/grnoc/viewer/CHG0099999.json` | Test fixture | maintainers | upstream source or synthetic generator | no | current | provenance reviewed in this audit | none | reviewed (unchanged) |
@@ -369,7 +379,7 @@ Tracked files: **326** · inventory entries: **326**
 | `tests/fixtures/mrt/update-example.gz` | Test fixture | maintainers | upstream source or synthetic generator | no | current | provenance reviewed in this audit | none | reviewed (unchanged) |
 | `tests/fixtures/ris/updates.20190821.1600.gz` | Test fixture | maintainers | upstream source or synthetic generator | no | current | provenance reviewed in this audit | none | reviewed (unchanged) |
 | `tests/i2px_audit_test.rs` | Test source | maintainers | implementation behavior + fixtures | no | current | reviewed in this audit | none | reviewed (unchanged) |
-| `tests/release_test.rs` | Test source | maintainers | implementation behavior + fixtures | no | current | reviewed in this audit | none | reviewed (unchanged) |
+| `tests/release_test.rs` | Test source | maintainers | implementation behavior + fixtures | no | current | reviewed in this audit | updated in this audit | reviewed + updated |
 | `tests/rrc11_audit_test.rs` | Test source | maintainers | implementation behavior + fixtures | no | current | reviewed in this audit | none | reviewed (unchanged) |
 | `tests/vertical_slice_test.rs` | Test source | maintainers | implementation behavior + fixtures | no | current | reviewed in this audit | none | reviewed (unchanged) |
 

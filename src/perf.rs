@@ -1,4 +1,4 @@
-//! Performance instrumentation (Session 32, Part 3).
+//! Performance instrumentation.
 //!
 //! `performance.json` is a SEPARATE artifact: stage wall-clock timings and
 //! per-archive metrics are volatile and must never participate in

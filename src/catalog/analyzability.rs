@@ -1,4 +1,4 @@
-//! Corpus-level BGP-analysis readiness (Session 33, Part 8).
+//! Corpus-level BGP-analysis readiness.
 //!
 //! For every catalog event a readiness record is DERIVED from reviewed
 //! inputs (manifests, plans, runs, snapshots) — never stored as a single
@@ -199,7 +199,7 @@ pub fn derive_all_analyzability(conn: &Connection) -> Result<Vec<Analyzability>,
 }
 
 /// Next analyst action for a queue row, derived from the readiness state
-/// and the reviewed analysis applicability (Session 34, Part 10).
+/// and the reviewed analysis applicability.
 ///
 /// Deterministic; never executed automatically — a future POST/job
 /// workflow remains separate. Vocabulary:

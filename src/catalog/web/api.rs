@@ -121,7 +121,7 @@ pub async fn api_catalog_status(State(state): State<SharedState>) -> Response {
     }
 }
 
-// ── Case-study API (Session 30, Part 12) ───────────────────────────
+// ── Case-study API ───────────────────────────
 
 /// GET /api/v1/case-studies — paginated list.
 pub async fn api_case_studies(
@@ -352,7 +352,7 @@ pub async fn api_run_regional_breadth(
     }
 }
 
-// ── Session 33: corpus API (read-only) ─────────────────────────────
+// ── corpus API (read-only) ─────────────────────────────
 
 pub async fn api_corpus_status(State(state): State<SharedState>) -> Response {
     let db = state.db.lock().unwrap();

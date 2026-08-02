@@ -1,6 +1,6 @@
 //! Reviewed HTTP access policy for public source acquisition.
 //!
-//! Reviewed local operational guidance (Session 35, Part 8): the
+//! Reviewed local operational guidance: the
 //! unauthenticated GRNOC Public Task Viewer endpoints can be accessed at
 //! up to **five requests per second** without operational concern. This
 //! is reviewed local operational guidance, NOT a publicly documented API
@@ -29,7 +29,7 @@ use std::time::{Duration, Instant};
 
 /// Default maximum concurrent (in-flight) requests.
 pub const DEFAULT_MAX_CONCURRENCY: usize = 5;
-/// Default sustained request rate (reviewed local guidance, Session 35).
+/// Default sustained request rate (reviewed local guidance).
 pub const DEFAULT_REQUESTS_PER_SECOND: f64 = 5.0;
 /// Default burst size (immediate requests before pacing).
 pub const DEFAULT_BURST: usize = 2;

@@ -1,5 +1,5 @@
-//! Cross-observer comparison over independent AnalysisRuns (Session 34,
-//! Part 7).
+//! Cross-observer comparison over independent AnalysisRuns
+//! .
 //!
 //! Each run keeps its own evidence; this layer only COMPARES per
 //! normalized prefix across collectors. It never merges evidence and

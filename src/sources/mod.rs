@@ -1,4 +1,5 @@
-// Sources — network-specific adapters.
+//! Sources — network-specific adapters (ticket/record parsing and
+//! expectation derivation behind the source-neutral domain core).
 pub mod grnoc;
 pub mod internet2;
 

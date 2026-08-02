@@ -289,7 +289,7 @@ pub fn insert_sync_run(conn: &Connection, sync: &CatalogSyncRun) -> Result<i64, 
     Ok(conn.last_insert_rowid())
 }
 
-// ── Case-study layer (Session 30) ──────────────────────────────────
+// ── Case-study layer ──────────────────────────────────
 
 /// Insert a case study; idempotent for (slug, content_sha256), rejecting a
 /// conflicting immutable revision for an existing slug.
@@ -670,7 +670,7 @@ pub fn insert_run_transition(conn: &Connection, t: &RunTransitionRecord) -> Resu
     Ok(conn.last_insert_rowid())
 }
 
-// ── Corpus discovery + fetch records (Session 33) ─────────────────
+// ── Corpus discovery + fetch records ─────────────────
 
 /// Record a discovery path. Duplicate (source, external_id, provenance)
 /// paths merge: the existing row is returned and nothing is inserted.
@@ -891,7 +891,7 @@ pub fn update_discovery_status_rows(
     Ok(())
 }
 
-// ── Ticket relationship graph (Session 33, Parts 6–7) ──────────────
+// ── Ticket relationship graph  ──────────────
 
 /// Insert a relationship edge. Idempotent: a duplicate edge (same from,
 /// target, kind, evidence, and provenance) is ignored. Returns true when
@@ -1012,7 +1012,7 @@ pub fn has_reviewed_edge(
     Ok(count > 0)
 }
 
-// ── Incident group candidates (Session 33, Part 9) ─────────────────
+// ── Incident group candidates ─────────────────
 
 /// Insert a candidate group; idempotent per evidence fingerprint.
 pub fn insert_group_candidate(
@@ -1178,7 +1178,7 @@ pub fn list_group_candidates(conn: &Connection) -> Result<Vec<IncidentGroupCandi
     Ok(out)
 }
 
-// ── Reviewed ticket interpretations (Session 34, Part 1) ───────────
+// ── Reviewed ticket interpretations ───────────
 
 /// Insert or replace the reviewed interpretation for one catalog event.
 /// One review per event (UNIQUE catalog_event_id); the source snapshot is

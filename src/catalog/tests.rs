@@ -535,7 +535,7 @@ fn running_status_has_documented_precedence() {
     );
 }
 
-// ── Case-study layer tests (Session 30, Parts 1-2) ─────────────────
+// ── Case-study layer tests  ─────────────────
 
 fn sample_case_study(slug: &str) -> CaseStudy {
     let sha = crate::catalog::sync::hex_sha256(slug);

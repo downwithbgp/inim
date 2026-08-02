@@ -1,5 +1,5 @@
 //! Corpus discovery — how ticket identifiers enter the catalog
-//! (Session 33, Part 3).
+//!
 //!
 //! Supported discovery modes:
 //!

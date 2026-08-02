@@ -1,4 +1,4 @@
-//! Historical collector-session audit (Session 35, Part 3).
+//! Historical collector-session audit.
 //!
 //! For every RouteViews and RIS collector considered by the 2019 pilot,
 //! derive the historical peer sessions from the BASELINE RIB's actual MRT
@@ -500,7 +500,7 @@ pub fn run_session_audit(opts: &SessionAuditOptions) -> Result<Vec<SessionAuditR
     Ok(rows)
 }
 /// Backfill observed peer-session metadata from cached baseline RIBs
-/// (Session 38, Part 5).
+///
 ///
 /// Runs a FULL peer inventory (all sessions, any origin) over the given
 /// cache directories for the date and records each session's OBSERVED

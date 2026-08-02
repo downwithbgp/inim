@@ -505,7 +505,7 @@ fn run_inner(
         retained_collectors.len()
     );
 
-    // ── Stage A (Session 31): metadata + RIB preflight only ─────────
+    // ── Stage A: metadata + RIB preflight only ─────────
     if preflight_only {
         let per_collector: Vec<serde_json::Value> = per_collector_counts
             .iter()

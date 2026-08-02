@@ -128,7 +128,7 @@ a:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px soli
 .wb-sortable th.sorted-asc::after { content: " ▲"; }
 .wb-sortable th.sorted-desc::after { content: " ▼"; }
 
-/* ── Routing findings (Session 39): operator-first cards + table. */
+/* ── Routing findings : operator-first cards + table. */
 .wb-pilot-range { font-size: 0.9rem; margin: 0.2rem 0; }
 .wb-audit { margin: 0.3rem 0; color: #7a4a00; }
 .wb-nofinding { font-size: 0.95rem; margin: 0.3rem 0; }
@@ -150,7 +150,7 @@ a:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px soli
 .wb-nochange-statements { margin: 0.2rem 0 0.4rem; font-size: 0.85rem; }
 .wb-episode-detail { margin: 0.5rem 0; }
 
-/* ── Session 40: principal stories, named paths, no-visibility. */
+/* principal stories, named paths, no-visibility. */
 .wb-scope-line { font-size: 0.82rem; color: #555; margin: 0 0 0.5rem; }
 .wb-principal { border-left: 3px solid #2e6da4; }
 .wb-secondary { border-left: 3px solid #bbb; }
@@ -173,7 +173,7 @@ a:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px soli
 .wb-novis { border: 1px solid var(--line); background: #fff; padding: 0.6rem 0.8rem; }
 .wb-novis-statement { font-size: 0.95rem; font-weight: 700; margin: 0.2rem 0; }
 
-/* ── Session 41: compact principal cards + progressive disclosure. */
+/* compact principal cards + progressive disclosure. */
 .wb-finding-meaning { font-size: 0.84rem; margin: 0.2rem 0 0.1rem; line-height: 1.32; }
 .wb-finding-final { font-size: 0.8rem; margin: 0.05rem 0 0.1rem; color: #333; line-height: 1.3; }
 .wb-finding-links { margin: 0.1rem 0; font-size: 0.78rem; display: flex; flex-wrap: wrap; gap: 0.15rem 1rem; }
@@ -211,7 +211,7 @@ a:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px soli
   .wb-seg-mark { display: block; }
   .wb-finding-head { font-size: 13px; }
   .wb-path-numeric { word-break: break-word; }
-  /* Session 40, Part 13: compact first viewport — title, concise
+  /* compact first viewport — title, concise
      scope line, then the first principal story within ~300-350px. */
   .wb-filters-wrap { margin: 0.1rem 0; }
   .wb-filters-wrap > summary { display: inline; cursor: pointer; color: var(--link); text-decoration: underline; font-size: 0.78rem; }
@@ -1009,7 +1009,7 @@ pub fn load_catalog_status_json(conn: &rusqlite::Connection) -> Result<serde_jso
     }))
 }
 
-// ── Case-study views (Session 30, Parts 11-13) ─────────────────────
+// ── Case-study views  ─────────────────────
 
 #[derive(Template)]
 #[template(path = "case_studies.html")]
@@ -1053,9 +1053,9 @@ pub struct CaseStudyView {
     pub observability_indirectly_visible: usize,
     pub observability_not_directly_visible: usize,
     pub observability_unknown: usize,
-    /// Reviewed corpus tickets related to the case study (Session 34).
+    /// Reviewed corpus tickets related to the case study.
     pub public_tickets: Vec<PublicTicketView>,
-    /// Cross-observer comparison over linked runs (Session 34, Part 7).
+    /// Cross-observer comparison over linked runs.
     pub observer_comparison: ObserverComparisonView,
 }
 
@@ -1148,7 +1148,7 @@ pub struct DocumentView {
     pub pages: String,
     pub redistribution_status: String,
     pub provenance: String,
-    /// A validated /documents/<id> href when a local copy exists.
+    /// A validated `/documents/<id>` href when a local copy exists.
     pub href: Option<String>,
 }
 
@@ -1312,12 +1312,12 @@ fn research_state_for(conn: &rusqlite::Connection, slug: &str) -> Result<String,
 }
 
 /// Load the case-study detail view; None when the slug is unknown.
-/// Narrow conclusion wording for the observer comparison (Session 34,
-/// Part 9). Multi-observer corresponding changes use the reviewed
+/// Narrow conclusion wording for the observer comparison
+/// . Multi-observer corresponding changes use the reviewed
 /// sentence; single-observer observations say so directly; disagreement
 /// is never hidden.
-/// Narrow conclusion wording for the observer comparison (Session 34,
-/// Part 9). The reviewed target label comes from the case-study plan
+/// Narrow conclusion wording for the observer comparison
+/// . The reviewed target label comes from the case-study plan
 /// data (never hard-coded in source); multi-observer corresponding
 /// changes use the reviewed sentence; a single-observer signature says
 /// so directly; disagreement is never hidden.
@@ -1831,7 +1831,7 @@ pub fn load_case_study(
         }
     }
 
-    // ── Session 34: reviewed public tickets + observer comparison ────
+    // ── reviewed public tickets + observer comparison ────
     let mut public_tickets = Vec::new();
     {
         let mut stmt = conn
@@ -2111,7 +2111,7 @@ pub fn resolve_document_file(
     }))
 }
 
-// ── Session 33: corpus workspace views ─────────────────────────────
+// ── corpus workspace views ─────────────────────────────
 
 #[derive(Template, Serialize)]
 #[template(path = "corpus.html")]
@@ -2270,7 +2270,7 @@ pub struct GroupEvidenceView {
     pub detail: String,
 }
 
-// ── Reviewed relationship graph (Session 34, Parts 1–2) ────────────
+// ── Reviewed relationship graph  ────────────
 
 #[derive(Template, Serialize)]
 #[template(path = "corpus_relationships.html")]
@@ -2726,7 +2726,7 @@ pub fn load_analysis_queue(
                 continue;
             }
         }
-        // Session 34: reviewed roles, archive-plan status, existing runs,
+        // reviewed roles, archive-plan status, existing runs,
         // and the derived next analyst action.
         let review = crate::catalog::store::get_ticket_review(conn, e.id)?;
         let reviewed_roles = review
@@ -2915,7 +2915,7 @@ pub fn load_archive_batches(conn: &rusqlite::Connection) -> Result<ArchiveBatche
     })
 }
 
-// ── Incident workbench views (Session 36, Parts 7/8/10/12) ──────────
+// ── Incident workbench views  ──────────
 
 /// Event workbench: the event's own runs through the shared view model.
 pub fn load_event_workbench(
@@ -2933,7 +2933,7 @@ pub fn load_event_workbench(
     let mut context = crate::catalog::workbench::WorkbenchContext::load_registry_only(
         std::path::Path::new("case-studies/manlan-2019/pilot"),
     );
-    // Event-scoped ASN identities (Session 40, Part 6): a registry for
+    // Event-scoped ASN identities: a registry for
     // this event, when one exists, augments the shared pilot registry.
     let event_registry = std::path::Path::new("case-studies")
         .join(event_id.to_lowercase())
@@ -2944,8 +2944,8 @@ pub fn load_event_workbench(
         context.asn_identities.merge(&event_identities);
     }
     crate::catalog::workbench::WorkbenchContext::load_session_metadata(conn, &mut context);
-    // Reviewed peer-session metadata for this event (Session 40,
-    // Part 7): the canonical data file preserves the observed peer
+    // Reviewed peer-session metadata for this event
+    // : the canonical data file preserves the observed peer
     // ASNs when the runtime catalog lacks the backfilled rows.
     let metadata_file = std::path::Path::new("case-studies")
         .join(event_id.to_lowercase())
@@ -2982,7 +2982,7 @@ pub fn load_event_workbench(
     vm.lifecycle = event_lifecycle(conn, event.id)?;
     // The expectation assessment comes from the first completed run's
     // assessment (model); the manifest target label is a title, not an
-    // assessment, and is never rendered here (Session 37, Part 1.1).
+    // assessment, and is never rendered here.
     let title = latest_title(conn, event.id)?;
     if !title.is_empty() {
         vm.title = title;
@@ -3033,7 +3033,7 @@ pub fn load_case_study_workbench(
     }
     .to_string();
     // No incident-wide expectation assessment exists for a case study;
-    // the model already states this (Session 37, Part 1.1).
+    // the model already states this.
     Ok(Some(WorkbenchView::from_vm(vm, query)))
 }
 
@@ -3068,24 +3068,24 @@ pub struct WorkbenchView {
     pub episodes: Vec<WorkbenchEpisodeRow>,
     /// No-change rows, rendered collapsed but discoverable (Part 6).
     pub unchanged_episodes: Vec<WorkbenchEpisodeRow>,
-    /// Operator-facing routing findings (Session 39, Parts 3-5, 8).
+    /// Operator-facing routing findings.
     pub findings: Vec<WorkbenchFindingRow>,
     /// Secondary findings under "Additional observer findings"
-    /// (Session 40, Part 8): fully accessible, not on the first screen.
+    ///: fully accessible, not on the first screen.
     pub additional_findings: Vec<WorkbenchFindingRow>,
     /// All findings in chronological model order (the Routing findings
     /// table); principal card order is by operational priority.
     pub findings_table: Vec<WorkbenchFindingRow>,
     /// True when the named relationship has no qualifying public
-    /// visibility (Session 40, Part 11): renders the compact primary
+    /// visibility: renders the compact primary
     /// result and hides empty analysis scaffolding.
     pub no_visibility_page: bool,
     /// Compact case-study scope line for the mobile first viewport
-    /// (Session 40, Part 13): "<pilot label> · <pilot range> UTC ·
+    ///: "`<pilot label>` · `<pilot range>` UTC ·
     /// not incident-wide".
     pub compact_scope_line: String,
     /// Named target origin for the no-visibility eligibility text
-    /// (Session 41, Part 11): "RIPE" + 3333 from reviewed data.
+    ///: "RIPE" + 3333 from reviewed data.
     pub origin_label: String,
     pub origin_asn: String,
     /// Concrete per-region observer comparison (Part 9).
@@ -3098,7 +3098,7 @@ pub struct WorkbenchView {
     pub cues: Vec<crate::catalog::workbench::InvestigationCue>,
     pub grouped_cues: Vec<crate::catalog::workbench::GroupedCue>,
     pub runs: Vec<crate::catalog::workbench::WorkbenchRunView>,
-    /// No-change observer statements (Session 39, Part 8): short
+    /// No-change observer statements: short
     /// per-session sentences, e.g. "RRC00 in Amsterdam saw no
     /// route-state change for the selected prefixes."
     pub no_change_statements: Vec<String>,
@@ -3484,7 +3484,7 @@ fn effect_slug(kind: &crate::catalog::workbench::EffectKind) -> &'static str {
     }
 }
 
-/// Filter a routing finding (Session 39): the same dimensions as the
+/// Filter a routing finding: the same dimensions as the
 /// episode filters, mapped onto the finding's effect vocabulary.
 fn matches_finding_filter(
     f: &crate::catalog::workbench::RoutingFinding,
@@ -3754,7 +3754,7 @@ fn episode_row(
         evidence_refs: refs.join(", "),
         // The prefix drill-down is nested inside the episode details,
         // so opening prefixes opens the parent episode too; ?expand=1
-        // opens every episode (Session 36 harness compatibility).
+        // opens every episode.
         expanded: f.episode == Some(idx) || f.prefixes == Some(idx) || f.expand_all,
         prefixes_open: f.prefixes == Some(idx),
         stream_rows: streams,
@@ -3791,7 +3791,7 @@ fn stream_end_state_human(s: &crate::catalog::workbench::EpisodeStream) -> Strin
     "No change".to_string()
 }
 
-/// Earlier-change link data (Session 44, Part 4): the separate
+/// Earlier-change link data: the separate
 /// related finding at the same session.
 #[derive(Debug, Clone, Serialize)]
 pub struct WorkbenchEarlierChange {
@@ -3799,7 +3799,7 @@ pub struct WorkbenchEarlierChange {
     pub label: String,
 }
 
-/// One operator-facing routing finding row (Session 39, Parts 4-5, 8).
+/// One operator-facing routing finding row.
 #[derive(Debug, Clone, Serialize)]
 pub struct WorkbenchFindingRow {
     pub stable_id: String,
@@ -3814,10 +3814,10 @@ pub struct WorkbenchFindingRow {
     pub peer_ip: String,
     pub relationship: String,
     /// "11 prefixes" (exact list in `exact_prefixes`); single-prefix
-    /// findings label with the exact prefix itself (Session 40, Part 9).
+    /// findings label with the exact prefix itself.
     pub prefixes: String,
     pub prefix_count: usize,
-    /// Principal story (Session 40, Part 8): selected for operational
+    /// Principal story: selected for operational
     /// meaning; secondary findings render under "Additional observer
     /// findings".
     pub principal: bool,
@@ -3831,31 +3831,31 @@ pub struct WorkbenchFindingRow {
     pub numeric_before: String,
     pub numeric_after: String,
     /// Named path segments with textual inserted/removed markers
-    /// (Session 40, Part 5).
+    ///
     pub named_before: Vec<PathSegmentRow>,
     pub named_after: Vec<PathSegmentRow>,
     /// Factual semantic explanation of the before/after pair
-    /// (Session 40, Part 4) — never causation.
+    ///  — never causation.
     pub path_explanation: String,
     /// Outcome text: restoration(s) or "still changed" state.
     pub outcome: String,
-    /// Compact two-line route meaning (Session 41, Part 4): the
+    /// Compact two-line route meaning: the
     /// default card body; temporally qualified for absences.
     pub compact_meaning: String,
-    /// Restoration/final-state summary line (Session 41, Part 2/4):
+    /// Restoration/final-state summary line:
     /// the exact-baseline reappearance and the FINAL observed state,
     /// never conflated.
     pub final_state_line: String,
-    /// Ordered route chronology (Session 41, Parts 1/5), rendered in
+    /// Ordered route chronology , rendered in
     /// the Route sequence expansion.
     pub chronology: crate::catalog::workbench::RouteChronology,
-    /// Per-distinct-ASN identity notes (Session 41, Part 6): rendered
+    /// Per-distinct-ASN identity notes: rendered
     /// once per ASN under the identity expansion.
     pub identity_notes: Vec<IdentityNoteRow>,
     /// One concise operational statement (Part 4).
     pub statement: String,
     pub exact_prefixes: Vec<String>,
-    /// Prefix preview (Session 40, Part 9): up to three prefixes plus
+    /// Prefix preview: up to three prefixes plus
     /// the hidden remainder count; the full list stays one action away.
     pub preview_prefixes: Vec<String>,
     pub hidden_prefix_count: usize,
@@ -3868,7 +3868,7 @@ pub struct WorkbenchFindingRow {
     pub stream_rows: Vec<WorkbenchFindingStreamRow>,
     pub evidence_refs: Vec<String>,
     pub scope_limit: String,
-    /// Earlier-change link (Session 44, Part 4).
+    /// Earlier-change link.
     pub earlier_change: Option<WorkbenchEarlierChange>,
     /// Exact ISO timestamps (details/API only).
     pub first_exact: String,
@@ -3878,8 +3878,8 @@ pub struct WorkbenchFindingRow {
     pub prefixes_open: bool,
 }
 
-/// One named path segment with a textual diff marker (Session 40,
-/// Part 5): `same`, `ins` (appeared), or `del` (removed). Markers are
+/// One named path segment with a textual diff marker
+/// : `same`, `ins` (appeared), or `del` (removed). Markers are
 /// textual classes, never color alone.
 #[derive(Debug, Clone, Serialize)]
 pub struct PathSegmentRow {
@@ -3888,7 +3888,7 @@ pub struct PathSegmentRow {
     pub mark: &'static str,
 }
 
-/// One distinct ASN's identity note (Session 41, Part 6): rendered
+/// One distinct ASN's identity note: rendered
 /// once per ASN, never once per occurrence.
 #[derive(Debug, Clone, Serialize)]
 pub struct IdentityNoteRow {
@@ -3919,7 +3919,7 @@ pub struct WorkbenchFindingStreamRow {
 }
 
 /// Short per-session statements for observers with no route-state
-/// change (Session 39, Part 8): "RRC00 in Amsterdam saw no route-state
+/// change: "RRC00 in Amsterdam saw no route-state
 /// change for the selected prefixes." No-change evidence only — never
 /// presented as proof about the named relationship.
 fn no_change_statements(vm: &crate::catalog::workbench::IncidentWorkbenchViewModel) -> Vec<String> {
@@ -3939,7 +3939,7 @@ fn no_change_statements(vm: &crate::catalog::workbench::IncidentWorkbenchViewMod
     statements
 }
 
-/// One region of the observer comparison (Session 39, Part 9):
+/// One region of the observer comparison:
 /// concrete per-site statements first, ratio as compact metadata.
 #[derive(Debug, Clone, Serialize)]
 pub struct WorkbenchRegionComparisonRow {
@@ -3957,7 +3957,7 @@ fn finding_rows(
     use crate::catalog::workbench::{select_principal_findings, RoutingEffect as RE};
     let window = &vm.window_start;
     let event_date = crate::catalog::workbench::window_date(&vm.window_start);
-    // Principal stories first (Session 40, Part 8); secondary findings
+    // Principal stories first ; secondary findings
     // remain fully accessible under "Additional observer findings".
     let (principal, additional) = select_principal_findings(vm.findings.clone(), &vm.plane_asns, 4);
     let ordered: Vec<&crate::catalog::workbench::RoutingFinding> = principal
@@ -4003,7 +4003,7 @@ fn finding_rows(
                 .unwrap_or_else(|| "—".to_string());
             // Exact numeric paths from the most frequent member paths.
             let (baseline_exact, changed_exact) = finding_path_pair(finding);
-            // Identity policy (Session 41, Part 6): primary historical
+            // Identity policy: primary historical
             // path rendering uses reviewed names or bare ASNs; current
             // registry identities appear only in the identity notes.
             let identity_at = |asn: u32| -> Option<&crate::catalog::workbench::AsnIdentity> {
@@ -4268,7 +4268,7 @@ fn finding_path_pair(f: &crate::catalog::workbench::RoutingFinding) -> (Vec<u32>
     )
 }
 
-/// Named path segments with textual diff markers (Session 40, Part 5).
+/// Named path segments with textual diff markers.
 fn named_segments(
     path: &[u32],
     diff: &crate::catalog::workbench::PathDiff,
@@ -4344,8 +4344,8 @@ fn finding_date_year(date: &str) -> String {
     date.chars().take(4).collect()
 }
 
-/// Compact two-line route meaning for a principal card (Session 41,
-/// Part 4). Absence findings are temporally qualified: nothing is said
+/// Compact two-line route meaning for a principal card
+/// . Absence findings are temporally qualified: nothing is said
 /// to "remain visible" across the absence interval.
 fn compact_finding_meaning(
     f: &crate::catalog::workbench::RoutingFinding,
@@ -4443,7 +4443,7 @@ fn compact_finding_meaning(
 
     match f.effect {
         RE::PrefixesTemporarilyAbsent | RE::PrefixesWithdrawn => {
-            // Precise absence wording (Session 44, Part 3): the
+            // Precise absence wording: the
             // duration is the actual Withdrawal-to-return interval
             // (54 ms for the UVA group), stated in ms when
             // sub-second. Never a vague "temporarily disappeared"
@@ -4460,7 +4460,7 @@ fn compact_finding_meaning(
             let verb = if n == 1 { "was" } else { "were" };
             let mut s = format!("{} {verb} withdrawn from this observer{}.", unit, dur);
             if f.visibility_restored_at.is_some() {
-                // Ordered withdrawal story (Session 44, Parts 2-3):
+                // Ordered withdrawal story:
                 // the route that returned and the event-baseline
                 // relation. The pre-finding route is never called the
                 // baseline; the "exact baseline" claim requires
@@ -4496,7 +4496,7 @@ fn compact_finding_meaning(
                         }
                     } else if ret_diff.plane_retained && !ret_diff.inserted.is_empty() {
                         // One concise semantic sentence about the
-                        // return path (Session 42, Part 4): repetition
+                        // return path: repetition
                         // already expressed by the ×N notation is
                         // never restated.
                         let only_origin = ret_diff.inserted.iter().all(|a| Some(*a) == origin);
@@ -4643,7 +4643,7 @@ fn compact_finding_meaning(
 
 /// Prepending deltas with exact from/to counts. "origin-AS prepending"
 /// is used ONLY when the repeated ASN is the finding's target origin
-/// (Session 41, Part 7); intermediate repetition reads
+/// ; intermediate repetition reads
 /// "AS24489 appeared four consecutive times in the selected path".
 fn prepend_delta_text(
     before: &[u32],
@@ -4679,7 +4679,7 @@ fn prepend_delta_text(
 }
 
 /// A later transition that inserts an ASN absent from both the
-/// baseline and the first changed path (Session 41, Part 9): renders
+/// baseline and the first changed path: renders
 /// "At 07:33:59, AS2907 appeared between AS7660 and AS64512." using
 /// short labels (reviewed names or bare ASNs).
 fn later_insertion_clause(
@@ -4770,7 +4770,7 @@ fn human_duration(secs: u64) -> String {
 /// Absence duration in whole seconds between withdrawal and the
 /// visibility restoration, when both are exact.
 /// Sub-second absence duration in milliseconds from the ordered
-/// Withdrawal-to-return timestamps (Session 44, Part 3): the exact
+/// Withdrawal-to-return timestamps: the exact
 /// 54 ms interval for the UVA group, never a vague duration.
 fn absence_duration_millis(f: &crate::catalog::workbench::RoutingFinding) -> Option<u64> {
     use crate::catalog::workbench::{finding_time, withdrawal_story};
@@ -4809,7 +4809,7 @@ fn absence_duration_millis(f: &crate::catalog::workbench::RoutingFinding) -> Opt
 
 fn absence_duration_seconds(f: &crate::catalog::workbench::RoutingFinding) -> Option<u64> {
     // The Withdrawal-to-return interval from the ordered evidence
-    // (Session 42, Part 1), never the episode's first-change span.
+    // , never the episode's first-change span.
     let story = crate::catalog::workbench::withdrawal_story(f)?;
     let start = story.withdrawal_at.as_deref()?;
     let end = story.returned_at_min.as_deref()?;
@@ -4822,7 +4822,7 @@ fn absence_duration_seconds(f: &crate::catalog::workbench::RoutingFinding) -> Op
     }
 }
 
-/// Restoration/final-state summary line (Session 41, Part 2): the
+/// Restoration/final-state summary line: the
 /// exact-baseline reappearance and the FINAL observed state are
 /// distinct facts and never conflated.
 pub fn finding_final_state_line(f: &crate::catalog::workbench::RoutingFinding) -> String {
@@ -4841,7 +4841,7 @@ pub fn finding_final_state_line(f: &crate::catalog::workbench::RoutingFinding) -
             exact_times.iter().min().copied().unwrap_or(t),
             exact_times.iter().max().copied().unwrap_or(t),
         );
-        // Group restoration wording (Session 42, Part 3): several
+        // Group restoration wording: several
         // prefixes restoring at different times restore as a GROUP
         // over the interval — one route never gradually restores.
         // time() already appends " UTC"; strip it and add one suffix.
@@ -4882,7 +4882,7 @@ pub fn finding_final_state_line(f: &crate::catalog::workbench::RoutingFinding) -
             let mut returned = format!("Visibility returned at {bare} UTC.");
             // "By TIME, the selected path contained AS225xM." — a later
             // post-return prepend settle, from the ordered evidence
-            // (Session 43, Part 3).
+            //.
             if let Some(o) = f.target_origin_asns.first() {
                 if let Some(story) = crate::catalog::workbench::withdrawal_story(f) {
                     let return_n = story.return_path.iter().filter(|a| **a == *o).count();
@@ -4905,8 +4905,8 @@ pub fn finding_final_state_line(f: &crate::catalog::workbench::RoutingFinding) -
             s.push_str(&returned);
         }
     }
-    // Final observed state, from the actual final route (Session 42,
-    // Part 2): never assume the restoration event is the final state,
+    // Final observed state, from the actual final route
+    // : never assume the restoration event is the final state,
     // and never echo internal enum names.
     if f.final_path_signature != "—" {
         let human = crate::catalog::workbench::human_window_end_state(f);
@@ -4946,7 +4946,7 @@ pub fn finding_final_state_line(f: &crate::catalog::workbench::RoutingFinding) -
     s
 }
 
-/// Observer comparison by region (Session 40, Part 10): narrative
+/// Observer comparison by region: narrative
 /// routing differences per observer site. Regional ratios are NOT part
 /// of this section — they live in Observation coverage.
 fn region_comparison_rows(
@@ -5012,7 +5012,7 @@ fn region_comparison_rows(
         .collect()
 }
 
-/// One narrative sentence for an observer site (Session 40, Part 10),
+/// One narrative sentence for an observer site ,
 /// built from the site's principal finding and its path semantics.
 fn region_site_narrative(
     f: &crate::catalog::workbench::RoutingFinding,
@@ -5195,7 +5195,7 @@ fn timeline_rows(
 ) -> Vec<WorkbenchTimelineRow> {
     use crate::catalog::workbench::session_key_of;
     let window = &vm.window_start;
-    // Lane labels (Session 39, Part 10; Session 40, Part 3): collector
+    // Lane labels: collector
     // site + peer identity from the episode/finding evidence, e.g.
     // "RRC15 Sao Paulo, Brazil · RNP (AS1916)". Identities are
     // time-scoped to the event date.

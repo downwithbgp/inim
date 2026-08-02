@@ -1254,7 +1254,7 @@ mod session_audit_tests {
         assert_eq!(rows[1].distinct_prefixes, 1);
     }
 
-    // ── Full peer inventory (Session 36, Part 1) ─────────────────────
+    // ── Full peer inventory ─────────────────────
 
     #[test]
     fn peer_inventory_reports_sessions_without_target_origin_routes() {
@@ -1389,7 +1389,7 @@ mod session_audit_tests {
         );
     }
 
-    // ── Observer-site regions (Session 36, Part 5) ───────────────────
+    // ── Observer-site regions ───────────────────
 
     #[test]
     fn region_classifies_observer_site_only() {

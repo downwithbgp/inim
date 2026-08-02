@@ -1,5 +1,4 @@
-// Internet2 source adapter.
-// TODO: Implement GRNOC ticket retrieval, Internet2 title parsing,
-// naming-convention interpretation, participant and exchange extraction.
+//! Internet2 ticket source adapter: title parsing, naming-convention
+//! interpretation, and expectation derivation for Internet2 tickets.
 
 pub mod ticket;

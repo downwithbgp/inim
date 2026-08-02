@@ -228,7 +228,7 @@ impl std::fmt::Display for AnalysisBlockReason {
 }
 
 impl AnalysisPlan {
-    /// One-line human-readable status ("Ready" or "Blocked: <reason>").
+    /// One-line human-readable status ("Ready" or "Blocked: `<reason>`").
     pub fn status_line(&self) -> String {
         match &self.status {
             AnalysisPlanStatus::Ready => "Ready".to_string(),
@@ -326,7 +326,7 @@ impl PlanArtifact {
         buf
     }
 
-    /// One-line status ("Ready" or "Blocked: <reason>").
+    /// One-line status ("Ready" or "Blocked: `<reason>`").
     pub fn status_line(&self) -> String {
         match &self.plan {
             AnalysisPlanStatus::Ready => "Ready".to_string(),

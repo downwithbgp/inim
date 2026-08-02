@@ -233,7 +233,7 @@ enum CatalogCommands {
         subject: String,
     },
     /// Write the exact finding-audit record for a subject
-    /// (Session 40, Part 1). The prose renderer uses these exact
+    ///. The prose renderer uses these exact
     /// fields; output is written to --out or stdout.
     FindingAudit {
         #[arg(long, value_name = "PATH")]
@@ -245,7 +245,7 @@ enum CatalogCommands {
         out: Option<PathBuf>,
     },
     /// Write the checked per-prefix chronology audit for an event
-    /// (Session 43, Part 1): the exact ordered transition sequence
+    ///: the exact ordered transition sequence
     /// with evidence ids and archive identities, read from the
     /// canonical lifecycle artifact. Output to --out or stdout.
     FindingChronologyAudit {
@@ -2164,7 +2164,7 @@ mod session32_cli_tests {
     }
 }
 
-// ── Session 33: corpus CLI commands ────────────────────────────────
+// ── corpus CLI commands ────────────────────────────────
 
 /// Offline fixture sync (existing behavior).
 fn cmd_grnoc_sync_offline(

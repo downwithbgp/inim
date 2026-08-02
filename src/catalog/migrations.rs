@@ -138,7 +138,7 @@ CREATE INDEX idx_streams_run ON stream_lifecycle_summaries(run_id);
 CREATE INDEX idx_waves_run ON semantic_wave_summaries(run_id);
 "#;
 
-/// V2: multi-ticket incident case-study layer (Session 30).
+/// V2: multi-ticket incident case-study layer.
 ///
 /// Case studies group reviewed operator-reported sources and link them to
 /// immutable AnalysisRuns. Evidence stays owned by AnalysisRuns; these tables
@@ -300,7 +300,7 @@ CREATE INDEX idx_doc_revisions_doc ON document_revisions(document_id, revision);
 CREATE INDEX idx_run_transitions_run ON run_transitions(run_id, occurred_utc);
 "#;
 
-/// V3 (Session 31): research-progress columns on analysis targets.
+/// V3: research-progress columns on analysis targets.
 /// Research state is applied by the reviewed apply-research flow; these are
 /// audit fields for the documented research-field mutation exception.
 const V3: &str = r#"
@@ -308,7 +308,7 @@ ALTER TABLE case_study_targets ADD COLUMN research_updated_utc TEXT;
 ALTER TABLE case_study_targets ADD COLUMN path_predicate_status TEXT;
 "#;
 
-/// V4 (Session 33): corpus discovery + per-fetch provenance.
+/// V4: corpus discovery + per-fetch provenance.
 ///
 /// `ticket_discoveries` records how each ticket identifier entered the
 /// corpus (analyst seed, document reference, description reference,
@@ -352,7 +352,7 @@ CREATE INDEX idx_fetches_event ON snapshot_fetches(event_id, fetched_at);
 CREATE INDEX idx_fetches_sync ON snapshot_fetches(sync_run_id);
 "#;
 
-/// V5 (Session 33, Parts 6–7): ticket relationship graph.
+/// V5: ticket relationship graph.
 ///
 /// Edges retain their provenance: the snapshot or document that asserted
 /// them, the evidence kind (explicit text vs derived overlap), and a
@@ -384,7 +384,7 @@ CREATE INDEX idx_rel_to ON ticket_relationships(to_event_id);
 CREATE INDEX idx_rel_external ON ticket_relationships(to_external_id);
 "#;
 
-/// V6 (Session 33, Part 9): candidate incident groups.
+/// V6: candidate incident groups.
 ///
 /// Groups are suggestions with categorical confidence; they never
 /// replace individual CatalogEvents. The evidence fingerprint makes
@@ -406,7 +406,7 @@ CREATE TABLE incident_group_candidates (
 CREATE INDEX idx_groups_confidence ON incident_group_candidates(confidence);
 "#;
 
-/// V7 (Session 34, Part 1): reviewed ticket interpretations.
+/// V7: reviewed ticket interpretations.
 ///
 /// A reviewed interpretation is analyst-reviewed case-study context for
 /// one catalog ticket. It is stored SEPARATELY from the source snapshot:
@@ -437,7 +437,7 @@ CREATE TABLE ticket_reviews (
 CREATE INDEX idx_reviews_external ON ticket_reviews(external_id);
 "#;
 
-/// V8 (Session 36, Part 3): lifecycle timestamps on stream summaries.
+/// V8: lifecycle timestamps on stream summaries.
 ///
 /// Per-stream first-change and restoration timestamps come from the
 /// immutable lifecycle.json evidence (the analysis artifacts), so the
@@ -456,7 +456,7 @@ ALTER TABLE stream_lifecycle_summaries ADD COLUMN restoration_time_utc TEXT;
 /// time-scoped by the RIB timestamp. It is an observed protocol fact,
 /// distinct from reviewed organization labels. `analysis_runs.
 /// classification` labels a run's role for its ticket relationship
-/// (e.g. "primary" vs "supporting-re-plane") — Session 38.
+/// (e.g. "primary" vs "supporting-re-plane").
 const V9: &str = r#"
 CREATE TABLE observer_session_metadata (
     id             INTEGER PRIMARY KEY,

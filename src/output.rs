@@ -2048,7 +2048,7 @@ mod tests {
         assert_eq!(val["schema_version"], crate::schema::REPORT_SCHEMA_VERSION);
     }
 
-    // ── Session 28: analyst-facing output tests ───────────────────
+    // ── analyst-facing output tests ───────────────────
 
     use crate::domain::route::TransitPredicate;
 

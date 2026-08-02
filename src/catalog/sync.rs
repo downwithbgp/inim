@@ -134,7 +134,7 @@ pub fn hex_sha256(payload: &str) -> String {
     digest.iter().map(|b| format!("{b:02x}")).collect()
 }
 
-// ── Per-fetch provenance (Session 33, Part 4) ──────────────────────
+// ── Per-fetch provenance ──────────────────────
 //
 // One `snapshot_fetches` row is recorded per HTTP fetch attempt. A
 // conditional 304 or an unchanged payload creates NO new snapshot (the
