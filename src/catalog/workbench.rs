@@ -4850,7 +4850,7 @@ mod session38_prefix_tests {
             distinct_prefix_count: prefixes.len(),
             route_instance_count: prefixes.len(),
             unresolved_count: 0,
-            transition_count: prefixes.len() as usize * 2,
+            transition_count: prefixes.len() * 2,
             end_state: if kind == EffectKind::NoRouteStateChange {
                 EndState::NoRouteStateChange
             } else {
