@@ -11755,8 +11755,7 @@ pub fn load_finding_chronology_audit(
                 let end = parse_utc_seconds(&r.timestamp);
                 match (start, end) {
                     (Some(s), Some(e)) if e >= s => Some(
-                        (e - s) as f64
-                            + frac_secs(&r.timestamp)
+                        (e - s) as f64 + frac_secs(&r.timestamp)
                             - frac_secs(&transitions[*i].timestamp),
                     ),
                     _ => None,
