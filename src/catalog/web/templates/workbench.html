@@ -94,7 +94,7 @@
   <td class="wb-mono">{{ e.restoration }}</td>
   <td>{{ e.status }}</td>
 </tr>
-<tr class="wb-detail" id="wb-detail-{{ loop.index0 }}">
+<tr class="wb-detail" id="wb-detail-{{ loop.index0 }}"{% if expanded %} style="display:table-row"{% else %} style="display:none"{% endif %}>
   <td colspan="12">
     <p class="wb-sentence">{{ e.sentence }}</p>
     <p class="muted">{{ e.session }} · {{ e.baseline_streams }} baseline stream(s) · {{ e.route_instances }} route instance(s) · {{ e.unresolved }} unresolved</p>

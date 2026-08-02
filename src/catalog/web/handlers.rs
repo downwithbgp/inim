@@ -57,6 +57,13 @@ pub async fn event_list(
 }
 
 #[derive(Debug, Default, Deserialize)]
+pub struct WorkbenchQuery {
+    /// Render all episode detail rows open (deterministic screenshots).
+    #[serde(default)]
+    pub expand: bool,
+}
+
+#[derive(Debug, Default, Deserialize)]
 pub struct EventListFilters {
     pub lifecycle: Option<String>,
     pub status: Option<String>,
@@ -109,6 +116,7 @@ pub async fn case_study_detail(
 pub async fn event_workbench(
     State(state): State<SharedState>,
     AxumPath(event_id): AxumPath<String>,
+    Query(params): Query<WorkbenchQuery>,
 ) -> Response {
     let mut db = state.db.lock().unwrap();
     let started = std::time::Instant::now();
@@ -122,6 +130,9 @@ pub async fn event_workbench(
     };
     view.timing.sql_query_count = QUERY_COUNT.load(std::sync::atomic::Ordering::Relaxed);
     view.timing.model_time_ms = started.elapsed().as_secs_f64() * 1000.0;
+    if params.expand {
+        view.expanded = true;
+    }
     render(view)
 }
 

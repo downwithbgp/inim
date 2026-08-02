@@ -48,10 +48,10 @@ ul.flat { margin: 0.25rem 0; padding-left: 1.2rem; }
    rounded cards, gradients, glass effects, or decorative whitespace. */
 .wb-panel { border: 1px solid var(--line); border-radius: 0; background: #fff; padding: 0.6rem 0.8rem; }
 .wb-panel h3 { margin: 0 0 0.4rem; font-size: 0.95rem; text-transform: uppercase; letter-spacing: 0.05em; }
-.wb-table { border-collapse: collapse; width: 100%; background: #fff; font-size: 0.82rem; line-height: 1.25; }
-.wb-table th { text-align: left; padding: 0.3rem 0.5rem; border-bottom: 2px solid #444; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; color: #333; position: sticky; top: 0; background: #f0f0f0; z-index: 1; }
-.wb-table td { padding: 0.28rem 0.5rem; border-bottom: 1px solid var(--line); vertical-align: top; }
-.wb-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.78rem; white-space: nowrap; }
+.wb-table { border-collapse: collapse; width: 100%; background: #fff; font-size: 0.82rem; line-height: 1.25; table-layout: fixed; }
+.wb-table th { text-align: left; padding: 0.3rem 0.5rem; border-bottom: 2px solid #444; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; color: #333; background: #f0f0f0; overflow-wrap: anywhere; position: sticky; top: 0; z-index: 1; }
+.wb-table td { padding: 0.28rem 0.5rem; border-bottom: 1px solid var(--line); vertical-align: top; overflow-wrap: anywhere; }
+.wb-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 0.78rem; }
 .wb-sentence { font-size: 0.85rem; margin: 0.3rem 0; }
 .wb-detail td { background: #f7f7f5; border-left: 3px solid #888; }
 .wb-episode-row { cursor: pointer; }
@@ -2864,6 +2864,8 @@ pub struct WorkbenchView {
     /// Per-request performance measurement (Part 13). All timings are
     /// wall-clock; the model is deterministic regardless of timing.
     pub timing: WorkbenchTiming,
+    /// Render all episode detail rows open (?expand=1).
+    pub expanded: bool,
 }
 
 /// Performance measurement for one workbench request.
@@ -2907,6 +2909,7 @@ impl WorkbenchView {
                 render_time_ms,
                 response_size_bytes: 0,
             },
+            expanded: false,
             vm,
         }
     }
