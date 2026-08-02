@@ -1127,7 +1127,7 @@ async fn corpus_pages_render_with_corpus_data() {
         !body.contains("Complete GRNOC archive"),
         "completeness must not be implied"
     );
-    assert!(body.contains("0.25 requests/second"), "policy shown");
+    assert!(body.contains("5 requests/second"), "policy shown");
     // Sync runs page.
     let (status, body) = get(&app, "/corpus/sync-runs").await;
     assert_eq!(status, StatusCode::OK);

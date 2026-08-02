@@ -2446,7 +2446,7 @@ pub fn load_corpus(conn: &rusqlite::Connection) -> Result<CorpusView, String> {
         Some(s) => (s.started_at.clone(), s.status.clone(), s.failures),
         None => (String::new(), String::new(), 0),
     };
-    let policy = "1 concurrent request; 0.25 requests/second (one every 4 s); burst 1; budget 100 requests per sync".to_string();
+    let policy = "default ceiling 5 requests/second; burst 2; max 5 in-flight; budget 100 requests per sync; adaptive to 429/Retry-After".to_string();
     Ok(CorpusView {
         total_events: grnoc.len(),
         source_snapshots: snapshots,

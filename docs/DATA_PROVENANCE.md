@@ -36,10 +36,12 @@ Every `RouteObservation` carries:
 - `path_id` — ADD-PATH identity, preserved end-to-end
 
 ### Deterministic identity
-Observation IDs and evidence IDs are assigned **after** sorting by the
-documented order: collector, timestamp, archive order, element sequence,
-peer IP, prefix, path_id (`None < Some(id)`). Serial and parallel
-completion produce identical IDs and identical artifacts.
+Observation IDs are assigned **after** sorting by the documented order:
+collector, timestamp, archive order, element sequence, peer IP, prefix,
+path_id (`None < Some(id)`). Serial and parallel completion produce
+identical IDs and identical artifacts. Evidence references carry the
+observation id plus archive/URL provenance — there is no separate
+evidence id namespace.
 
 ### Evidence chain
 `StateChange` and `RouteTransition` carry evidenced baseline/before/after
@@ -115,7 +117,7 @@ parallel runs produce identical artifacts).
 - The catalog database uses versioned migrations (`PRAGMA user_version`),
   foreign keys, and WAL mode; migrations and imports are transactional.
 
-## Case-study provenance (Session 30)
+## Case-study provenance
 
 - A case study's source documents are immutable reference records: source
   URL, SHA-256, media type, best-effort page count/metadata, import time,
@@ -137,7 +139,7 @@ parallel runs produce identical artifacts).
   redistribution status `Unknown` and no local copy exists in this
   repository; local document storage is excluded from the crate package.
 
-## Historical research and pilot provenance (Session 31)
+## Historical research and pilot provenance
 
 - Reviewed target mappings carry: exact ASN set, validity date, sources
   (URLs + what each says), reviewed statement, confidence. A mapping is
@@ -153,7 +155,7 @@ parallel runs produce identical artifacts).
 - The pilot result is one target, one collector, one window; it never
   becomes a complete-incident verdict in any artifact or UI text.
 
-## Performance metadata vs substantive output (Session 32)
+## Performance metadata vs substantive output
 
 `performance.json` records stage wall-clock timings and per-archive parse
 metrics. It is volatile by design: timings depend on hardware, load, and
@@ -164,15 +166,20 @@ never depends on performance measurements. Acquisition (download) time is
 reported separately from parsing time; parser-scaling benchmarks run with
 all raw archives already local.
 
-## Corpus acquisition and redistribution policy (Session 33)
+## Corpus acquisition and redistribution policy
 
 ### Acquisition
-- Public-source acquisition is polite, bounded, and incremental: 1
-  concurrent request, 0.25 requests/second (one every 4 s), burst 1,
+- Public-source acquisition is polite, bounded, and incremental: default
+  ceiling 5 requests/second (smooth limiter, burst 2, max 5 in-flight),
   budget 100 requests per sync by default; higher rates require explicit
-  flags. Stop conditions: repeated 429/403, unexpected authentication,
-  robots prohibition, schema incompatibility affecting most items.
-  Permanent 404s are never retried.
+  `--allow-higher-rate` flags. The GRNOC viewer's public JSON endpoints
+  are undocumented; the reviewed ceiling is local operational guidance,
+  not a public API guarantee. Rate-control responses (429 / Retry-After /
+  403 / 503) always override the configured ceiling; conditional requests
+  (ETag/If-None-Match, If-Modified-Since) are honored and a 304 never
+  creates a new snapshot. Stop conditions: repeated 429/403, unexpected
+  authentication, robots prohibition, schema incompatibility affecting
+  most items. Permanent 404s are never retried.
 - Discovery is explicit only: analyst seeds, document/case-study
   references, ticket-description references, and scoped public search.
   There is no blind numeric-ID enumeration and no "download everything"
@@ -195,13 +202,13 @@ all raw archives already local.
 - Source-controlled fixtures remain minimal and provenance-documented
   (see `tests/fixtures/README.md`).
 - inim does not claim MIT ownership over public ticket content.
-- Corpus export is **metadata-only by default** (`inim catalog corpus
-  export`): external ids, hashes, source URLs, and optional normalized
-  fields; no raw payload export. Raw-payload export requires a separate
-  redistribution review before any future implementation.
-- Public corpus publication is not implemented in this session.
+- Corpus export is **metadata-only by default** (`inim catalog
+  corpus-export`): external ids, hashes, source URLs, and optional
+  normalized fields; no raw payload export. Raw-payload export requires
+  a separate redistribution review before any future implementation.
+- Public corpus publication is not implemented.
 
-## Reviewed ticket interpretation (Session 34, Part 1)
+## Reviewed ticket interpretation
 
 - **Corpus acquisition and analysis review are separate stages.** The
   acquisition stage produces immutable source snapshots with fetch
@@ -234,7 +241,7 @@ all raw archives already local.
   but queryable). Rejected candidates stay suppressed until the
   evidence fingerprint changes.
 
-## Multi-observer analysis (Session 34, Parts 4–7)
+## Multi-observer analysis
 
 - **RIS and RouteViews are peer observer families.** Each family has
   its own archive base, filename conventions, RIB cadence, and
@@ -262,7 +269,7 @@ all raw archives already local.
   coincidences remain stored and queryable, but do not dominate the
   analyst queue.
 
-## Session 35 — reviewed plane model provenance
+## Reviewed plane model provenance
 
 - The Internet2 R&E / peer-exchange plane identities (AS11537 / AS11164)
   are reviewed profile data (`case-studies/manlan-2019/pilot/
@@ -281,11 +288,11 @@ all raw archives already local.
   evidence ids, which are assigned deterministically from observation
   content after sorting.
 - The GRNOC sync ceiling of 5 requests/second is reviewed local
-  operational guidance (Session 35, Part 8), not a public API
-  guarantee; rate-control responses always override the configured
-  ceiling, and the sync records its metrics for the record.
+  operational guidance, not a public API guarantee; rate-control
+  responses always override the configured ceiling, and the sync
+  records its metrics for the record.
 
-## Session 36 — workbench and RRC11 audit provenance
+## Workbench and RRC11 audit provenance
 
 - **Historical peer identity comes from the bview, not the peer list.**
   The RRC11 2019-08-21 baseline's peer table (peer IP, peer ASN,
@@ -309,7 +316,7 @@ all raw archives already local.
   and immutable report artifacts only; no analysis, no MRT parse, no
   cache writes happen on the request path.
 
-## Session 37 — operator anchors and workbench data provenance
+## Operator anchors and workbench data provenance
 
 - **`pilot/operator-anchors.json`** (new, reviewed): structured
   operator-reported timeline anchors derived from the existing
@@ -330,10 +337,27 @@ all raw archives already local.
   lifecycle.json per-stream `restoration_time` evidence; no
   presentation field fabricates or extrapolates a restoration.
 
-## Session 38 — relationship audit and session metadata
+- **Raw-archive SHA sidecar**: every downloaded MRT archive gets a
+  `.sha256` sidecar written at download time; cache reuse verifies the
+  checksum before parsing. `archive_manifest.json` records URL, local
+  path, size, and SHA-256 for every archive used by a run.
+
+## Finding and chronology audits
+
+- `inim catalog finding-audit` writes the exact finding record the prose
+  renderer uses (fields, signatures, restoration classes, evidence
+  references). `inim catalog finding-chronology-audit` writes the
+  checked per-prefix chronology audit — the exact ordered transition
+  sequence with evidence ids and archive identities, read from the
+  canonical lifecycle artifact. Both are read-only derivations; they
+  never alter canonical evidence. Reviewed chronology audits are
+  committed under `case-studies/<slug>/` (e.g.
+  `case-studies/inc0299001/finding-chronology-audit.json`).
+
+## Relationship audit and session metadata
 
 - **`case-studies/inc0302574/out/INC0302574/relationship-audit.json`**
-  (new, reviewed):
+  (reviewed):
   event-date (2026-07-30) RIS baseline inventories at RRC11 and RRC14
   (bview SHAs recorded): the direct AS11164 sessions existed at both
   collectors (IPv4 + IPv6 each), but zero AS3333-origin routes were

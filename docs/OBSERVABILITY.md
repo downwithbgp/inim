@@ -57,8 +57,13 @@ Per observer-prefix stream, the lifecycle records:
 - Absent communities do not prove a mechanism was unused
 - Event declarations and BGP changes establish temporal association, not
   automatic causation
+- **Best-path/export-policy limitation**: public collectors export their
+  own best path per peer; policies, route filtering, and local preference
+  shape what is visible. A route hidden at a collector may still exist
+  in the network — absence at the selected observers is an observation
+  about those sessions, not about the network.
 
-## Claim observability matrix (Session 30)
+## Claim observability matrix
 
 Every case-study claim carries an explicit reviewed classification:
 
@@ -80,7 +85,7 @@ incident. A NotDirectlyVisible claim is classified as
 missed detection; `no BGP change does not refute a Layer-2 incident`, and
 `observed BGP change does not prove the reported mechanism`.
 
-## Historical predicate validation (Session 31)
+## Historical predicate validation
 
 A MAN LAN attachment predicate is a **candidate** until validated by
 contemporaneous observation: the 2019-08-21 RouteViews RIB (Stage A
@@ -90,7 +95,7 @@ NotDirectlyVisible condition stays NotDirectlyObservable even when a pilot
 run exists; a narrow pilot's absence of observations never refutes
 non-BGP-visible conditions, and never extends beyond its own window.
 
-## Pilot timing interpretation (Session 32)
+## Pilot timing interpretation
 
 Temporal relations preserve event order: for point action anchors the
 relation is Before/After based on the earliest observed route-state
@@ -102,7 +107,7 @@ is exposed. Broad instability intervals may legitimately overlap BGP
 activity. Public BGP absence at one selected collector is a temporary
 observer-stream observation, never proof of traffic loss.
 
-## Observer sources are not ground truth (Session 33)
+## Observer sources are not ground truth
 
 RouteViews and RIPE RIS are **observer sources**, not ground truth.
 The corpus planner treats both families on equal footing
@@ -114,7 +119,7 @@ Observability classifications and verdicts are conditioned on the
 frozen observer cohort of each AnalysisRun — never on ticket text
 alone.
 
-## Multi-observer agreement is not global proof (Session 34)
+## Multi-observer agreement is not global proof
 
 - **RIS and RouteViews are peer observer families.** Each selected
   collector is an independent vantage with its own baseline cohort,
@@ -137,7 +142,7 @@ alone.
   derived caches across runs never merges event assessments; evidence
   ids do not depend on batch membership.
 
-## Session 35 — plane-scoped observability
+## Plane-scoped observability
 
 - A named-plane cohort is observed through the exact reviewed predicate
   that selected it; "qualifying visibility" statements name the
@@ -152,14 +157,22 @@ alone.
   across them is still not global confirmation, and disagreement is
   expected and analytically useful.
 
-## Incident workbench observability (Session 36)
+## Incident workbench observability
 
 - Workbench pages and APIs present **observed breadth by region** with
   visible denominators (`changed / eligible observer sessions`),
   never a severity score, never "percentage of the Internet affected".
-- `NoChange`, `NoBaselineVisibility`, and `IncompleteCoverage` are
+- `NoRouteStateChange` (an observed signature with `Complete`
+  coverage), `NoBaselineVisibility`, and `IncompleteCoverage` are
   distinct rendered states; a session without a qualifying baseline is
   never shown as unchanged.
+- **Coverage reasons** name why a session is not in the eligible
+  denominator: `EligibleWithBaseline`, `SessionPresentNoTargetBaseline`
+  (session exists, target not visible), `RequiredSessionAbsent` (no
+  historical session matches the reviewed relationship),
+  `PredicateNotMatched`, `ArchiveIncomplete`, `UnsupportedSource`.
+  "Required session absent" and "target not visible" are distinct
+  facts and are never collapsed.
 - Sentences per episode use effect-specific verbs and never claim
   traffic loss or causation; "returned to visibility" is distinct from
   "restored its baseline path".

@@ -39,8 +39,12 @@ remains the administration, automation, and debugging interface.
 - **SQLite** (rusqlite, bundled): identities, revisions, status, searchable
   metadata, summaries, artifact paths. Raw MRT archives, derived caches,
   evidence appendices, and reports remain on the filesystem.
-- **GRNOC Public Task Viewer** is the first `EventCatalogSource` adapter;
-  sync populates the catalog only and never starts analysis.
+- **Source adapters**: the GRNOC Public Task Viewer is the first
+  `EventCatalogSource` adapter (`src/catalog/grnoc.rs`, viewer client
+  `src/catalog/grnoc_viewer.rs`); ticket parsing adapters live under
+  `src/sources/` with reviewed network profiles (`src/profiles/`,
+  `src/conventions/`). Sync populates the catalog only and never starts
+  analysis.
 - **Web server** (Axum + Askama): server-rendered, loopback-only,
   unauthenticated initially, read-only — HTTP requests never perform
   Broker discovery, downloads, MRT parsing, or analysis.
@@ -56,16 +60,18 @@ See `docs/ADRs/LOCAL-CATALOG-AND-WEB.md` for the full decision record.
 ```
 ┌─────────────────────────────────────────────────────────┐
 │                     CLI (main.rs)                        │
-│                 clap derive, subcommands                  │
+│          plan / analyze / compare / catalog / serve      │
+│                  migrate-manifest                        │
 └─────────────────────┬───────────────────────────────────┘
                       │
 ┌─────────────────────▼───────────────────────────────────┐
 │                   Orchestration                          │
-│    (future: analyze, compare, list-waves commands)       │
+│     plan_from_manifest → discovery → pipeline →          │
+│     reconstruction → lifecycle → waves → assess → out    │
 └──┬────────┬────────┬────────┬────────┬────────┬─────────┘
    │        │        │        │        │        │
 ┌──▼──┐ ┌──▼──┐ ┌──▼──────┐ ┌──▼──┐ ┌──▼───┐ ┌──▼─────┐
-│ BGP │ │Toknz│ │SEQUITUR │ │Waves│ │Assess│ │ Report │
+│ BGP │ │toknz│ │SEQUITUR │ │Waves│ │Assess│ │ Report │
 │ MRT │ │     │ │grammar  │ │     │ │      │ │        │
 │ RIB │ │     │ │inference│ │     │ │      │ │        │
 └──▲──┘ └─────┘ └─────────┘ └─────┘ └──────┘ └────────┘
@@ -78,8 +84,8 @@ See `docs/ADRs/LOCAL-CATALOG-AND-WEB.md` for the full decision record.
                       ▲
 ┌─────────────────────┴───────────────────────────────────┐
 │               Sources (adapters)                          │
-│  internet2/ — ticket parsing, expectation derivation     │
-│  (future: other-network/)                                 │
+│  internet2/ (ticket), grnoc (record), profiles/,          │
+│  conventions/ — source-neutral core, reviewed profiles    │
 └──────────────────────────────────────────────────────────┘
 ```
 
@@ -115,7 +121,7 @@ AnalysisPlan                 │
     │                         │
     │              Lifecycles ──► StreamLifecycle per ObserverPrefixKey
     │                         │
-    │              Semantic waves (from lifecycles + evidence)
+    │              Semantic waves (from event-phase transitions)
     │                         │
     │              Assess ──► EventAssessment (verdict, evidence)
     │                         │
@@ -124,8 +130,8 @@ AnalysisPlan                 │
 AnalysisOutcome (completed | insufficient_visibility | incomplete)
 ```
 
-Blocked plans (`AnalysisPlanStatus::Blocked`) stop before the dashed
-branch: zero Broker calls, zero MRT parses, exit `EXIT_ANALYSIS_BLOCKED`.
+Blocked plans (`AnalysisPlanStatus::Blocked`) stop before acquisition:
+zero Broker calls, zero MRT parses, exit `EXIT_ANALYSIS_BLOCKED` (code 3).
 
 ## Key design decisions
 
@@ -180,20 +186,21 @@ nothing. Mechanism hints (RFC 8326 observations, RFC 9003 / RFC 8327 /
 Graceful Restart non-observability statements) are reported in a separate
 section and can never change the impact assessment by themselves.
 
-### Why async is deferred
+### Why the CLI analysis path is synchronous while the web layer is async
 
-The current scope (local CLI processing one ticket + bounded MRT files)
-does not require network concurrency. Async adds complexity in error
-handling, debugging, and trait ergonomics. It can be introduced later if
-live scraping or streaming becomes necessary.
+The analysis path is a bounded, deterministic pipeline over local
+archives; it runs on worker threads with explicit job counts so artifacts
+are identical at any concurrency level. The web layer is a separate
+async server (Axum over Tokio) that never runs analysis — it only reads
+the catalog and renders view models. The two runtimes never mix; there is
+no async analysis path.
 
 ### Why crate boundaries as modules, not workspace crates
 
-The initial codebase is small enough that multiple crates add build
-overhead without meaningful isolation. Internal modules with `pub`
-visibility provide sufficient boundaries. Separate crates can be
-extracted later if independent versioning or compilation becomes
-desirable.
+The codebase is small enough that multiple crates add build overhead
+without meaningful isolation. Internal modules with `pub` visibility
+provide sufficient boundaries. Separate crates can be extracted later if
+independent versioning or compilation becomes desirable.
 
 ### Why SEQUITUR as a standalone module
 
@@ -207,18 +214,35 @@ never assigns semantic labels and never determines the assessment.
 
 Other networks do not necessarily use this convention. The core domain
 model must be source-neutral. The Internet2 adapter explicitly documents
-this as an Internet2 naming convention with provenance tracking, so
-future adapters for other networks can implement their own expectation
-derivation without misunderstanding this as a universal rule.
+this as an Internet2 naming convention with provenance tracking. Other
+adapters (GRNOC records, the Indiana GigaPOP profile) implement their own
+expectation derivation without misunderstanding this as a universal rule.
 
+## Evidence storage layout
 
-## Case-study layer (Session 30)
+- **Raw caches**: MRT archives under `<cache>/raw/`, keyed by URL, with
+  a SHA-256 sidecar written at download time and verified on cache reuse;
+  writes are atomic (temp + rename).
+- **Derived caches**: RIB parsing results under `<cache>/rib/<key>.json`
+  and UPDATE parsing results under `<cache>/derived/updates/<key>.json`,
+  versioned and keyed on (family, collector, archive identity).
+- **Source-extraction cache**: `cache/extracted/<key>.json.gz`, keyed by
+  (source sha, family, collector, sorted origin set) — predicate-
+  independent, so plane-specific runs and audits parse each RIB once.
+- **Evidence store**: every completed run writes report.txt, report.json,
+  archive_manifest.json (URL + SHA per archive), evidence_appendix.jsonl,
+  semantic_waves.json, withdrawal_audit.json, lifecycle.json,
+  transitions.json, limitations.json, and performance.json. The catalog
+  records each artifact's relative path and hash.
+
+## Case-study layer
 
 - **Schema v2** adds the case-study tables (`case_studies`,
   `case_study_event_links`, `reference_documents`, `document_revisions`,
   `case_study_document_links`, `case_study_phases`, `case_study_analysis_links`,
   `case_study_claims`, `case_study_targets`, `case_study_analysis_plans`,
-  `run_transitions`). All FKs are `ON DELETE RESTRICT`.
+  `run_transitions`). Foreign keys use SQLite's default NO ACTION —
+  integrity is enforced by application-level import transactions.
 - **Transitions artifact**: every completed run writes `transitions.json`
   (compact per-transition records: kind, occurred UTC with evidence
   fallback for absent states, phase, key, effects, observation id). The
@@ -237,9 +261,10 @@ derivation without misunderstanding this as a universal rule.
   existing files never overwritten; a later import may attach a missing
   local file (availability update only).
 - **Archive planner**: pure computation (no downloads). Reproducible
-  horizon (2h warmup / incident / 2h cooldown), expected 2019 RouteViews
-  RIB+update files with estimated sizes (flagged as estimates), blocked
-  targets with reasons, `Draft` status until reviewed.
+  horizon (2h warmup / incident / 2h cooldown), expected RouteViews and
+  RIPE RIS RIB+update files per the family's cadence (RIS `bview` on the
+  8-hour grid, `updates` every 5 minutes) with estimated sizes (flagged as
+  estimates), blocked targets with reasons, `Draft` status until reviewed.
 - **Phase summaries**: one run summarized by reviewed phases; transitions
   assigned to exactly one phase by time; stream visibility walked
   continuously across the run (no baseline reset); counts are
@@ -248,21 +273,25 @@ derivation without misunderstanding this as a universal rule.
   observation from linked runs; labels Before/During/After/Overlapping/
   NoObservedCounterpart/NotDirectlyObservable/Indeterminate; never
   ConfirmedCause; no linked runs → Indeterminate ("not yet executed").
-- **Web/API**: `/case-studies`, `/case-studies/{slug}`, `/documents/{id}`,
-  `/api/v1/case-studies`, `/case-studies/{slug}`,
-  `/case-studies/{slug}/timeline`, `/case-studies/{slug}/comparison`.
-  Document serving validates record existence, catalog-relative path,
-  canonical containment under the catalog root, SHA-256 match, and media
-  allowlist (inline only for approved types).
+- **Web/API**: `/case-studies`, `/case-studies/{slug}`,
+  `/case-studies/{slug}/workbench`, `/case-studies/{slug}/timeline`,
+  `/case-studies/{slug}/comparison`, `/documents/{id}`, plus the
+  matching `/api/v1/case-studies[...]` read-only endpoints. Document
+  serving validates record existence, catalog-relative path, canonical
+  containment under the catalog root, SHA-256 match, and media allowlist
+  (inline only for approved types).
 
-## Historical validation and pilots (Session 31)
+## Historical validation and pilots
 
 - **Reconstruction contract**: one baseline RIB (latest at or before
   warmup_start) establishes initial state; the UPDATE sequence covers
   [warmup_start, cooldown_end] at the archive's cadence; one optional
   post-window validation RIB is a continuity checkpoint only and is never
   replayed as event input. Interval RIBs are not selected as repeated
-  baselines.
+  baselines. The event baseline is frozen at the first event-period
+  observation; warmup-phase updates are silent (no state change is
+  emitted); cooldown-phase transitions are classified separately and
+  never change the event-window verdict.
 - **Target research method**: dated evidence hierarchy (operator docs →
   contemporaneous RIR → archived PeeringDB → contemporaneous RouteViews
   observations → reputable dated docs); current metadata is a lead only.
@@ -287,7 +316,7 @@ derivation without misunderstanding this as a universal rule.
   plan record and rendered as "Historical pilot — <target>", explicitly
   narrower than the whole incident.
 
-## Concurrency, performance, and review (Session 32)
+## Concurrency and performance
 
 - **Concurrency boundary**: one compressed archive → parse → normalize →
   ObserverPrefixKey admission → deterministic per-archive chunk →
@@ -303,10 +332,9 @@ derivation without misunderstanding this as a universal rule.
   parser/decompression state. Memory is bounded by
   `(download_jobs + parse_jobs)` in-flight archives plus the merged
   observation vector; no unversioned temporary evidence is ever written.
-- **Worker selection**: the default parse count is chosen from the local
-  raw-cache benchmark (best safe throughput), not from the host CPU count.
-  `--parse-jobs` and `--download-jobs` override; `--jobs 0` is rejected
-  (previously "auto").
+- **Worker selection**: the default parse concurrency is a fixed 8
+  (`--parse-jobs` default), informed by the local raw-cache benchmark;
+  `--parse-jobs` and `--download-jobs` override; `--jobs 0` is rejected.
 - **Performance metadata**: `performance.json` (schema v1) carries stage
   timings and per-archive metrics (identity URL+SHA, compressed bytes,
   parse time, elements, admitted observations, cache-write time, cache
@@ -319,17 +347,21 @@ derivation without misunderstanding this as a universal rule.
   `tmp/ui-review/*.png` (gitignored, excluded from the package). Visual
   quality is reviewed externally, never self-certified.
 
-## Corpus workspace (Session 33)
+## Corpus workspace
 
 The corpus layer sits beside the case-study layer in the catalog and
 never changes lifecycle semantics:
 
 - **Acquisition** (`catalog/access.rs`, `catalog/grnoc_viewer.rs`): a
-  strictly serial, paced, budget-bounded HTTP client drives exact
-  ticket lookups against the public viewer. Discovery provenance
-  (`catalog/discovery.rs`) records how each identifier entered
-  (`AnalystSeed`, `DocumentReference`, `TicketDescriptionReference`,
-  `PublicSearchResult`, `CaseStudyReference`).
+  paced, budget-bounded HTTP client (default ceiling 5 requests/second,
+  smooth limiter, burst 2, max 5 in-flight; adaptive response to
+  429/Retry-After/403/503) drives exact ticket lookups against the public
+  viewer. Discovery provenance (`catalog/discovery.rs`) records how each
+  identifier entered (`AnalystSeed`, `DocumentReference`,
+  `TicketDescriptionReference`, `PublicSearchResult`, `CaseStudyReference`).
+  There is no blind numeric-ID enumeration and no "download everything"
+  mode. Conditional requests (ETag/If-None-Match, If-Modified-Since) are
+  honored; a 304 never creates a new snapshot.
 - **Snapshots + per-fetch records**: `event_snapshots` stays pure
   content-addressed immutability; `snapshot_fetches` holds one row per
   HTTP attempt with whitelisted metadata.
@@ -348,8 +380,8 @@ never changes lifecycle semantics:
   membership.
 - **Observer families**: `SourceFamily` (RouteViews | RipeRis) is part
   of collector identity; RIS planning uses RIPE RIS URLs and cadence;
-  RIS execution remains documented-Unsupported (see
-  `docs/ADRs/RIPE-RIS-SUPPORT.md`).
+  RIS execution (download + parse) is supported end-to-end through the
+  same evidence-bearing engine (see `docs/ADRs/RIPE-RIS-SUPPORT.md`).
 
 Design invariants: HTTP GET never crawls or analyzes; corpus
 completeness is never assumed; source snapshots are immutable; explicit
@@ -357,7 +389,7 @@ and inferred relationships stay distinct; reviewed mappings remain
 human-controlled; RouteViews/RIS are observer sources, not ground
 truth; temporal correlation is not causal attribution.
 
-## Reviewed multi-observer analysis (Session 34)
+## Reviewed multi-observer analysis
 
 - **Reviewed interpretation layer** (`ticket_reviews`, V7): analyst
   review is a separate stage over immutable snapshots. Roles, entity
@@ -387,7 +419,7 @@ truth; temporal correlation is not causal attribution.
 - **Analyst queue**: rows show reviewed role, archive-plan status, run
   count, and a derived next action; nothing executes from an HTTP GET.
 
-## Session 35 — plane-aware analysis design
+## Plane-aware analysis
 
 - **Profile data, generic logic**: named service planes and ASN roles
   live in `case-studies/<slug>/pilot/network-profile.json`
@@ -403,19 +435,14 @@ truth; temporal correlation is not causal attribution.
   for classification only); `inim analyze --origin-inventory` classifies
   every origin-matching baseline route one/both/neither without a
   verdict.
-- **Source-extraction cache**: `cache/extracted/<key>.json.gz`,
-  versioned, keyed by (source sha, family, collector, sorted origin
-  set) — predicate-independent; within a plane batch each RIB is parsed
-  once; standalone and reused outputs are identical; evidence ids are
-  content-derived and unaffected.
 - **Cross-observer matrix**: per-observer rows with location, peer ASN,
   direct/indirect relationship, plane, cohort predicate, and
   departures/returns; evidence stays per-run; a missing plane baseline
   is reported as missing, never as "no change".
 
-## Session 36 — NOC incident workbench design
+## NOC incident workbench
 
-### One reusable presentation model (Parts 3–4, 7, 12)
+### One reusable presentation model
 
 `IncidentWorkbenchViewModel` (src/catalog/workbench.rs) is the single
 derived presentation model shared by the web workbench, the text report
@@ -431,52 +458,17 @@ reached from an event, a case study, or eventually a network.
   presentation-level groupings derived from existing lifecycle/
   transition evidence; they introduce no new route-transition
   semantics.
-- **Coverage states** — `Complete` (baseline existed and the session
-  was observed), `NoBaselineVisibility` (target not visible),
-  `IncompleteCoverage` (observation could not be completed). Coverage
-  describes whether the observation could be made; "no change" is an
-  OBSERVED SIGNATURE (`EffectKind::NoRouteStateChange`), never a
-  coverage state (Session 37 correction). Never collapsed into one zero.
+- **Coverage states** — `Complete` (a qualifying baseline existed and
+  the session was observed), `NoBaselineVisibility` (target not
+  visible), `IncompleteCoverage` (observation could not be completed).
+  Coverage describes whether the observation could be made; "no
+  route-state change" is an OBSERVED SIGNATURE
+  (`EffectKind::NoRouteStateChange` with `Complete` coverage), never a
+  coverage state. Never collapsed into one zero.
 - **Shared output surface** — HTML workbench (NOC HCI), plain-text
   report, JSON API: same model, same counts.
 
-### NOC HCI (Part 8)
-
-Dense operations-console styling: rectangular panels, square corners,
-thin borders, strong section headers, compact line height, monospaced
-timestamps/AS paths, sortable tables with fixed headers, explicit text
-status, restrained colors, underlined links, visible focus states,
-keyboard-accessible controls. Server-rendered; small progressive
-enhancements (sort, expand, copy) only; no SPA framework. The principal
-result is fully understandable without JavaScript.
-
-### Timeline (Part 9)
-
-One lane per observer session on a shared UTC axis. Markers carry exact
-timestamps: analysis-window boundaries, operator-reported anchors
-(visibly distinct kind), first route change, absence interval,
-path-change interval, restoration interval, unresolved end state. No
-interpolation between discrete BGP observations; unresolved episodes get
-no fabricated restoration.
-
-### Prefix drill-down (Part 10)
-
-Episode expansion groups member streams with prefix, category,
-withdrawn/restored, baseline instances, transition count, ADD-PATH
-ambiguity, and evidence references. It reads catalog summaries and
-immutable evidence artifacts only — raw MRT files are never loaded.
-
-### Performance (Part 13)
-
-Workbench GETs perform no analysis and no MRT parsing. Queries use the
-existing run indexes (`idx_streams_run`, `idx_run_transitions_run`,
-`idx_waves_run` — verified with EXPLAIN QUERY PLAN); no new indexes were
-needed. Per-request SQL count and timings are captured; demo catalog
-renders in ~16–23 ms median (target: <100 ms median, <250 ms worst).
-
-## Session 37 — semantic repair and NOC-grade HCI
-
-### Presentation semantics (Part 1)
+### Presentation semantics
 
 - **Expectation assessment** comes from the first completed run's
   `assessment` field (e.g. "Consistent with the redundant-attachment
@@ -496,8 +488,8 @@ renders in ~16–23 ms median (target: <100 ms median, <250 ms worst).
   coverage status (Complete / NoBaselineVisibility / IncompleteCoverage).
 - **Restoration** is derived from the immutable `restoration_time_utc`
   for every changed stream (visibility restoration for withdrawals,
-  baseline-path restoration for path changes) — never from an optional
-  presentation field, never extrapolated.
+  exact event-baseline restoration for path changes) — never from an
+  optional presentation field, never extrapolated.
 - **Regions** are canonical keys (AMER/EMEA/APAC/Unknown); coverage-only
   sessions carry their region resolved at load time, so a collector id
   can never render as a region.
@@ -510,51 +502,69 @@ renders in ~16–23 ms median (target: <100 ms median, <250 ms worst).
   the primary UI; raw labels and exact timestamps remain in the JSON API
   and expanded details.
 
-### NOC HCI (Parts 2–14)
+### RoutingFinding derivation
 
-- **First screen**: compact incident header (subject facts, horizons,
-  linked tickets, observed result, scope limit, navigation links) — no
-  generic event-summary table, no long operator narrative.
-- **Breadth matrix**: REGION | CHANGED/ELIGIBLE | STREAMS/BASELINE |
-  PREFIXES | FIRST CHANGE | RESTORED | COVERAGE GAPS, with color cues
-  always paired with explicit text; a separate NO QUALIFYING BASELINE
-  block.
-- **Episode table**: FIRST | REGION | OBSERVER (collector · site) |
-  PEER/VIEW (ASn · relationship plane) | OBSERVED CHANGE | STREAMS |
-  PREFIXES | RESTORED | END STATE | DETAILS. Changed rows first;
-  unchanged rows collapsed but discoverable with their denominator
-  visible. Filters: `?changed`, `?kind=`, `?region=`, `?rel=`.
-- **Timestamps**: HH:MM:SS UTC in ordinary rows; the date is added for
-  cross-day rows; exact timestamps stay in details, the JSON API, and
-  the text report.
-- **Lane timeline**: server-rendered SVG, one lane per observer session
-  plus an operator-report lane (distinct marker classes), exact
-  markers/intervals only, no interpolation; conventional table fallback.
-- **Drill-down**: native `<details>` expansion (no JavaScript needed)
-  with episode-specific content, grouped prefix signatures, evidence
-  references, and per-prefix drill-down tables (`?episode=N`,
-  `?prefixes=N`); `?view=timeline` focuses the timeline.
-- **Investigation cues**: grouped by operational question (3–5 groups),
-  each carrying prefix count, time range, session count, and a link to
-  the exact prefixes; the disclaimer appears once.
-- **Analysis history** (runs) is collapsed below the workbench; archive
-  coverage lives on the run-detail page.
-- **Layout**: content width ~1440px with modest margins; `nowrap` on
-  timestamps/ASNs/prefixes/collector IDs/region codes/status labels;
-  wrapping only in prose columns; body 13–14px, tables 12–13px, section
-  headings 16–18px. Mobile (≤640px) keeps result+scope on top, uses
-  horizontally scrollable tables and definition-list episode rows, and
-  never breaks timestamps/ASNs/prefixes.
-- **Screenshot harness** (`scripts/screenshot-review-session37.sh` +
-  `scripts/screenshot-session37-capture.js`): explicit viewports,
-  content-marker verification, PNG-width assertion, SHA-256 recording,
-  and distinct-state hash checks. Eight captures at 1440×900, 1280×800,
-  390×844; the harness fails on missing markers, duplicate hashes, or
-  width mismatches.
+The primary workbench unit is a **RoutingFinding** (src/catalog/
+workbench.rs): one coherent routing story per observer session. Findings
+are derived from existing lifecycle/transition evidence — they introduce
+no new route semantics.
 
-## Session 38 — workbench units, timeline context, I2PX case validity
+- **Grouping**: streams at one (collector, peer, EffectKind) whose
+  chronologies are materially the same (same baseline path and first
+  changed path, multiplicity-aware) form one finding; streams with
+  different chronologies never share a finding.
+- **Split episodes**: a stream with both a withdrawal and an earlier
+  visible path change yields TWO findings — a visible prepend/path
+  change and a separate absence finding — linked by an `EarlierChange`
+  reference. The earlier-change link is rendered only when the canonical
+  pre-withdrawal transition is a real prepend delta on the target
+  origin; a related route transition alone is not a prepend change.
+- **Exact paths**: baseline path, first changed path, final observed
+  path per prefix, with the event baseline kept distinct from the
+  pre-finding state. Summary rows collapse repeated ASNs (`AS24489×4`);
+  the exact uncollapsed sequence is retained in drill-down and the JSON
+  API.
+- **Chronology**: `route_chronology` renders ordered steps (event
+  baseline, pre-finding route, absent, first route after return, later
+  changes, event-window end, analysis end) with exact timestamps; the
+  pre-finding route is never labeled "baseline" when the event baseline
+  differs from it.
+- **Audit commands**: `inim catalog finding-audit` and
+  `inim catalog finding-chronology-audit` write the exact record the
+  prose renderer uses, read from the canonical lifecycle artifact.
 
-### Counting units (Parts 1–3)
+### NOC HCI
+
+Dense operations-console styling: rectangular panels, square corners,
+thin borders, strong section headers, compact line height, monospaced
+timestamps/AS paths, sortable tables with fixed headers, explicit text
+status, restrained colors, underlined links, visible focus states,
+keyboard-accessible controls. Server-rendered; small progressive
+enhancements (sort, expand, copy) only; no SPA framework. The principal
+result is fully understandable without JavaScript. Mobile (≤640px)
+keeps result+scope on top, uses horizontally scrollable tables and
+definition-list episode rows, and never breaks
+timestamps/ASNs/prefixes.
+
+### Timeline
+
+One lane per observer session on a shared UTC axis, plus an operator
+context strip whose axis spans the anchors' exact extent; the BGP focus
+timeline holds the observer lanes and only in-window anchors. Markers
+carry exact timestamps: analysis-window boundaries, operator-reported
+anchors (visibly distinct kind), first route change, absence interval,
+path-change interval, restoration interval, unresolved end state. No
+interpolation between discrete BGP observations; unresolved episodes get
+no fabricated restoration; lane baselines are strictly horizontal.
+
+### Prefix drill-down
+
+Episode expansion groups member streams with prefix, category,
+withdrawn/restored, baseline instances, transition count, ADD-PATH
+ambiguity, and evidence references. It reads catalog summaries and
+immutable evidence artifacts only — raw MRT files are never loaded.
+
+### Counting units
 
 - **ObserverSessionKey** = (source family, collector, peer IP, address
   family derived from the peer IP literal). Regional breadth counts
@@ -573,7 +583,7 @@ renders in ~16–23 ms median (target: <100 ms median, <250 ms worst).
   the page, the JSON API (`/api/v1/events/{id}/workbench`,
   `/api/v1/case-studies/{slug}/workbench`), and the text report.
 
-### Coverage reasons (Part 4)
+### Coverage reasons
 
 Excluded sessions carry a `CoverageReason`:
 EligibleWithBaseline / SessionPresentNoTargetBaseline /
@@ -583,7 +593,7 @@ I2PX pilot exclusion is `RequiredSessionAbsent` ("no direct session in
 the historical baseline"), distinct from "session present, no target
 baseline"; excluded sessions never enter the eligible denominator.
 
-### Observed peer-session metadata (Part 5)
+### Observed peer-session metadata
 
 `observer_session_metadata` (V9): observed peer ASN per (collector,
 peer IP, address family), time-scoped by the RIB timestamp, with the
@@ -592,29 +602,17 @@ source archive and SHA. `inim catalog session-metadata-backfill
 baseline RIBs (idempotent). The workbench renders the observed ASN as a
 protocol fact ("ASxxxx · organization unclassified · role unclassified")
 or explicit ambiguity; it is distinct from reviewed organization labels
-and never part of RouteKey identity. UVA's four peers were backfilled
-from the cached 2026-07-14 RouteViews RIB (AS2152, AS11537, AS293,
-AS7660).
+and never part of RouteKey identity.
 
-### Timeline context strip (Part 6)
-
-The SVG now has an **Operator context** strip whose axis spans the
-anchors' exact extent (15:33–20:48) and a **BGP focus** timeline
-(16:00–17:30) holding the observer lanes plus only the in-window
-anchor. Off-window operator events are never clamped onto the focus
-axis; lane labels carry the peer ASN ("rrc15 / AS1916 · AMER"); lane
-baselines are strictly horizontal.
-
-### Window-end vs cooldown (Part 7)
+### Window-end vs cooldown
 
 Episodes separate `state_at_event_window_end` (EndState) from
 `cooldown_outcome` (analysis_end = window end + cooldown minutes):
 RestoredAt / StillChangingBeforeAnalysisEnd /
-NoRestorationBeforeAnalysisEnd. MAN LAN rrc15: still changed at window
-end; path replacements continued at 17:52:16 with no restoration before
-18:30. The regional column is named **LAST IN-WINDOW RESTORATION**.
+NoRestorationBeforeAnalysisEnd. The regional column is named **LAST
+IN-WINDOW RESTORATION**.
 
-### INC0302574 I2PX relationship audit (Part 8)
+### INC0302574 I2PX relationship audit
 
 Event-date RIS baselines (bview.20260730.0000.gz, RRC11 + RRC14 — the
 collectors with direct AS11164 peers per current peer lists) show the
@@ -626,9 +624,10 @@ the bview SHAs, the four direct sessions, and the visibility counts; decision
 relationship-relevant evidence; the existing AS11537 run is classified
 `supporting-re-plane`; page and API agree.
 
-### Compact header (Part 9)
+### Performance
 
-Observed result and scope lead; secondary metadata collapses under
-"Event context" (collapsed on mobile by progressive enhancement);
-linked tickets show a count with a "View tickets" toggle; header times
-are human ranges (exact ISO stays in details and the API).
+Workbench GETs perform no analysis and no MRT parsing. Queries use the
+existing run indexes (`idx_streams_run`, `idx_run_transitions_run`,
+`idx_waves_run` — verified with EXPLAIN QUERY PLAN); no new indexes were
+needed. Per-request SQL count and timings are captured; demo catalog
+renders in ~16–23 ms median (target: <100 ms median, <250 ms worst).

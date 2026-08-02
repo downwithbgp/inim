@@ -17,11 +17,12 @@ observer stream. Final instance loss is required for stream absence;
 `path_id` churn alone is not routing impact.
 
 ### Deterministic observation identity
-Observation IDs and evidence IDs are assigned after sorting by the
-documented order: collector, timestamp, archive order, element sequence,
-peer IP, prefix, path_id (`None < Some(id)`). Serial and parallel
-completion produce identical IDs; different route instances get different
-IDs.
+Observation IDs are assigned after sorting by the documented order:
+collector, timestamp, archive order, element sequence, peer IP, prefix,
+path_id (`None < Some(id)`). Serial and parallel completion produce
+identical IDs; different route instances get different IDs. Evidence
+references (`EvidenceRef`) carry the observation id plus archive/URL
+provenance — there is no separate evidence id namespace.
 
 ## Core types
 
@@ -70,8 +71,22 @@ Separate, event-relative facets: transit retained, transit departed,
 transit returned.
 
 ### RouteTransition
-A classified transition with evidenced baseline/before/after states and
-triggering evidence.
+A classified transition with evidenced baseline/before/after states,
+triggering evidence, an `AnalysisPhase` (`Warmup` | `Event` | `Cooldown`),
+and a continuity marker (`Known` | `Unknown`, set when a session boundary
+or missing observation interrupts the evidence chain).
+
+## AnalysisPhase
+
+- **Warmup** — updates before the event window are processed but emit no
+  state change; they only establish pre-window context.
+- **Event** — the event window proper. The **event baseline is frozen at
+  the first event-period observation**; only event-phase transitions can
+  be a stream's `first_change`.
+- **Cooldown** — transitions after the event-window end are classified
+  and stored separately (`cooldown_transitions`); open absence intervals
+  are closed at the cooldown end. Cooldown observations never change the
+  event-window verdict; they feed the analysis-final state.
 
 ## Stream lifecycle
 
@@ -118,8 +133,8 @@ absence does not prove a mechanism was unused.
 
 ## Semantic waves
 
-Temporal clusters of event-window transitions derived primarily from
-lifecycles, retaining contributing RouteKey evidence: stable wave ID,
+Temporal clusters of event-phase transitions, retaining contributing
+RouteKey evidence: stable wave ID,
 start/peak-interval/end, stream count vs route-instance count, prefixes,
 peers, generic facet counts, event-relative counts, representative
 before/after states, and evidence references. Labels
@@ -131,7 +146,7 @@ actual temporal clustering — never forced. SEQUITUR describes repeated
 sequences; it never assigns semantic labels and never determines the
 assessment.
 
-## Incident case studies (Session 30)
+## Incident case studies
 
 The catalog distinguishes six kinds of objects; the distinction is
 semantic, not a naming accident:
@@ -143,7 +158,7 @@ semantic, not a naming accident:
 | `EventSnapshot` | what a source ticket said at one point in time (immutable) |
 | `ReferenceDocument` | immutable external supporting material (e.g. an after-action report) |
 | `AnalysisRun` | what inim observed under one exact plan (immutable) |
-| `CaseStudyComparison` | reviewed comparison of operator reports with BGP observation — interpretation, not a causal foreign-key relationship |
+| `ComparisonRow` | reviewed comparison of operator reports with BGP observation (`case_study_compare.rs`) — interpretation, not a causal foreign-key relationship |
 
 - `CaseStudy` links to `CatalogEvent`s (relationship vocabulary:
   PrimaryChange, PrimaryIncident, RollbackChange, ParticipantIncident,
@@ -190,7 +205,7 @@ semantic, not a naming accident:
 Evidence links conclusions to source records; an assessment carries
 event id, expectation, verdict, evidence, waves, and generation time.
 
-## Catalog (Session 29)
+## Catalog
 
 ### CatalogEvent / EventSnapshot / ManifestRevision
 Source-neutral event identity; immutable snapshots of what the operator
@@ -221,7 +236,7 @@ Discovered. Stale means the current event state has not yet been analyzed
 under the latest inputs — an old completed run remains historically
 complete.
 
-## Corpus domain (Session 33)
+## Corpus domain
 
 - **DiscoveryProvenance** — how a ticket identifier entered the corpus:
   AnalystSeed, DocumentReference, TicketDescriptionReference,
@@ -253,7 +268,7 @@ complete.
 - **SourceFamily** — RouteViews | RipeRis; part of collector identity
   in archive plans.
 
-## Reviewed interpretation layer (Session 34, Part 1)
+## Reviewed interpretation layer
 
 - **TicketReview** — analyst-reviewed case-study interpretation for one
   catalog ticket, stored separately from its immutable snapshot:
@@ -269,14 +284,14 @@ complete.
 - **ReviewProvenance** — per-field citation: `SnapshotField:<field>` or
   a reference document (AAR) with `source_document_id`. Missing source
   fields are never backfilled without a cited document.
-- **Reviewed relationship kinds** (Session 34): RollbackFor,
+- **Reviewed relationship kinds**: RollbackFor,
   ParticipantImpactDuring, AlarmDuring, OperationalTaskDuring — plus
-  the Session 33 kinds (TracksRemainingImpactIn, RelatedChange,
+  the corpus-reviewed kinds (TracksRemainingImpactIn, RelatedChange,
   RelatedIncident, References, SupersededBy, RelatedTask,
   UnknownReference) and derived overlap kinds (TemporalOverlap,
   EntityOverlap).
 
-## Candidate grouping (Session 34, Part 3)
+## Candidate grouping
 
 - **Confidence categories**: ExplicitlyLinked (source-asserted),
   StrongCandidate (reviewed case-study membership), WeakCandidate
@@ -289,7 +304,7 @@ complete.
   SharedMaintenanceChange. One candidate per pair, evidence = union of
   all signals.
 
-## Multi-observer analysis (Session 34, Parts 4–7)
+## Multi-observer analysis
 
 - **SourceFamily** — RouteViews | RipeRis; part of collector identity;
   drives broker project, archive URL conventions, RIB cadence, cache
@@ -306,7 +321,7 @@ complete.
   Analyze · No public-BGP target · Inspect stale run. Derived from
   readiness + reviewed applicability; never executed from a GET.
 
-## Reviewed service-plane model (Session 35, Parts 1–7)
+## Reviewed service-plane model
 
 - **NamedServicePlane** — reviewed profile data (`id`, `display_label`,
   `asns`); one organization can have multiple planes (e.g. an R&E
@@ -338,23 +353,26 @@ complete.
   independent, so plane-specific runs parse each RIB once. Evidence
   identity is content-derived and never changes with cache path.
 
-## ObserverEpisode and observed breadth (Session 36)
+## ObserverEpisode and observed breadth
 
 - **ObserverEpisode** — the primary human-facing unit: one observer
   session (collector + peer) × one presentation-level signature.
-  Grouping is by (observer session, effect kind, named plane);
-  different peers at one collector stay separate; direct and indirect
+  Grouping is by (collector, peer IP, effect kind); the named service
+  plane is a per-run reviewed constant, not part of the group key.
+  Different peers at one collector stay separate; direct and indirect
   observations stay separate; generation is deterministic.
 - **Effect kinds are presentation groupings** of existing lifecycle/
   transition evidence (withdrawn+restored → TemporaryStreamAbsence;
   withdrawn+unrestored → RouteWithdrawal; transit departed/returned →
   NamedPlaneDeparture/Return; prepend-only → PrependChange; path
-  change retaining transit → PathReplacement; no evidence → NoChange).
+  change retaining transit → PathReplacement; qualifying baseline with
+  no observed change → NoRouteStateChange).
 - **Observed breadth** (regional): changed / eligible observer sessions
-  with the denominator always visible. NoChange, NoBaselineVisibility,
-  and IncompleteCoverage are distinct; incomplete coverage is never
-  counted as unchanged. This is breadth, not severity — no severity
-  score exists.
+  with the denominator always visible. NoRouteStateChange (an observed
+  signature with `Complete` coverage), NoBaselineVisibility, and
+  IncompleteCoverage are distinct states and never collapse into one
+  zero; incomplete coverage is never counted as unchanged. This is
+  breadth, not severity — no severity score exists.
 - **Observer site vs peer identity** — a collector site has a reviewed
   location and region (AMER/EMEA/APAC/Unknown, data-driven); the peer's
   own location is never inferred from the collector's. Direct peer ASN
