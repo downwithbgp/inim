@@ -2402,7 +2402,6 @@ async fn copy_payload_contains_only_requested_values() {
         .collect();
     assert!(!prefix_buttons.is_empty(), "copy buttons present");
     let mut payloads_ok = 0;
-    let mut i = 0;
     for chunk in prefix_buttons {
         let payload = chunk.split('"').next().unwrap_or("");
         if payload.contains('/') && payload.contains('.') {
@@ -2414,7 +2413,6 @@ async fn copy_payload_contains_only_requested_values() {
             );
             payloads_ok += 1;
         }
-        i += 1;
     }
     assert!(payloads_ok >= 3, "at least three prefix copy payloads");
     // Before-path payload: only ASN sequences, never prefix text.
@@ -2531,7 +2529,6 @@ async fn no_changed_event_leads_with_session_ratio() {
         return;
     }
     assert_eq!(status, StatusCode::OK);
-    let findings = body.find("Externally observed routing changes").unwrap();
     let no_change = body
         .find("No relevant observer visibility was available")
         .unwrap();

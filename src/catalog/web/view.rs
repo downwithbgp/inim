@@ -4141,7 +4141,7 @@ fn timeline_rows(
         .collect();
     vm.timeline
         .iter()
-        .filter(|l| f.active() == false || allowed.contains(l.observer_session.as_str()))
+        .filter(|l| !f.active() || allowed.contains(l.observer_session.as_str()))
         .map(|l| WorkbenchTimelineRow {
             session: lane_labels
                 .get(&l.observer_session)

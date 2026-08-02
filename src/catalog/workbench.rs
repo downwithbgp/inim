@@ -1427,7 +1427,7 @@ pub fn build_findings(
                 prefix: s.prefix.clone(),
                 baseline_path: baseline,
                 changed_path: changed,
-                final_path: final_path,
+                final_path,
                 withdrawn: s.withdrawn,
                 first_change_utc: s.first_change_utc.clone(),
                 visibility_restored_at: vis,
@@ -5074,13 +5074,15 @@ impl WorkbenchContext {
     }
 
     pub fn load_from_pilot_dir(pilot_dir: &std::path::Path) -> Self {
-        let mut ctx = WorkbenchContext::default();
+        let mut ctx = WorkbenchContext {
+            // Reviewed ASN identities (Session 39, Part 6).
+            asn_identities: AsnIdentityRegistry::load(&pilot_dir.join("asn-identities.json")),
+            ..WorkbenchContext::default()
+        };
         let profile_path = pilot_dir.join("network-profile.json");
         let locations_path = pilot_dir.join("collector-locations.json");
         let audit_path = pilot_dir.join("session-audit-2019.json");
         let pex_decision_path = pilot_dir.join("rrc11-pex-pilot-decision.json");
-        // Reviewed ASN identities (Session 39, Part 6).
-        ctx.asn_identities = AsnIdentityRegistry::load(&pilot_dir.join("asn-identities.json"));
 
         if let Ok(profile) = ServicePlaneProfile::load(&profile_path) {
             // Reviewed ASN → plane display label map (runtime data).
@@ -5188,11 +5190,13 @@ impl WorkbenchContext {
     /// pilot-scoped evidence and must not be attributed to unrelated
     /// events.
     pub fn load_registry_only(pilot_dir: &std::path::Path) -> Self {
-        let mut ctx = WorkbenchContext::default();
         // Reviewed ASN identities (Session 39, Part 6): the manlan-2019
         // registry applies to the case-study workbench; other subjects
         // load their own file when one exists.
-        ctx.asn_identities = AsnIdentityRegistry::load(&pilot_dir.join("asn-identities.json"));
+        let mut ctx = WorkbenchContext {
+            asn_identities: AsnIdentityRegistry::load(&pilot_dir.join("asn-identities.json")),
+            ..WorkbenchContext::default()
+        };
         let locations_path = pilot_dir.join("collector-locations.json");
         if let Ok(registry) = CollectorLocationRegistry::load(&locations_path) {
             ctx.registry = Some(registry);
@@ -6991,6 +6995,9 @@ mod session38_metadata_tests {
 mod finding_test_helpers {
     use super::*;
 
+    type PathEntry<'a> = (&'a str, &'a str, &'a str, &'a [u32], &'a [u32]);
+
+    #[allow(clippy::too_many_arguments)] // test fixture passthrough
     pub(super) fn episode(
         run: i64,
         kind: EffectKind,
@@ -7049,6 +7056,7 @@ mod finding_test_helpers {
         }
     }
 
+    #[allow(clippy::too_many_arguments)] // test fixture passthrough
     pub(super) fn absence_episode(
         run: i64,
         session: &str,
@@ -7106,9 +7114,7 @@ mod finding_test_helpers {
         }
     }
 
-    pub(super) fn path_index_with(
-        entries: &[(&str, &str, &str, &[u32], &[u32])],
-    ) -> LifecyclePathIndex {
+    pub(super) fn path_index_with(entries: &[PathEntry]) -> LifecyclePathIndex {
         // (collector, peer_ip, prefix, baseline, changed)
         let mut index = LifecyclePathIndex::default();
         let mut map: std::collections::HashMap<(String, String, String), StreamPathEvidence> =
@@ -7196,62 +7202,9 @@ mod finding_test_helpers {
     fn different_before_after_paths_produce_separate_findings() {
         // The same session with two distinct after paths must produce
         // separate findings (different semantic after-state).
-        let eps = vec![
-            episode(
-                1,
-                EffectKind::PathReplacement,
-                "ris/rrc06 peer 192.0.2.1",
-                "Otemachi, Tokyo, Japan",
-                "APAC",
-                4777,
-                RelationshipKind::Indirect,
-                "2019-08-21T16:45:44Z",
-                "2019-08-21T17:02:07Z",
-                &["10.0.0.0/24"],
-            ),
-            episode(
-                1,
-                EffectKind::PathReplacement,
-                "ris/rrc06 peer 192.0.2.1",
-                "Otemachi, Tokyo, Japan",
-                "APAC",
-                4777,
-                RelationshipKind::Indirect,
-                "2019-08-21T16:45:44Z",
-                "2019-08-21T17:02:07Z",
-                &["10.0.2.0/24"],
-            ),
-        ];
-        // The episodes are grouped by (session, kind) in real usage; a
-        // distinct after-state shows up as a distinct EffectKind or
-        // session grouping. Simulate two sessions to prove separation.
-        let eps = vec![
-            episode(
-                1,
-                EffectKind::PathReplacement,
-                "ris/rrc06 peer 192.0.2.1",
-                "Otemachi, Tokyo, Japan",
-                "APAC",
-                4777,
-                RelationshipKind::Indirect,
-                "2019-08-21T16:45:44Z",
-                "2019-08-21T17:02:07Z",
-                &["10.0.0.0/24"],
-            ),
-            episode(
-                1,
-                EffectKind::PathReplacement,
-                "ris/rrc06 peer 192.0.2.1",
-                "Otemachi, Tokyo, Japan",
-                "APAC",
-                4777,
-                RelationshipKind::Indirect,
-                "2019-08-21T16:45:44Z",
-                "2019-08-21T17:02:07Z",
-                &["10.0.0.0/24"],
-            ),
-        ];
-        let _ = eps;
+        // A distinct semantic after-state shows up as a distinct
+        // EffectKind within one run; separate runs at the same session
+        // are separate observations. Prove both stay separate.
         let eps = vec![
             episode(
                 1,

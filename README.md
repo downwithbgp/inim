@@ -154,6 +154,39 @@ Deterministic query states (`?changed`, `?episode=`, `?prefixes=`,
 `?view=timeline`) feed the validated screenshot harness
 (`scripts/screenshot-review-session37.sh`).
 
+The Session 39 revision makes the workbench **operator-first**: the
+first screen answers "who saw which prefixes do what, when, and how did
+those routes end" before any breadth ratio.
+
+- **Routing findings** (`RoutingFinding`) replace the raw episode table
+  as the primary unit: one coherent routing story per observer session
+  (exact time, observer site, peer ASN + reviewed name, affected
+  prefixes, before/after AS paths, visibility/baseline restoration,
+  outcome). Findings are derived from existing evidence — no new route
+  semantics.
+- **Exact AS paths** come from the run lifecycle artifacts: baseline
+  path, first changed path, final observed path per prefix. Summary
+  rows collapse repeated ASNs (`AS24489×4`); the exact uncollapsed
+  sequence is retained in the drill-down and the JSON API.
+- **Reviewed ASN identities** (`case-studies/<slug>/pilot/
+  asn-identities.json`) name peers from reviewed profile/audit data
+  only — `Internet2 R&E (AS11537)`, `RNP (AS1916)`; unknown identities
+  render `ASxxxxx · name not reviewed`. Names never change the
+  authoritative ASN sequence.
+- **Exact-verb statements** — "stopped seeing", "changed AS path",
+  "became absent", "returned to visibility", "restored the baseline
+  path" — never "protected", "failed over", "backup path", or
+  "traffic restored".
+- Page order: **Externally observed routing changes** → **Observer
+  comparison by region** (concrete per-site statements; ratios are
+  parenthesized metadata) → **Timeline** → **Suggested internal
+  checks** → **Observation coverage** (breadth ratios, no-baseline
+  conditions, other selected observers). No-change events lead with
+  their visibility statement, not a session ratio.
+- Copy actions (prefixes, before paths, after paths) are progressive
+  enhancement; the exact data is visible without JavaScript.
+- The operator task model is documented in `docs/UX.md`.
+
 - **ObserverEpisode** is the primary human-facing unit: streams at one
   observer session (collector + peer) sharing one presentation-level
   signature (`TemporaryStreamAbsence`, `RouteWithdrawal`,
