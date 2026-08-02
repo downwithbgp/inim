@@ -192,6 +192,18 @@ a:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px soli
   .wb-seg-mark { display: block; }
   .wb-finding-head { font-size: 13px; }
   .wb-path-numeric { word-break: break-word; }
+  /* Session 40, Part 13: compact first viewport — title, concise
+     scope line, then the first principal story within ~300-350px. */
+  .wb-title { font-size: 1rem; margin: 0.3rem 0 0.1rem; }
+  .wb-subtitle { font-size: 0.72rem; margin: 0 0 0.4rem; }
+  .wb-scope-line { font-size: 0.75rem; margin: 0 0 0.35rem; }
+  .wb-header { padding: 0.3rem 0.5rem; }
+  .wb-header .wb-scope { display: none; } /* the scope line carries it */
+  .wb-section { margin: 0.7rem 0 0.3rem; font-size: 0.95rem; }
+  .wb-filters { white-space: nowrap; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 0.2rem; font-size: 0.75rem; margin: 0.15rem 0 0.4rem; }
+  .wb-finding { margin: 0.35rem 0; padding: 0.4rem 0.5rem; }
+  .wb-finding-statement { font-size: 0.82rem; }
+  .wb-path-explanation { font-size: 0.8rem; }
   table.wb-episodes, table.wb-episodes tbody, table.wb-episodes tr, table.wb-episodes td { display: block; width: 100%; }
   table.wb-episodes thead { display: none; }
   table.wb-episodes tr { border: 1px solid var(--line); margin-bottom: 0.5rem; padding: 0.25rem; }
