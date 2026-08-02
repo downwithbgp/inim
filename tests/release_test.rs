@@ -142,6 +142,8 @@ fn readme_case_study_counts_match_current_artifacts() {
         return;
     }
     let readme = read("README.md");
+    let uva_readme = read("case-studies/inc0299001/README.md");
+    let ripe_readme = read("case-studies/inc0302574/README.md");
     let ripe_report: serde_json::Value =
         serde_json::from_str(&std::fs::read_to_string(&ripe).unwrap()).unwrap();
     let uva_report: serde_json::Value =
@@ -159,11 +161,14 @@ fn readme_case_study_counts_match_current_artifacts() {
         .as_u64()
         .unwrap();
     let uva_transitions = uva_report["transitions"]["total"].as_u64().unwrap();
-    // README case-study counts must match the current artifacts.
-    assert!(readme.contains(&format!("{ripe_streams} selected observer-prefix streams")));
-    assert!(readme.contains(&format!("{uva_streams} selected observer-prefix streams")));
-    assert!(readme.contains(&format!("{uva_withdrawn} temporarily absent")));
-    assert!(readme.contains(&format!("{uva_transitions} route-instance transitions")));
+    // Case-study README counts must match the current artifacts (the
+    // per-case-study READMEs are the home of these digests; the root
+    // README links to them).
+    assert!(ripe_readme.contains(&format!("{ripe_streams} selected observer-prefix streams")));
+    assert!(uva_readme.contains(&format!("{uva_streams} selected observer-prefix streams")));
+    assert!(uva_readme.contains(&format!("{uva_withdrawn} temporarily absent")));
+    assert!(uva_readme.contains(&format!("{uva_transitions} route-instance transitions")));
+    assert!(readme.contains("case-studies/inc0299001"));
 }
 
 // ── Case-study packaging + neutrality (Session 30, Part 19) ─────────

@@ -10,12 +10,14 @@ chronology; every claim below traces to those artifacts.
 ## Result
 
 **Partial routing impact observed**: 13 of 48 selected observer-prefix
-streams at route-views2 became absent and later returned; among the
-remaining 35 streams, 22 showed prepend-only changes, 11 had other
-material path changes while retaining the reviewed transit, and 2
-remained visible after departing that transit. Assessment against the
-ticket expectation: partially consistent with the
-participant-relationship-unavailable expectation.
+streams at route-views2 became **temporarily absent** and later
+returned; among the remaining 35 streams, 22 showed prepend-only
+changes, 11 had other material path changes while retaining the
+reviewed transit, and 2 remained visible after departing that transit.
+The run distinguishes 214 route-instance transitions across the 48
+streams (ADD-PATH-aware). Assessment against the ticket expectation:
+partially consistent with the participant-relationship-unavailable
+expectation.
 
 ## Final checked chronology (route-views2, peer 163.253.3.14)
 
