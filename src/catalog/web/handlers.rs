@@ -133,7 +133,7 @@ fn trace_counter(_sql: &str) {
 }
 
 /// Test/debug accessor for the per-request SQL statement counter.
-pub fn QUERY_COUNT_DEBUG() -> usize {
+pub fn query_count_debug() -> usize {
     QUERY_COUNT.load(std::sync::atomic::Ordering::Relaxed)
 }
 

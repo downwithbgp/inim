@@ -1213,13 +1213,13 @@ async fn workbench_query_count_is_bounded() {
     // event lookup, snapshots, manifests, runs, streams, transitions,
     // waves, artifacts. Bounded well under 50.
     let (_status, _body) = get(&app, "/events/INC0302574/workbench").await;
-    let count = crate::catalog::web::handlers::QUERY_COUNT_DEBUG();
+    let count = crate::catalog::web::handlers::query_count_debug();
     assert!(
         count <= 50,
         "workbench SQL query count must be bounded, got {count}"
     );
     let (_status, _body) = get(&app, "/case-studies/manlan-2019/workbench").await;
-    let count2 = crate::catalog::web::handlers::QUERY_COUNT_DEBUG();
+    let count2 = crate::catalog::web::handlers::query_count_debug();
     assert!(
         count2 <= 60,
         "case-study workbench SQL query count must be bounded, got {count2}"
