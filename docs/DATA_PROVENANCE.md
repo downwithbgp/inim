@@ -65,7 +65,11 @@ waves retain evidence references.
 Report, evidence appendix, lifecycle, withdrawal audit, semantic waves,
 comparison, and analysis-plan artifacts all carry schema versions. Old
 artifacts are archived (e.g. `out/archive/pre-observer-prefix-schema/`),
-never parsed as current schema.
+never parsed as current schema. Generated artifacts identify their event,
+schema version, and source archives (URL + SHA); the generator identity
+(software version, parser identity) lives in the catalog's immutable
+`AnalysisRun` record and in the run's tracked `stderr.log` — the
+artifacts themselves carry no generator field.
 
 ## Audit trail
 
