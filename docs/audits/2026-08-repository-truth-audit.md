@@ -24,7 +24,7 @@ This audit verifies that every tracked file is classified, that every current st
 
 ## Summary
 
-Tracked files: **339** · inventory entries: **339**
+Tracked files: **340** · inventory entries: **340**
 
 | Category | Files |
 |---|---|
@@ -39,13 +39,14 @@ Tracked files: **339** · inventory entries: **339**
 | Test fixture | 11 |
 | Test source | 6 |
 | Packaging or release metadata | 3 |
+| GitHub/community metadata | 2 |
 | License or third-party notice | 2 |
-| GitHub/community metadata | 1 |
 
 ## Inventory
 
 | Path | Category | Audience | Authoritative source | Generated | Current | Review result | Changes required | Final status |
 |---|---|---|---|---|---|---|---|---|
+| `.github/dependabot.yml` | GitHub/community metadata | contributors | GitHub Dependabot configuration + action review policy | no | current | reviewed in this audit | none | reviewed in this audit |
 | `.github/workflows/ci.yml` | GitHub/community metadata | contributors | GitHub Actions upstream releases | no | current | reviewed in this audit | none | reviewed in this audit |
 | `.gitignore` | Configuration | maintainers | reviewed operator configuration | no | current | reviewed in this audit | none | reviewed in this audit |
 | `CHANGELOG.md` | Packaging or release metadata | maintainers | release policy | no | current | reviewed in this audit | none | reviewed in this audit |

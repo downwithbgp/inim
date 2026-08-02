@@ -2710,5 +2710,13 @@
   "authoritative": "the command it wraps + its inputs",
   "generated": false,
   "current": true
+ },
+ {
+  "path": ".github/dependabot.yml",
+  "category": "GitHub/community metadata",
+  "audience": "contributors",
+  "authoritative": "GitHub Dependabot configuration + action review policy",
+  "generated": false,
+  "current": true
  }
 ]
