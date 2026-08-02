@@ -72,11 +72,11 @@ reference their source runs. See `docs/DATA_PROVENANCE.md` and
   data.
 - A **CLI** for administration, import, planning, analysis, and audit.
 - **Three reviewed case studies** under `case-studies/`:
-  - `manlan-2019` — single-target NORDUnet historical pilot across
+  - `case-studies/manlan-2019` — single-target NORDUnet historical pilot across
     RouteViews and RIPE RIS observers (2019-08-21).
-  - `inc0299001` — UVA participant-unavailability event with partial
-    routing impact.
-  - `inc0302574` — RIPE-via-NYIIX I2PX visibility audit with an
+  - `case-studies/inc0299001` — UVA participant-unavailability event with
+    partial routing impact.
+  - `case-studies/inc0302574` — RIPE-via-NYIIX I2PX visibility audit with an
     unassessable named relationship.
 - Text and JSON reports, run comparison, and a screenshot harness for
   visual review.
