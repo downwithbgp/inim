@@ -16,7 +16,7 @@ use tower::ServiceExt;
 
 fn repo_artifacts_available() -> bool {
     std::path::Path::new("manifests").is_dir()
-        && std::path::Path::new("out/INC0302574/report.json").is_file()
+        && std::path::Path::new("case-studies/inc0302574/out/INC0302574/report.json").is_file()
 }
 
 fn setup_app() -> Option<(tempfile::TempDir, axum::Router)> {
@@ -98,8 +98,9 @@ async fn direct_i2px_eligibility_uses_event_date_peer_asn() {
     // evidence: direct AS11164 sessions existed at RRC11/RRC14 with
     // zero AS3333-origin routes — eligibility is established by the
     // event-date peer ASN, not by current peer lists alone.
-    let raw = std::fs::read_to_string("out/INC0302574/relationship-audit.json")
-        .expect("audit artifact present");
+    let raw =
+        std::fs::read_to_string("case-studies/inc0302574/out/INC0302574/relationship-audit.json")
+            .expect("audit artifact present");
     let v: serde_json::Value = serde_json::from_str(&raw).unwrap();
     let direct = v["direct_i2px_sessions"].as_array().unwrap();
     assert_eq!(direct.len(), 4, "two collectors x two address families");

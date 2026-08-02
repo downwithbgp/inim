@@ -620,8 +620,8 @@ Event-date RIS baselines (bview.20260730.0000.gz, RRC11 + RRC14 — the
 collectors with direct AS11164 peers per current peer lists) show the
 direct sessions existed but carried zero AS3333-origin routes, and no
 AS3333-origin path contained AS11164. Reviewed audit artifact
-`out/INC0302574/relationship-audit.json` records the bview SHAs, the
-four direct sessions, and the visibility counts; decision
+`case-studies/inc0302574/out/INC0302574/relationship-audit.json` records
+the bview SHAs, the four direct sessions, and the visibility counts; decision
 `insufficient-visibility`. The workbench assessment uses only
 relationship-relevant evidence; the existing AS11537 run is classified
 `supporting-re-plane`; page and API agree.

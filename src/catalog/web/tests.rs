@@ -18,7 +18,9 @@ use crate::catalog::web::AppState;
 /// Expected INC0302574 relationship assessment (runtime data; the
 /// plane identity never enters src/).
 fn audit_assessment() -> String {
-    let raw = std::fs::read_to_string("out/INC0302574/relationship-audit.json").unwrap_or_default();
+    let raw =
+        std::fs::read_to_string("case-studies/inc0302574/out/INC0302574/relationship-audit.json")
+            .unwrap_or_default();
     let v: serde_json::Value = serde_json::from_str(&raw).unwrap_or_default();
     v.get("assessment")
         .and_then(|a| a.as_str())
@@ -28,7 +30,7 @@ fn audit_assessment() -> String {
 
 fn repo_artifacts_available() -> bool {
     std::path::Path::new("manifests").is_dir()
-        && std::path::Path::new("out/INC0302574/report.json").is_file()
+        && std::path::Path::new("case-studies/inc0302574/out/INC0302574/report.json").is_file()
 }
 
 fn setup_catalog() -> (tempfile::TempDir, std::path::PathBuf) {
@@ -39,8 +41,8 @@ fn setup_catalog() -> (tempfile::TempDir, std::path::PathBuf) {
     crate::catalog::import::import_repository(&conn, std::path::Path::new("."), "0.1.0", None)
         .unwrap();
     drop(conn);
-    // Artifacts live in the repository's out/ directory (read-only for
-    // these tests), so the catalog root is the repo root.
+    // Artifacts live in the repository's reviewed evidence directories
+    // (read-only for these tests), so the catalog root is the repo root.
     (dbdir, std::path::PathBuf::from("."))
 }
 
@@ -350,9 +352,10 @@ async fn analysis_page_matches_report_result() {
     let app = build_app(state_from(&dbdir, &rootdir));
     let run_id = run_id_for(&dbdir, "INC0302574");
     let (_, body) = get(&app, &format!("/analyses/{run_id}")).await;
-    let report: serde_json::Value =
-        serde_json::from_str(&std::fs::read_to_string("out/INC0302574/report.json").unwrap())
-            .unwrap();
+    let report: serde_json::Value = serde_json::from_str(
+        &std::fs::read_to_string("case-studies/inc0302574/out/INC0302574/report.json").unwrap(),
+    )
+    .unwrap();
     let label = report["result"]["verdict_label"].as_str().unwrap();
     assert!(
         body.contains(label),

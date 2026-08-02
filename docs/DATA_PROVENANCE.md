@@ -332,7 +332,8 @@ all raw archives already local.
 
 ## Session 38 — relationship audit and session metadata
 
-- **`out/INC0302574/relationship-audit.json`** (new, reviewed):
+- **`case-studies/inc0302574/out/INC0302574/relationship-audit.json`**
+  (new, reviewed):
   event-date (2026-07-30) RIS baseline inventories at RRC11 and RRC14
   (bview SHAs recorded): the direct AS11164 sessions existed at both
   collectors (IPv4 + IPv6 each), but zero AS3333-origin routes were

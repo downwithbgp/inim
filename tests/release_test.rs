@@ -136,8 +136,8 @@ fn package_section(toml: &str) -> String {
 fn readme_case_study_counts_match_current_artifacts() {
     // Skip when the analysis outputs are absent (e.g. packaged-crate
     // verification, which excludes out/).
-    let ripe = manifest_dir().join("out/INC0302574/report.json");
-    let uva = manifest_dir().join("out/INC0299001/report.json");
+    let ripe = manifest_dir().join("case-studies/inc0302574/out/INC0302574/report.json");
+    let uva = manifest_dir().join("case-studies/inc0299001/out/INC0299001/report.json");
     if !ripe.is_file() || !uva.is_file() {
         return;
     }

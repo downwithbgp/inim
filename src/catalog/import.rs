@@ -54,8 +54,36 @@ pub fn import_repository(
         .unchecked_transaction()
         .map_err(|e| format!("cannot start import transaction: {e}"))?;
 
+    // Candidate run-output roots: the conventional root/out directory
+    // (locally generated runs) plus reviewed event evidence under
+    // case-studies/<slug>/out (renamed out of the top-level runtime
+    // directory before publication).
+    let mut out_roots: Vec<std::path::PathBuf> = vec![out_dir.clone()];
+    let case_studies_dir = root.join("case-studies");
+    if let Ok(entries) = std::fs::read_dir(&case_studies_dir) {
+        let mut slugs: Vec<std::path::PathBuf> = entries
+            .filter_map(|e| e.ok().map(|e| e.path()))
+            .filter(|p| p.is_dir())
+            .collect();
+        slugs.sort();
+        for slug in slugs {
+            out_roots.push(slug.join("out"));
+        }
+    }
+
     let mut summary = ImportSummary::default();
     for manifest_path in &manifest_paths {
+        // Pick the first output root that holds this event's run
+        // directory; fall back to the conventional root (import_one
+        // skips manifests whose run output is absent).
+        let event_id = crate::manifest::Manifest::load(manifest_path)
+            .map_err(|e| format!("cannot load manifest {}: {e}", manifest_path.display()))?
+            .event_id;
+        let out_dir = out_roots
+            .iter()
+            .find(|root| root.join(&event_id).is_dir())
+            .cloned()
+            .unwrap_or_else(|| out_roots[0].clone());
         import_one(
             &tx,
             manifest_path,
@@ -688,16 +716,23 @@ mod tests {
         (dir, conn)
     }
 
-    /// Copy manifests/ and out/ into a temp root so tests never mutate
-    /// (or race on) the repository's real artifacts.
+    /// Copy manifests/ and reviewed event evidence (case-studies/*/out)
+    /// into a temp root so tests never mutate (or race on) the
+    /// repository's real artifacts.
     fn repo_artifacts_available() -> bool {
-        Path::new("manifests").is_dir() && Path::new("out/INC0302574/report.json").is_file()
+        Path::new("manifests").is_dir()
+            && Path::new("case-studies/inc0302574/out/INC0302574/report.json").is_file()
     }
 
     fn temp_repo_root() -> tempfile::TempDir {
         let dir = tempfile::tempdir().unwrap();
         copy_tree(Path::new("manifests"), &dir.path().join("manifests"));
-        copy_tree(Path::new("out"), &dir.path().join("out"));
+        for slug in ["inc0302574", "inc0299001"] {
+            copy_tree(
+                Path::new(&format!("case-studies/{slug}/out")),
+                &dir.path().join("case-studies").join(slug).join("out"),
+            );
+        }
         dir
     }
 
@@ -712,6 +747,11 @@ mod tests {
                 std::fs::copy(entry.path(), target).unwrap();
             }
         }
+    }
+
+    /// Temp-root path of the reviewed INC0302574 event evidence.
+    fn inc0302574_out(root: &Path) -> std::path::PathBuf {
+        root.join("case-studies/inc0302574/out/INC0302574")
     }
 
     #[test]
@@ -751,7 +791,7 @@ mod tests {
         let (_dir, conn) = open_temp_db();
         let root = temp_repo_root();
         // Inject a transitions artifact into the completed INC0302574 out dir.
-        let out = root.path().join("out/INC0302574");
+        let out = inc0302574_out(root.path());
         let artifact = r#"{
           "schema_version": 1,
           "event_id": "INC0302574",
@@ -770,7 +810,7 @@ mod tests {
         }"#;
         std::fs::write(out.join("transitions.json"), artifact).unwrap();
         let root2 = temp_repo_root();
-        let out2 = root2.path().join("out/INC0302574");
+        let out2 = inc0302574_out(root2.path());
         std::fs::write(out2.join("transitions.json"), artifact).unwrap();
         // Import twice: rows are created once.
         import_repository(&conn, root.path(), "0.1.0", Some("test")).unwrap();
@@ -825,7 +865,7 @@ mod tests {
           ]
         }"#;
         std::fs::write(
-            root.path().join("out/INC0302574/transitions.json"),
+            inc0302574_out(root.path()).join("transitions.json"),
             artifact,
         )
         .unwrap();
@@ -940,7 +980,7 @@ mod tests {
           ]
         }"#;
         std::fs::write(
-            root.path().join("out/INC0302574/transitions.json"),
+            inc0302574_out(root.path()).join("transitions.json"),
             artifact,
         )
         .unwrap();
@@ -966,7 +1006,7 @@ mod tests {
         import_transitions(
             &conn,
             run_id,
-            &root.path().join("out/INC0302574"),
+            &inc0302574_out(root.path()),
             &mut summary,
             TRANSITION_IMPORT_LIMIT,
         )
@@ -1024,7 +1064,7 @@ mod tests {
         import_repository(&conn, root.path(), "0.1.0", None).unwrap();
         // Corrupt an artifact file so its hash no longer matches the
         // catalog; re-import must reject rather than modify history.
-        let stderr = root.path().join("out/INC0302574/stderr.log");
+        let stderr = inc0302574_out(root.path()).join("stderr.log");
         std::fs::write(&stderr, "corrupted").unwrap();
         let err = import_repository(&conn, root.path(), "0.1.0", None).unwrap_err();
         assert!(
@@ -1043,7 +1083,7 @@ mod tests {
         let path = dir.path().join("catalog.sqlite");
         let conn = db::open_catalog(&path).unwrap();
         import_repository(&conn, root.path(), "0.1.0", None).unwrap();
-        let stderr = root.path().join("out/INC0302574/stderr.log");
+        let stderr = inc0302574_out(root.path()).join("stderr.log");
         std::fs::write(&stderr, "tampered").unwrap();
         let err = import_repository(&conn, root.path(), "0.1.0", None).unwrap_err();
         assert!(
@@ -1065,9 +1105,10 @@ mod tests {
         let runs = db::list_runs_for_event(&conn, e.id).unwrap();
         assert_eq!(runs.len(), 1);
         let streams = db::list_streams(&conn, runs[0].id, None, None).unwrap();
-        let report: serde_json::Value =
-            serde_json::from_str(&std::fs::read_to_string("out/INC0299001/report.json").unwrap())
-                .unwrap();
+        let report: serde_json::Value = serde_json::from_str(
+            &std::fs::read_to_string("case-studies/inc0299001/out/INC0299001/report.json").unwrap(),
+        )
+        .unwrap();
         let report_streams = report["observed_event_signature"]["observer_scope"]
             ["baseline_observer_prefix_streams"]
             .as_u64()
@@ -1091,9 +1132,10 @@ mod tests {
             .unwrap();
         let runs = db::list_runs_for_event(&conn, e.id).unwrap();
         let waves = db::list_waves(&conn, runs[0].id).unwrap();
-        let report: serde_json::Value =
-            serde_json::from_str(&std::fs::read_to_string("out/INC0299001/report.json").unwrap())
-                .unwrap();
+        let report: serde_json::Value = serde_json::from_str(
+            &std::fs::read_to_string("case-studies/inc0299001/out/INC0299001/report.json").unwrap(),
+        )
+        .unwrap();
         let report_waves = report["observed_event_signature"]["semantic_waves"]
             .as_array()
             .map(|a| a.len())

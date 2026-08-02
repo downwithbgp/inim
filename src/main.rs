@@ -217,7 +217,9 @@ enum CatalogCommands {
     Import {
         #[arg(long, value_name = "PATH")]
         db: PathBuf,
-        /// Repository root containing manifests/ and out/.
+        /// Repository root containing manifests/ and analysis artifacts
+        /// (out/ for locally generated runs; case-studies/*/out for
+        /// reviewed event evidence).
         #[arg(long, value_name = "DIR", default_value = ".")]
         root: PathBuf,
     },

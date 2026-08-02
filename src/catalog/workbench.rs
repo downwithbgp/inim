@@ -3914,7 +3914,8 @@ fn run_meta(
             // out/ directory; resolve against the catalog root first,
             // then the conventional out/ subdirectory, then the pilot
             // case-study out/ tree (pilot runs are imported from
-            // case-studies/<slug>/pilot as their own root).
+            // case-studies/<slug>/pilot as their own root), then the
+            // reviewed event evidence trees (case-studies/<slug>/out).
             let mut full = catalog_root.join(&rel);
             if !full.is_file() {
                 full = catalog_root.join("out").join(&rel);
@@ -3923,6 +3924,12 @@ fn run_meta(
                 full = catalog_root
                     .join("case-studies/manlan-2019/pilot/out")
                     .join(&rel);
+            }
+            if !full.is_file() {
+                full = catalog_root.join("case-studies/inc0302574/out").join(&rel);
+            }
+            if !full.is_file() {
+                full = catalog_root.join("case-studies/inc0299001/out").join(&rel);
             }
             if let Ok(raw) = std::fs::read_to_string(full) {
                 if let Ok(v) = serde_json::from_str::<serde_json::Value>(&raw) {
@@ -4072,14 +4079,23 @@ impl WorkbenchContext {
     /// (network profile, collector locations, session audit, reviewed
     /// peering-plane pilot decision). Returns an empty context when the directory
     /// or its data files are absent (generic events).
-    /// Load the reviewed ticket-relationship audit from the manifests
-    /// directory (runtime data; file name is generic — the plane
+    /// Load the reviewed ticket-relationship audit from the reviewed
+    /// event evidence (runtime data; file name is generic — the plane
     /// identity lives in the file, never in src/).
     pub fn load_relationship_audit(ctx: &mut WorkbenchContext, event_id: &str) {
-        let path = format!("out/{event_id}/relationship-audit.json");
-        if let Ok(raw) = std::fs::read_to_string(&path) {
-            if let Ok(audit) = serde_json::from_str::<TicketRelationshipAudit>(&raw) {
-                ctx.relationship_audit = Some(audit);
+        let candidates = [
+            format!("out/{event_id}/relationship-audit.json"),
+            format!(
+                "case-studies/{}/out/{event_id}/relationship-audit.json",
+                event_id.to_lowercase()
+            ),
+        ];
+        for path in candidates {
+            if let Ok(raw) = std::fs::read_to_string(&path) {
+                if let Ok(audit) = serde_json::from_str::<TicketRelationshipAudit>(&raw) {
+                    ctx.relationship_audit = Some(audit);
+                }
+                break;
             }
         }
     }
