@@ -3067,7 +3067,7 @@ impl WorkbenchView {
         let region_comparison = region_comparison_rows(&vm, &f);
         let no_change_statements = no_change_statements(&vm);
         let breadth = breadth_rows(&vm);
-        let timeline = timeline_rows(&vm);
+        let timeline = timeline_rows(&vm, &f);
         let timeline_svg =
             crate::catalog::workbench::render_timeline_svg(&vm.timeline, &vm.operator_anchors);
         let anchors = anchor_rows(&vm);
@@ -4098,12 +4098,55 @@ pub struct WorkbenchTimelineRow {
 
 fn timeline_rows(
     vm: &crate::catalog::workbench::IncidentWorkbenchViewModel,
+    f: &WorkbenchFilters,
 ) -> Vec<WorkbenchTimelineRow> {
+    use crate::catalog::workbench::session_key_of;
     let window = &vm.window_start;
+    // Lane labels (Session 39, Part 10): collector site + peer identity
+    // from the episode/finding evidence, e.g. "RRC15 Sao Paulo, Brazil
+    // · RNP AS1916".
+    let mut lane_labels: std::collections::HashMap<String, String> =
+        std::collections::HashMap::new();
+    for e in &vm.episodes {
+        let key = session_key_of(&e.observer_session);
+        let collector = key.collector.clone();
+        let peer = match e.peer_asn {
+            Some(asn) => {
+                let name = vm
+                    .asn_identities
+                    .iter()
+                    .find(|i| i.asn == asn && i.review_status == "reviewed")
+                    .map(|i| i.display_name.as_str())
+                    .unwrap_or("");
+                if name.is_empty() {
+                    format!("AS{asn}")
+                } else {
+                    format!("{name} AS{asn}")
+                }
+            }
+            None => "peer ASN unreviewed".to_string(),
+        };
+        lane_labels.insert(
+            e.observer_session.clone(),
+            format!("{} {} · {}", collector, e.observer_site, peer),
+        );
+    }
+    // Active filters also constrain the timeline lanes: a lane whose
+    // session has no matching episode is dropped.
+    let allowed: std::collections::BTreeSet<&str> = vm
+        .episodes
+        .iter()
+        .filter(|e| matches_episode_filter(e, f))
+        .map(|e| e.observer_session.as_str())
+        .collect();
     vm.timeline
         .iter()
+        .filter(|l| f.active() == false || allowed.contains(l.observer_session.as_str()))
         .map(|l| WorkbenchTimelineRow {
-            session: l.observer_session.clone(),
+            session: lane_labels
+                .get(&l.observer_session)
+                .cloned()
+                .unwrap_or_else(|| l.observer_session.clone()),
             region: l.region.clone(),
             window: format!(
                 "{} – {}",

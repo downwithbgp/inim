@@ -4402,9 +4402,22 @@ impl IncidentWorkbenchViewModel {
         let mut archive_coverage = String::new();
         let mut named_planes: Vec<String> = Vec::new();
         let mut plane_asns: Vec<u32> = Vec::new();
+        let mut run_event_ids: std::collections::HashMap<i64, String> =
+            std::collections::HashMap::new();
+        let mut target_label = String::new();
+        let mut target_origin_asns: Vec<u32> = Vec::new();
 
         for run in runs {
             let meta = run_meta(conn, run.id, catalog_root, &context.plane_labels)?;
+            // Findings need the run's manifest event id (for the
+            // lifecycle path index) and the reviewed target identity.
+            run_event_ids.insert(run.id, meta.event_external_id.clone());
+            if target_label.is_empty() {
+                target_label = meta.target_label.clone();
+            }
+            if target_origin_asns.is_empty() {
+                target_origin_asns = meta.target_origin_asns.clone();
+            }
             if window_start.is_empty() {
                 window_start = meta.window_start.clone();
                 window_end = meta.window_end.clone();
@@ -4550,33 +4563,21 @@ impl IncidentWorkbenchViewModel {
         // changed episodes + exact lifecycle paths + reviewed ASN
         // identities. Exact paths are read from the run lifecycle
         // artifacts; absent artifacts yield signatures "—" (never
-        // synthesized).
-        let mut run_event_ids: std::collections::HashMap<i64, String> =
-            std::collections::HashMap::new();
-        let mut target_label = String::new();
-        let mut target_origin_asns: Vec<u32> = Vec::new();
-        for run in runs {
-            if let Ok(meta) = run_meta(conn, run.id, catalog_root, &context.plane_labels) {
-                run_event_ids.insert(run.id, meta.event_external_id.clone());
-                if target_label.is_empty() {
-                    target_label = meta.target_label.clone();
-                }
-                if target_origin_asns.is_empty() {
-                    target_origin_asns = meta.target_origin_asns.clone();
-                }
-            }
-        }
-        // The reviewed pilot target (concise label) is the
-        // concise operator label; the run manifest label is verbose.
-        if !context.pilot_target.is_empty() {
-            target_label = context.pilot_target.clone();
-        }
+        // synthesized). Run event ids and the target label are
+        // collected in the run loop above (no extra queries).
         let path_index = LifecyclePathIndex::load(catalog_root);
+        // The reviewed pilot target (concise label) wins over the
+        // verbose run manifest label.
+        let finding_target_label = if context.pilot_target.is_empty() {
+            target_label
+        } else {
+            context.pilot_target.clone()
+        };
         let findings = build_findings(
             &episodes,
             &path_index,
             &context.asn_identities,
-            &target_label,
+            &finding_target_label,
             &target_origin_asns,
             "",
             &run_event_ids,
