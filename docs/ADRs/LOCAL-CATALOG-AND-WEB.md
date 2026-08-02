@@ -132,3 +132,38 @@ truth. Acquisition state (discovery frontier, per-fetch metadata,
 relationship graph, candidate groups, batch plans) lives in catalog
 schema v4–v6 tables (`ticket_discoveries`, `snapshot_fetches`,
 `ticket_relationships`, `incident_group_candidates`).
+
+## Session 36 addendum — NOC incident workbench
+
+The web layer gained a dense **incident workbench** product direction
+(see `docs/DESIGN.md`): `/events/{id}/workbench` and
+`/case-studies/{slug}/workbench` render the same reusable
+`IncidentWorkbenchViewModel` that also feeds the text report
+(`inim catalog workbench`) and the JSON API
+(`/api/v1/events/{id}/workbench`,
+`/api/v1/analyses/{run_id}/observer-episodes`,
+`/api/v1/analyses/{run_id}/regional-breadth`). No count is recalculated
+in templates.
+
+- **ObserverEpisode** (primary human-facing unit) groups streams at one
+  observer session by presentation-level signature derived from existing
+  lifecycle/transition evidence — no new route-transition semantics.
+- Observer-site regions (AMER/EMEA/APAC/Unknown) and multihop labels are
+  reviewed data in `collector-locations.json`; the region classifies the
+  observer site only.
+- Regional observed breadth always shows the denominator
+  (`changed / eligible`); NoChange, NoBaselineVisibility, and
+  IncompleteCoverage never collapse into one zero; no severity score.
+- Old-school NOC HCI: rectangular panels, square corners, thin borders,
+  strong headers, compact line height, monospaced timestamps, dense
+  sortable tables with fixed headers, explicit text status, underlined
+  links, visible focus; server-rendered with small progressive JS
+  (sort/expand only).
+- Schema **v8**: `stream_lifecycle_summaries` gains `first_change_utc`
+  and `restoration_time_utc` from the immutable lifecycle.json evidence,
+  so episodes carry exact timestamps even when the transition index is
+  absent or bounded.
+- Performance invariants hold: workbench GETs perform **no analysis and
+  no MRT parsing**; main queries use existing indexes (verified with
+  `EXPLAIN QUERY PLAN`); per-request SQL query count and timings are
+  captured (demo catalog: ~16–23 ms median).

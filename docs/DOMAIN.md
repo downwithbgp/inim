@@ -337,3 +337,29 @@ complete.
   keyed by (source sha, family, collector, sorted origin set); predicate-
   independent, so plane-specific runs parse each RIB once. Evidence
   identity is content-derived and never changes with cache path.
+
+## ObserverEpisode and observed breadth (Session 36)
+
+- **ObserverEpisode** — the primary human-facing unit: one observer
+  session (collector + peer) × one presentation-level signature.
+  Grouping is by (observer session, effect kind, named plane);
+  different peers at one collector stay separate; direct and indirect
+  observations stay separate; generation is deterministic.
+- **Effect kinds are presentation groupings** of existing lifecycle/
+  transition evidence (withdrawn+restored → TemporaryStreamAbsence;
+  withdrawn+unrestored → RouteWithdrawal; transit departed/returned →
+  NamedPlaneDeparture/Return; prepend-only → PrependChange; path
+  change retaining transit → PathReplacement; no evidence → NoChange).
+- **Observed breadth** (regional): changed / eligible observer sessions
+  with the denominator always visible. NoChange, NoBaselineVisibility,
+  and IncompleteCoverage are distinct; incomplete coverage is never
+  counted as unchanged. This is breadth, not severity — no severity
+  score exists.
+- **Observer site vs peer identity** — a collector site has a reviewed
+  location and region (AMER/EMEA/APAC/Unknown, data-driven); the peer's
+  own location is never inferred from the collector's. Direct peer ASN
+  membership and AS-in-path membership are separate facts. A multihop
+  collector still has a site region but is visibly labeled multihop.
+- **Timeline** — lanes are observer sessions; operator anchors and BGP
+  evidence have distinct kinds; timestamps are exact observations, never
+  interpolated; unresolved end states are explicit.

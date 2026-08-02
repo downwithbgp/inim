@@ -86,3 +86,27 @@ AS11164 session or AS11164-in-path route, so no I2PX-plane baseline
 exists at the selected observers. An AS11537-in-path RIS observation is
 therefore an indirect R&E observation — never equivalent to a direct
 I2PX observation.
+
+## Session 36 addendum — historical RRC11 baseline audit
+
+The 2019-08-21 RRC11 baseline (`cache/ris-preflight/rrc11/rib/
+bview.20190821.0000.gz`, sha `37e0f94d…`) was audited with a new full
+peer-inventory mode (`inim catalog session-audit --full-inventory`) that
+streams the whole RIB per session (memory bounded by session count, not
+route count) and reports EVERY peer in the MRT peer table. Results
+(`case-studies/manlan-2019/pilot/rrc11-audit-2019.{json,md}`):
+
+- 39 sessions (24 IPv4, 15 IPv6); **zero with peer ASN 11164** — no
+  direct peering-plane session existed at RRC11 in 2019 despite the
+  current peer list showing one at NYIIX. The current peer list is
+  supporting context only; the bview peer table is the evidence.
+- 106 AS2603-origin routes via 18 sessions, all neither-plane; zero
+  qualifying observer-prefix streams for the peering plane.
+- Direct pilot decision: `blocked-no-direct-session`
+  (`rrc11-pex-pilot-decision.{json,md}`); the pilot window was not run,
+  the target was not broadened, and no merge with the R&E-plane runs
+  occurred.
+
+Direct (peer ASN equals the plane ASN) and indirect (plane ASN in the
+AS path) remain separate evidence classes; "no AS2603 routes via the
+session" and "no session at all" are distinct facts.

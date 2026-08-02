@@ -412,3 +412,61 @@ truth; temporal correlation is not causal attribution.
   direct/indirect relationship, plane, cohort predicate, and
   departures/returns; evidence stays per-run; a missing plane baseline
   is reported as missing, never as "no change".
+
+## Session 36 — NOC incident workbench design
+
+### One reusable presentation model (Parts 3–4, 7, 12)
+
+`IncidentWorkbenchViewModel` (src/catalog/workbench.rs) is the single
+derived presentation model shared by the web workbench, the text report
+(`inim catalog workbench`), and the JSON API. Templates never
+recalculate counts. It is not tied to any ticket identity — it can be
+reached from an event, a case study, or eventually a network.
+
+- **ObserverEpisode** — streams at one observer session (collector +
+  peer) sharing a meaningful, temporally coherent signature. Effect
+  kinds (`TemporaryStreamAbsence`, `RouteWithdrawal`,
+  `PathReplacement`, `NamedPlaneDeparture`, `NamedPlaneReturn`,
+  `PrependChange`, `MixedRouteChange`, `NoRouteStateChange`) are
+  presentation-level groupings derived from existing lifecycle/
+  transition evidence; they introduce no new route-transition
+  semantics.
+- **Coverage states** — `NoChange` (baseline existed, no change),
+  `NoBaselineVisibility` (target not visible), `IncompleteCoverage`
+  (observation could not be completed). Never collapsed into one zero.
+- **Shared output surface** — HTML workbench (NOC HCI), plain-text
+  report, JSON API: same model, same counts.
+
+### NOC HCI (Part 8)
+
+Dense operations-console styling: rectangular panels, square corners,
+thin borders, strong section headers, compact line height, monospaced
+timestamps/AS paths, sortable tables with fixed headers, explicit text
+status, restrained colors, underlined links, visible focus states,
+keyboard-accessible controls. Server-rendered; small progressive
+enhancements (sort, expand, copy) only; no SPA framework. The principal
+result is fully understandable without JavaScript.
+
+### Timeline (Part 9)
+
+One lane per observer session on a shared UTC axis. Markers carry exact
+timestamps: analysis-window boundaries, operator-reported anchors
+(visibly distinct kind), first route change, absence interval,
+path-change interval, restoration interval, unresolved end state. No
+interpolation between discrete BGP observations; unresolved episodes get
+no fabricated restoration.
+
+### Prefix drill-down (Part 10)
+
+Episode expansion groups member streams with prefix, category,
+withdrawn/restored, baseline instances, transition count, ADD-PATH
+ambiguity, and evidence references. It reads catalog summaries and
+immutable evidence artifacts only — raw MRT files are never loaded.
+
+### Performance (Part 13)
+
+Workbench GETs perform no analysis and no MRT parsing. Queries use the
+existing run indexes (`idx_streams_run`, `idx_run_transitions_run`,
+`idx_waves_run` — verified with EXPLAIN QUERY PLAN); no new indexes were
+needed. Per-request SQL count and timings are captured; demo catalog
+renders in ~16–23 ms median (target: <100 ms median, <250 ms worst).

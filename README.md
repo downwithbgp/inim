@@ -111,6 +111,76 @@ the administration, automation, and debugging interface.
 - Sync only populates the catalog: it never starts planning or analysis
   and never infers reviewed ASN mappings from names.
 
+### NOC incident workbench (Session 36)
+
+The **incident workbench** is the dense, operator-oriented analysis view.
+It is reachable from an event (`/events/{id}/workbench`) or a case study
+(`/case-studies/{slug}/workbench`) and is built from ONE reusable
+`IncidentWorkbenchViewModel` shared by the web workbench, the text report
+(`inim catalog workbench --db ... --subject <id>`), and the JSON API
+(`/api/v1/events/{id}/workbench`,
+`/api/v1/analyses/{run_id}/observer-episodes`,
+`/api/v1/analyses/{run_id}/regional-breadth`).
+
+- **ObserverEpisode** is the primary human-facing unit: streams at one
+  observer session (collector + peer) sharing one presentation-level
+  signature (`TemporaryStreamAbsence`, `RouteWithdrawal`,
+  `PathReplacement`, `NamedPlaneDeparture`, `NamedPlaneReturn`,
+  `PrependChange`, `MixedRouteChange`, `NoRouteStateChange`). These are
+  groupings of existing lifecycle/transition evidence — no new
+  route-transition semantics.
+- Every episode renders a precise, data-supported sentence
+  (effect-specific verb; collector site and peer identity are separate
+  facts; never traffic loss, never causation).
+- **Observed breadth by region** (AMER/EMEA/APAC/Unknown) always shows
+  the denominator (`changed / eligible observer sessions`).
+  `NoChange`, `NoBaselineVisibility`, and `IncompleteCoverage` are
+  distinct states and never collapse into one zero. This is observed
+  breadth — not outage severity; no severity score exists.
+- Observer-site regions and multihop labels are reviewed data
+  (`collector-locations.json`); a region classifies the OBSERVER SITE
+  only — never the affected network, the route path, the peer
+  organization, or the affected users.
+- Timeline lanes (one per observer session) use exact timestamps only;
+  operator-reported anchors are visibly distinct from BGP evidence; no
+  interpolation of unobserved state; an unresolved episode gets no
+  fabricated restoration.
+- Suggested internal checks are **investigation cues** traceable to
+  observed facts (session, interval, plane, prefixes) — never device
+  commands, never root cause, never diagnosis.
+- NOC HCI: rectangular panels, square corners, thin borders, strong
+  headers, compact line height, monospaced timestamps, dense sortable
+  tables with fixed headers, explicit text status, underlined links,
+  visible focus. Server-rendered; small progressive JS for
+  sort/expand/copy only. No SPA.
+- Performance: workbench GETs perform **no analysis and no MRT parsing**;
+  the main queries use existing indexes (verified with `EXPLAIN QUERY
+  PLAN`); the demo catalog renders in ~16–23 ms median.
+
+### Historical RRC11 baseline audit (Session 36)
+
+The RRC11/NYIIX relationship to the NORDUnet 2019-08-21 pilot was
+established from the actual historical baseline bview
+(`rrc11/bview.20190821.0000.gz`, sha
+`37e0f94d60b4b8bd52a9d66c590994d6b2541ae74ec860bb0ee7f38a8fdcd791`),
+NOT from the current peer list:
+
+- 39 peer sessions in the baseline (24 IPv4, 15 IPv6); **zero with peer
+  ASN 11164** — no direct peering-plane session existed at RRC11 in
+  2019, despite the current peer list showing one at NYIIX.
+- 106 AS2603-origin routes arrived via 18 other sessions, all with
+  neither-plane paths; zero qualifying observer-prefix streams for the
+  peering plane.
+- Direct I2PX pilot decision: `blocked-no-direct-session` — the exact
+  reason is recorded in
+  `case-studies/manlan-2019/pilot/rrc11-pex-pilot-decision.json` (and
+  `.md`); the pilot was not executed, the target was not broadened, and
+  the run was never merged with the R&E-plane runs.
+- The full peer-inventory mode (`inim catalog session-audit
+  --full-inventory`) streams an entire RIB per session (memory bounded
+  by session count, not route count) and reports every peer in the MRT
+  peer table.
+
 ### Multi-ticket incident case studies
 
 A `CaseStudy` is a reviewed grouping and interpretation of several sources

@@ -151,3 +151,23 @@ alone.
 - Different observers expose different routing-policy views; agreement
   across them is still not global confirmation, and disagreement is
   expected and analytically useful.
+
+## Incident workbench observability (Session 36)
+
+- Workbench pages and APIs present **observed breadth by region** with
+  visible denominators (`changed / eligible observer sessions`),
+  never a severity score, never "percentage of the Internet affected".
+- `NoChange`, `NoBaselineVisibility`, and `IncompleteCoverage` are
+  distinct rendered states; a session without a qualifying baseline is
+  never shown as unchanged.
+- Sentences per episode use effect-specific verbs and never claim
+  traffic loss or causation; "returned to visibility" is distinct from
+  "restored its baseline path".
+- Suggested internal checks are labeled **investigation cues**
+  traceable to observed facts (session, interval, plane, prefixes);
+  they never name unreviewed devices, never claim root cause, and never
+  generate device commands.
+- The RRC11 historical audit distinguishes "no direct session in the
+  2019 baseline" from "no AS2603 visibility": both facts are reported
+  separately (`rrc11-audit-2019.json`), and the direct pilot decision
+  records the exact blocking reason.

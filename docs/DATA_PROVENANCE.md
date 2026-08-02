@@ -284,3 +284,27 @@ all raw archives already local.
   operational guidance (Session 35, Part 8), not a public API
   guarantee; rate-control responses always override the configured
   ceiling, and the sync records its metrics for the record.
+
+## Session 36 — workbench and RRC11 audit provenance
+
+- **Historical peer identity comes from the bview, not the peer list.**
+  The RRC11 2019-08-21 baseline's peer table (peer IP, peer ASN,
+  address family, route counts) is the evidence for the direct
+  peering-plane session question; the current RIPE peer list is
+  supporting context only and never overrides audit rows. RIB source
+  sha and bview timestamp are recorded per row.
+- **Full peer inventory** (`--full-inventory`) streams a RIB and
+  aggregates per session (total routes, origin routes, distinct origin
+  prefixes, path classes); it is deliberately not written to the
+  origin-scoped extraction cache, and memory is bounded by session
+  count.
+- **Observer-site regions and multihop** are reviewed metadata in
+  `collector-locations.json`, time-scoped by `as_of`; unknown locations
+  map to Unknown and never guess.
+- **Episode timestamps** come from immutable evidence: the transition
+  index and the lifecycle.json per-stream `first_change` /
+  `restoration_time` (schema v8); restoration intervals are never
+  extrapolated.
+- **Workbench reads** catalog tables (indexed), reviewed data files,
+  and immutable report artifacts only; no analysis, no MRT parse, no
+  cache writes happen on the request path.
