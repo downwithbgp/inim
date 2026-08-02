@@ -4341,8 +4341,8 @@ fn compact_finding_meaning(
 ) -> String {
     use crate::catalog::workbench::RoutingEffect as RE;
     let n = f.distinct_prefixes;
-    // "11 NORDUnet prefixes" / "12 UVA prefixes": the target name
-    // precedes the noun.
+    // "<count> <TARGET> prefixes": the reviewed target name precedes
+    // the noun.
     let unit = if n == 1 {
         if f.target_name.is_empty() {
             "1 prefix".to_string()
@@ -4358,8 +4358,8 @@ fn compact_finding_meaning(
     let plane_text = if plane.is_empty() {
         "the reviewed plane".to_string()
     } else {
-        // The plane label may already carry the ASN (e.g. "Internet2
-        // R&E path (AS11537)"); never duplicate it.
+        // The plane label may already carry the ASN (e.g. "Plane
+        // R&E path (AS64512)"); never duplicate it.
         let asn = if plane.contains("(AS") {
             String::new()
         } else {
@@ -4372,7 +4372,7 @@ fn compact_finding_meaning(
     };
     // Inserted ASNs with multiplicity (AS24489x4), plus a positional
     // clause for the first inserted ASN ("AS2907 appeared between
-    // AS7660 and Internet2 R&E AS11537").
+    // AS7660 and the reviewed plane AS64512").
     let count = |asn: u32| changed_exact.iter().filter(|a| **a == asn).count();
     let inserted_compact: Vec<String> = diff
         .inserted
@@ -4601,7 +4601,7 @@ fn prepend_delta_text(
 
 /// A later transition that inserts an ASN absent from both the
 /// baseline and the first changed path (Session 41, Part 9): renders
-/// "At 07:33:59, AS2907 appeared between AS7660 and AS11537." using
+/// "At 07:33:59, AS2907 appeared between AS7660 and AS64512." using
 /// short labels (reviewed names or bare ASNs).
 fn later_insertion_clause(
     f: &crate::catalog::workbench::RoutingFinding,

@@ -636,8 +636,8 @@ impl LifecyclePathIndex {
                     // lifecycle baseline_path field. The lifecycle field
                     // records the FIRST baseline instance, which can
                     // differ from the pre-change path (e.g. route-views2
-                    // direct: field AS11537 AS2603 vs pre-change
-                    // AS11537 AS20965 AS2603); using the pre-change path
+                    // direct: field AS64512 AS2603 vs pre-change
+                    // AS64512 AS20965 AS2603); using the pre-change path
                     // keeps baseline/restoration/final consistent.
                     let mut first_before: Vec<u32> = Vec::new();
                     if let Some(transitions) = lc.get("transitions").and_then(|t| t.as_array()) {
@@ -10666,23 +10666,23 @@ mod session41_tests {
     }
 
     #[test]
-    fn internet2_re_identity_applies_to_supported_event_dates() {
+    fn reviewed_plane_identity_applies_to_supported_event_dates() {
         // A stable reviewed organizational role is not time-limited to
         // the case-study date (Part 8).
         let mut r = AsnIdentityRegistry::default();
         r.identities.push(AsnIdentity {
-            asn: 11537,
-            display_name: "Internet2 R&E".to_string(),
+            asn: 64512,
+            display_name: "Reviewed Plane".to_string(),
             role: "re".to_string(),
             valid_from: Some("2019-08-21".to_string()),
             valid_to: None,
             provenance: "reviewed profile".to_string(),
             review_status: "HistoricallyReviewed".to_string(),
         });
-        assert_eq!(r.display_name(11537, "2019-08-21"), Some("Internet2 R&E"));
+        assert_eq!(r.display_name(64512, "2019-08-21"), Some("Reviewed Plane"));
         assert_eq!(
-            r.display_name(11537, "2026-07-14"),
-            Some("Internet2 R&E"),
+            r.display_name(64512, "2026-07-14"),
+            Some("Reviewed Plane"),
             "stable role applies to a supported later event date"
         );
     }

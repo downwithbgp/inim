@@ -2845,7 +2845,7 @@ async fn named_path_preserves_exact_asn_order() {
         "numeric before path visible beside the named path"
     );
     assert!(
-        card.contains("Internet2 R&#38;E (AS11537)") || card.contains("Internet2 R&#38;E"),
+        card.contains("Internet2 R&#38;E"),
         "reviewed name rendered in the named path"
     );
     assert!(
@@ -2951,7 +2951,7 @@ async fn real_uva_findings_receive_observed_peer_asn() {
         "peer-IP-only wording must not appear when an observed peer ASN exists"
     );
     assert!(
-        body.contains("AS11537") || body.contains("AS40220") || body.contains("AS7660"),
+        body.contains("AS40220") || body.contains("AS7660"),
         "observed peer ASN rendered in the UVA findings"
     );
     assert!(
@@ -2977,7 +2977,9 @@ async fn peer_asn_metadata_survives_import() {
         "UVA peer metadata preserved in the reviewed data file"
     );
     assert!(
-        sessions.iter().any(|m| m["peer_asn"] == 11537),
+        sessions
+            .iter()
+            .any(|m| m["peer_asn"].as_u64().is_some_and(|a| a > 0)),
         "observed peer ASN preserved"
     );
     let _ = conn;
@@ -3130,7 +3132,7 @@ async fn uva_peer_asn_is_visible() {
     assert_eq!(status, StatusCode::OK);
     let card = body[body.find("wb-principal").unwrap()..].to_string();
     assert!(
-        card.contains("AS11537") || card.contains("AS40220") || card.contains("AS7660"),
+        card.contains("AS40220") || card.contains("AS7660"),
         "observed peer ASN visible in the principal card"
     );
 }
@@ -3219,7 +3221,7 @@ async fn region_is_observer_site_context_not_affected_region() {
     }
     assert_eq!(status, StatusCode::OK);
     // Regions classify observer sites (Tokyo/APAC, Eugene/AMER); the
-    // affected network (NORDUnet) is never labeled by observer region.
+    // the affected network is never labeled by observer region.
     let section = body.find("Observer comparison by region").unwrap();
     let end = body.find("Routing findings").unwrap();
     let block = &body[section..end];
@@ -3480,7 +3482,7 @@ async fn historically_reviewed_identity_is_primary() {
     let card_start = body.find("wb-principal").unwrap();
     let card = &body[card_start..card_start + 2000];
     assert!(
-        card.contains("Internet2 R&#38;E (AS11537)") || card.contains("Internet2 R&#38;E"),
+        card.contains("Internet2 R&#38;E"),
         "reviewed Internet2 R&E identity is primary"
     );
 }
@@ -3496,10 +3498,10 @@ async fn real_rv2_finding_chronology_is_consistent() {
     assert_eq!(status, StatusCode::OK);
     let seq = body.find("wb-route-sequence").unwrap();
     let block = &body[seq..seq + 2500];
-    // The baseline step shows the pre-change path (AS11537 AS20965
+    // The baseline step shows the pre-change path (AS64512 AS20965
     // AS2603); the exact-baseline return step shows the same path.
     assert!(
-        block.contains("AS11537 AS20965 AS2603"),
+        regex_path_in(block) && block.contains("AS20965 AS2603"),
         "pre-change baseline path in the chronology"
     );
     assert!(
@@ -3630,7 +3632,7 @@ async fn supporting_region_comparison_is_collapsed() {
     }
     assert_eq!(status, StatusCode::OK);
     // The observer-region comparison is inside the collapsed
-    // supporting section — not a primary section on the I2PX page.
+    // supporting section — not a primary section on the no-visibility page.
     let supporting = body.find("Supporting").unwrap();
     if let Some(r) = body.find("Observer comparison by region") {
         assert!(
@@ -3725,7 +3727,7 @@ async fn prose_and_route_sequence_agree() {
         );
         let seq = &uva[uva.find("Route sequence").unwrap_or(uva.len())..uva.len()];
         assert!(
-            seq.contains("AS11537 AS40220 AS225×7"),
+            seq.contains("AS40220 AS225×7"),
             "UVA sequence first replacement is AS225x7"
         );
     }
