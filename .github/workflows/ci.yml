@@ -1,0 +1,38 @@
+# CI: offline-safe quality gates. No live GRNOC, RouteViews, or RIPE RIS
+# access runs here — every test uses tracked fixtures and reviewed
+# case-study evidence from the repository.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - name: Format
+        run: cargo fmt --check
+      - name: Test
+        run: cargo test
+      - name: Clippy (all targets, all features, warnings denied)
+        run: cargo clippy --all-targets --all-features -- -D warnings
+      - name: Deny licenses
+        uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          command: check licenses
+      - name: Deny bans
+        uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          command: check bans
+      - name: Package
+        run: cargo package

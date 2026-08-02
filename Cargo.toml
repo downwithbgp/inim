@@ -6,6 +6,8 @@ authors = ["Vadim Petrov <vadim@vadimpetrov.com>"]
 license = "MIT"
 description = "Internetwork Impact Monitor — compare operator-declared network events with externally observable BGP route behavior from selected public collectors"
 readme = "README.md"
+repository = "https://github.com/downwithbgp/inim"
+homepage = "https://github.com/downwithbgp/inim"
 keywords = ["bgp", "routing", "network-events", "routeviews", "observability"]
 categories = ["command-line-utilities", "network-programming"]
 # Packaging: exclude caches, raw MRT archives, generated event outputs,

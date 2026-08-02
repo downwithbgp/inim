@@ -1,5 +1,13 @@
 # inim — Internetwork Impact Monitor
 
+**inim correlates operator-declared network events with externally
+observed BGP route changes from selected RouteViews and RIPE RIS
+sessions.**
+
+> **Status: early public alpha.** Analysis semantics and the interface are
+> still under active development. Outputs are evidence-scoped observations,
+> not traffic-impact or root-cause conclusions.
+
 inim is a reproducible, event-conditioned BGP observation system. It tests
 operator-declared expectations against route behavior visible at selected
 public collectors (RouteViews).
