@@ -386,7 +386,7 @@ fn build_plan_record(
     })
 }
 
-fn import_stream_summaries(
+pub(crate) fn import_stream_summaries(
     conn: &Connection,
     run_id: i64,
     event_out: &Path,
@@ -475,7 +475,7 @@ fn import_stream_summaries(
     Ok(())
 }
 
-fn import_wave_summaries(
+pub(crate) fn import_wave_summaries(
     conn: &Connection,
     run_id: i64,
     event_out: &Path,
@@ -559,7 +559,7 @@ pub const TRANSITION_IMPORT_LIMIT: usize = 1_000_000;
 /// artifact (idempotent per (run_id, seq)). Import is bounded (see
 /// `TRANSITION_IMPORT_LIMIT`) and inserts rows one at a time inside the
 /// caller's transaction.
-fn import_transitions(
+pub(crate) fn import_transitions(
     conn: &Connection,
     run_id: i64,
     event_out: &Path,
@@ -659,7 +659,7 @@ fn ticket_fixture_for(event_id: &str) -> Option<PathBuf> {
     None
 }
 
-fn artifact_kind(rel: &str) -> &'static str {
+pub(crate) fn artifact_kind(rel: &str) -> &'static str {
     if rel.ends_with("report.json") || rel.ends_with("report.txt") {
         "report"
     } else if rel.ends_with("evidence_appendix.jsonl") {
@@ -687,7 +687,7 @@ fn artifact_kind(rel: &str) -> &'static str {
     }
 }
 
-fn media_type_for(kind: &str) -> &'static str {
+pub(crate) fn media_type_for(kind: &str) -> &'static str {
     match kind {
         "report" | "archive-manifest" | "lifecycle" | "semantic-waves" | "withdrawal-audit"
         | "limitations" | "stdout" => "application/json",

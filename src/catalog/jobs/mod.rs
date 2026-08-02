@@ -479,4 +479,5 @@ mod tests {
 }
 
 pub mod plan;
+pub mod publish;
 pub mod service;

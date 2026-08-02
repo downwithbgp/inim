@@ -648,6 +648,7 @@ fn run(cli: &Cli) -> i32 {
                 jobs: *jobs,
                 parse_jobs: *parse_jobs,
                 download_jobs: *download_jobs,
+                offline: false,
             };
             cmd_analyze(
                 &mut std::io::stdout(),
@@ -984,6 +985,8 @@ fn cmd_analyze(
         discovery,
         cache_control,
         preflight_only,
+        &std::sync::atomic::AtomicBool::new(false),
+        &inim::execution::TermSink,
     );
 
     if preflight_only {

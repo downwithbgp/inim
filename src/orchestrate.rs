@@ -38,6 +38,9 @@ pub struct CacheControl {
     pub parse_jobs: usize,
     /// Network download concurrency (conservative default).
     pub download_jobs: usize,
+    /// Offline mode: any cache miss is a hard error; no network
+    /// acquisition is performed.
+    pub offline: bool,
 }
 
 impl Default for CacheControl {
@@ -49,12 +52,31 @@ impl Default for CacheControl {
             jobs: 1,
             parse_jobs: 0,
             download_jobs: 2,
+            offline: false,
         }
     }
 }
 
 // ── Public entry point ─────────────────────────────────────────────
 
+/// Pipeline execution error: either cooperative cancellation (a
+/// checkpoint observed the cancel flag) or a real failure.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum PipelineError {
+    Cancelled,
+    Failed(String),
+}
+
+impl std::fmt::Display for PipelineError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            PipelineError::Cancelled => write!(f, "cancelled"),
+            PipelineError::Failed(e) => write!(f, "{e}"),
+        }
+    }
+}
+
+#[allow(clippy::too_many_arguments)] // CLI + worker passthrough; each maps to one input
 pub fn run_real_analysis(
     event_path: &Path,
     manifest_path: &Path,
@@ -63,6 +85,8 @@ pub fn run_real_analysis(
     discovery: &dyn ArchiveDiscovery,
     cache_control: CacheControl,
     preflight_only: bool,
+    cancel: &std::sync::atomic::AtomicBool,
+    progress: &dyn crate::execution::ProgressSink,
 ) -> AnalysisOutcome {
     let mut timings: Vec<(String, f64)> = Vec::new();
     let t0 = Instant::now();
@@ -75,16 +99,42 @@ pub fn run_real_analysis(
         cache_control,
         preflight_only,
         &mut timings,
+        cancel,
+        progress,
     ) {
         Ok(outcome) => {
             print_timings(&timings, t0.elapsed().as_secs_f64());
             outcome
         }
-        Err(e) => {
+        Err(PipelineError::Cancelled) => {
+            print_timings(&timings, t0.elapsed().as_secs_f64());
+            AnalysisOutcome::incomplete("cancelled")
+        }
+        Err(PipelineError::Failed(e)) => {
             print_timings(&timings, t0.elapsed().as_secs_f64());
             AnalysisOutcome::incomplete(e)
         }
     }
+}
+
+/// Checkpoint: observe cooperative cancellation at a stage or archive
+/// boundary. Never called per BGP element.
+fn check_cancel(cancel: &std::sync::atomic::AtomicBool) -> Result<(), String> {
+    if cancel.load(std::sync::atomic::Ordering::Relaxed) {
+        return Err(CANCELLED_MARKER.to_string());
+    }
+    Ok(())
+}
+
+/// Emit a stage-boundary progress event.
+fn emit_stage(progress: &dyn crate::execution::ProgressSink, stage: &'static str, message: String) {
+    progress.emit(&crate::execution::ProgressEvent {
+        stage,
+        message,
+        current: None,
+        total: None,
+        unit: None,
+    });
 }
 
 // ── Inner pipeline ──────────────────────────────────────────────────
@@ -99,6 +149,42 @@ fn run_inner(
     cache_control: CacheControl,
     preflight_only: bool,
     timings: &mut Vec<(String, f64)>,
+    cancel: &std::sync::atomic::AtomicBool,
+    progress: &dyn crate::execution::ProgressSink,
+) -> Result<AnalysisOutcome, PipelineError> {
+    match run_inner_impl(
+        event_path,
+        manifest_path,
+        cache_dir,
+        out_dir,
+        discovery,
+        cache_control,
+        preflight_only,
+        timings,
+        cancel,
+        progress,
+    ) {
+        Ok(o) => Ok(o),
+        Err(e) if e == CANCELLED_MARKER => Err(PipelineError::Cancelled),
+        Err(e) => Err(PipelineError::Failed(e)),
+    }
+}
+
+/// Marker returned by checkpoints inside the pipeline body.
+const CANCELLED_MARKER: &str = "__inim_cancelled__";
+
+#[allow(clippy::too_many_arguments)]
+fn run_inner_impl(
+    event_path: &Path,
+    manifest_path: &Path,
+    cache_dir: &Path,
+    out_dir: &Path,
+    discovery: &dyn ArchiveDiscovery,
+    cache_control: CacheControl,
+    preflight_only: bool,
+    timings: &mut Vec<(String, f64)>,
+    cancel: &std::sync::atomic::AtomicBool,
+    progress: &dyn crate::execution::ProgressSink,
 ) -> Result<AnalysisOutcome, String> {
     // ── Parse ticket + manifest ───────────────────────────────────
     let ticket = crate::sources::internet2::ticket::parse_ticket_fixture(
@@ -134,6 +220,12 @@ fn run_inner(
     let rib_search_start = warmup_start - chrono::Duration::hours(24);
     let rib_search_end = warmup_start + chrono::Duration::hours(1);
 
+    check_cancel(cancel)?;
+    emit_stage(
+        progress,
+        "DiscoveringArchives",
+        "Discovering baseline RIB archives".to_string(),
+    );
     eprintln!("→ Broker discovery: RIB files");
     let t_broker = Instant::now();
     let all_ribs = discovery
@@ -166,9 +258,15 @@ fn run_inner(
                 msg // error string for the Err path
             })?;
 
+        check_cancel(cancel)?;
+        emit_stage(
+            progress,
+            "AcquiringArchives",
+            format!("Acquiring RIB archive for {collector}"),
+        );
         eprintln!("  {collector}: caching RIB {}", best_rib.url);
         let t_cache = Instant::now();
-        let cached_rib = cache_archive(&best_rib, cache_dir)
+        let cached_rib = cache_archive(&best_rib, cache_dir, cache_control.offline)
             .map_err(|e| format!("failed to cache RIB for {collector}: {e}"))?;
         if timings.is_empty() {
             // rough broker timing
@@ -590,6 +688,12 @@ fn run_inner(
     // pre-assigned from discovery order, so parallel completion cannot
     // reorder archives. Results merge in archive order; observation ids
     // are assigned after the global deterministic sort.
+    check_cancel(cancel)?;
+    emit_stage(
+        progress,
+        "ParsingUpdates",
+        format!("Parsing {} UPDATE archive(s)", pending.len()),
+    );
     let pipeline_results = process_updates_pipeline(
         &pending,
         cache_dir,
@@ -598,7 +702,10 @@ fn run_inner(
         &target_set,
         &frozen_prefixes,
         family.as_str(),
+        cancel,
+        progress,
     )?;
+    check_cancel(cancel)?;
     for (cu, result) in pipeline_results {
         if let Some(cu) = cu {
             collected_updates.push(cu);
@@ -620,6 +727,12 @@ fn run_inner(
     );
     // Freeze the observer-prefix cohort from RIB observations before they
     // are moved into the combined stream.
+    check_cancel(cancel)?;
+    emit_stage(
+        progress,
+        "FreezingCohort",
+        "Freezing the qualifying observer-prefix cohort".to_string(),
+    );
     let transit_predicate = reviewed_transit_predicate(&manifest)?;
     let cohort = crate::cohort::freeze_cohort(
         &rib_observations,
@@ -635,6 +748,12 @@ fn run_inner(
     crate::derived_cache::assign_deterministic_ids(&mut all_obs);
 
     // ── Reconstruct routes ─────────────────────────────────────────
+    check_cancel(cancel)?;
+    emit_stage(
+        progress,
+        "ReconstructingRoutes",
+        "Reconstructing route state".to_string(),
+    );
     eprintln!("→ Reconstructing routes...");
     let t_recon = Instant::now();
     let (store, changes) =
@@ -651,6 +770,12 @@ fn run_inner(
         .collect();
 
     // ── Tokenize ───────────────────────────────────────────────────
+    check_cancel(cancel)?;
+    emit_stage(
+        progress,
+        "DerivingEvidence",
+        "Deriving transitions and lifecycle".to_string(),
+    );
     eprintln!("→ Tokenizing {} state changes...", changes.len());
     let t_tok = Instant::now();
     let transitions = crate::tokenize::tokenize(changes, &baseline_map);
@@ -707,6 +832,12 @@ fn run_inner(
     timings.push(("assess".to_string(), t_assess.elapsed().as_secs_f64()));
 
     // ── Write outputs ──────────────────────────────────────────────
+    check_cancel(cancel)?;
+    emit_stage(
+        progress,
+        "RenderingArtifacts",
+        "Writing analysis artifacts".to_string(),
+    );
     eprintln!("→ Writing outputs to {}", out_dir.display());
     let t_out = Instant::now();
     let ctx = crate::output::OutputContext {
@@ -1047,6 +1178,7 @@ fn process_one_update_file(
 /// - Memory: at most `download_jobs` in-flight downloads plus `parse_jobs`
 ///   decompressed archives retained in the bounded channel plus the
 ///   merged observation vector.
+#[allow(clippy::too_many_arguments)] // pipeline inputs; mirrors the stage contract
 fn process_updates_pipeline(
     pending: &[(u64, crate::discover::ArchiveItem)],
     cache_dir: &Path,
@@ -1055,6 +1187,8 @@ fn process_updates_pipeline(
     target_set: &TargetSet,
     frozen_prefixes: &std::collections::HashSet<Prefix>,
     source_family: &str,
+    cancel: &std::sync::atomic::AtomicBool,
+    progress: &dyn crate::execution::ProgressSink,
 ) -> Result<Vec<(Option<crate::discover::CachedArchive>, UpdateFileResult)>, String> {
     let n = pending.len();
     if n == 0 {
@@ -1086,8 +1220,11 @@ fn process_updates_pipeline(
             scope.spawn(move || loop {
                 let idx = queue.lock().unwrap().pop_front();
                 let Some(idx) = idx else { break };
+                if cancel.load(std::sync::atomic::Ordering::Relaxed) {
+                    break; // cooperative stop between archive downloads
+                }
                 let (_, item) = &pending[idx];
-                match cache_archive(item, cache_dir) {
+                match cache_archive(item, cache_dir, cache_control.offline) {
                     Ok(cu) => {
                         cached.lock().unwrap()[idx] = Some(cu.clone());
                         if tx.send((idx, cu)).is_err() {
@@ -1194,6 +1331,17 @@ fn process_updates_pipeline(
     if let Some(e) = first_error {
         return Err(e);
     }
+    // Bounded progress after all archives completed (total known).
+    progress.emit(&crate::execution::ProgressEvent {
+        stage: "ParsingUpdates",
+        message: format!("Parsed all {n} UPDATE archive(s)"),
+        current: Some(n as u64),
+        total: Some(n as u64),
+        unit: Some("archives"),
+    });
+    if cancel.load(std::sync::atomic::Ordering::Relaxed) {
+        return Err(CANCELLED_MARKER.to_string());
+    }
     Ok(out)
 }
 
@@ -1230,6 +1378,8 @@ mod tests {
             &FailingDiscovery,
             CacheControl::default(),
             false,
+            &std::sync::atomic::AtomicBool::new(false),
+            &crate::execution::NoopSink,
         );
         match outcome {
             AnalysisOutcome::Incomplete { failure } => {
