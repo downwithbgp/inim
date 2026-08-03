@@ -39,7 +39,7 @@ pub(crate) fn not_found_view(kind: &str) -> Response {
 
 pub async fn dashboard(State(state): State<SharedState>) -> Response {
     let db = state.db.lock().unwrap();
-    match super::view::load_dashboard(&db) {
+    match super::view::load_dashboard(&db, &state.scope) {
         Ok(mut view) => {
             view.writes_enabled = state.writes_enabled;
             render_view(view)
@@ -53,7 +53,7 @@ pub async fn event_list(
     Query(filters): Query<EventListFilters>,
 ) -> Response {
     let db = state.db.lock().unwrap();
-    match super::view::load_event_list(&db, &filters) {
+    match super::view::load_event_list(&db, &filters, &state.scope) {
         Ok(view) => render_view(view),
         Err(e) => server_error(&e),
     }
@@ -113,7 +113,16 @@ pub async fn event_detail(
 ) -> Response {
     let db = state.db.lock().unwrap();
     match super::view::load_event_detail(&db, &event_id) {
-        Ok(Some(view)) => render_view(view),
+        Ok(Some(view)) => {
+            // Direct access to an excluded event is consistently 404:
+            // it is not an active project result.
+            if super::view::event_scope_excluded(&db, &state.scope, &view.event)
+                .unwrap_or(false)
+            {
+                return not_found_view("event");
+            }
+            render_view(view)
+        }
         Ok(None) => not_found_view("event"),
         Err(e) => server_error(&e),
     }
@@ -354,7 +363,7 @@ pub async fn analysis_queue(
     Query(filters): Query<super::view::QueueFilters>,
 ) -> Response {
     let db = state.db.lock().unwrap();
-    match super::view::load_analysis_queue(&db, &filters) {
+    match super::view::load_analysis_queue(&db, &filters, &state.scope) {
         Ok(view) => render_view(view),
         Err(e) => server_error(&e),
     }

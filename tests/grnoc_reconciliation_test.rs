@@ -221,12 +221,12 @@ fn demo_manifest_matches_import() {
         .unwrap();
     assert_eq!(manifest["schema_version"], 1);
     assert_eq!(manifest["grnoc_source_events"], 9);
-    assert_eq!(manifest["tracked_source_events"], 5);
+    assert_eq!(manifest["tracked_source_events"], 4);
     assert_eq!(manifest["jobs"], jobs);
-    assert_eq!(manifest["runs"], 4);
+    assert_eq!(manifest["runs"], 3);
     assert_eq!(
-        events, 14,
-        "5 manifest events + 9 corpus events (INC0040293 represented by its reviewed event; INC0303298 is the fresh NOAA event)"
+        events, 13,
+        "4 manifest events + 9 corpus events (INC0040293 represented by its reviewed event)"
     );
     drop(conn);
 }
@@ -324,6 +324,7 @@ async fn blocked_candidate_has_exact_next_action() {
     let view = inim::catalog::web::view::load_analysis_queue(
         &conn,
         &inim::catalog::web::view::QueueFilters::default(),
+        &inim::catalog::scope::ProjectScope::default(),
     )
     .unwrap();
     // Every candidate row carries an exact next action and a blocker
@@ -384,6 +385,7 @@ async fn queue_page_does_not_perform_preflight() {
     let view = inim::catalog::web::view::load_analysis_queue(
         &conn,
         &inim::catalog::web::view::QueueFilters::default(),
+        &inim::catalog::scope::ProjectScope::default(),
     )
     .unwrap();
     assert!(!view.rows.is_empty());
@@ -443,6 +445,7 @@ fn no_candidate_ready_page_is_not_empty() {
     let view = inim::catalog::web::view::load_analysis_queue(
         &conn,
         &inim::catalog::web::view::QueueFilters::default(),
+        &inim::catalog::scope::ProjectScope::default(),
     )
     .unwrap();
     assert!(

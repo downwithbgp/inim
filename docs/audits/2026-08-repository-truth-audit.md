@@ -24,19 +24,19 @@ This audit verifies that every tracked file is classified, that every current st
 
 ## Summary
 
-Tracked files: **411** · inventory entries: **411**
+Tracked files: **396** · inventory entries: **396**
 
 | Category | Files |
 |---|---|
-| Immutable or generated evidence | 150 |
+| Immutable or generated evidence | 138 |
 | Production source | 101 |
-| Reviewed case-study interpretation | 28 |
+| Reviewed case-study interpretation | 26 |
 | Historical decision record | 25 |
 | Configuration | 22 |
 | Script or developer tool | 22 |
 | Normative current documentation | 21 |
 | Template or stylesheet | 16 |
-| Test fixture | 12 |
+| Test fixture | 11 |
 | Test source | 6 |
 | GitHub/community metadata | 3 |
 | Packaging or release metadata | 3 |
@@ -85,19 +85,6 @@ Tracked files: **411** · inventory entries: **411**
 | `case-studies/inc0302574/out/INC0302574/stderr.log` | Immutable or generated evidence | network analysts | MRT/RIB/UPDATE archives + generator run (immutable) | yes | current | schema/container reviewed; contents canonical, not hand-edited | none | reviewed in this audit |
 | `case-studies/inc0302574/out/INC0302574/stdout.json` | Immutable or generated evidence | network analysts | MRT/RIB/UPDATE archives + generator run (immutable) | yes | current | schema/container reviewed; contents canonical, not hand-edited | none | reviewed in this audit |
 | `case-studies/inc0302574/out/INC0302574/withdrawal_audit.json` | Immutable or generated evidence | network analysts | MRT/RIB/UPDATE archives + generator run (immutable) | yes | current | schema/container reviewed; contents canonical, not hand-edited | none | reviewed in this audit |
-| `case-studies/inc0303298-noaa/README.md` | Reviewed case-study interpretation | maintainers | reviewed manifest/case-study metadata | no | current | claims re-checked against canonical evidence in this audit | none | reviewed in this audit |
-| `case-studies/inc0303298-noaa/finding-chronology-audit.json` | Immutable or generated evidence | maintainers | canonical run artifacts (derived) | yes | current | schema/container reviewed; contents canonical, not hand-edited | none | reviewed in this audit |
-| `case-studies/inc0303298-noaa/out/INC0303298/archive_manifest.json` | Immutable or generated evidence | maintainers | canonical run artifacts | yes | current | schema/container reviewed; contents canonical, not hand-edited | none | reviewed in this audit |
-| `case-studies/inc0303298-noaa/out/INC0303298/evidence_appendix.jsonl` | Immutable or generated evidence | maintainers | canonical run artifacts | yes | current | schema/container reviewed; contents canonical, not hand-edited | none | reviewed in this audit |
-| `case-studies/inc0303298-noaa/out/INC0303298/execution_metadata.json` | Immutable or generated evidence | maintainers | canonical run artifacts | yes | current | schema/container reviewed; contents canonical, not hand-edited | none | reviewed in this audit |
-| `case-studies/inc0303298-noaa/out/INC0303298/lifecycle.json` | Immutable or generated evidence | maintainers | canonical run artifacts | yes | current | schema/container reviewed; contents canonical, not hand-edited | none | reviewed in this audit |
-| `case-studies/inc0303298-noaa/out/INC0303298/limitations.json` | Immutable or generated evidence | maintainers | canonical run artifacts | yes | current | schema/container reviewed; contents canonical, not hand-edited | none | reviewed in this audit |
-| `case-studies/inc0303298-noaa/out/INC0303298/performance.json` | Immutable or generated evidence | maintainers | canonical run artifacts | yes | current | schema/container reviewed; contents canonical, not hand-edited | none | reviewed in this audit |
-| `case-studies/inc0303298-noaa/out/INC0303298/report.json` | Immutable or generated evidence | maintainers | canonical run artifacts | yes | current | schema/container reviewed; contents canonical, not hand-edited | none | reviewed in this audit |
-| `case-studies/inc0303298-noaa/out/INC0303298/report.txt` | Immutable or generated evidence | maintainers | canonical run artifacts | yes | current | schema/container reviewed; contents canonical, not hand-edited | none | reviewed in this audit |
-| `case-studies/inc0303298-noaa/out/INC0303298/semantic_waves.json` | Immutable or generated evidence | maintainers | canonical run artifacts | yes | current | schema/container reviewed; contents canonical, not hand-edited | none | reviewed in this audit |
-| `case-studies/inc0303298-noaa/out/INC0303298/transitions.json` | Immutable or generated evidence | maintainers | canonical run artifacts | yes | current | schema/container reviewed; contents canonical, not hand-edited | none | reviewed in this audit |
-| `case-studies/inc0303298-noaa/out/INC0303298/withdrawal_audit.json` | Immutable or generated evidence | maintainers | canonical run artifacts | yes | current | schema/container reviewed; contents canonical, not hand-edited | none | reviewed in this audit |
 | `case-studies/manlan-2019/README.md` | Reviewed case-study interpretation | network analysts | canonical evidence + operator sources (reviewed) | no | current | claims re-checked against canonical evidence in this audit | none | reviewed in this audit |
 | `case-studies/manlan-2019/case-study.json` | Reviewed case-study interpretation | network analysts | canonical evidence + operator sources (reviewed) | no | current | claims re-checked against canonical evidence in this audit | none | reviewed in this audit |
 | `case-studies/manlan-2019/corpus/manifest.json` | Reviewed case-study interpretation | analysts | tracked immutable corpus metadata | no | current | claims re-checked against canonical evidence in this audit | none | reviewed in this audit |
@@ -286,7 +273,6 @@ Tracked files: **411** · inventory entries: **411**
 | `manifests/INC0299001.json` | Configuration | maintainers | reviewed operator configuration | no | current | reviewed in this audit | none | reviewed in this audit |
 | `manifests/INC0301970.json` | Configuration | maintainers | reviewed operator configuration | no | current | reviewed in this audit | none | reviewed in this audit |
 | `manifests/INC0302574.json` | Configuration | maintainers | reviewed operator configuration | no | current | reviewed in this audit | none | reviewed in this audit |
-| `manifests/INC0303298.json` | Reviewed case-study interpretation | maintainers | reviewed manifest/case-study metadata | no | current | claims re-checked against canonical evidence in this audit | none | reviewed in this audit |
 | `scripts/audit-docs.sh` | Script or developer tool | maintainers | the command it wraps + its inputs | no | current | comments and usage strings audited in this audit | none | reviewed in this audit |
 | `scripts/audit-esnet-assessment.py` | Script or developer tool | maintainers | the command it wraps + its inputs | no | current | comments and usage strings audited in this audit | none | reviewed in this audit |
 | `scripts/audit_docs.py` | Script or developer tool | maintainers | the command it wraps + its inputs | no | current | comments and usage strings audited in this audit | none | reviewed in this audit |
@@ -439,7 +425,6 @@ Tracked files: **411** · inventory entries: **411**
 | `tests/cli_parity_test.rs` | Production source | developers | implementation | no | current | implementation comments audited in this audit | none | reviewed in this audit |
 | `tests/fixtures/README.md` | Test fixture | maintainers | immutable public source snapshot | no | current | provenance reviewed in this audit | none | reviewed in this audit |
 | `tests/fixtures/grnoc/INC0301970.json` | Test fixture | maintainers | immutable public source snapshot | no | current | provenance reviewed in this audit | none | reviewed in this audit |
-| `tests/fixtures/grnoc/INC0303298.json` | Test fixture | maintainers | immutable public source snapshot | no | current | provenance reviewed in this audit | none | reviewed in this audit |
 | `tests/fixtures/grnoc/viewer/CHG0099999.json` | Test fixture | maintainers | immutable public source snapshot | no | current | provenance reviewed in this audit | none | reviewed in this audit |
 | `tests/fixtures/grnoc/viewer/INC0227937.json` | Test fixture | maintainers | immutable public source snapshot | no | current | provenance reviewed in this audit | none | reviewed in this audit |
 | `tests/fixtures/grnoc/viewer/INC0301970.json` | Test fixture | maintainers | immutable public source snapshot | no | current | provenance reviewed in this audit | none | reviewed in this audit |

@@ -12,6 +12,7 @@ pub mod case_study_import;
 pub mod corpus_import;
 pub mod db;
 pub mod demo;
+pub mod scope;
 pub mod discovery;
 pub mod document;
 pub mod domain;

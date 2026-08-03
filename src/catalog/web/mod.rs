@@ -36,6 +36,9 @@ pub struct AppState {
     /// Process-lifetime random CSRF token, rendered into server
     /// generated forms. Never stored in the database, never logged.
     pub csrf_token: String,
+    /// Reviewed project-scope policy, loaded once at startup and shared
+    /// by every handler. Never reread per row.
+    pub scope: crate::catalog::scope::ProjectScope,
 }
 
 pub type SharedState = Arc<AppState>;

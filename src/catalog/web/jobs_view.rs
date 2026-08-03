@@ -424,7 +424,11 @@ pub struct JobRowView {
     pub run_link: Option<String>,
 }
 
-pub fn load_jobs_index(conn: &Connection, writes_enabled: bool) -> Result<JobsIndexView, String> {
+pub fn load_jobs_index(
+    conn: &Connection,
+    writes_enabled: bool,
+    scope: &crate::catalog::scope::ProjectScope,
+) -> Result<JobsIndexView, String> {
     let all = service::list(conn, &JobFilter::default())?;
     let mut view = JobsIndexView {
         writes_enabled,
@@ -435,6 +439,12 @@ pub fn load_jobs_index(conn: &Connection, writes_enabled: bool) -> Result<JobsIn
         recent_completed: Vec::new(),
     };
     for job in all {
+        // Omit jobs whose event is outside the configured project scope.
+        if let Ok(Some(event)) = event_for_job_event(conn, &job) {
+            if super::view::event_scope_excluded(conn, scope, &event).unwrap_or(false) {
+                continue;
+            }
+        }
         let row = job_row(conn, &job)?;
         match job.state {
             JobState::Queued => view.queued.push(row),
@@ -671,6 +681,35 @@ pub fn load_job_detail(
         auto_refresh,
         worker: workers,
     }))
+}
+
+/// Resolve the catalog event for a job (used by project-scope checks).
+fn event_for_job_event(
+    conn: &Connection,
+    job: &AnalysisJob,
+) -> Result<Option<crate::catalog::domain::CatalogEvent>, String> {
+    conn.query_row(
+        "SELECT e.id, e.source_kind, e.external_id, e.first_seen, e.last_seen
+         FROM analysis_plans p
+         JOIN manifest_revisions m ON m.id = p.manifest_revision_id
+         JOIN catalog_events e ON e.id = m.event_id
+         WHERE p.id = ?1",
+        rusqlite::params![job.plan_revision_id],
+        |r| {
+            Ok(crate::catalog::domain::CatalogEvent {
+                id: r.get(0)?,
+                source_kind: r.get(1)?,
+                external_id: r.get(2)?,
+                first_seen: r.get(3)?,
+                last_seen: r.get(4)?,
+            })
+        },
+    )
+    .map(Some)
+    .or_else(|e| match e {
+        rusqlite::Error::QueryReturnedNoRows => Ok(None),
+        other => Err(format!("cannot load event for job: {other}")),
+    })
 }
 
 fn event_for_job(conn: &Connection, job: &AnalysisJob) -> Result<(String, String), String> {

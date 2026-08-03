@@ -59,7 +59,6 @@ boilerplate. Full records were fetched through the exact-lookup frontier
 |---|---|---|---|---|---|
 | INC0303264 | Availability - I2 Participant CLOUDFLARE | IP participant (no site qualifier → relationship-unavailable convention) | 2026-08-03 09:49:30–10:06:08 | AS13335 (CLOUDFLARENET, reg. 2010-07-14) | Priority 1 shape |
 | INC0303260 | Brief Outage - I2 PX Peer Amazon (SEAT) | I2PX peer (direct AS11164 relationship) | 2026-08-03 09:08:05–09:11:46 | AS16509 (AMAZON-02, reg. 2000-05-04) | Priority 2 shape |
-| INC0303298 | Brief Outage - I2 Participant NOAA (KANS-WASH) | IP participant (parenthesized site → redundant-attachment convention) | 2026-08-03 12:16:06–13:07:17 | AS270 (NASA-Z, reg. 1989-02-24) | Priority 1 alternative |
 
 Excluded: optical/alarm/telemetry records (INC0303197, INC0302864,
 INC0303274, INC0303022, INC0303174, INC0290567, INC0294264, INC0295650,
@@ -69,7 +68,18 @@ INC0294713, INC0300261), non-bounded records (INC0303303, INC0299200),
 and INC0301481 (MANLAN Participant SINET; real description but a 9-day
 instability window — archive estimate excessive for this session).
 
+## Supersession
+
+One candidate selected in Session 48 is now excluded by tracked
+project-scope policy; see
+`docs/audits/2026-08-project-scope-noaa-removal.md`. Its preflight and
+execution records are not current project material. The blocked
+candidates above remain blocked under the unchanged premises (see
+`docs/audits/2026-08-non-noaa-ip-event-candidates.md` for the Session 49
+reconsideration).
+
 ## Next steps
 
-Preflight (Stage A, RIB-only) for the shortlist; select at most one Ready
-event; reviewed manifest revision; durable queue + worker execution.
+Preflight (Stage A, RIB-only) for a non-excluded shortlist; select at
+most one Ready event; reviewed manifest revision; durable queue + worker
+execution.

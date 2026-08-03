@@ -56,7 +56,7 @@ pub async fn api_events(
         Err(r) => return r,
     };
     let db = state.db.lock().unwrap();
-    match super::view::load_event_list_json(&db, page, per_page) {
+    match super::view::load_event_list_json(&db, page, per_page, &state.scope) {
         Ok(events) => envelope(events),
         Err(e) => json_error(StatusCode::INTERNAL_SERVER_ERROR, &e),
     }
@@ -68,7 +68,16 @@ pub async fn api_event_detail(
 ) -> Response {
     let db = state.db.lock().unwrap();
     match super::view::load_event_detail_json(&db, &event_id) {
-        Ok(Some(v)) => envelope(v),
+        Ok(Some(v)) => {
+            // Direct access to an excluded event is consistently 404.
+            if let Ok(Some(event)) = crate::catalog::db::get_event_by_external_any(&db, &event_id) {
+                if super::view::event_scope_excluded(&db, &state.scope, &event).unwrap_or(false)
+                {
+                    return json_error(StatusCode::NOT_FOUND, "event not found");
+                }
+            }
+            envelope(v)
+        }
         Ok(None) => json_error(StatusCode::NOT_FOUND, "event not found"),
         Err(e) => json_error(StatusCode::INTERNAL_SERVER_ERROR, &e),
     }
@@ -115,7 +124,7 @@ pub async fn api_analysis_streams(
 
 pub async fn api_catalog_status(State(state): State<SharedState>) -> Response {
     let db = state.db.lock().unwrap();
-    match super::view::load_catalog_status_json(&db) {
+    match super::view::load_catalog_status_json(&db, &state.scope) {
         Ok(v) => envelope(v),
         Err(e) => json_error(StatusCode::INTERNAL_SERVER_ERROR, &e),
     }
@@ -385,7 +394,7 @@ pub async fn api_event_relationships(
 pub async fn api_analysis_queue(State(state): State<SharedState>) -> Response {
     let db = state.db.lock().unwrap();
     let filters = super::view::QueueFilters::default();
-    match super::view::load_analysis_queue(&db, &filters) {
+    match super::view::load_analysis_queue(&db, &filters, &state.scope) {
         Ok(v) => envelope(serde_json::to_value(v).unwrap_or_default()),
         Err(e) => json_error(StatusCode::INTERNAL_SERVER_ERROR, &e),
     }

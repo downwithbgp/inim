@@ -138,7 +138,70 @@ pub fn manifest_payload_for_plan(
 /// status must be Ready; these checks re-derive readiness from the
 /// reviewed manifest so a stale or hand-edited status cannot slip
 /// through.
-pub fn validate_plan_for_queue(conn: &Connection, plan_revision_id: i64) -> Result<String, String> {
+/// Resolve the catalog event for a plan revision.
+fn event_for_plan(conn: &Connection, plan_revision_id: i64) -> Result<crate::catalog::domain::CatalogEvent, String> {
+    conn.query_row(
+        "SELECT e.id, e.source_kind, e.external_id, e.first_seen, e.last_seen
+         FROM catalog_events e
+         JOIN manifest_revisions m ON m.event_id = e.id
+         JOIN analysis_plans p ON p.manifest_revision_id = m.id
+         WHERE p.id = ?1",
+        params![plan_revision_id],
+        |r| {
+            Ok(crate::catalog::domain::CatalogEvent {
+                id: r.get(0)?,
+                source_kind: r.get(1)?,
+                external_id: r.get(2)?,
+                first_seen: r.get(3)?,
+                last_seen: r.get(4)?,
+            })
+        },
+    )
+    .map_err(|e| format!("cannot resolve event for plan {plan_revision_id}: {e}"))
+}
+
+/// Whether a plan's event or target is excluded by project scope.
+/// Returns the stable reason code when excluded.
+pub fn plan_scope_exclusion(
+    conn: &Connection,
+    plan_revision_id: i64,
+    scope: &crate::catalog::scope::ProjectScope,
+) -> Result<Option<String>, String> {
+    let event = event_for_plan(conn, plan_revision_id)?;
+    if let Some(reason) = scope.source_record_reason(&event.source_kind, &event.external_id) {
+        return Ok(Some(reason));
+    }
+    // The entity/ASN checks need the reviewed manifest payload. An
+    // unparseable payload can never be queued (validate_plan_for_queue
+    // rejects it), so the scope check simply does not add an exclusion
+    // on top of a payload that queue validation will refuse anyway.
+    let Ok(payload) = manifest_payload_for_plan(conn, plan_revision_id) else {
+        return Ok(None);
+    };
+    let Ok(manifest) = serde_json::from_str::<Manifest>(&payload) else {
+        return Ok(None);
+    };
+    if let Some(reason) = scope.entity_name_reason(&manifest.target.label) {
+        return Ok(Some(reason));
+    }
+    if scope.any_asn_excluded(&manifest.target.origin_asns) {
+        return Ok(Some(crate::catalog::scope::REASON_PROJECT_OWNER_EXCLUSION.to_string()));
+    }
+    Ok(None)
+}
+
+/// Stable machine code for project-scope queue/execution refusal.
+pub const SCOPE_EXCLUDED_CODE: &str = "project_scope_excluded";
+/// Operator-facing language for project-scope refusals. Never invents
+/// a reason beyond the configured policy.
+pub const SCOPE_EXCLUDED_MESSAGE: &str =
+    "This event is outside the configured project scope and cannot be queued.";
+
+pub fn validate_plan_for_queue(
+    conn: &Connection,
+    plan_revision_id: i64,
+    scope: &crate::catalog::scope::ProjectScope,
+) -> Result<String, String> {
     let plan_schema: i64 = conn
         .query_row(
             "SELECT plan_schema FROM analysis_plans WHERE id = ?1",
@@ -151,6 +214,9 @@ pub fn validate_plan_for_queue(conn: &Connection, plan_revision_id: i64) -> Resu
             "incompatible_plan_schema: plan {plan_revision_id} is schema v{plan_schema}, current v{}",
             crate::schema::ANALYSIS_PLAN_SCHEMA_VERSION
         ));
+    }
+    if let Some(_reason) = plan_scope_exclusion(conn, plan_revision_id, scope)? {
+        return Err(format!("{SCOPE_EXCLUDED_CODE}: {SCOPE_EXCLUDED_MESSAGE}"));
     }
     let payload = manifest_payload_for_plan(conn, plan_revision_id)?;
     let manifest: Manifest = serde_json::from_str(&payload)

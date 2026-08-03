@@ -239,6 +239,9 @@ pub mod error_code {
     pub const CATALOG_IMPORT_FAILED: &str = "catalog_import_failed";
     pub const WORKER_LEASE_EXPIRED: &str = "worker_lease_expired";
     pub const CANCELLED: &str = "cancelled";
+    /// The job was valid when queued but its event/target is now
+    /// outside the configured project scope; cancelled before execution.
+    pub const EXCLUDED_BY_PROJECT_SCOPE: &str = "excluded_by_project_scope";
     pub const INTERNAL: &str = "internal_error";
 }
 

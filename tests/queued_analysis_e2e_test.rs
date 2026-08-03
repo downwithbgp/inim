@@ -159,7 +159,7 @@ fn worker_config(root: &Path, db: &Path, once: bool) -> inim::worker::WorkerConf
 fn queue_ready(conn: &rusqlite::Connection, plan_id: i64, source: RequestSource) -> String {
     let payload = plan::manifest_payload_for_plan(conn, plan_id).unwrap();
     let hash = plan::canonical_plan_hash(&payload).unwrap();
-    match service::queue(conn, plan_id, source, &hash).unwrap() {
+    match service::queue(conn, plan_id, source, &hash, &inim::catalog::scope::ProjectScope::default()).unwrap() {
         service::QueueOutcome::Created(id) => id,
         _ => unreachable!(),
     }
@@ -250,7 +250,7 @@ fn queue_is_idempotent_while_active() {
     let second = {
         let payload = plan::manifest_payload_for_plan(&conn, plan_id).unwrap();
         let hash = plan::canonical_plan_hash(&payload).unwrap();
-        service::queue(&conn, plan_id, RequestSource::LocalWeb, &hash).unwrap()
+        service::queue(&conn, plan_id, RequestSource::LocalWeb, &hash, &inim::catalog::scope::ProjectScope::default()).unwrap()
     };
     match second {
         service::QueueOutcome::Duplicate(existing) => assert_eq!(existing, first),
@@ -318,6 +318,7 @@ fn retry_after_injected_failure_completes() {
         &job_id,
         RequestSource::Cli,
         &service::get(&conn, &job_id).unwrap().plan_hash,
+        &inim::catalog::scope::ProjectScope::default(),
     )
     .unwrap();
     assert_ne!(new_id, job_id);

@@ -325,7 +325,15 @@ mod tests {
         .unwrap();
         let plan = crate::catalog::import::build_plan_record(conn, mid, &manifest, true).unwrap();
         let pid = crate::catalog::store::insert_plan(conn, &plan).unwrap();
-        match jobs::queue(conn, pid, RequestSource::Cli, "h").unwrap() {
+        match jobs::queue(
+            conn,
+            pid,
+            RequestSource::Cli,
+            "h",
+            &crate::catalog::scope::ProjectScope::default(),
+        )
+        .unwrap()
+        {
             jobs::QueueOutcome::Created(id) => id,
             _ => unreachable!(),
         }

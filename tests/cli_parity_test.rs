@@ -75,7 +75,7 @@ fn cli_and_web_queue_use_same_service() {
     let plan_id = seed_ready_plan(&conn);
     let payload = plan::manifest_payload_for_plan(&conn, plan_id).unwrap();
     let hash = plan::canonical_plan_hash(&payload).unwrap();
-    let out = service::queue(&conn, plan_id, RequestSource::Cli, &hash).unwrap();
+    let out = service::queue(&conn, plan_id, RequestSource::Cli, &hash, &inim::catalog::scope::ProjectScope::default()).unwrap();
     let job_id = match out {
         service::QueueOutcome::Created(id) => id,
         _ => unreachable!(),
@@ -112,7 +112,7 @@ fn cli_and_web_queue_use_same_service() {
         service::transition(&conn, &job_id, from, to, None, "stage").unwrap();
     }
     service::complete(&conn, &job_id, run_id).unwrap();
-    let out2 = service::queue(&conn, plan_id, RequestSource::LocalWeb, &hash).unwrap();
+    let out2 = service::queue(&conn, plan_id, RequestSource::LocalWeb, &hash, &inim::catalog::scope::ProjectScope::default()).unwrap();
     let job2_id = match out2 {
         service::QueueOutcome::Created(id) => id,
         _ => unreachable!(),
@@ -129,7 +129,7 @@ fn cli_cancel_matches_web_cancel() {
     let plan_id = seed_ready_plan(&conn);
     let payload = plan::manifest_payload_for_plan(&conn, plan_id).unwrap();
     let hash = plan::canonical_plan_hash(&payload).unwrap();
-    let job_id = match service::queue(&conn, plan_id, RequestSource::Cli, &hash).unwrap() {
+    let job_id = match service::queue(&conn, plan_id, RequestSource::Cli, &hash, &inim::catalog::scope::ProjectScope::default()).unwrap() {
         service::QueueOutcome::Created(id) => id,
         _ => unreachable!(),
     };
@@ -141,7 +141,7 @@ fn cli_cancel_matches_web_cancel() {
         JobState::Cancelled
     );
     // Web cancel of an executing job: same transition path.
-    let job2_id = match service::queue(&conn, plan_id, RequestSource::LocalWeb, &hash).unwrap() {
+    let job2_id = match service::queue(&conn, plan_id, RequestSource::LocalWeb, &hash, &inim::catalog::scope::ProjectScope::default()).unwrap() {
         service::QueueOutcome::Created(id) => id,
         _ => unreachable!(),
     };
@@ -160,7 +160,7 @@ fn cli_retry_matches_web_retry() {
     let plan_id = seed_ready_plan(&conn);
     let payload = plan::manifest_payload_for_plan(&conn, plan_id).unwrap();
     let hash = plan::canonical_plan_hash(&payload).unwrap();
-    let job_id = match service::queue(&conn, plan_id, RequestSource::Cli, &hash).unwrap() {
+    let job_id = match service::queue(&conn, plan_id, RequestSource::Cli, &hash, &inim::catalog::scope::ProjectScope::default()).unwrap() {
         service::QueueOutcome::Created(id) => id,
         _ => unreachable!(),
     };
@@ -173,8 +173,22 @@ fn cli_retry_matches_web_retry() {
         "bad",
     )
     .unwrap();
-    let new_cli = service::retry(&conn, &job_id, RequestSource::Cli, &hash).unwrap();
-    let new_web = service::retry(&conn, &job_id, RequestSource::LocalWeb, &hash).unwrap();
+    let new_cli = service::retry(
+            &conn,
+            &job_id,
+            RequestSource::Cli,
+            &hash,
+            &inim::catalog::scope::ProjectScope::default(),
+        )
+        .unwrap();
+    let new_web = service::retry(
+            &conn,
+            &job_id,
+            RequestSource::LocalWeb,
+            &hash,
+            &inim::catalog::scope::ProjectScope::default(),
+        )
+        .unwrap();
     assert_ne!(new_cli, new_web);
     for id in [&new_cli, &new_web] {
         let j = service::get(&conn, id).unwrap();
