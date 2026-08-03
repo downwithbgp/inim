@@ -328,6 +328,102 @@
   "current": true
  },
  {
+  "path": "case-studies/manlan-2019/corpus/manifest.json",
+  "category": "Reviewed case-study interpretation",
+  "audience": "analysts",
+  "authoritative": "tracked immutable corpus metadata",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/corpus/relationships.json",
+  "category": "Reviewed case-study interpretation",
+  "audience": "analysts",
+  "authoritative": "reviewed relationship graph",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/corpus/snapshots/CHG0038258.json",
+  "category": "Immutable or generated evidence",
+  "audience": "analysts",
+  "authoritative": "immutable public source snapshots",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/corpus/snapshots/CHG0038386.json",
+  "category": "Immutable or generated evidence",
+  "audience": "analysts",
+  "authoritative": "immutable public source snapshots",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/corpus/snapshots/INC0040257.json",
+  "category": "Immutable or generated evidence",
+  "audience": "analysts",
+  "authoritative": "immutable public source snapshots",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/corpus/snapshots/INC0040258.json",
+  "category": "Immutable or generated evidence",
+  "audience": "analysts",
+  "authoritative": "immutable public source snapshots",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/corpus/snapshots/INC0040272.json",
+  "category": "Immutable or generated evidence",
+  "audience": "analysts",
+  "authoritative": "immutable public source snapshots",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/corpus/snapshots/INC0040289.json",
+  "category": "Immutable or generated evidence",
+  "audience": "analysts",
+  "authoritative": "immutable public source snapshots",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/corpus/snapshots/INC0040290.json",
+  "category": "Immutable or generated evidence",
+  "audience": "analysts",
+  "authoritative": "immutable public source snapshots",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/corpus/snapshots/INC0040291.json",
+  "category": "Immutable or generated evidence",
+  "audience": "analysts",
+  "authoritative": "immutable public source snapshots",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/corpus/snapshots/INC0040293.json",
+  "category": "Immutable or generated evidence",
+  "audience": "analysts",
+  "authoritative": "immutable public source snapshots",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/corpus/snapshots/INC0040318.json",
+  "category": "Immutable or generated evidence",
+  "audience": "analysts",
+  "authoritative": "immutable public source snapshots",
+  "generated": true,
+  "current": true
+ },
+ {
   "path": "case-studies/manlan-2019/pilot/PILOT-SELECTION.md",
   "category": "Reviewed case-study interpretation",
   "audience": "network analysts",
@@ -1496,6 +1592,14 @@
   "current": true
  },
  {
+  "path": "docs/audits/2026-08-grnoc-catalog-reconciliation.md",
+  "category": "Normative current documentation",
+  "audience": "maintainers",
+  "authoritative": "dated audit evidence",
+  "generated": false,
+  "current": true
+ },
+ {
   "path": "docs/audits/2026-08-repository-truth-audit.md",
   "category": "Normative current documentation",
   "audience": "maintainers",
@@ -1900,6 +2004,14 @@
   "category": "Production source",
   "audience": "maintainers",
   "authoritative": "implementation (behavioral authority)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/catalog/corpus_import.rs",
+  "category": "Production source",
+  "audience": "developers",
+  "authoritative": "implementation",
   "generated": false,
   "current": true
  },
@@ -2836,6 +2948,14 @@
   "category": "Test fixture",
   "audience": "maintainers",
   "authoritative": "upstream source or synthetic generator",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "tests/grnoc_reconciliation_test.rs",
+  "category": "Production source",
+  "audience": "developers",
+  "authoritative": "implementation",
   "generated": false,
   "current": true
  },

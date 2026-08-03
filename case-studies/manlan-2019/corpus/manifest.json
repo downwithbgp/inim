@@ -1,0 +1,89 @@
+{
+  "schema_version": 1,
+  "corpus": "manlan-2019-grnoc-public-corpus",
+  "source": "grnoc-public-task-viewer",
+  "acquisition": "case-studies/manlan-2019/pilot/corpus-acquisition.json",
+  "redistribution": "public records from the GlobalNOC Public Task Viewer; no private notes or authenticated content (docs/sources/GRNOC_PUBLIC_TASK_VIEWER.md)",
+  "snapshots": [
+    {
+      "external_id": "CHG0038258",
+      "file": "snapshots/CHG0038258.json",
+      "fetched_at": "2026-08-01T14:43:59.588280405+00:00",
+      "source_url": "https://ticket-viewer.grnoc.iu.edu/tickets/CHG0038258/",
+      "sha256": "1bcaf6bc76e4549f18d7e5fb34e777039d5a490f6ecc46c819020648789bd6ae",
+      "bytes": 1003
+    },
+    {
+      "external_id": "CHG0038386",
+      "file": "snapshots/CHG0038386.json",
+      "fetched_at": "2026-08-01T14:43:59.588280405+00:00",
+      "source_url": "https://ticket-viewer.grnoc.iu.edu/tickets/CHG0038386/",
+      "sha256": "8e6a6f4540bf6d80686077d3bcbc12be5b59a43d1dd2d47dc6391bbc5b2647d2",
+      "bytes": 672
+    },
+    {
+      "external_id": "INC0040257",
+      "file": "snapshots/INC0040257.json",
+      "fetched_at": "2026-08-01T14:43:59.588280405+00:00",
+      "source_url": "https://ticket-viewer.grnoc.iu.edu/tickets/INC0040257/",
+      "sha256": "342461315ab78644a12e46b5208b0160afb4a9f566a006af52f2cb10d436cea8",
+      "bytes": 660
+    },
+    {
+      "external_id": "INC0040258",
+      "file": "snapshots/INC0040258.json",
+      "fetched_at": "2026-08-01T14:43:59.588280405+00:00",
+      "source_url": "https://ticket-viewer.grnoc.iu.edu/tickets/INC0040258/",
+      "sha256": "10a416f038515994fc7ccbc3418d29e119ba5f4f202d95c8f716f0742d4b95be",
+      "bytes": 699
+    },
+    {
+      "external_id": "INC0040272",
+      "file": "snapshots/INC0040272.json",
+      "fetched_at": "2026-08-01T14:43:59.588280405+00:00",
+      "source_url": "https://ticket-viewer.grnoc.iu.edu/tickets/INC0040272/",
+      "sha256": "11e6436e7952381489c0844362616044c1024dd0688b31e96f6daa634a3bd294",
+      "bytes": 337
+    },
+    {
+      "external_id": "INC0040289",
+      "file": "snapshots/INC0040289.json",
+      "fetched_at": "2026-08-01T14:43:59.588280405+00:00",
+      "source_url": "https://ticket-viewer.grnoc.iu.edu/tickets/INC0040289/",
+      "sha256": "f6b996df9b6eded5d2a4f96298926b2c6e38c23be618d12814148f7e07673a95",
+      "bytes": 556
+    },
+    {
+      "external_id": "INC0040290",
+      "file": "snapshots/INC0040290.json",
+      "fetched_at": "2026-08-01T14:43:59.588280405+00:00",
+      "source_url": "https://ticket-viewer.grnoc.iu.edu/tickets/INC0040290/",
+      "sha256": "5c98a922a0a1e65fb538fea386dcda951871dbe13a0e2f3be056a51908a365c2",
+      "bytes": 534
+    },
+    {
+      "external_id": "INC0040291",
+      "file": "snapshots/INC0040291.json",
+      "fetched_at": "2026-08-01T14:43:59.588280405+00:00",
+      "source_url": "https://ticket-viewer.grnoc.iu.edu/tickets/INC0040291/",
+      "sha256": "f1811ad2410ccbd886d7f6d5c0fbca50ce9626853c63f3df8579767a650baace",
+      "bytes": 607
+    },
+    {
+      "external_id": "INC0040293",
+      "file": "snapshots/INC0040293.json",
+      "fetched_at": "2026-08-01T14:43:59.588280405+00:00",
+      "source_url": "https://ticket-viewer.grnoc.iu.edu/tickets/INC0040293/",
+      "sha256": "749b190835493f36a9c94427227463d4e8ffd3a501192bef8bf2d7667c4f1c09",
+      "bytes": 682
+    },
+    {
+      "external_id": "INC0040318",
+      "file": "snapshots/INC0040318.json",
+      "fetched_at": "2026-08-01T14:43:59.588280405+00:00",
+      "source_url": "https://ticket-viewer.grnoc.iu.edu/tickets/INC0040318/",
+      "sha256": "904912aec451d39f6a02163584e42cde56f1a71c0d2a5c395826d93039dc5d0b",
+      "bytes": 301
+    }
+  ]
+}
