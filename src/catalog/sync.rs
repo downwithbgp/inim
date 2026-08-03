@@ -286,11 +286,6 @@ mod tests {
         let events = db::list_events(&conn).unwrap();
         assert_eq!(events.len(), 2);
         assert!(events.iter().any(|e| e.external_id == "INC0301970"));
-        let event = events
-            .iter()
-            .find(|e| e.external_id == "INC0301970")
-            .cloned()
-            .unwrap();
         let snapshots = db::list_snapshots(&conn, events[0].id).unwrap();
         assert_eq!(snapshots.len(), 1);
         // Sync does NOT create manifests, plans, or runs.

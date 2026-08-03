@@ -88,14 +88,28 @@ pub fn candidate_relationship_hint(title: &str) -> Option<CandidateRelationshipH
     if t.contains("participant") {
         // Optical/telemetry/fabric qualifiers are NOT direct BGP
         // targets even when the word "participant" appears.
-        for marker in ["optical", "alarm", "telemetry", "instability update", "inquiry", "decom"] {
+        for marker in [
+            "optical",
+            "alarm",
+            "telemetry",
+            "instability update",
+            "inquiry",
+            "decom",
+        ] {
             if t.contains(marker) {
                 return Some(CandidateRelationshipHint::NotBgpCandidate);
             }
         }
         return Some(CandidateRelationshipHint::IpParticipant);
     }
-    for marker in ["optical", "alarm", "telemetry", "inquiry", "decom", "maintenance"] {
+    for marker in [
+        "optical",
+        "alarm",
+        "telemetry",
+        "inquiry",
+        "decom",
+        "maintenance",
+    ] {
         if t.contains(marker) {
             return Some(CandidateRelationshipHint::NotBgpCandidate);
         }
@@ -502,7 +516,9 @@ mod session48_candidate_tests {
             Some(H::NotBgpCandidate)
         );
         assert_eq!(
-            candidate_relationship_hint("Alarm - I2 Node opt.newy32aoa.net.internet2.edu (SIGNAL_DEGRADE)"),
+            candidate_relationship_hint(
+                "Alarm - I2 Node opt.newy32aoa.net.internet2.edu (SIGNAL_DEGRADE)"
+            ),
             Some(H::NotBgpCandidate)
         );
         assert_eq!(
@@ -555,9 +571,7 @@ mod session48_candidate_tests {
             Some(H::IpParticipant)
         );
         // The classifier never claims single-homed status.
-        assert!(
-            !PX_PEER_DIRECT_BASELINE_REQUIREMENT.contains("single-homed")
-        );
+        assert!(!PX_PEER_DIRECT_BASELINE_REQUIREMENT.contains("single-homed"));
     }
 
     #[test]
