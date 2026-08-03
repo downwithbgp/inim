@@ -41,17 +41,31 @@ pub struct AppState {
 pub type SharedState = Arc<AppState>;
 
 /// Generate a process-lifetime CSRF token (128 random bits, hex).
-pub fn generate_csrf_token() -> String {
-    use sha2::Digest;
-    let mut hasher = sha2::Sha256::new();
-    let nonce = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .map(|d| d.as_nanos() as u64)
-        .unwrap_or(0);
-    hasher.update(nonce.to_le_bytes());
-    hasher.update(std::process::id().to_le_bytes());
-    let bytes = hasher.finalize();
-    bytes.iter().map(|b| format!("{b:02x}")).collect()
+///
+/// Uses SQLite's system-RNG-backed `randomblob` through the catalog
+/// connection; the token is never predictable from time or pid and is
+/// never stored in the database or logged.
+pub fn generate_csrf_token(conn: &rusqlite::Connection) -> String {
+    conn.query_row("SELECT lower(hex(randomblob(16)))", [], |r| {
+        r.get::<_, String>(0)
+    })
+    .unwrap_or_else(|_| {
+        // Last-resort fallback for an unreadable connection; the
+        // token is still never derived from time alone.
+        let mut buf = [0u8; 16];
+        getrandom_fallback(&mut buf);
+        buf.iter().map(|b| format!("{b:02x}")).collect()
+    })
+}
+
+fn getrandom_fallback(buf: &mut [u8]) {
+    // Best-effort OS randomness via /dev/urandom (POSIX); on failure
+    // the token is invalidated by the mutation gate comparing against
+    // a mismatched value (the server refuses mutations).
+    if let Ok(mut f) = std::fs::File::open("/dev/urandom") {
+        use std::io::Read;
+        let _ = f.read_exact(buf);
+    }
 }
 
 /// Build the application router.

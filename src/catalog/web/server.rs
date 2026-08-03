@@ -49,12 +49,13 @@ pub fn build_state(
             db_path.display()
         ));
     };
+    let csrf_token = super::generate_csrf_token(&conn);
     Ok(Arc::new(AppState {
         db: Mutex::new(conn),
         catalog_root: catalog_root.to_path_buf(),
         software_version: software_version.to_string(),
         writes_enabled,
-        csrf_token: super::generate_csrf_token(),
+        csrf_token,
     }))
 }
 

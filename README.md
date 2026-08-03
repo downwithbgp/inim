@@ -125,6 +125,18 @@ server:
 inim catalog workbench --db data/inim.sqlite --subject manlan-2019
 ```
 
+### Security model
+
+The web server is trusted-local only: no authentication exists, write
+mode is disabled by default, the default bind is loopback-only, and a
+non-loopback bind with writes requires the explicit
+`--allow-unauthenticated-writes` acknowledgement. Every mutation POST
+requires a process-lifetime CSRF token (from the OS random source),
+bodies are size-bounded (64 KiB), GET never mutates, and mutation
+endpoints do not exist when writes are disabled. Do not expose write
+mode to untrusted networks; there is no TLS termination and no password
+storage by design.
+
 ### Queued analysis (reviewed plan → durable job → worker)
 
 ```sh

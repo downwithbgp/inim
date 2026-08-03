@@ -124,6 +124,17 @@ pub fn execution_plan(config: &WorkerConfig) -> serde_json::Value {
     })
 }
 
+/// Validate a job id before it is used in filesystem paths. Job ids
+/// are generated as 32 lowercase hex chars; anything else (path
+/// separators, dots, slashes) is rejected so a crafted id can never
+/// escape the job staging/run roots.
+pub fn valid_job_id(id: &str) -> bool {
+    id.len() == 32
+        && id
+            .bytes()
+            .all(|b| b.is_ascii_hexdigit() && !b.is_ascii_uppercase())
+}
+
 /// Generate a stable process-lifetime worker id (not hostname-derived).
 pub fn generate_worker_id(conn: &Connection) -> Result<String, String> {
     conn.query_row("SELECT 'w-' || lower(hex(randomblob(8)))", [], |r| r.get(0))
@@ -400,6 +411,10 @@ fn execute_one(
 ) -> bool {
     let job = &claim.job;
     let job_id = job.id.clone();
+    if !valid_job_id(&job_id) {
+        eprintln!("worker: refusing malformed job id {job_id}");
+        return false;
+    }
     eprintln!(
         "worker: claimed job {job_id} (plan revision {})",
         job.plan_revision_id

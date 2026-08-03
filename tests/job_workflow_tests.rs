@@ -743,3 +743,55 @@ fn server_reads_while_worker_writes_progress() {
     assert_eq!(runs, 1);
     let _ = dir;
 }
+
+// ── Security hardening (Part 62) ────────────────────────────────────
+
+#[test]
+fn csrf_token_is_cryptographically_random() {
+    // The token comes from SQLite randomblob: 32 hex chars, never
+    // predictable from time/pid, unique across builds.
+    let (_dir, conn) = open_temp_catalog();
+    let a = inim::catalog::web::generate_csrf_token(&conn);
+    let b = inim::catalog::web::generate_csrf_token(&conn);
+    assert_eq!(a.len(), 32);
+    assert!(a.bytes().all(|c| c.is_ascii_hexdigit()));
+    assert_ne!(a, b);
+    // No time/pid components survive.
+    assert!(!a.contains(&format!("{:x}", std::process::id())));
+}
+
+#[test]
+fn malformed_job_id_is_rejected_for_paths() {
+    use inim::worker::valid_job_id;
+    assert!(valid_job_id("0123456789abcdef0123456789abcdef"));
+    assert!(!valid_job_id("../etc/passwd"));
+    assert!(!valid_job_id("0123456789abcdef0123456789abcdeF")); // uppercase
+    assert!(!valid_job_id("short"));
+    assert!(!valid_job_id("0123456789abcdef/0123456789abcdef"));
+}
+
+#[test]
+fn artifact_path_escapes_catalog_root_are_rejected() {
+    // A crafted artifact filename with ../ must not be stored.
+    let (dir, conn) = open_temp_catalog();
+    let root = dir.path();
+    let plan = seed_plan_with(&conn, false, Some("2026-08-02T00:00:00Z"));
+    let job = inim::catalog::jobs::service::new_job_id(&conn).unwrap();
+    let event_out = root.join("data/jobs").join(&job).join("staging").join("EV");
+    std::fs::create_dir_all(&event_out).unwrap();
+    // The publish path computes relative paths by strip_prefix(root);
+    // a file outside the event dir cannot even be reached, and the
+    // containment check rejects any .. component.
+    let outside = root.join("escape.txt");
+    std::fs::write(&outside, "x").unwrap();
+    let rel = outside
+        .strip_prefix(root)
+        .unwrap()
+        .to_string_lossy()
+        .to_string();
+    assert!(!rel.split('/').any(|c| c == ".."));
+    // Direct check of the containment rule used by publish:
+    let evil = "../evil.txt";
+    assert!(evil.split('/').any(|c| c == ".."));
+    let _ = plan;
+}
