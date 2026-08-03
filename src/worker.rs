@@ -213,6 +213,10 @@ impl DbSink {
         }
     }
 
+    /// Advance the DB job state along the linear stage chain. Only
+    /// forward steps are legal; a stage regression (e.g. UPDATE
+    /// discovery re-entering DiscoveringArchives) updates the stage
+    /// column but never moves the state backwards.
     fn transition_to(&self, to: JobState) {
         let mut state = self.state.lock().unwrap();
         if *state == to {
@@ -233,6 +237,7 @@ impl ProgressSink for DbSink {
         if let Some(desired) = desired {
             self.transition_to(desired);
         }
+        let state = *self.state.lock().unwrap();
         let now = Instant::now();
         let mut last = self.last_emit.lock().unwrap();
         if now.duration_since(*last) < self.throttle && ev.current.is_none() {
@@ -254,7 +259,7 @@ impl ProgressSink for DbSink {
                 job_id: self.job_id.clone(),
                 sequence: 0,
                 occurred_at: String::new(),
-                state: desired.unwrap_or(JobState::Claimed),
+                state,
                 stage: Some(ev.stage.to_string()),
                 message_code: Some(ev.stage.to_string()),
                 human_message: ev.message.clone(),
@@ -319,6 +324,7 @@ pub fn run_worker(config: &WorkerConfig) -> i32 {
     );
 
     let mut processed = 0usize;
+    let mut last_success = true;
     loop {
         // Conservative stale-lease policy: expired leases become Failed
         // with worker_lease_expired; staging is preserved; retry is
@@ -335,7 +341,7 @@ pub fn run_worker(config: &WorkerConfig) -> i32 {
         };
         match claimed {
             Ok(Some(claim)) => {
-                execute_one(&conn, config, &worker_id, claim);
+                last_success = execute_one(&conn, config, &worker_id, claim);
                 processed += 1;
                 if config.once {
                     break;
@@ -357,6 +363,9 @@ pub fn run_worker(config: &WorkerConfig) -> i32 {
         }
     }
     eprintln!("worker {worker_id}: shutting down after {processed} job(s)");
+    if processed > 0 && !last_success {
+        return 1;
+    }
     0
 }
 
@@ -382,12 +391,13 @@ fn register_heartbeat(conn: &Arc<Mutex<Connection>>, worker_id: &str, config: &W
 }
 
 /// Execute one claimed job end to end (execute -> stage -> publish).
+/// Returns true when the job reached a terminal success state.
 fn execute_one(
     conn: &Arc<Mutex<Connection>>,
     config: &WorkerConfig,
     worker_id: &str,
     claim: JobClaim,
-) {
+) -> bool {
     let job = &claim.job;
     let job_id = job.id.clone();
     eprintln!(
@@ -400,7 +410,7 @@ fn execute_one(
         Ok(m) => m,
         Err(e) => {
             let _ = fail_job(conn, &job_id, error_code::INVALID_PLAN, &e);
-            return;
+            return false;
         }
     };
     let _materialized_dir = materialized.0; // tempdir lifetime
@@ -413,7 +423,7 @@ fn execute_one(
         Ok(e) => e,
         Err(e) => {
             let _ = fail_job(conn, &job_id, error_code::INVALID_PLAN, &e);
-            return;
+            return false;
         }
     };
     let event_out = staging_abs.join(&event_id);
@@ -424,7 +434,7 @@ fn execute_one(
             error_code::ARTIFACT_PUBLICATION_FAILED,
             &e.to_string(),
         );
-        return;
+        return false;
     }
     {
         let conn = conn.lock().unwrap();
@@ -475,7 +485,7 @@ fn execute_one(
             if cancel.load(Ordering::Relaxed) {
                 let _ = cancel_job(conn, &job_id);
                 cleanup_staging(&staging_abs, false);
-                return;
+                return false;
             }
             publish(
                 conn,
@@ -488,15 +498,17 @@ fn execute_one(
                 &started_at,
                 &finished_at,
                 wall_secs,
-            );
+            )
         }
         Err(ExecutionError::Cancelled) => {
             let _ = cancel_job(conn, &job_id);
             cleanup_staging(&staging_abs, false);
+            false
         }
         Err(ExecutionError::Failed { code, summary }) => {
             let _ = fail_job(conn, &job_id, code, &summary);
             cleanup_staging(&staging_abs, config.keep_failed_workdir);
+            false
         }
     }
 }
@@ -507,7 +519,8 @@ fn event_id_from_job(
 ) -> Result<String, String> {
     let conn = conn.lock().unwrap();
     conn.query_row(
-        "SELECT m.event_id FROM manifest_revisions m
+        "SELECT e.external_id FROM catalog_events e
+         JOIN manifest_revisions m ON m.event_id = e.id
          JOIN analysis_plans p ON p.manifest_revision_id = m.id
          WHERE p.id = ?1",
         rusqlite::params![plan_revision_id],
@@ -621,13 +634,13 @@ fn publish(
     started_at: &str,
     finished_at: &str,
     wall_secs: f64,
-) {
+) -> bool {
     let job_id = job.id.clone();
     let event_id = match event_id_from_job(conn, job.plan_revision_id) {
         Ok(e) => e,
         Err(e) => {
             let _ = fail_job(conn, &job_id, error_code::INTERNAL, &e);
-            return;
+            return false;
         }
     };
     let stage_durations = read_stage_durations(event_out);
@@ -651,7 +664,7 @@ fn publish(
     };
     if let Err(e) = write_execution_metadata(event_out, &meta) {
         let _ = fail_job(conn, &job_id, error_code::ARTIFACT_VALIDATION_FAILED, &e);
-        return;
+        return false;
     }
 
     // Deterministic cancellation race policy: once the job is in
@@ -668,7 +681,7 @@ fn publish(
             } else {
                 let _ = fail_job(conn, &job_id, error_code::ARTIFACT_PUBLICATION_FAILED, &e);
             }
-            return;
+            return false;
         }
     }
 
@@ -678,7 +691,7 @@ fn publish(
             event_out.parent().unwrap_or(&config.root),
             config.keep_failed_workdir,
         );
-        return;
+        return false;
     }
 
     let conn_guard = conn.lock().unwrap();
@@ -695,24 +708,26 @@ fn publish(
     };
     match publish_staged_run(&conn_guard, event_out, &inputs) {
         Ok(run_id) => {
-            if let Err(e) = service::complete(&conn_guard, &job_id, run_id) {
-                // The run is published and immutable; the job linkage
-                // failed. Report precisely; do not re-import.
-                eprintln!("worker: run {run_id} published but job completion failed: {e}");
-            } else {
-                eprintln!("worker: job {job_id} completed (run {run_id})");
-                match outcome {
-                    crate::outcome::AnalysisOutcome::Completed { .. } => {}
-                    crate::outcome::AnalysisOutcome::InsufficientVisibility { .. } => {}
-                    crate::outcome::AnalysisOutcome::Incomplete { .. } => {
+            match service::complete(&conn_guard, &job_id, run_id) {
+                Ok(()) => {
+                    eprintln!("worker: job {job_id} completed (run {run_id})");
+                    if let crate::outcome::AnalysisOutcome::Incomplete { .. } = outcome {
                         eprintln!("worker: warning: job completed but run outcome is incomplete");
                     }
+                    true
+                }
+                Err(e) => {
+                    // The run is published and immutable; the job
+                    // linkage failed. Report precisely; do not re-import.
+                    eprintln!("worker: run {run_id} published but job completion failed: {e}");
+                    false
                 }
             }
         }
         Err(e) => {
             let _ = fail_job_db(&conn_guard, &job_id, error_code::CATALOG_IMPORT_FAILED, &e);
             eprintln!("worker: job {job_id} failed during publication: {e}");
+            false
         }
     }
 }

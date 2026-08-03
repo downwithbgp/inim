@@ -1888,6 +1888,14 @@
   "current": true
  },
  {
+  "path": "src/catalog/demo.rs",
+  "category": "Production source",
+  "audience": "developers",
+  "authoritative": "implementation",
+  "generated": false,
+  "current": true
+ },
+ {
   "path": "src/catalog/discovery.rs",
   "category": "Production source",
   "audience": "maintainers",
@@ -2120,6 +2128,22 @@
   "current": true
  },
  {
+  "path": "src/catalog/web/job_handlers.rs",
+  "category": "Production source",
+  "audience": "developers",
+  "authoritative": "implementation",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/catalog/web/jobs_view.rs",
+  "category": "Production source",
+  "audience": "developers",
+  "authoritative": "implementation",
+  "generated": false,
+  "current": true
+ },
+ {
   "path": "src/catalog/web/mod.rs",
   "category": "Production source",
   "audience": "maintainers",
@@ -2148,6 +2172,30 @@
   "category": "Template or stylesheet",
   "audience": "operators (NOC analysts)",
   "authoritative": "workbench view model + domain model",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/catalog/web/templates/analysis_job.html",
+  "category": "Production source",
+  "audience": "developers",
+  "authoritative": "implementation",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/catalog/web/templates/analysis_jobs.html",
+  "category": "Production source",
+  "audience": "developers",
+  "authoritative": "implementation",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/catalog/web/templates/analysis_plan.html",
+  "category": "Production source",
+  "audience": "developers",
+  "authoritative": "implementation",
   "generated": false,
   "current": true
  },
@@ -2672,6 +2720,14 @@
   "current": true
  },
  {
+  "path": "tests/cli_parity_test.rs",
+  "category": "Production source",
+  "audience": "developers",
+  "authoritative": "implementation",
+  "generated": false,
+  "current": true
+ },
+ {
   "path": "tests/fixtures/README.md",
   "category": "Test fixture",
   "audience": "maintainers",
@@ -2769,6 +2825,14 @@
  },
  {
   "path": "tests/job_migration_test.rs",
+  "category": "Production source",
+  "audience": "developers",
+  "authoritative": "implementation",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "tests/queued_analysis_e2e_test.rs",
   "category": "Production source",
   "audience": "developers",
   "authoritative": "implementation",

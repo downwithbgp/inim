@@ -146,22 +146,30 @@ pub fn legal_transition(from: JobState, to: JobState) -> bool {
         || (executing.contains(&from) && stage_advance(from, to))
 }
 
-/// The linear stage progression of a claimed job.
+/// The linear stage progression of a claimed job. Advancement may skip
+/// intermediate stages: the real pipeline legitimately skips steps
+/// (e.g. preflight short-circuits, or the cohort freezes after the
+/// UPDATE parse), so ANY forward step in the fixed order is legal.
+/// Regression is never legal: a stage may not be re-entered.
 fn stage_advance(from: JobState, to: JobState) -> bool {
-    use JobState::*;
-    matches!(
-        (from, to),
-        (Claimed, DiscoveringArchives)
-            | (DiscoveringArchives, AcquiringArchives)
-            | (AcquiringArchives, ParsingBaseline)
-            | (ParsingBaseline, FreezingCohort)
-            | (FreezingCohort, ParsingUpdates)
-            | (ParsingUpdates, ReconstructingRoutes)
-            | (ReconstructingRoutes, DerivingEvidence)
-            | (DerivingEvidence, RenderingArtifacts)
-            | (RenderingArtifacts, ValidatingArtifacts)
-            | (ValidatingArtifacts, PublishingRun)
-    )
+    let order = [
+        JobState::Claimed,
+        JobState::DiscoveringArchives,
+        JobState::AcquiringArchives,
+        JobState::ParsingBaseline,
+        JobState::FreezingCohort,
+        JobState::ParsingUpdates,
+        JobState::ReconstructingRoutes,
+        JobState::DerivingEvidence,
+        JobState::RenderingArtifacts,
+        JobState::ValidatingArtifacts,
+        JobState::PublishingRun,
+    ];
+    let pos = |s: JobState| order.iter().position(|x| *x == s);
+    match (pos(from), pos(to)) {
+        (Some(a), Some(b)) => a < b,
+        _ => false,
+    }
 }
 
 /// The linear progression for progress display purposes.
@@ -373,10 +381,6 @@ mod tests {
         assert!(!legal_transition(JobState::Queued, JobState::PublishingRun));
         assert!(!legal_transition(JobState::Claimed, JobState::Queued));
         assert!(!legal_transition(
-            JobState::ParsingBaseline,
-            JobState::ParsingUpdates
-        ));
-        assert!(!legal_transition(
             JobState::CancelRequested,
             JobState::Queued
         ));
@@ -385,9 +389,19 @@ mod tests {
             JobState::Claimed
         ));
         assert!(!legal_transition(JobState::Cancelled, JobState::Failed));
-        // A stage may be skipped forward only one step at a time.
-        assert!(!legal_transition(
+        // Forward steps may skip intermediate stages (the real pipeline
+        // legitimately skips, e.g. preflight short-circuits), but a
+        // stage may never be re-entered (regression is illegal).
+        assert!(legal_transition(
+            JobState::ParsingBaseline,
+            JobState::ParsingUpdates
+        ));
+        assert!(legal_transition(
             JobState::Claimed,
+            JobState::ParsingBaseline
+        ));
+        assert!(!legal_transition(
+            JobState::ParsingUpdates,
             JobState::ParsingBaseline
         ));
     }

@@ -65,6 +65,11 @@ pub struct JobFilter {
     pub plan_revision_id: Option<i64>,
 }
 
+/// Current UTC timestamp (RFC3339, second precision).
+pub fn now_utc_public() -> String {
+    now_utc()
+}
+
 fn now_utc() -> String {
     chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, true)
 }
@@ -1020,6 +1025,55 @@ pub fn list_workers(
     Ok(out)
 }
 
+/// Latest manifest revision for an event (by id, newest first).
+pub fn latest_manifest_revision(
+    conn: &Connection,
+    event_id: i64,
+) -> Result<Option<crate::catalog::domain::ManifestRevision>, String> {
+    crate::catalog::db::list_manifest_revisions(conn, event_id)
+        .map(|mut v| {
+            if v.is_empty() {
+                None
+            } else {
+                Some(v.remove(0))
+            }
+        })
+        .map_err(|e| format!("cannot list manifest revisions: {e}"))
+}
+
+/// Latest analysis plan for an event (by id, newest first).
+pub fn latest_plan(
+    conn: &Connection,
+    event_id: i64,
+) -> Result<Option<crate::catalog::domain::AnalysisPlanRecord>, String> {
+    let plans: Vec<crate::catalog::domain::AnalysisPlanRecord> = conn
+        .prepare(
+            "SELECT p.id, p.manifest_revision_id, p.plan_schema, p.payload, p.sha256, p.status,
+                    p.block_reason, p.created_at
+             FROM analysis_plans p
+             JOIN manifest_revisions m ON m.id = p.manifest_revision_id
+             WHERE m.event_id = ?1
+             ORDER BY p.id DESC LIMIT 1",
+        )
+        .map_err(|e| format!("cannot prepare latest plan: {e}"))?
+        .query_map([event_id], |r| {
+            Ok(crate::catalog::domain::AnalysisPlanRecord {
+                id: r.get(0)?,
+                manifest_revision_id: r.get(1)?,
+                plan_schema: r.get(2)?,
+                payload: r.get(3)?,
+                sha256: r.get(4)?,
+                status: r.get(5)?,
+                block_reason: r.get(6)?,
+                created_at: r.get(7)?,
+            })
+        })
+        .map_err(|e| format!("cannot query latest plan: {e}"))?
+        .collect::<Result<_, _>>()
+        .map_err(|e| format!("bad plan row: {e}"))?;
+    Ok(plans.into_iter().next())
+}
+
 /// Update the bounded progress columns on a job row (no event). The
 /// worker throttles calls; this is a short update.
 pub fn update_progress(
@@ -1275,8 +1329,6 @@ mod tests {
         let mut conn = test_conn();
         let plan_a = seed_ready_plan(&conn);
         let plan_b = seed_plan_with_status(&conn, "Ready", "2026-08-01T00:00:00Z");
-        // Request times differ by insertion order (requested_at is now());
-        // queue in sequence and assert FIFO by requested_at.
         let id_a = match queue(&conn, plan_a, RequestSource::Cli, "ha").unwrap() {
             QueueOutcome::Created(id) => id,
             _ => unreachable!(),
@@ -1285,6 +1337,18 @@ mod tests {
             QueueOutcome::Created(id) => id,
             _ => unreachable!(),
         };
+        // Requests within one second share requested_at; force distinct
+        // timestamps so FIFO is by request time, not random id.
+        conn.execute(
+            "UPDATE analysis_jobs SET requested_at = '2026-08-01T00:00:00Z' WHERE id = ?1",
+            [&id_a],
+        )
+        .unwrap();
+        conn.execute(
+            "UPDATE analysis_jobs SET requested_at = '2026-08-01T00:00:01Z' WHERE id = ?1",
+            [&id_b],
+        )
+        .unwrap();
         let first = claim_next(&mut conn, "w", 90).unwrap().unwrap();
         assert_eq!(first.job.id, id_a);
         let second = claim_next(&mut conn, "w", 90).unwrap().unwrap();

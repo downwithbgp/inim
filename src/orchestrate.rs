@@ -485,6 +485,11 @@ fn run_inner_impl(
         target_set.merge(&collector_target);
 
         // Save derived RIB cache
+        emit_stage(
+            progress,
+            "ParsingBaseline",
+            format!("Parsing baseline RIB for {collector_id}"),
+        );
         let frozen: Vec<crate::derived_cache::CachedTargetStream> = collector_target
             .streams
             .get(&collector_id)
