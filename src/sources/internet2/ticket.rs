@@ -70,11 +70,13 @@ pub fn derive_expectation(ticket: &Internet2Ticket) -> ImpactExpectation {
 
 /// Detect parenthesized site codes in an Internet2 ticket title.
 ///
-/// Matches patterns like `(NEWY32AOA)`, `(NEWA)`, `(NEWY)` — any uppercase
-/// alphanumeric string in parentheses.
+/// Matches patterns like `(NEWY32AOA)`, `(KANS-WASH)`, `(NEWA)` — any
+/// uppercase alphanumeric string (hyphens allowed for multi-site codes)
+/// in parentheses.
 pub fn detect_redundancy_indicator(title: &str) -> RedundancyIndicator {
-    // Match parenthesized uppercase alphanumeric codes (site codes are typically 3-10 chars).
-    let re = Regex::new(r"\(([A-Z][A-Z0-9]{2,9})\)").unwrap();
+    // Match parenthesized uppercase alphanumeric codes, optionally
+    // hyphenated for multi-site codes (site codes are typically 3-10 chars).
+    let re = Regex::new(r"\(([A-Z][A-Z0-9-]{2,9})\)").unwrap();
     if let Some(caps) = re.captures(title) {
         RedundancyIndicator {
             has_parenthesized_site: true,
@@ -453,5 +455,60 @@ mod tests {
             start: Utc.with_ymd_and_hms(2025, 6, 15, 5, 25, 0).unwrap(),
             end: Utc.with_ymd_and_hms(2025, 6, 15, 5, 47, 0).unwrap(),
         }
+    }
+}
+
+#[cfg(test)]
+mod session48_hyphenated_site_tests {
+    use super::*;
+
+    #[test]
+    fn hyphenated_site_code_indicates_redundancy() {
+        // The reviewed convention: a parenthesized site/attachment code
+        // indicates expected redundancy. Multi-site codes such as
+        // (KANS-WASH) must count.
+        let title = "Brief Outage - I2 Participant NOAA (KANS-WASH)";
+        let indicator = detect_redundancy_indicator(title);
+        assert!(indicator.has_parenthesized_site, "{indicator:?}");
+        assert_eq!(indicator.site_code.as_deref(), Some("KANS-WASH"));
+        let ticket = Internet2Ticket {
+            id: EventId::from("INC-TEST"),
+            title: title.to_string(),
+            window: EventWindow {
+                start: chrono::Utc::now(),
+                end: chrono::Utc::now(),
+            },
+            raw: serde_json::json!({}),
+        };
+        let expectation = derive_expectation(&ticket);
+        assert!(
+            matches!(
+                expectation.kind,
+                crate::domain::expectation::ExpectationKind::Redundant
+            ),
+            "hyphenated site code must derive the redundant expectation: {:?}",
+            expectation.kind
+        );
+    }
+
+    #[test]
+    fn non_parenthesized_participant_title_derives_relationship_unavailable() {
+        let title = "Availability - I2 Participant SampleNet";
+        let indicator = detect_redundancy_indicator(title);
+        assert!(!indicator.has_parenthesized_site);
+        let ticket = Internet2Ticket {
+            id: EventId::from("INC-TEST2"),
+            title: title.to_string(),
+            window: EventWindow {
+                start: chrono::Utc::now(),
+                end: chrono::Utc::now(),
+            },
+            raw: serde_json::json!({}),
+        };
+        let expectation = derive_expectation(&ticket);
+        assert_eq!(
+            expectation.kind,
+            crate::domain::expectation::ExpectationKind::ParticipantRelationshipUnavailable
+        );
     }
 }

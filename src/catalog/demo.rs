@@ -18,7 +18,8 @@ pub const DEMO_EXPECTED_EVENTS: &[&str] = &[
     "INC0299001", // UVA event
     "INC0301970", // MAN LAN related event
     "INC0302574", // visibility audit event
-    "INC0040293", // MAN LAN participant event (fresh reviewed case study)
+    "INC0040293", // MAN LAN optical participant event (supporting observation)
+    "INC0303298", // NOAA I2 participant event (fresh IP-layer analysis)
 ];
 
 pub fn demo_init(db_path: &Path, root: &Path, force: bool) -> Result<DemoReport, String> {
@@ -80,6 +81,7 @@ fn write_demo_manifest(db_path: &Path, report: &DemoReport) -> Result<(), String
             "/events/INC0302574/workbench",
             "/events/INC0299001/workbench",
             "/events/INC0040293/workbench",
+            "/events/INC0303298/workbench",
             "/case-studies/manlan-2019/workbench",
         ],
     });
@@ -303,6 +305,7 @@ fn resolve_artifact(root: &Path, rel: &str) -> std::path::PathBuf {
         root.join("case-studies/manlan-esnet-2019/out").join(rel),
         root.join("case-studies/inc0302574/out").join(rel),
         root.join("case-studies/inc0299001/out").join(rel),
+        root.join("case-studies/inc0303298-noaa/out").join(rel),
     ];
     candidates
         .into_iter()

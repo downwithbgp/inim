@@ -473,6 +473,9 @@ enum CatalogCommands {
         peer: String,
         #[arg(long, value_name = "PATH")]
         out: Option<PathBuf>,
+        /// Run directory override (default case-studies/<event>/out/<event>).
+        #[arg(long, value_name = "DIR")]
+        run_dir: Option<PathBuf>,
     },
     /// Manage incident case studies.
     #[command(subcommand)]
@@ -1631,11 +1634,14 @@ fn cmd_catalog(stdout: &mut dyn Write, command: &CatalogCommands) -> i32 {
             collector,
             peer,
             out,
+            run_dir: run_dir_override,
         } => {
-            let run_dir = std::path::Path::new("case-studies")
-                .join(event.to_lowercase())
-                .join("out")
-                .join(event);
+            let run_dir = run_dir_override.clone().unwrap_or_else(|| {
+                std::path::Path::new("case-studies")
+                    .join(event.to_lowercase())
+                    .join("out")
+                    .join(event)
+            });
             let audit = match inim::catalog::workbench::load_finding_chronology_audit(
                 &run_dir, event, collector, peer,
             ) {

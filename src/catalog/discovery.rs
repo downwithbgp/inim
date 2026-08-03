@@ -55,6 +55,61 @@ pub fn extract_ticket_references(text: &str) -> Vec<TicketReference> {
 }
 
 /// Record an analyst-supplied seed ticket.
+/// Generic reviewed-hint classifier for a discovered ticket title.
+///
+/// Used ONLY for display hints and shortlisting guidance — never for
+/// automatic decisions, never to block a fetch, never as ticket
+/// interpretation. The RELATIONSHIP named by the ticket decides
+/// applicability (Part C correction): optical participant interfaces,
+/// Layer-2 circuits, fabric, alarms, telemetry, inquiries and
+/// decoms are not direct public-BGP targets by default.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CandidateRelationshipHint {
+    /// Names an IP-layer I2 participant relationship.
+    IpParticipant,
+    /// Names a PX peer relationship (direct reviewed exchange-plane
+    /// scope).
+    PxPeer,
+    /// Not a direct public-BGP relationship by default (optical,
+    /// alarm, telemetry, fabric, inquiry, decom, maintenance).
+    NotBgpCandidate,
+}
+
+/// Classify a discovered ticket title into a generic relationship hint.
+/// Pattern-based and title-scoped: an empty or unusual title yields
+/// `NotBgpCandidate`-adjacent handling via `None`.
+pub fn candidate_relationship_hint(title: &str) -> Option<CandidateRelationshipHint> {
+    let t = title.to_lowercase();
+    // The reviewed PX-peer convention ("I2 PX Peer <name>") is matched
+    // generically; the plane identity itself is data-only.
+    if t.contains("px peer") || t.contains("pxpeer") {
+        return Some(CandidateRelationshipHint::PxPeer);
+    }
+    if t.contains("participant") {
+        // Optical/telemetry/fabric qualifiers are NOT direct BGP
+        // targets even when the word "participant" appears.
+        for marker in ["optical", "alarm", "telemetry", "instability update", "inquiry", "decom"] {
+            if t.contains(marker) {
+                return Some(CandidateRelationshipHint::NotBgpCandidate);
+            }
+        }
+        return Some(CandidateRelationshipHint::IpParticipant);
+    }
+    for marker in ["optical", "alarm", "telemetry", "inquiry", "decom", "maintenance"] {
+        if t.contains(marker) {
+            return Some(CandidateRelationshipHint::NotBgpCandidate);
+        }
+    }
+    None
+}
+
+/// The direct-baseline requirement for PX-peer-scoped candidates: the
+/// reviewed scope is the named direct exchange-plane relationship, and
+/// a preflight without a direct baseline session for that plane never
+/// produces a Ready plan for the peer relationship.
+pub const PX_PEER_DIRECT_BASELINE_REQUIREMENT: &str =
+    "PX-peer candidate requires a direct observer session with the reviewed exchange-plane ASN and target-origin baseline visibility; an in-path R&E-plane observation does not substitute.";
+
 pub fn record_analyst_seed(
     conn: &rusqlite::Connection,
     source_kind: &str,
@@ -431,5 +486,89 @@ mod tests {
         store::mark_frontier_fetched(&conn2, "grnoc-public-task-viewer", &slice[1]).unwrap();
         let remaining = store::pending_frontier(&conn2, "grnoc-public-task-viewer").unwrap();
         assert_eq!(remaining.len(), 3);
+    }
+}
+
+#[cfg(test)]
+mod session48_candidate_tests {
+    use super::*;
+
+    #[test]
+    fn candidate_search_excludes_non_bgp_relationships_by_default() {
+        use CandidateRelationshipHint as H;
+        // Optical participant interfaces are not direct BGP targets.
+        assert_eq!(
+            candidate_relationship_hint("Outage Resolved - I2 Optical Participant SampleNet"),
+            Some(H::NotBgpCandidate)
+        );
+        assert_eq!(
+            candidate_relationship_hint("Alarm - I2 Node opt.newy32aoa.net.internet2.edu (SIGNAL_DEGRADE)"),
+            Some(H::NotBgpCandidate)
+        );
+        assert_eq!(
+            candidate_relationship_hint("Inquiry - I2 Participant Anthropic"),
+            Some(H::NotBgpCandidate)
+        );
+        assert_eq!(
+            candidate_relationship_hint("Decom - I2 Core Backbone ATLA-NASH"),
+            Some(H::NotBgpCandidate)
+        );
+        assert_eq!(
+            candidate_relationship_hint("Alarms - I2 wave-sw1.clev XCVR Failed"),
+            Some(H::NotBgpCandidate)
+        );
+    }
+
+    #[test]
+    fn px_peer_candidate_requires_direct_plane_baseline() {
+        use CandidateRelationshipHint as H;
+        // An exchange-peer title hints the direct peer scope and carries
+        // the direct-baseline requirement; an in-path R&E-plane
+        // observation is explicitly not a substitute.
+        assert_eq!(
+            candidate_relationship_hint("Brief Outage - I2 PX Peer SampleNet (SITE)"),
+            Some(H::PxPeer)
+        );
+        assert_eq!(
+            candidate_relationship_hint("Alarm - I2 PX Peer ExampleNet (SITE) Maximum value for inerror is above the threshold"),
+            Some(H::PxPeer)
+        );
+        assert!(PX_PEER_DIRECT_BASELINE_REQUIREMENT.contains("direct observer session"));
+        assert!(PX_PEER_DIRECT_BASELINE_REQUIREMENT.contains("does not substitute"));
+    }
+
+    #[test]
+    fn non_redundant_ip_candidate_requires_reviewed_attachment_evidence() {
+        use CandidateRelationshipHint as H;
+        // The relationship hint is title-scoped; the attachment
+        // (redundant vs single) is a REVIEWED determination, never
+        // inferred from the title alone. A non-parenthesized title is
+        // still an IP participant hint, but the reviewer must record
+        // attachment evidence before a relationship-unavailable
+        // expectation can be used.
+        assert_eq!(
+            candidate_relationship_hint("Availability - I2 Participant SampleNet"),
+            Some(H::IpParticipant)
+        );
+        assert_eq!(
+            candidate_relationship_hint("Brief Outage - I2 Participant SampleNet (SITE)"),
+            Some(H::IpParticipant)
+        );
+        // The classifier never claims single-homed status.
+        assert!(
+            !PX_PEER_DIRECT_BASELINE_REQUIREMENT.contains("single-homed")
+        );
+    }
+
+    #[test]
+    fn hint_never_blocks_fetch_or_queues() {
+        // The hint is a display/guidance function only: unknown titles
+        // yield None (not a hard exclusion), and nothing here mutates
+        // the catalog.
+        assert_eq!(candidate_relationship_hint(""), None);
+        assert_eq!(
+            candidate_relationship_hint("I2 - Zayo Inquiry  Little Hocking, Ohio"),
+            Some(CandidateRelationshipHint::NotBgpCandidate)
+        );
     }
 }

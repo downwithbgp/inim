@@ -119,9 +119,22 @@ pub(crate) fn import_one(
         let raw = std::fs::read_to_string(&fixture)
             .map_err(|e| format!("cannot read fixture {}: {e}", fixture.display()))?;
         let sha = hex_sha256(&raw);
+        // The normalized event must carry the TICKET title: the
+        // expectation convention (parenthesized site code / participant
+        // wording) is derived from the ticket title, not from the
+        // reviewed target label.
+        let fixture_title = serde_json::from_str::<serde_json::Value>(&raw)
+            .ok()
+            .and_then(|v| {
+                v.get("short_description")
+                    .or_else(|| v.get("title"))
+                    .and_then(|t| t.as_str())
+                    .map(|s| s.to_string())
+            })
+            .unwrap_or_else(|| manifest.target.label.clone());
         let normalized = serde_json::json!({
             "id": event_id_str,
-            "title": manifest.target.label,
+            "title": fixture_title,
             "source": "ticket-fixture",
             "start": manifest.event_window_utc.start,
             "end": manifest.event_window_utc.end,

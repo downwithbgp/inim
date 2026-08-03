@@ -1,0 +1,167 @@
+{
+  "event_id": "INC0303298",
+  "ribs": [
+    {
+      "url": "http://archive.routeviews.org/bgpdata/2026.08/RIBS/rib.20260803.1000.bz2",
+      "local_path": "./cache/route-views2/rib/rib.20260803.1000.bz2",
+      "collector_id": "route-views2",
+      "data_type": "rib",
+      "size_bytes": 76546048,
+      "sha256": "5a5d0813cba196ae868e0e2fe7d939096e04c878ab307816639c819ae00dd185"
+    }
+  ],
+  "updates": [
+    {
+      "url": "http://archive.routeviews.org/bgpdata/2026.08/UPDATES/updates.20260803.0930.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20260803.0930.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 1048576,
+      "sha256": "434184643a1ef0616d368ce2cbfdfc7ab8177898974a4de2be3821216c33ac7d"
+    },
+    {
+      "url": "http://archive.routeviews.org/bgpdata/2026.08/UPDATES/updates.20260803.0945.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20260803.0945.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 1048576,
+      "sha256": "850b0d1b99a99a32792ef26d065ea1fc6702221f0b8a44597f57f0055a9f9b84"
+    },
+    {
+      "url": "http://archive.routeviews.org/bgpdata/2026.08/UPDATES/updates.20260803.1000.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20260803.1000.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 1468006,
+      "sha256": "15f69c19227094370c78b09ebf1534838413995c1ce2f07af7c860f0414b347b"
+    },
+    {
+      "url": "http://archive.routeviews.org/bgpdata/2026.08/UPDATES/updates.20260803.1015.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20260803.1015.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 1048576,
+      "sha256": "3a1cdd04f00c9c8769bbfeaece80b0cf365d2eb8822d2db15da3ebc4cccc3f5c"
+    },
+    {
+      "url": "http://archive.routeviews.org/bgpdata/2026.08/UPDATES/updates.20260803.1030.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20260803.1030.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 1048576,
+      "sha256": "abb17d9b9257a748a19f049ec0628f669da2a441e5cac2fe735bb2c8606f2dd9"
+    },
+    {
+      "url": "http://archive.routeviews.org/bgpdata/2026.08/UPDATES/updates.20260803.1045.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20260803.1045.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 1048576,
+      "sha256": "640a47faa95787b3f75a85dd96abe3dca8c97980f5380cd69cd28863eab13348"
+    },
+    {
+      "url": "http://archive.routeviews.org/bgpdata/2026.08/UPDATES/updates.20260803.1100.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20260803.1100.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 1363148,
+      "sha256": "a6951afa95d4bfaf63a736db632dd6fa905dd771855da6affcbe62cd4dbb0f17"
+    },
+    {
+      "url": "http://archive.routeviews.org/bgpdata/2026.08/UPDATES/updates.20260803.1115.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20260803.1115.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 1048576,
+      "sha256": "7c15de74bf5a2fdd0bdbc185e09fbe4b0975ecc0bd78218d9add91de9e4c6bc5"
+    },
+    {
+      "url": "http://archive.routeviews.org/bgpdata/2026.08/UPDATES/updates.20260803.1130.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20260803.1130.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 1153433,
+      "sha256": "c7f7b5159b5f9807760187cf1c6fd11cbf720e96c886f1009b90c3c5e9c6b46b"
+    },
+    {
+      "url": "http://archive.routeviews.org/bgpdata/2026.08/UPDATES/updates.20260803.1145.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20260803.1145.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 1048576,
+      "sha256": "fc8720e0d169a5f5b1d7cfe9e31a9b5c792b85cff165fb181397e11d59ebaf90"
+    },
+    {
+      "url": "http://archive.routeviews.org/bgpdata/2026.08/UPDATES/updates.20260803.1200.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20260803.1200.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 1153433,
+      "sha256": "450caa17fa7795c7a80b8a003562d1503eb104a5479ca0667a3613ca8bda5ffa"
+    },
+    {
+      "url": "http://archive.routeviews.org/bgpdata/2026.08/UPDATES/updates.20260803.1215.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20260803.1215.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 1468006,
+      "sha256": "ff0ae5ddf5a87f5a3370fce0767ca7e44c5426517ea88e4ae77013ef9f4e2d46"
+    },
+    {
+      "url": "http://archive.routeviews.org/bgpdata/2026.08/UPDATES/updates.20260803.1230.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20260803.1230.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 1468006,
+      "sha256": "52abb72b2acaf85cfc33d1f91545e1da9872674092bd6ce1e42b51b8394f1bbc"
+    },
+    {
+      "url": "http://archive.routeviews.org/bgpdata/2026.08/UPDATES/updates.20260803.1245.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20260803.1245.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 1258291,
+      "sha256": "49c3716c3d7ea95041dfd8136e97cb670f12e1352210bd95efa27916bc372c83"
+    },
+    {
+      "url": "http://archive.routeviews.org/bgpdata/2026.08/UPDATES/updates.20260803.1300.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20260803.1300.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 1363148,
+      "sha256": "5e4bc8292f7b14be9d11a131ba3233bb9955e9f661d1cd6d37adef8c48d8e3dc"
+    },
+    {
+      "url": "http://archive.routeviews.org/bgpdata/2026.08/UPDATES/updates.20260803.1315.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20260803.1315.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 1363148,
+      "sha256": "5fb740f8f4207d0208a609b12450e69341282934a4e9f48fd79352f92a164a67"
+    },
+    {
+      "url": "http://archive.routeviews.org/bgpdata/2026.08/UPDATES/updates.20260803.1330.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20260803.1330.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 1258291,
+      "sha256": "8ef91bc10e6eb3dc12cffd7d7738da91c42bbbcbef601f77d7d11f57c2aec26b"
+    },
+    {
+      "url": "http://archive.routeviews.org/bgpdata/2026.08/UPDATES/updates.20260803.1345.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20260803.1345.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 1363148,
+      "sha256": "f24e759573de4c0a615df5d10845e1921c1c720172a644e41ca9516c423b62d4"
+    },
+    {
+      "url": "http://archive.routeviews.org/bgpdata/2026.08/UPDATES/updates.20260803.1400.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20260803.1400.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 1363148,
+      "sha256": "6b64ba4f06b3e90a9afb57be0615e9da52f4a01d3070d4e1cf58f51566866203"
+    }
+  ]
+}

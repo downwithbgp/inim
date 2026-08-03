@@ -71,6 +71,16 @@ against `get_incidents` without a domain returned 403. **The adapter
 must never issue empty or unscoped broad queries** (enumeration risk);
 search is only used with an explicit reviewed domain and query string.
 
+**2026-08-03 discovery observations (bounded search, 8 requests):**
+incident search scoped to the Internet2 domain (`sys_id
+11b87c3ddb65e200d1b4fa5aaf96194a`) returns the domain's public active
+set (32 records) and did not visibly filter by query text for that
+domain; a no-match query returned 404; `active: false` returned 404;
+the python-urllib client was rejected with 404 while the polite
+reqwest adapter with the reviewed User-Agent succeeded. Records
+returned by search carry titles/windows but empty descriptions for
+recent entries. See `docs/audits/2026-08-fresh-event-discovery.md`.
+
 **Pagination:** `limit`/`offset` fields in the request body (not query
 parameters).
 

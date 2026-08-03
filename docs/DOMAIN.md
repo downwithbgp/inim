@@ -280,7 +280,16 @@ complete.
   OperationalTask, Other. Distinct from the source `task_type`
   (Incident / Change Request / Task).
 - **Analysis applicability** (reviewed): PotentiallyVisibleInPublicBgp,
-  NotApplicableToPublicBgp, ApplicableTargetNotYetMapped.
+  NotApplicableToPublicBgp,
+  **NotDirectlyObservableInPublicBgp** (the reviewed relationship
+  exists but is not directly observable in public BGP — optical
+  participant interface, Layer-2 circuit, exchange fabric, alarm or
+  telemetry; a contemporaneous BGP run is a scope-mismatched
+  supporting observation only),
+  **NotOriginAttributable** (no reviewed origin attribution — test
+  equipment, exchange fabric), ApplicableTargetNotYetMapped. The
+  RELATIONSHIP named by the ticket decides applicability, not the
+  mere existence of an ASN for the named organization.
 - **ReviewProvenance** — per-field citation: `SnapshotField:<field>` or
   a reference document (AAR) with `source_document_id`. Missing source
   fields are never backfilled without a cited document.
