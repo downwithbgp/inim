@@ -935,15 +935,24 @@ impl TempDirGuard {
 
 impl Drop for TempDirGuard {
     fn drop(&mut self) {
+        // Remove the unique directory AND its per-process base so the
+        // next worker run can create a fresh, unforgeable base.
         let _ = std::fs::remove_dir_all(&self.0);
+        if let Some(base) = self.0.parent() {
+            let _ = std::fs::remove_dir(base);
+        }
     }
 }
 
 fn unique_temp_dir() -> Result<TempDirGuard, String> {
-    // The per-process base is created with create_dir (fails if a
-    // local attacker pre-created it) and restricted to the owner; the
-    // unique subdirectory then cannot be predicted or planted.
-    let base = std::env::temp_dir().join(format!("inim-worker-{}", std::process::id()));
+    // The base is created with create_dir (fails if a local attacker
+    // pre-created it) and restricted to the owner; the unique
+    // subdirectory then cannot be predicted or planted. The name
+    // includes the thread id so parallel workers (e.g. tests) never
+    // collide on one base.
+    let thread_id = format!("{:?}", std::thread::current().id())
+        .replace(|c: char| !c.is_ascii_alphanumeric(), "");
+    let base = std::env::temp_dir().join(format!("inim-worker-{}-{thread_id}", std::process::id()));
     if base.exists() {
         return Err(format!(
             "temp dir {} already exists; refusing to reuse a possibly planted directory",
