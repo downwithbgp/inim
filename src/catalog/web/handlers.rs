@@ -12,7 +12,7 @@ use super::view::RunView;
 use super::SharedState;
 
 /// Render an Askama template or a stable error page.
-fn render<T: askama::Template>(template: T) -> Response {
+pub(crate) fn render_view<T: askama::Template>(template: T) -> Response {
     match template.render() {
         Ok(html) => Html(html).into_response(),
         Err(e) => (
@@ -25,7 +25,7 @@ fn render<T: askama::Template>(template: T) -> Response {
     }
 }
 
-fn not_found(kind: &str) -> Response {
+pub(crate) fn not_found_view(kind: &str) -> Response {
     (
         StatusCode::NOT_FOUND,
         Html(format!(
@@ -40,7 +40,10 @@ fn not_found(kind: &str) -> Response {
 pub async fn dashboard(State(state): State<SharedState>) -> Response {
     let db = state.db.lock().unwrap();
     match super::view::load_dashboard(&db) {
-        Ok(view) => render(view),
+        Ok(mut view) => {
+            view.writes_enabled = state.writes_enabled;
+            render_view(view)
+        }
         Err(e) => server_error(&e),
     }
 }
@@ -51,7 +54,7 @@ pub async fn event_list(
 ) -> Response {
     let db = state.db.lock().unwrap();
     match super::view::load_event_list(&db, &filters) {
-        Ok(view) => render(view),
+        Ok(view) => render_view(view),
         Err(e) => server_error(&e),
     }
 }
@@ -110,8 +113,8 @@ pub async fn event_detail(
 ) -> Response {
     let db = state.db.lock().unwrap();
     match super::view::load_event_detail(&db, &event_id) {
-        Ok(Some(view)) => render(view),
-        Ok(None) => not_found("event"),
+        Ok(Some(view)) => render_view(view),
+        Ok(None) => not_found_view("event"),
         Err(e) => server_error(&e),
     }
 }
@@ -119,7 +122,7 @@ pub async fn event_detail(
 pub async fn case_studies(State(state): State<SharedState>) -> Response {
     let db = state.db.lock().unwrap();
     match super::view::load_case_studies(&db) {
-        Ok(view) => render(view),
+        Ok(view) => render_view(view),
         Err(e) => server_error(&e),
     }
 }
@@ -130,8 +133,8 @@ pub async fn case_study_detail(
 ) -> Response {
     let db = state.db.lock().unwrap();
     match super::view::load_case_study(&db, &slug) {
-        Ok(Some(view)) => render(view),
-        Ok(None) => not_found("case study"),
+        Ok(Some(view)) => render_view(view),
+        Ok(None) => not_found_view("case study"),
         Err(e) => server_error(&e),
     }
 }
@@ -155,12 +158,12 @@ pub async fn event_workbench(
     let mut view =
         match super::view::load_event_workbench(&db, &event_id, &state.catalog_root, &params) {
             Ok(Some(view)) => view,
-            Ok(None) => return not_found("event"),
+            Ok(None) => return not_found_view("event"),
             Err(e) => return server_error(&e),
         };
     view.timing.sql_query_count = QUERY_COUNT.load(std::sync::atomic::Ordering::Relaxed);
     view.timing.model_time_ms = started.elapsed().as_secs_f64() * 1000.0;
-    render(view)
+    render_view(view)
 }
 
 /// Static SQL statement counter for workbench requests.
@@ -190,12 +193,12 @@ pub async fn case_study_workbench(
     let mut view =
         match super::view::load_case_study_workbench(&db, &slug, &state.catalog_root, &params) {
             Ok(Some(view)) => view,
-            Ok(None) => return not_found("case study"),
+            Ok(None) => return not_found_view("case study"),
             Err(e) => return server_error(&e),
         };
     view.timing.sql_query_count = QUERY_COUNT.load(std::sync::atomic::Ordering::Relaxed);
     view.timing.model_time_ms = started.elapsed().as_secs_f64() * 1000.0;
-    render(view)
+    render_view(view)
 }
 
 /// Serve a validated document file.
@@ -237,7 +240,7 @@ pub async fn serve_document(
                 .body(axum::body::Body::from(bytes))
                 .unwrap_or_else(|_| StatusCode::INTERNAL_SERVER_ERROR.into_response())
         }
-        Ok(None) => not_found("document"),
+        Ok(None) => not_found_view("document"),
         Err(e) => (
             StatusCode::BAD_REQUEST,
             Html(format!("<h1>Cannot serve document</h1><p>{e}</p>")),
@@ -252,8 +255,8 @@ pub async fn analysis_detail(
 ) -> Response {
     let db = state.db.lock().unwrap();
     match super::view::load_run(&db, run_id, &state) {
-        Ok(Some(view)) => render(view),
-        Ok(None) => not_found("analysis run"),
+        Ok(Some(view)) => render_view(view),
+        Ok(None) => not_found_view("analysis run"),
         Err(e) => server_error(&e),
     }
 }
@@ -265,8 +268,8 @@ pub async fn analysis_streams(
 ) -> Response {
     let db = state.db.lock().unwrap();
     match super::view::load_run_streams(&db, run_id, &filters) {
-        Ok(Some(view)) => render(view),
-        Ok(None) => not_found("analysis run"),
+        Ok(Some(view)) => render_view(view),
+        Ok(None) => not_found_view("analysis run"),
         Err(e) => server_error(&e),
     }
 }
@@ -288,7 +291,7 @@ pub async fn app_css() -> impl IntoResponse {
     )
 }
 
-fn server_error(e: &str) -> Response {
+pub(crate) fn server_error(e: &str) -> Response {
     (
         StatusCode::INTERNAL_SERVER_ERROR,
         Html(format!(
@@ -321,7 +324,7 @@ pub fn run_view(state: &SharedState, run_id: i64) -> Result<Option<RunView>, Str
 pub async fn corpus(State(state): State<SharedState>) -> Response {
     let db = state.db.lock().unwrap();
     match super::view::load_corpus(&db) {
-        Ok(view) => render(view),
+        Ok(view) => render_view(view),
         Err(e) => server_error(&e),
     }
 }
@@ -329,7 +332,7 @@ pub async fn corpus(State(state): State<SharedState>) -> Response {
 pub async fn corpus_sync_runs(State(state): State<SharedState>) -> Response {
     let db = state.db.lock().unwrap();
     match super::view::load_sync_runs(&db) {
-        Ok(view) => render(view),
+        Ok(view) => render_view(view),
         Err(e) => server_error(&e),
     }
 }
@@ -340,8 +343,8 @@ pub async fn event_relationships(
 ) -> Response {
     let db = state.db.lock().unwrap();
     match super::view::load_event_relationships(&db, &event_id) {
-        Ok(Some(view)) => render(view),
-        Ok(None) => not_found("event"),
+        Ok(Some(view)) => render_view(view),
+        Ok(None) => not_found_view("event"),
         Err(e) => server_error(&e),
     }
 }
@@ -352,7 +355,7 @@ pub async fn analysis_queue(
 ) -> Response {
     let db = state.db.lock().unwrap();
     match super::view::load_analysis_queue(&db, &filters) {
-        Ok(view) => render(view),
+        Ok(view) => render_view(view),
         Err(e) => server_error(&e),
     }
 }
@@ -367,14 +370,14 @@ pub async fn incident_candidates(
         .unwrap_or(false);
     let db = state.db.lock().unwrap();
     match super::view::load_incident_candidates(&db, include_temporal) {
-        Ok(view) => render(view),
+        Ok(view) => render_view(view),
         Err(e) => server_error(&e),
     }
 }
 pub async fn corpus_relationships(State(state): State<SharedState>) -> Response {
     let db = state.db.lock().unwrap();
     match super::view::load_corpus_relationships(&db) {
-        Ok(view) => render(view),
+        Ok(view) => render_view(view),
         Err(e) => server_error(&e),
     }
 }
@@ -382,7 +385,7 @@ pub async fn corpus_relationships(State(state): State<SharedState>) -> Response 
 pub async fn archive_batches(State(state): State<SharedState>) -> Response {
     let db = state.db.lock().unwrap();
     match super::view::load_archive_batches(&db) {
-        Ok(view) => render(view),
+        Ok(view) => render_view(view),
         Err(e) => server_error(&e),
     }
 }

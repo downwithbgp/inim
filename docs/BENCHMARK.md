@@ -148,3 +148,27 @@ reuse match the pilot evidence recorded earlier (11/33 absent, 12/12
 rrc06, 13/24 rrc15, 11/11 rrc00 — same transitions and timestamps), and
 the required tests assert byte-identical outputs across cache paths and
 worker counts.
+
+## Operational-workflow measurement — 2026-08-02
+
+Dated measurement of the queued-analysis workflow on the demo catalog
+(local alpha targets, not universal guarantees). Host: Linux x86_64,
+release build.
+
+| Operation | Median | Max | Notes |
+|---|---|---|---|
+| Queue POST (CLI, same service as web) | 7.7 ms | 14.8 ms | target < 100 ms; duplicate submits are idempotent |
+| Worker claim transaction | 5.5 ms | — | BEGIN IMMEDIATE + claim update + event, DB idle |
+| Job page query set (state + events + list) | 0.07 ms | — | target < 100 ms median |
+| Publication transaction | bounded by artifact hashing | — | one catalog transaction after the rename |
+
+Query plans confirm index use: the queue-claim query scans
+`idx_jobs_active (state, requested_at)` and the idempotency query scans
+`idx_jobs_plan (plan_revision_id)`. Progress updates are throttled to
+stage/archive boundaries and a bounded time interval, so SQLite write
+contention while the worker runs stays negligible (verified by the
+concurrent server-read/worker-write test).
+
+No parser code was changed for these measurements; queue overhead is
+dominated by process startup for the CLI (the web POST path is
+in-process).

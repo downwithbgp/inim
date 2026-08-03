@@ -24,6 +24,11 @@ pub const EXIT_SUCCESS: i32 = 0;
 pub const EXIT_INVALID_INPUT: i32 = 1;
 pub const EXIT_ANALYSIS_INCOMPLETE: i32 = 2;
 pub const EXIT_ANALYSIS_BLOCKED: i32 = 3;
+/// Queue conflict: an active job for the exact plan revision already
+/// exists; the caller may follow the existing job.
+pub const EXIT_QUEUE_CONFLICT: i32 = 4;
+/// Worker failure: execution or publication failed.
+pub const EXIT_WORKER_FAILURE: i32 = 5;
 
 /// Local event-conditioned BGP analysis: relate operator-declared network events to
 /// the globally visible routing system.
@@ -111,7 +116,12 @@ enum Commands {
     /// local event catalog.
     #[command(subcommand)]
     Catalog(CatalogCommands),
-    /// Serve the read-only localhost catalog web UI.
+    /// Serve the localhost catalog web UI (read-only by default).
+    ///
+    /// Mutates the catalog only when --enable-writes is set. Write mode
+    /// is unauthenticated and intended for trusted local use; it never
+    /// executes analysis (a separate `inim worker` process executes
+    /// queued jobs).
     Serve {
         /// Catalog database path.
         #[arg(long, value_name = "PATH")]
@@ -128,6 +138,17 @@ enum Commands {
         /// Explicitly allow a non-loopback bind (no authentication).
         #[arg(long)]
         allow_non_loopback: bool,
+
+        /// Enable local catalog mutations (queue/cancel/retry/plan
+        /// edits) with CSRF protection. No analysis runs in this
+        /// process.
+        #[arg(long)]
+        enable_writes: bool,
+
+        /// Extra explicit acknowledgement required for write mode on a
+        /// non-loopback bind (write mode is unauthenticated).
+        #[arg(long)]
+        allow_unauthenticated_writes: bool,
     },
     /// Analyze a single operational event against BGP observations.
     ///
@@ -202,6 +223,176 @@ enum Commands {
         /// local raw-cache benchmark; 0 rejected — use --parse-jobs).
         #[arg(short = 'j', long, default_value_t = 8)]
         jobs: usize,
+    },
+    /// Inspect an analysis plan revision from the catalog.
+    ///
+    /// Read-only: never mutates the catalog and never accesses the
+    /// network. Shows the exact plan revision, its reviewed/derived
+    /// split, blocker reasons, and the canonical plan hash.
+    AnalysisPlan {
+        #[command(subcommand)]
+        command: AnalysisPlanCommands,
+    },
+    /// Administer durable analysis jobs (queue/cancel/retry).
+    ///
+    /// Queueing mutates the local catalog but never executes analysis
+    /// and never accesses the network; execution happens in `inim
+    /// worker`.
+    #[command(subcommand)]
+    AnalysisJob(AnalysisJobCommands),
+    /// Execute queued analyses from the durable job queue.
+    ///
+    /// Mutates the catalog (claim/progress/publication) and may access
+    /// configured public archive sources (RouteViews, RIPE RIS) unless
+    /// --offline is set. Run as a separate process from `inim serve`.
+    Worker {
+        /// Catalog database path.
+        #[arg(long, value_name = "PATH")]
+        db: PathBuf,
+        /// Catalog root directory (job staging/published runs live
+        /// under data/jobs and data/runs relative to it).
+        #[arg(long, value_name = "DIR", default_value = ".")]
+        root: PathBuf,
+        /// Stable worker id; a random process-lifetime id is generated
+        /// when absent. Never a bare hostname.
+        #[arg(long, value_name = "ID")]
+        worker_id: Option<String>,
+        /// Poll interval when the queue is empty.
+        #[arg(long, value_name = "DURATION", default_value = "2s")]
+        poll_interval: String,
+        /// Maximum concurrent jobs (default 1; >1 requires bounded
+        /// parse budget).
+        #[arg(long, default_value_t = 1)]
+        max_jobs: usize,
+        /// Network download concurrency.
+        #[arg(long, default_value_t = 2)]
+        download_jobs: usize,
+        /// Parser-worker count.
+        #[arg(long, default_value_t = 8)]
+        parse_jobs: usize,
+        /// Claim and execute at most one job, then exit.
+        #[arg(long)]
+        once: bool,
+        /// Reject any job requiring uncached network acquisition.
+        #[arg(long)]
+        offline: bool,
+        /// Print the effective execution plan and exit without running.
+        #[arg(long)]
+        show_execution_plan: bool,
+        /// Keep the staging directory of failed/cancelled jobs.
+        #[arg(long)]
+        keep_failed_workdir: bool,
+    },
+    /// Build or verify a deterministic offline demo catalog.
+    #[command(subcommand)]
+    Demo(DemoCommands),
+}
+
+/// Analysis-plan inspection subcommands.
+#[derive(Subcommand)]
+enum AnalysisPlanCommands {
+    /// Show the latest plan revision for an event (read-only).
+    Show {
+        /// Catalog database path.
+        #[arg(long, value_name = "PATH")]
+        db: PathBuf,
+        /// Event id (e.g. INC0302574).
+        #[arg(long, value_name = "ID")]
+        event: String,
+        /// Emit JSON instead of text.
+        #[arg(long)]
+        json: bool,
+    },
+}
+
+/// Analysis-job administration subcommands.
+#[derive(Subcommand)]
+enum AnalysisJobCommands {
+    /// Queue an exact plan revision (idempotent; no execution).
+    Queue {
+        /// Catalog database path.
+        #[arg(long, value_name = "PATH")]
+        db: PathBuf,
+        /// Exact plan revision id (from `inim analysis-plan show`).
+        #[arg(long, value_name = "ID")]
+        plan: i64,
+    },
+    /// List jobs (execution state).
+    List {
+        /// Catalog database path.
+        #[arg(long, value_name = "PATH")]
+        db: PathBuf,
+        /// Optional state filter (e.g. Queued, Failed, Completed).
+        #[arg(long, value_name = "STATE")]
+        state: Option<String>,
+    },
+    /// Show one job with its recent events.
+    Show {
+        /// Catalog database path.
+        #[arg(long, value_name = "PATH")]
+        db: PathBuf,
+        /// Job id.
+        #[arg(long, value_name = "ID")]
+        job: String,
+    },
+    /// Request cancellation (cooperative; queued jobs cancel directly).
+    Cancel {
+        /// Catalog database path.
+        #[arg(long, value_name = "PATH")]
+        db: PathBuf,
+        /// Job id.
+        #[arg(long, value_name = "ID")]
+        job: String,
+    },
+    /// Create a new attempt for a Failed or Cancelled job.
+    Retry {
+        /// Catalog database path.
+        #[arg(long, value_name = "PATH")]
+        db: PathBuf,
+        /// Job id.
+        #[arg(long, value_name = "ID")]
+        job: String,
+    },
+    /// Report stale/expired leases and orphaned artifacts (read-only).
+    Audit {
+        /// Catalog database path.
+        #[arg(long, value_name = "PATH")]
+        db: PathBuf,
+        /// Catalog root directory.
+        #[arg(long, value_name = "DIR", default_value = ".")]
+        root: PathBuf,
+    },
+}
+
+/// Demo catalog subcommands (offline, deterministic).
+#[derive(Subcommand)]
+enum DemoCommands {
+    /// Build a demo catalog from tracked reviewed material (offline).
+    ///
+    /// Imports the reviewed case-study metadata and current artifacts
+    /// into a fresh SQLite database. Never accesses the network, never
+    /// modifies tracked files, and refuses to overwrite an existing
+    /// database unless --force is given.
+    Init {
+        /// Output database path (must not exist unless --force).
+        #[arg(long, value_name = "PATH")]
+        db: PathBuf,
+        /// Repository root containing manifests/ and case-studies/.
+        #[arg(long, value_name = "DIR", default_value = ".")]
+        root: PathBuf,
+        /// Overwrite an existing database at --db.
+        #[arg(long)]
+        force: bool,
+    },
+    /// Verify a demo catalog: expected events, workbenches, artifact
+    /// references, no source access, no absolute-path leaks.
+    Verify {
+        /// Demo database path.
+        #[arg(long, value_name = "PATH")]
+        db: PathBuf,
+        /// Repository root containing manifests/ and case-studies/.
+        #[arg(long, value_name = "DIR", default_value = ".")]
+        root: PathBuf,
     },
 }
 
@@ -587,12 +778,50 @@ fn run(cli: &Cli) -> i32 {
             cmd_compare(&mut std::io::stdout(), a, b, blocked.as_deref(), out)
         }
         Commands::Catalog(command) => cmd_catalog(&mut std::io::stdout(), command),
+        Commands::AnalysisPlan { command } => cmd_analysis_plan(&mut std::io::stdout(), command),
+        Commands::AnalysisJob(command) => cmd_analysis_job(&mut std::io::stdout(), command),
+        Commands::Worker {
+            db,
+            root,
+            worker_id,
+            poll_interval,
+            max_jobs,
+            download_jobs,
+            parse_jobs,
+            once,
+            offline,
+            show_execution_plan,
+            keep_failed_workdir,
+        } => cmd_worker(
+            db,
+            root,
+            worker_id.as_deref(),
+            poll_interval,
+            *max_jobs,
+            *download_jobs,
+            *parse_jobs,
+            *once,
+            *offline,
+            *show_execution_plan,
+            *keep_failed_workdir,
+        ),
+        Commands::Demo(command) => cmd_demo(&mut std::io::stdout(), command),
         Commands::Serve {
             db,
             root,
             bind,
             allow_non_loopback,
-        } => cmd_serve(&mut std::io::stdout(), db, root, bind, *allow_non_loopback),
+            enable_writes,
+            allow_unauthenticated_writes,
+        } => cmd_serve(
+            &mut std::io::stdout(),
+            db,
+            root,
+            bind,
+            *allow_non_loopback,
+            *enable_writes,
+            *allow_unauthenticated_writes,
+        ),
         Commands::Analyze {
             event,
             manifest,
@@ -648,6 +877,7 @@ fn run(cli: &Cli) -> i32 {
                 jobs: *jobs,
                 parse_jobs: *parse_jobs,
                 download_jobs: *download_jobs,
+                offline: false,
             };
             cmd_analyze(
                 &mut std::io::stdout(),
@@ -984,6 +1214,8 @@ fn cmd_analyze(
         discovery,
         cache_control,
         preflight_only,
+        &std::sync::atomic::AtomicBool::new(false),
+        &inim::execution::TermSink,
     );
 
     if preflight_only {
@@ -1624,6 +1856,8 @@ fn cmd_serve(
     root: &std::path::Path,
     bind: &str,
     allow_non_loopback: bool,
+    enable_writes: bool,
+    allow_unauthenticated_writes: bool,
 ) -> i32 {
     if let Err(e) = inim::catalog::web::server::validate_bind(bind, allow_non_loopback) {
         let _ = writeln!(stdout, "error: {e}");
@@ -1642,6 +1876,8 @@ fn cmd_serve(
         root,
         bind,
         allow_non_loopback,
+        enable_writes,
+        allow_unauthenticated_writes,
         version,
     )) {
         Ok(()) => EXIT_SUCCESS,
@@ -1833,6 +2069,10 @@ mod tests {
             Commands::Compare { .. } => unreachable!("compare not expected"),
             Commands::Catalog(_) => unreachable!("catalog not expected"),
             Commands::Serve { .. } => unreachable!("serve not expected"),
+            Commands::AnalysisPlan { .. } => unreachable!("analysis-plan not expected"),
+            Commands::AnalysisJob(_) => unreachable!("analysis-job not expected"),
+            Commands::Worker { .. } => unreachable!("worker not expected"),
+            Commands::Demo(_) => unreachable!("demo not expected"),
         }
     }
 
@@ -1856,6 +2096,10 @@ mod tests {
             Commands::Compare { .. } => unreachable!("compare not expected"),
             Commands::Catalog(_) => unreachable!("catalog not expected"),
             Commands::Serve { .. } => unreachable!("serve not expected"),
+            Commands::AnalysisPlan { .. } => unreachable!("analysis-plan not expected"),
+            Commands::AnalysisJob(_) => unreachable!("analysis-job not expected"),
+            Commands::Worker { .. } => unreachable!("worker not expected"),
+            Commands::Demo(_) => unreachable!("demo not expected"),
         }
     }
 
@@ -1875,6 +2119,10 @@ mod tests {
             Commands::Compare { .. } => unreachable!("compare not expected"),
             Commands::Catalog(_) => unreachable!("catalog not expected"),
             Commands::Serve { .. } => unreachable!("serve not expected"),
+            Commands::AnalysisPlan { .. } => unreachable!("analysis-plan not expected"),
+            Commands::AnalysisJob(_) => unreachable!("analysis-job not expected"),
+            Commands::Worker { .. } => unreachable!("worker not expected"),
+            Commands::Demo(_) => unreachable!("demo not expected"),
         }
     }
 
@@ -1902,6 +2150,10 @@ mod tests {
             Commands::Compare { .. } => unreachable!("compare not expected"),
             Commands::Catalog(_) => unreachable!("catalog not expected"),
             Commands::Serve { .. } => unreachable!("serve not expected"),
+            Commands::AnalysisPlan { .. } => unreachable!("analysis-plan not expected"),
+            Commands::AnalysisJob(_) => unreachable!("analysis-job not expected"),
+            Commands::Worker { .. } => unreachable!("worker not expected"),
+            Commands::Demo(_) => unreachable!("demo not expected"),
         }
     }
 
@@ -3324,5 +3576,426 @@ mod session33_cli_tests {
         let text = serde_json::to_string(&export).unwrap();
         assert!(!text.contains("secret payload"), "{text}");
         assert!(!text.contains("raw_payload"), "{text}");
+    }
+}
+
+// ── Analysis plan / job / worker / demo commands ───────────────────
+
+fn cmd_analysis_plan(stdout: &mut dyn Write, command: &AnalysisPlanCommands) -> i32 {
+    match command {
+        AnalysisPlanCommands::Show { db, event, json } => {
+            let conn = match inim::catalog::db::open_catalog(db) {
+                Ok(c) => c,
+                Err(e) => {
+                    let _ = writeln!(stdout, "error: {e}");
+                    return EXIT_INVALID_INPUT;
+                }
+            };
+            let view = match inim::catalog::web::jobs_view::load_plan_review(&conn, event, false) {
+                Ok(Some(v)) => v,
+                Ok(None) => {
+                    let _ = writeln!(stdout, "error: event not found: {event}");
+                    return EXIT_INVALID_INPUT;
+                }
+                Err(e) => {
+                    let _ = writeln!(stdout, "error: {e}");
+                    return EXIT_INVALID_INPUT;
+                }
+            };
+            if *json {
+                let payload = serde_json::json!({
+                    "event_id": view.event_id,
+                    "plan_status": view.plan_status,
+                    "block_reason": view.block_reason,
+                    "plan_revision_id": view.plan_revision_id,
+                    "plan_hash": view.plan_hash,
+                    "ready_to_queue": view.ready_to_queue,
+                    "reviewed": view.reviewed.iter().map(|r| (r.label.clone(), r.value.clone())).collect::<Vec<_>>(),
+                    "derived": view.derived.iter().map(|r| (r.label.clone(), r.value.clone())).collect::<Vec<_>>(),
+                    "unresolved": view.unresolved,
+                    "schema_version": 1,
+                });
+                let _ = writeln!(
+                    stdout,
+                    "{}",
+                    serde_json::to_string_pretty(&payload).unwrap_or_default()
+                );
+            } else {
+                let _ = writeln!(stdout, "Analysis plan — {}", view.event_id);
+                let _ = writeln!(
+                    stdout,
+                    "Plan status: {} {}",
+                    view.plan_status,
+                    if view.block_reason.is_empty() {
+                        String::new()
+                    } else {
+                        format!("({})", view.block_reason)
+                    }
+                );
+                if let Some(h) = &view.plan_hash {
+                    let _ = writeln!(stdout, "Plan hash: {h}");
+                }
+                let _ = writeln!(stdout, "\nReviewed input:");
+                for r in &view.reviewed {
+                    let _ = writeln!(stdout, "  {}: {}", r.label, r.value);
+                }
+                let _ = writeln!(stdout, "\nDerived execution plan:");
+                for r in &view.derived {
+                    let _ = writeln!(stdout, "  {}: {}", r.label, r.value);
+                }
+                if !view.unresolved.is_empty() {
+                    let _ = writeln!(stdout, "\nUnresolved requirements:");
+                    for u in &view.unresolved {
+                        let _ = writeln!(stdout, "  - {u}");
+                    }
+                }
+                let _ = writeln!(stdout, "\nRead-only; no network access performed.");
+            }
+            EXIT_SUCCESS
+        }
+    }
+}
+
+fn cmd_analysis_job(stdout: &mut dyn Write, command: &AnalysisJobCommands) -> i32 {
+    use inim::catalog::jobs::service as jobs;
+    use inim::catalog::jobs::{JobState, RequestSource};
+    match command {
+        AnalysisJobCommands::Queue { db, plan } => {
+            let conn = match inim::catalog::db::open_catalog(db) {
+                Ok(c) => c,
+                Err(e) => {
+                    let _ = writeln!(stdout, "error: {e}");
+                    return EXIT_INVALID_INPUT;
+                }
+            };
+            let plan_hash = match inim::catalog::jobs::plan::validate_plan_for_queue(&conn, *plan) {
+                Ok(h) => h,
+                Err(e) => {
+                    let _ = writeln!(stdout, "queue rejected: {e}");
+                    if e.starts_with("invalid_plan") {
+                        return EXIT_ANALYSIS_BLOCKED;
+                    }
+                    return EXIT_INVALID_INPUT;
+                }
+            };
+            match jobs::queue(&conn, *plan, RequestSource::Cli, &plan_hash) {
+                Ok(jobs::QueueOutcome::Created(job_id)) => {
+                    let _ = writeln!(stdout, "queued job {job_id} (plan revision {plan})");
+                    let _ = writeln!(
+                        stdout,
+                        "mutates the catalog only; execution requires `inim worker`"
+                    );
+                    EXIT_SUCCESS
+                }
+                Ok(jobs::QueueOutcome::Duplicate(job_id)) => {
+                    let _ = writeln!(stdout, "job already queued: {job_id}");
+                    EXIT_QUEUE_CONFLICT
+                }
+                Err(e) => {
+                    let _ = writeln!(stdout, "queue failed: {e}");
+                    EXIT_INVALID_INPUT
+                }
+            }
+        }
+        AnalysisJobCommands::List { db, state } => {
+            let conn = match inim::catalog::db::open_catalog(db) {
+                Ok(c) => c,
+                Err(e) => {
+                    let _ = writeln!(stdout, "error: {e}");
+                    return EXIT_INVALID_INPUT;
+                }
+            };
+            let state_filter = match state {
+                Some(s) => match JobState::parse_state(s) {
+                    Ok(st) => Some(st),
+                    Err(e) => {
+                        let _ = writeln!(stdout, "error: {e}");
+                        return EXIT_INVALID_INPUT;
+                    }
+                },
+                None => None,
+            };
+            let jobs = match jobs::list(
+                &conn,
+                &jobs::JobFilter {
+                    state: state_filter,
+                    plan_revision_id: None,
+                },
+            ) {
+                Ok(j) => j,
+                Err(e) => {
+                    let _ = writeln!(stdout, "error: {e}");
+                    return EXIT_INVALID_INPUT;
+                }
+            };
+            if jobs.is_empty() {
+                let _ = writeln!(stdout, "no jobs");
+                return EXIT_SUCCESS;
+            }
+            let _ = writeln!(
+                stdout,
+                "{:<20} {:<14} {:<10} REQUESTED-TIME",
+                "JOB", "STATE", "STAGE"
+            );
+            for j in jobs {
+                let _ = writeln!(
+                    stdout,
+                    "{:<20} {:<14} {:<10} {}",
+                    j.id,
+                    j.state.as_str(),
+                    j.stage.clone().unwrap_or_default(),
+                    j.requested_at
+                );
+            }
+            EXIT_SUCCESS
+        }
+        AnalysisJobCommands::Show { db, job } => {
+            let conn = match inim::catalog::db::open_catalog(db) {
+                Ok(c) => c,
+                Err(e) => {
+                    let _ = writeln!(stdout, "error: {e}");
+                    return EXIT_INVALID_INPUT;
+                }
+            };
+            let j = match jobs::get(&conn, job) {
+                Ok(j) => j,
+                Err(e) => {
+                    let _ = writeln!(stdout, "error: {e}");
+                    return EXIT_INVALID_INPUT;
+                }
+            };
+            let _ = writeln!(stdout, "job:        {}", j.id);
+            let _ = writeln!(stdout, "state:      {}", j.state.as_str());
+            let _ = writeln!(
+                stdout,
+                "stage:      {}",
+                j.stage.clone().unwrap_or_default()
+            );
+            let _ = writeln!(
+                stdout,
+                "plan:       {} (hash {})",
+                j.plan_revision_id, j.plan_hash
+            );
+            let _ = writeln!(
+                stdout,
+                "requested:  {} ({})",
+                j.requested_at, j.requested_by
+            );
+            let _ = writeln!(stdout, "attempt:    {}", j.attempt);
+            if let Some(o) = &j.original_job_id {
+                let _ = writeln!(stdout, "retry of:   {o}");
+            }
+            if let Some(w) = &j.worker_id {
+                let _ = writeln!(stdout, "worker:     {w}");
+            }
+            if let Some(r) = j.completed_run_id {
+                let _ = writeln!(stdout, "run:        {r}");
+            }
+            if let Some(code) = &j.error_code {
+                let _ = writeln!(
+                    stdout,
+                    "error:      {code} — {}",
+                    j.error_summary.clone().unwrap_or_default()
+                );
+            }
+            let _ = writeln!(stdout, "\nrecent events:");
+            for ev in jobs::events(&conn, job, 10).unwrap_or_default() {
+                let _ = writeln!(
+                    stdout,
+                    "  #{} {} {} — {}",
+                    ev.sequence,
+                    ev.occurred_at,
+                    ev.state.as_str(),
+                    ev.human_message
+                );
+            }
+            EXIT_SUCCESS
+        }
+        AnalysisJobCommands::Cancel { db, job } => {
+            let conn = match inim::catalog::db::open_catalog(db) {
+                Ok(c) => c,
+                Err(e) => {
+                    let _ = writeln!(stdout, "error: {e}");
+                    return EXIT_INVALID_INPUT;
+                }
+            };
+            match jobs::request_cancel(&conn, job) {
+                Ok(jobs::CancelOutcome::Cancelled(_)) => {
+                    let _ = writeln!(stdout, "job {job} cancelled (was queued)");
+                    EXIT_SUCCESS
+                }
+                Ok(jobs::CancelOutcome::Requested(_)) => {
+                    let _ = writeln!(
+                        stdout,
+                        "cancellation requested for {job}; the worker stops at the next checkpoint"
+                    );
+                    EXIT_SUCCESS
+                }
+                Err(e) => {
+                    let _ = writeln!(stdout, "cancel failed: {e}");
+                    EXIT_INVALID_INPUT
+                }
+            }
+        }
+        AnalysisJobCommands::Retry { db, job } => {
+            let conn = match inim::catalog::db::open_catalog(db) {
+                Ok(c) => c,
+                Err(e) => {
+                    let _ = writeln!(stdout, "error: {e}");
+                    return EXIT_INVALID_INPUT;
+                }
+            };
+            let plan_hash = match jobs::get(&conn, job) {
+                Ok(j) => j.plan_hash,
+                Err(e) => {
+                    let _ = writeln!(stdout, "error: {e}");
+                    return EXIT_INVALID_INPUT;
+                }
+            };
+            match jobs::retry(&conn, job, RequestSource::Cli, &plan_hash) {
+                Ok(new_id) => {
+                    let _ = writeln!(stdout, "retry created: {new_id} (attempt of {job})");
+                    EXIT_SUCCESS
+                }
+                Err(e) => {
+                    let _ = writeln!(stdout, "retry failed: {e}");
+                    EXIT_INVALID_INPUT
+                }
+            }
+        }
+        AnalysisJobCommands::Audit { db, root } => {
+            let conn = match inim::catalog::db::open_catalog(db) {
+                Ok(c) => c,
+                Err(e) => {
+                    let _ = writeln!(stdout, "error: {e}");
+                    return EXIT_INVALID_INPUT;
+                }
+            };
+            let now = chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
+            let stale = jobs::mark_stale_leases(&conn, &now).unwrap_or_default();
+            for id in &stale {
+                let _ = writeln!(
+                    stdout,
+                    "stale lease expired: {id} (Failed/worker_lease_expired; staging preserved)"
+                );
+            }
+            match inim::catalog::jobs::publish::reconcile_orphans(&conn, root) {
+                Ok(rep) => {
+                    for d in &rep.orphan_directories {
+                        let _ = writeln!(
+                            stdout,
+                            "orphan final directory: {} (unreferenced; not deleted)",
+                            d.display()
+                        );
+                    }
+                    for a in &rep.missing_run_artifacts {
+                        let _ = writeln!(stdout, "missing run artifact: {a}");
+                    }
+                    if stale.is_empty()
+                        && rep.orphan_directories.is_empty()
+                        && rep.missing_run_artifacts.is_empty()
+                    {
+                        let _ = writeln!(
+                            stdout,
+                            "no stale leases, no orphan directories, no missing run artifacts"
+                        );
+                    }
+                    EXIT_SUCCESS
+                }
+                Err(e) => {
+                    let _ = writeln!(stdout, "orphan scan failed: {e}");
+                    EXIT_INVALID_INPUT
+                }
+            }
+        }
+    }
+}
+
+#[allow(clippy::too_many_arguments)] // one worker launch; each flag maps to one config field
+fn cmd_worker(
+    db: &std::path::Path,
+    root: &std::path::Path,
+    worker_id: Option<&str>,
+    poll_interval: &str,
+    max_jobs: usize,
+    download_jobs: usize,
+    parse_jobs: usize,
+    once: bool,
+    offline: bool,
+    show_execution_plan: bool,
+    keep_failed_workdir: bool,
+) -> i32 {
+    let poll = parse_duration_secs(poll_interval).unwrap_or(2);
+    let config = inim::worker::WorkerConfig {
+        db_path: db.to_path_buf(),
+        root: root.to_path_buf(),
+        worker_id: worker_id.map(|s| s.to_string()),
+        poll_interval: std::time::Duration::from_secs(poll),
+        max_jobs,
+        download_jobs,
+        parse_jobs,
+        once,
+        offline,
+        lease_secs: inim::catalog::jobs::service::DEFAULT_LEASE_SECS,
+        heartbeat_secs: inim::catalog::jobs::service::DEFAULT_HEARTBEAT_SECS,
+        keep_failed_workdir,
+        show_execution_plan,
+    };
+    let code = inim::worker::run_worker(&config);
+    if code != 0 && code != 2 {
+        return EXIT_WORKER_FAILURE;
+    }
+    code
+}
+
+fn parse_duration_secs(s: &str) -> Option<u64> {
+    let t = s.trim();
+    if let Some(secs) = t.strip_suffix('s') {
+        return secs.trim().parse().ok();
+    }
+    if let Some(ms) = t.strip_suffix("ms") {
+        return ms
+            .trim()
+            .parse::<u64>()
+            .ok()
+            .map(|v| v / 1000)
+            .filter(|v| *v > 0);
+    }
+    t.parse().ok()
+}
+
+fn cmd_demo(stdout: &mut dyn Write, command: &DemoCommands) -> i32 {
+    match command {
+        DemoCommands::Init { db, root, force } => {
+            match inim::catalog::demo::demo_init(db, root, *force) {
+                Ok(report) => {
+                    let _ = write!(stdout, "{}", inim::catalog::demo::render_report(&report));
+                    if report.is_ok() {
+                        let _ = writeln!(stdout, "demo catalog ready at {}", db.display());
+                        EXIT_SUCCESS
+                    } else {
+                        EXIT_INVALID_INPUT
+                    }
+                }
+                Err(e) => {
+                    let _ = writeln!(stdout, "demo init failed: {e}");
+                    EXIT_INVALID_INPUT
+                }
+            }
+        }
+        DemoCommands::Verify { db, root } => match inim::catalog::demo::demo_verify(db, root) {
+            Ok(report) => {
+                let _ = write!(stdout, "{}", inim::catalog::demo::render_report(&report));
+                if report.is_ok() {
+                    EXIT_SUCCESS
+                } else {
+                    EXIT_INVALID_INPUT
+                }
+            }
+            Err(e) => {
+                let _ = writeln!(stdout, "demo verify failed: {e}");
+                EXIT_INVALID_INPUT
+            }
+        },
     }
 }

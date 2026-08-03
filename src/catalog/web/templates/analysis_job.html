@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% block title %}Analysis job — {{ job.job_id }}{% endblock %}
+{% block content %}
+{% if auto_refresh %}
+<meta http-equiv="refresh" content="10">
+{% endif %}
+{% if already_queued %}
+<p class="ok">Job already queued — this is the existing active job for this plan revision.</p>
+{% endif %}
+<h2>Analysis job</h2>
+
+<div class="panel">
+<table>
+  <tr><th>Job</th><td><code>{{ job.job_id }}</code></td></tr>
+  <tr><th>Event</th><td><a href="/events/{{ job.event_id }}">{{ job.event_id }}</a> {{ job.title }}</td></tr>
+  <tr><th>Plan revision</th><td><a href="/events/{{ job.event_id }}/analysis-plan">{{ job.plan_revision_id }}</a></td></tr>
+  <tr><th>State</th><td><strong>{{ job.state }}</strong>{% if !job.stage.is_empty() %} · stage: {{ job.stage }}{% endif %}</td></tr>
+  <tr><th>Progress</th><td>{{ job.progress }}</td></tr>
+  <tr><th>Elapsed</th><td>{{ job.elapsed }}</td></tr>
+  <tr><th>Requested</th><td>{{ job.requested_at }} ({{ job.requested_by }})</td></tr>
+  <tr><th>Attempt</th><td>{{ job.attempt }}{% if let Some(orig) = job.original_job_id %} (retry of <a href="/analysis-jobs/{{ orig }}">{{ orig }}</a>){% endif %}</td></tr>
+  <tr><th>Worker</th><td>{{ job.worker_id }}</td></tr>
+  <tr><th>Source access</th><td>{{ job.source_access }}</td></tr>
+  <tr><th>Plan hash</th><td><code>{{ job.plan_hash }}</code></td></tr>
+{% if job.completed_run_id.is_some() %}
+  <tr><th>Completed run</th><td><a href="/analyses/{{ job.completed_run_id.unwrap() }}">run {{ job.completed_run_id.unwrap() }}</a> · <a href="/events/{{ job.event_id }}/workbench">open workbench</a></td></tr>
+{% endif %}
+{% if !job.error_code.is_empty() %}
+  <tr><th>Failure</th><td><code>{{ job.error_code }}</code> — {{ job.error_summary }}</td></tr>
+{% endif %}
+</table>
+
+{% if writes_enabled %}
+{% if cancellable %}
+<form method="post" action="/analysis-jobs/{{ job.job_id }}/cancel" style="display:inline">
+  <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+  <button type="submit" onclick="return confirm('Request cancellation of this analysis job?')">Request cancellation</button>
+</form>
+{% endif %}
+{% if retryable %}
+<form method="post" action="/analysis-jobs/{{ job.job_id }}/retry" style="display:inline">
+  <input type="hidden" name="_csrf" value="{{ csrf_token }}">
+  <button type="submit">Retry (new attempt)</button>
+</form>
+{% endif %}
+{% if cancellable && retryable %}
+<p class="muted">Cancellation is cooperative: the worker stops at the next stage or archive boundary. A single archive parse may finish before cancellation takes effect. A run is never published after cancellation was accepted.</p>
+{% endif %}
+{% endif %}
+</div>
+
+<div class="panel">
+<details>
+<summary>Execution details</summary>
+<table>
+  <tr><th>Canonical plan hash</th><td><code>{{ job.plan_hash }}</code></td></tr>
+  <tr><th>Attempt</th><td>{{ job.attempt }}</td></tr>
+  <tr><th>Requested by</th><td>{{ job.requested_by }}</td></tr>
+  <tr><th>Worker</th><td>{{ job.worker_id }}</td></tr>
+  <tr><th>Source access</th><td>{{ job.source_access }}</td></tr>
+</table>
+<p class="muted">Cache hit counts, archive counts, and parser throughput are recorded in the published run's <code>performance.json</code> and <code>execution_metadata.json</code>.</p>
+</details>
+</div>
+
+{% if !worker.is_empty() %}
+<div class="panel">
+<h3>Workers</h3>
+<table>
+  <tr><th>Worker</th><th>Heartbeat</th><th>Status</th><th>Version</th><th>Download jobs</th><th>Parse jobs</th><th>Offline</th></tr>
+{% for w in worker %}
+  <tr>
+    <td>{{ w.worker_id }}</td>
+    <td>{{ w.last_heartbeat }}</td>
+    <td>{{ w.freshness }}</td>
+    <td>{{ w.process_version }}</td>
+    <td>{{ w.download_jobs }}</td>
+    <td>{{ w.parse_jobs }}</td>
+    <td>{{ w.offline }}</td>
+  </tr>
+{% endfor %}
+</table>
+<p class="muted">A worker that is absent is not unhealthy; no worker may simply be needed.</p>
+</div>
+{% endif %}
+
+<div class="panel">
+<h3>Recent events</h3>
+{% if events.is_empty() %}
+<p class="muted">No events recorded.</p>
+{% else %}
+<table>
+  <tr><th>#</th><th>Time</th><th>State</th><th>Message</th><th>Progress</th></tr>
+{% for e in events %}
+  <tr>
+    <td>{{ e.sequence }}</td>
+    <td>{{ e.occurred_at }}</td>
+    <td>{{ e.state }}</td>
+    <td>{{ e.message }}</td>
+    <td>{{ e.progress }}</td>
+  </tr>
+{% endfor %}
+</table>
+{% endif %}
+</div>
+
+<p><a href="/analysis-jobs">All jobs</a></p>
+{% endblock %}

@@ -179,3 +179,14 @@ Do not continue iterative visual polishing based solely on the existing
 three case studies. Semantic corrections that make the rendered story
 agree with the canonical route evidence remain in scope; visual
 redesigns do not.
+
+## Job workflow pages
+
+Plan review separates Reviewed input, Derived execution plan, and
+Unresolved requirements (exact blocker reasons; no raw JSON in the
+principal view). The jobs index separates active, queued, failed, and
+recently completed jobs. The job detail page shows state, stage,
+factual progress, recent events, worker heartbeat, cancellation and
+retry controls (write mode only), and the completed-run link. No
+verbose parser logs on the first screen; execution details are
+collapsed.

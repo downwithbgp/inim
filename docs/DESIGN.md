@@ -631,3 +631,15 @@ existing run indexes (`idx_streams_run`, `idx_run_transitions_run`,
 `idx_waves_run` — verified with EXPLAIN QUERY PLAN); no new indexes were
 needed. Per-request SQL count and timings are captured; demo catalog
 renders in ~16–23 ms median (target: <100 ms median, <250 ms worst).
+
+## Durable analysis jobs and the worker boundary (ADR-004)
+
+The web server is read-only by default and never executes analysis. A
+reviewed immutable plan revision can be queued (web or CLI) into
+`analysis_jobs`; a separate `inim worker` process claims jobs
+transactionally, executes them through the shared execution service
+(`src/execution.rs`), stages artifacts under `data/jobs/<job-id>/`,
+validates them, and publishes completed runs atomically under
+`data/runs/<job-id>/`. Job state is execution state and is distinct
+from plan status and analysis outcome. See `docs/OPERATIONS.md` and
+`docs/ADRs/DURABLE-ANALYSIS-JOBS.md`.

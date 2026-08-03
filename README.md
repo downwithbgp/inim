@@ -87,6 +87,21 @@ reference their source runs. See `docs/DATA_PROVENANCE.md` and
 cargo build --release
 ```
 
+The built binary is `./target/release/inim` (or install it on your PATH
+with `cargo install --path .`).
+
+### Deterministic offline demo (no network)
+
+```sh
+inim demo init --db ./inim-demo.sqlite --root .
+inim serve --db ./inim-demo.sqlite --root .
+# open http://127.0.0.1:8080  (events, workbenches, analysis jobs)
+```
+
+`inim demo init` builds a fresh catalog from tracked reviewed material
+(no private databases, no downloads, no network); `inim demo verify`
+checks events, workbenches, and artifact references.
+
 ### Local catalog and web workbench
 
 ```sh
@@ -98,12 +113,46 @@ inim serve --db data/inim.sqlite --root .
 ```
 
 `inim serve` binds loopback only and is unauthenticated; a non-loopback
-bind requires `--allow-non-loopback`. The workbench for an event or case
-study is also available as a text report without the web server:
+bind requires `--allow-non-loopback`. The server is read-only by
+default; local mutations (queue, cancel, retry, plan edits) require
+`--enable-writes` and are intended for trusted local use only — never
+expose write mode to untrusted networks. No analysis runs in the web
+process; a separate worker executes queued jobs. The workbench for an
+event or case study is also available as a text report without the web
+server:
 
 ```sh
 inim catalog workbench --db data/inim.sqlite --subject manlan-2019
 ```
+
+### Security model
+
+The web server is trusted-local only: no authentication exists, write
+mode is disabled by default, the default bind is loopback-only, and a
+non-loopback bind with writes requires the explicit
+`--allow-unauthenticated-writes` acknowledgement. Every mutation POST
+requires a process-lifetime CSRF token (from the OS random source),
+bodies are size-bounded (64 KiB), GET never mutates, and mutation
+endpoints do not exist when writes are disabled. Do not expose write
+mode to untrusted networks; there is no TLS termination and no password
+storage by design.
+
+### Queued analysis (reviewed plan → durable job → worker)
+
+```sh
+inim analysis-plan show --db data/inim.sqlite --event <event-id>   # read-only plan review
+inim analysis-job queue --db data/inim.sqlite --plan <plan-revision-id>   # queue (no execution)
+inim worker --db data/inim.sqlite --root .   # separate process; claims and executes jobs
+# terminal 1: inim serve --db data/inim.sqlite --root . --enable-writes
+# terminal 2: inim worker --db data/inim.sqlite --root .
+```
+
+Queueing is idempotent (one active job per exact plan revision and
+canonical plan hash), performs no network access, and never executes
+analysis. The worker claims jobs transactionally, stages and validates
+artifacts, and publishes completed runs atomically. Cancellation is
+cooperative; retry creates a new immutable attempt. See
+`docs/OPERATIONS.md` and `docs/ADRs/DURABLE-ANALYSIS-JOBS.md`.
 
 ### One-off analysis
 
@@ -126,8 +175,10 @@ See `RELEASING.md` and `CONTRIBUTING.md` for repository policy, and
 | Public-source synchronization | `inim catalog sync grnoc` (acquires ticket snapshots; never starts analysis) |
 | Archive acquisition | `inim analyze` (downloads MRT archives into `--cache`) |
 | BGP analysis | `inim plan`, `inim analyze`, `inim compare` |
-| Web serving | `inim serve` (read-only; loopback) |
-| Audit and validation | `inim catalog session-audit`, `relationships`, `corpus-export` |
+| Web serving | `inim serve` (read-only by default; `--enable-writes` for local mutations) |
+| Queued analysis | `inim analysis-plan show`, `analysis-job queue/list/show/cancel/retry/audit`, `inim worker` |
+| Offline demo | `inim demo init`, `inim demo verify` (deterministic, no network) |
+| Audit and validation | `inim catalog session-audit`, `relationships`, `corpus-export`, `analysis-job audit` |
 | Migration | `inim migrate-manifest` (offline, schema v1 → canonical) |
 
 Commands that acquire data or mutate the catalog are explicit about it;

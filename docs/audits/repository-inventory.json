@@ -1,5 +1,21 @@
 [
  {
+  "path": ".github/ISSUE_TEMPLATE/noc-alpha-feedback.md",
+  "category": "GitHub/community metadata",
+  "audience": "contributors",
+  "authoritative": "reviewed protocol",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": ".github/dependabot.yml",
+  "category": "GitHub/community metadata",
+  "audience": "contributors",
+  "authoritative": "GitHub Dependabot configuration + action review policy",
+  "generated": false,
+  "current": true
+ },
+ {
   "path": ".github/workflows/ci.yml",
   "category": "GitHub/community metadata",
   "audience": "contributors",
@@ -84,6 +100,14 @@
   "category": "Configuration",
   "audience": "maintainers",
   "authoritative": "reviewed operator configuration",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "case-studies/inc0299001/README.md",
+  "category": "Reviewed case-study interpretation",
+  "audience": "network analysts",
+  "authoritative": "canonical evidence + operator sources (reviewed)",
   "generated": false,
   "current": true
  },
@@ -185,6 +209,14 @@
  },
  {
   "path": "case-studies/inc0299001/peer-metadata.json",
+  "category": "Reviewed case-study interpretation",
+  "audience": "network analysts",
+  "authoritative": "canonical evidence + operator sources (reviewed)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "case-studies/inc0302574/README.md",
   "category": "Reviewed case-study interpretation",
   "audience": "network analysts",
   "authoritative": "canonical evidence + operator sources (reviewed)",
@@ -1304,6 +1336,14 @@
   "current": false
  },
  {
+  "path": "docs/ADRs/DURABLE-ANALYSIS-JOBS.md",
+  "category": "Historical decision record",
+  "audience": "maintainers",
+  "authoritative": "decided architecture; see ADR index",
+  "generated": false,
+  "current": false
+ },
+ {
   "path": "docs/ADRs/LOCAL-CATALOG-AND-WEB.md",
   "category": "Historical decision record",
   "audience": "maintainers",
@@ -1318,6 +1358,14 @@
   "authoritative": "decision context at time of writing",
   "generated": false,
   "current": false
+ },
+ {
+  "path": "docs/ADRs/README.md",
+  "category": "Normative current documentation",
+  "audience": "maintainers",
+  "authoritative": "ADR files themselves (historical decisions)",
+  "generated": false,
+  "current": true
  },
  {
   "path": "docs/ADRs/RIPE-RIS-SUPPORT.md",
@@ -1368,6 +1416,14 @@
   "current": true
  },
  {
+  "path": "docs/GLOSSARY.md",
+  "category": "Normative current documentation",
+  "audience": "contributors and operators",
+  "authoritative": "implementation + canonical evidence (see docs/README authority map)",
+  "generated": false,
+  "current": true
+ },
+ {
   "path": "docs/MONOCLE_EVALUATION.md",
   "category": "Historical decision record",
   "audience": "maintainers",
@@ -1377,6 +1433,22 @@
  },
  {
   "path": "docs/OBSERVABILITY.md",
+  "category": "Normative current documentation",
+  "audience": "contributors and operators",
+  "authoritative": "implementation + canonical evidence (see docs/README authority map)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "docs/OPERATIONS.md",
+  "category": "Normative current documentation",
+  "audience": "operators",
+  "authoritative": "implementation + ADR-004",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "docs/README.md",
   "category": "Normative current documentation",
   "audience": "contributors and operators",
   "authoritative": "implementation + canonical evidence (see docs/README authority map)",
@@ -1404,6 +1476,54 @@
   "category": "Normative current documentation",
   "audience": "contributors and operators",
   "authoritative": "implementation + canonical evidence (see docs/README authority map)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "docs/audits/2026-08-clean-clone.md",
+  "category": "Normative current documentation",
+  "audience": "maintainers",
+  "authoritative": "dated audit evidence",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "docs/audits/2026-08-fresh-event-candidates.md",
+  "category": "Normative current documentation",
+  "audience": "maintainers",
+  "authoritative": "dated audit evidence",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "docs/audits/2026-08-repository-truth-audit.md",
+  "category": "Normative current documentation",
+  "audience": "maintainers",
+  "authoritative": "repository-inventory.json + git state (rendered, reviewed content)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "docs/audits/external-links-2026-08.md",
+  "category": "Normative current documentation",
+  "audience": "maintainers",
+  "authoritative": "dated curl checks of documented external URLs",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "docs/audits/repository-inventory.json",
+  "category": "Configuration",
+  "audience": "maintainers",
+  "authoritative": "reviewed classification of tracked files",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "docs/evaluation/NOC-ALPHA-EVALUATION.md",
+  "category": "Normative current documentation",
+  "audience": "evaluators",
+  "authoritative": "reviewed protocol",
   "generated": false,
   "current": true
  },
@@ -1456,6 +1576,22 @@
   "current": true
  },
  {
+  "path": "scripts/audit-docs.sh",
+  "category": "Script or developer tool",
+  "audience": "maintainers",
+  "authoritative": "the command it wraps + its inputs",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "scripts/audit_docs.py",
+  "category": "Script or developer tool",
+  "audience": "maintainers",
+  "authoritative": "the command it wraps + its inputs",
+  "generated": false,
+  "current": true
+ },
+ {
   "path": "scripts/audit_pilot_absence.py",
   "category": "Script or developer tool",
   "audience": "maintainers",
@@ -1473,6 +1609,14 @@
  },
  {
   "path": "scripts/build-cross-observer-matrix.py",
+  "category": "Script or developer tool",
+  "audience": "maintainers",
+  "authoritative": "the command it wraps + its inputs",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "scripts/build-repo-audit.py",
   "category": "Script or developer tool",
   "audience": "maintainers",
   "authoritative": "the command it wraps + its inputs",
@@ -1768,6 +1912,14 @@
   "current": true
  },
  {
+  "path": "src/catalog/demo.rs",
+  "category": "Production source",
+  "audience": "developers",
+  "authoritative": "implementation",
+  "generated": false,
+  "current": true
+ },
+ {
   "path": "src/catalog/discovery.rs",
   "category": "Production source",
   "audience": "maintainers",
@@ -1820,6 +1972,38 @@
   "category": "Production source",
   "audience": "maintainers",
   "authoritative": "implementation (behavioral authority)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/catalog/jobs/mod.rs",
+  "category": "Production source",
+  "audience": "developers",
+  "authoritative": "implementation",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/catalog/jobs/plan.rs",
+  "category": "Production source",
+  "audience": "developers",
+  "authoritative": "implementation",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/catalog/jobs/publish.rs",
+  "category": "Production source",
+  "audience": "developers",
+  "authoritative": "implementation",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/catalog/jobs/service.rs",
+  "category": "Production source",
+  "audience": "developers",
+  "authoritative": "implementation",
   "generated": false,
   "current": true
  },
@@ -1968,6 +2152,22 @@
   "current": true
  },
  {
+  "path": "src/catalog/web/job_handlers.rs",
+  "category": "Production source",
+  "audience": "developers",
+  "authoritative": "implementation",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/catalog/web/jobs_view.rs",
+  "category": "Production source",
+  "audience": "developers",
+  "authoritative": "implementation",
+  "generated": false,
+  "current": true
+ },
+ {
   "path": "src/catalog/web/mod.rs",
   "category": "Production source",
   "audience": "maintainers",
@@ -1996,6 +2196,30 @@
   "category": "Template or stylesheet",
   "audience": "operators (NOC analysts)",
   "authoritative": "workbench view model + domain model",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/catalog/web/templates/analysis_job.html",
+  "category": "Production source",
+  "audience": "developers",
+  "authoritative": "implementation",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/catalog/web/templates/analysis_jobs.html",
+  "category": "Production source",
+  "audience": "developers",
+  "authoritative": "implementation",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/catalog/web/templates/analysis_plan.html",
+  "category": "Production source",
+  "audience": "developers",
+  "authoritative": "implementation",
   "generated": false,
   "current": true
  },
@@ -2256,6 +2480,14 @@
   "current": true
  },
  {
+  "path": "src/execution.rs",
+  "category": "Production source",
+  "audience": "developers",
+  "authoritative": "implementation",
+  "generated": false,
+  "current": true
+ },
+ {
   "path": "src/fixtures.rs",
   "category": "Production source",
   "audience": "maintainers",
@@ -2488,6 +2720,38 @@
   "current": true
  },
  {
+  "path": "src/worker.rs",
+  "category": "Production source",
+  "audience": "developers",
+  "authoritative": "implementation",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "tests/artifact_audit_test.rs",
+  "category": "Test source",
+  "audience": "maintainers",
+  "authoritative": "implementation behavior + fixtures",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "tests/audit_test.rs",
+  "category": "Test source",
+  "audience": "maintainers",
+  "authoritative": "implementation behavior + fixtures",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "tests/cli_parity_test.rs",
+  "category": "Production source",
+  "audience": "developers",
+  "authoritative": "implementation",
+  "generated": false,
+  "current": true
+ },
+ {
   "path": "tests/fixtures/README.md",
   "category": "Test fixture",
   "audience": "maintainers",
@@ -2584,6 +2848,30 @@
   "current": true
  },
  {
+  "path": "tests/job_migration_test.rs",
+  "category": "Production source",
+  "audience": "developers",
+  "authoritative": "implementation",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "tests/job_workflow_tests.rs",
+  "category": "Production source",
+  "audience": "developers",
+  "authoritative": "implementation",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "tests/queued_analysis_e2e_test.rs",
+  "category": "Production source",
+  "audience": "developers",
+  "authoritative": "implementation",
+  "generated": false,
+  "current": true
+ },
+ {
   "path": "tests/release_test.rs",
   "category": "Test source",
   "audience": "maintainers",
@@ -2604,118 +2892,6 @@
   "category": "Test source",
   "audience": "maintainers",
   "authoritative": "implementation behavior + fixtures",
-  "generated": false,
-  "current": true
- },
- {
-  "path": "case-studies/inc0299001/README.md",
-  "category": "Reviewed case-study interpretation",
-  "audience": "network analysts",
-  "authoritative": "canonical evidence + operator sources (reviewed)",
-  "generated": false,
-  "current": true
- },
- {
-  "path": "case-studies/inc0302574/README.md",
-  "category": "Reviewed case-study interpretation",
-  "audience": "network analysts",
-  "authoritative": "canonical evidence + operator sources (reviewed)",
-  "generated": false,
-  "current": true
- },
- {
-  "path": "docs/ADRs/README.md",
-  "category": "Normative current documentation",
-  "audience": "maintainers",
-  "authoritative": "ADR files themselves (historical decisions)",
-  "generated": false,
-  "current": true
- },
- {
-  "path": "docs/GLOSSARY.md",
-  "category": "Normative current documentation",
-  "audience": "contributors and operators",
-  "authoritative": "implementation + canonical evidence (see docs/README authority map)",
-  "generated": false,
-  "current": true
- },
- {
-  "path": "docs/README.md",
-  "category": "Normative current documentation",
-  "audience": "contributors and operators",
-  "authoritative": "implementation + canonical evidence (see docs/README authority map)",
-  "generated": false,
-  "current": true
- },
- {
-  "path": "docs/audits/2026-08-repository-truth-audit.md",
-  "category": "Normative current documentation",
-  "audience": "maintainers",
-  "authoritative": "repository-inventory.json + git state (rendered, reviewed content)",
-  "generated": false,
-  "current": true
- },
- {
-  "path": "docs/audits/repository-inventory.json",
-  "category": "Configuration",
-  "audience": "maintainers",
-  "authoritative": "reviewed classification of tracked files",
-  "generated": false,
-  "current": true
- },
- {
-  "path": "scripts/build-repo-audit.py",
-  "category": "Script or developer tool",
-  "audience": "maintainers",
-  "authoritative": "the command it wraps + its inputs",
-  "generated": false,
-  "current": true
- },
- {
-  "path": "tests/artifact_audit_test.rs",
-  "category": "Test source",
-  "audience": "maintainers",
-  "authoritative": "implementation behavior + fixtures",
-  "generated": false,
-  "current": true
- },
- {
-  "path": "tests/audit_test.rs",
-  "category": "Test source",
-  "audience": "maintainers",
-  "authoritative": "implementation behavior + fixtures",
-  "generated": false,
-  "current": true
- },
- {
-  "path": "docs/audits/external-links-2026-08.md",
-  "category": "Normative current documentation",
-  "audience": "maintainers",
-  "authoritative": "dated curl checks of documented external URLs",
-  "generated": false,
-  "current": true
- },
- {
-  "path": "scripts/audit-docs.sh",
-  "category": "Script or developer tool",
-  "audience": "maintainers",
-  "authoritative": "the command it wraps + its inputs",
-  "generated": false,
-  "current": true
- },
- {
-  "path": "scripts/audit_docs.py",
-  "category": "Script or developer tool",
-  "audience": "maintainers",
-  "authoritative": "the command it wraps + its inputs",
-  "generated": false,
-  "current": true
- },
- {
-  "path": ".github/dependabot.yml",
-  "category": "GitHub/community metadata",
-  "audience": "contributors",
-  "authoritative": "GitHub Dependabot configuration + action review policy",
   "generated": false,
   "current": true
  }

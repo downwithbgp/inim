@@ -10,6 +10,7 @@ pub mod batch;
 pub mod case_study_compare;
 pub mod case_study_import;
 pub mod db;
+pub mod demo;
 pub mod discovery;
 pub mod document;
 pub mod domain;
@@ -17,6 +18,7 @@ pub mod grnoc;
 pub mod grnoc_viewer;
 pub mod grouping;
 pub mod import;
+pub mod jobs;
 pub mod migrations;
 #[cfg(test)]
 pub mod mock_server;

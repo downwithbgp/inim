@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block title %}Analysis jobs{% endblock %}
+{% block content %}
+<h2>Analysis jobs</h2>
+<p class="muted">Durable execution state for reviewed plans. Job state is execution state; the analysis outcome lives on the published run.</p>
+
+<div class="panel">
+<h3>Active</h3>
+{% if active.is_empty() %}
+<p class="muted">No active jobs.</p>
+{% else %}
+<table>
+  <tr><th>Job</th><th>Event</th><th>Source</th><th>State</th><th>Stage</th><th>Progress</th><th>Requested</th><th>Worker</th></tr>
+{% for j in active %}
+  <tr>
+    <td><a href="/analysis-jobs/{{ j.job_id }}">{{ j.job_id }}</a></td>
+    <td><a href="/events/{{ j.event_id }}">{{ j.event_id }}</a> {{ j.title }}</td>
+    <td>{{ j.source_family }}</td>
+    <td><strong>{{ j.state }}</strong></td>
+    <td>{{ j.stage }}</td>
+    <td>{{ j.progress }}</td>
+    <td>{{ j.requested_at }}</td>
+    <td>{{ j.worker_id }}</td>
+  </tr>
+{% endfor %}
+</table>
+{% endif %}
+</div>
+
+<div class="panel">
+<h3>Queued</h3>
+{% if queued.is_empty() %}
+<p class="muted">Nothing queued.</p>
+{% else %}
+<table>
+  <tr><th>Job</th><th>Event</th><th>Source</th><th>State</th><th>Requested</th></tr>
+{% for j in queued %}
+  <tr>
+    <td><a href="/analysis-jobs/{{ j.job_id }}">{{ j.job_id }}</a></td>
+    <td><a href="/events/{{ j.event_id }}">{{ j.event_id }}</a> {{ j.title }}</td>
+    <td>{{ j.source_family }}</td>
+    <td>{{ j.state }}</td>
+    <td>{{ j.requested_at }}</td>
+  </tr>
+{% endfor %}
+</table>
+{% endif %}
+</div>
+
+<div class="panel">
+<h3>Failed</h3>
+{% if failed.is_empty() %}
+<p class="muted">No failed jobs.</p>
+{% else %}
+<table>
+  <tr><th>Job</th><th>Event</th><th>Error</th><th>Requested</th></tr>
+{% for j in failed %}
+  <tr>
+    <td><a href="/analysis-jobs/{{ j.job_id }}">{{ j.job_id }}</a></td>
+    <td><a href="/events/{{ j.event_id }}">{{ j.event_id }}</a> {{ j.title }}</td>
+    <td><code>{{ j.error_code }}</code></td>
+    <td>{{ j.requested_at }}</td>
+  </tr>
+{% endfor %}
+</table>
+{% endif %}
+</div>
+
+<div class="panel">
+<h3>Recently completed</h3>
+{% if recent_completed.is_empty() %}
+<p class="muted">No completed jobs yet.</p>
+{% else %}
+<table>
+  <tr><th>Job</th><th>Event</th><th>Completed</th><th>Result</th></tr>
+{% for j in recent_completed %}
+  <tr>
+    <td><a href="/analysis-jobs/{{ j.job_id }}">{{ j.job_id }}</a></td>
+    <td><a href="/events/{{ j.event_id }}">{{ j.event_id }}</a> {{ j.title }}</td>
+    <td>{{ j.requested_at }}</td>
+    <td>{% if let Some(link) = j.run_link %}<a href="{{ link }}">run</a>{% else %}<span class="muted">—</span>{% endif %}</td>
+  </tr>
+{% endfor %}
+</table>
+{% endif %}
+</div>
+
+<p><a href="/analysis-queue">Planning queue (events needing review)</a></p>
+{% endblock %}

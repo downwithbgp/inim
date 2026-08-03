@@ -1,6 +1,6 @@
 # Repository truth audit — 2026-08
 
-Audit start HEAD: `0517aac` · audit date: 2026-08-02
+Audit start HEAD: `0517aac` · audit date: 2026-08-03
 
 This audit verifies that every tracked file is classified, that every current statement matches the implemented model, and that historical records and generated evidence are clearly distinguished. The machine-readable source of this document is `docs/audits/repository-inventory.json`; regenerate with `python3 scripts/build-repo-audit.py`. Paths are repository-relative only; no absolute local paths appear in this audit.
 
@@ -24,28 +24,29 @@ This audit verifies that every tracked file is classified, that every current st
 
 ## Summary
 
-Tracked files: **340** · inventory entries: **340**
+Tracked files: **362** · inventory entries: **362**
 
 | Category | Files |
 |---|---|
 | Immutable or generated evidence | 116 |
-| Production source | 82 |
+| Production source | 98 |
+| Historical decision record | 23 |
 | Configuration | 22 |
 | Reviewed case-study interpretation | 22 |
-| Historical decision record | 22 |
 | Script or developer tool | 21 |
+| Normative current documentation | 19 |
 | Template or stylesheet | 16 |
-| Normative current documentation | 15 |
 | Test fixture | 11 |
 | Test source | 6 |
+| GitHub/community metadata | 3 |
 | Packaging or release metadata | 3 |
-| GitHub/community metadata | 2 |
 | License or third-party notice | 2 |
 
 ## Inventory
 
 | Path | Category | Audience | Authoritative source | Generated | Current | Review result | Changes required | Final status |
 |---|---|---|---|---|---|---|---|---|
+| `.github/ISSUE_TEMPLATE/noc-alpha-feedback.md` | GitHub/community metadata | contributors | reviewed protocol | no | current | reviewed in this audit | none | reviewed in this audit |
 | `.github/dependabot.yml` | GitHub/community metadata | contributors | GitHub Dependabot configuration + action review policy | no | current | reviewed in this audit | none | reviewed in this audit |
 | `.github/workflows/ci.yml` | GitHub/community metadata | contributors | GitHub Actions upstream releases | no | current | reviewed in this audit | none | reviewed in this audit |
 | `.gitignore` | Configuration | maintainers | reviewed operator configuration | no | current | reviewed in this audit | none | reviewed in this audit |
@@ -212,6 +213,7 @@ Tracked files: **340** · inventory entries: **340**
 | `case-studies/manlan-2019/target-research.json` | Reviewed case-study interpretation | network analysts | canonical evidence + operator sources (reviewed) | no | current | claims re-checked against canonical evidence in this audit | none | reviewed in this audit |
 | `deny.toml` | Configuration | maintainers | reviewed operator configuration | no | current | reviewed in this audit | none | reviewed in this audit |
 | `docs/ADRs/CASE-STUDY-LAYER.md` | Historical decision record | maintainers | decision context at time of writing | no | historical | status and applicability reviewed in this audit | none | reviewed in this audit |
+| `docs/ADRs/DURABLE-ANALYSIS-JOBS.md` | Historical decision record | maintainers | decided architecture; see ADR index | no | historical | status and applicability reviewed in this audit | none | reviewed in this audit |
 | `docs/ADRs/LOCAL-CATALOG-AND-WEB.md` | Historical decision record | maintainers | decision context at time of writing | no | historical | status and applicability reviewed in this audit | none | reviewed in this audit |
 | `docs/ADRs/MONOCLE-DATAPLANE.md` | Historical decision record | maintainers | decision context at time of writing | no | historical | status and applicability reviewed in this audit | none | reviewed in this audit |
 | `docs/ADRs/README.md` | Normative current documentation | maintainers | ADR files themselves (historical decisions) | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
@@ -224,13 +226,17 @@ Tracked files: **340** · inventory entries: **340**
 | `docs/GLOSSARY.md` | Normative current documentation | contributors and operators | implementation + canonical evidence (see docs/README authority map) | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
 | `docs/MONOCLE_EVALUATION.md` | Historical decision record | maintainers | decision context at time of writing | no | historical | status and applicability reviewed in this audit | none | reviewed in this audit |
 | `docs/OBSERVABILITY.md` | Normative current documentation | contributors and operators | implementation + canonical evidence (see docs/README authority map) | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
+| `docs/OPERATIONS.md` | Normative current documentation | operators | implementation + ADR-004 | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
 | `docs/README.md` | Normative current documentation | contributors and operators | implementation + canonical evidence (see docs/README authority map) | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
 | `docs/REQUIREMENTS.md` | Historical decision record | maintainers | decision context at time of writing | no | historical | status and applicability reviewed in this audit | none | reviewed in this audit |
 | `docs/TASKS.md` | Historical decision record | maintainers | decision context at time of writing | no | historical | status and applicability reviewed in this audit | none | reviewed in this audit |
 | `docs/UX.md` | Normative current documentation | contributors and operators | implementation + canonical evidence (see docs/README authority map) | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
+| `docs/audits/2026-08-clean-clone.md` | Normative current documentation | maintainers | dated audit evidence | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
+| `docs/audits/2026-08-fresh-event-candidates.md` | Normative current documentation | maintainers | dated audit evidence | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
 | `docs/audits/2026-08-repository-truth-audit.md` | Normative current documentation | maintainers | repository-inventory.json + git state (rendered, reviewed content) | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
 | `docs/audits/external-links-2026-08.md` | Normative current documentation | maintainers | dated curl checks of documented external URLs | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
 | `docs/audits/repository-inventory.json` | Configuration | maintainers | reviewed classification of tracked files | no | current | reviewed in this audit | none | reviewed in this audit |
+| `docs/evaluation/NOC-ALPHA-EVALUATION.md` | Normative current documentation | evaluators | reviewed protocol | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
 | `docs/session-10-baseline.md` | Historical decision record | maintainers | decision context at time of writing | no | historical | status and applicability reviewed in this audit | none | reviewed in this audit |
 | `docs/sources/GRNOC_BULK_ACCESS_REQUEST.md` | Normative current documentation | contributors and operators | implementation + canonical evidence (see docs/README authority map) | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
 | `docs/sources/GRNOC_PUBLIC_TASK_VIEWER.md` | Normative current documentation | contributors and operators | implementation + canonical evidence (see docs/README authority map) | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
@@ -279,6 +285,7 @@ Tracked files: **340** · inventory entries: **340**
 | `src/catalog/case_study_compare.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed in this audit |
 | `src/catalog/case_study_import.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed in this audit |
 | `src/catalog/db.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed in this audit |
+| `src/catalog/demo.rs` | Production source | developers | implementation | no | current | implementation comments audited in this audit | none | reviewed in this audit |
 | `src/catalog/discovery.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed in this audit |
 | `src/catalog/document.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed in this audit |
 | `src/catalog/domain.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed in this audit |
@@ -286,6 +293,10 @@ Tracked files: **340** · inventory entries: **340**
 | `src/catalog/grnoc_viewer.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed in this audit |
 | `src/catalog/grouping.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed in this audit |
 | `src/catalog/import.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed in this audit |
+| `src/catalog/jobs/mod.rs` | Production source | developers | implementation | no | current | implementation comments audited in this audit | none | reviewed in this audit |
+| `src/catalog/jobs/plan.rs` | Production source | developers | implementation | no | current | implementation comments audited in this audit | none | reviewed in this audit |
+| `src/catalog/jobs/publish.rs` | Production source | developers | implementation | no | current | implementation comments audited in this audit | none | reviewed in this audit |
+| `src/catalog/jobs/service.rs` | Production source | developers | implementation | no | current | implementation comments audited in this audit | none | reviewed in this audit |
 | `src/catalog/migrations.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed in this audit |
 | `src/catalog/mock_server.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed in this audit |
 | `src/catalog/mod.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed in this audit |
@@ -304,10 +315,15 @@ Tracked files: **340** · inventory entries: **340**
 | `src/catalog/tests.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed in this audit |
 | `src/catalog/web/api.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed in this audit |
 | `src/catalog/web/handlers.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed in this audit |
+| `src/catalog/web/job_handlers.rs` | Production source | developers | implementation | no | current | implementation comments audited in this audit | none | reviewed in this audit |
+| `src/catalog/web/jobs_view.rs` | Production source | developers | implementation | no | current | implementation comments audited in this audit | none | reviewed in this audit |
 | `src/catalog/web/mod.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed in this audit |
 | `src/catalog/web/server.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed in this audit |
 | `src/catalog/web/session_context.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed in this audit |
 | `src/catalog/web/templates/analysis.html` | Template or stylesheet | operators (NOC analysts) | workbench view model + domain model | no | current | user-visible text audited in this audit | none | reviewed in this audit |
+| `src/catalog/web/templates/analysis_job.html` | Production source | developers | implementation | no | current | implementation comments audited in this audit | none | reviewed in this audit |
+| `src/catalog/web/templates/analysis_jobs.html` | Production source | developers | implementation | no | current | implementation comments audited in this audit | none | reviewed in this audit |
+| `src/catalog/web/templates/analysis_plan.html` | Production source | developers | implementation | no | current | implementation comments audited in this audit | none | reviewed in this audit |
 | `src/catalog/web/templates/analysis_queue.html` | Template or stylesheet | operators (NOC analysts) | workbench view model + domain model | no | current | user-visible text audited in this audit | none | reviewed in this audit |
 | `src/catalog/web/templates/archive_batches.html` | Template or stylesheet | operators (NOC analysts) | workbench view model + domain model | no | current | user-visible text audited in this audit | none | reviewed in this audit |
 | `src/catalog/web/templates/base.html` | Template or stylesheet | operators (NOC analysts) | workbench view model + domain model | no | current | user-visible text audited in this audit | none | reviewed in this audit |
@@ -340,6 +356,7 @@ Tracked files: **340** · inventory entries: **340**
 | `src/domain/observation.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed in this audit |
 | `src/domain/route.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed in this audit |
 | `src/domain/wave.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed in this audit |
+| `src/execution.rs` | Production source | developers | implementation | no | current | implementation comments audited in this audit | none | reviewed in this audit |
 | `src/fixtures.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed in this audit |
 | `src/ingest/mod.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed in this audit |
 | `src/lib.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed in this audit |
@@ -369,8 +386,10 @@ Tracked files: **340** · inventory entries: **340**
 | `src/target.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed in this audit |
 | `src/tokenize.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed in this audit |
 | `src/waves.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed in this audit |
+| `src/worker.rs` | Production source | developers | implementation | no | current | implementation comments audited in this audit | none | reviewed in this audit |
 | `tests/artifact_audit_test.rs` | Test source | maintainers | implementation behavior + fixtures | no | current | reviewed in this audit | none | reviewed in this audit |
 | `tests/audit_test.rs` | Test source | maintainers | implementation behavior + fixtures | no | current | reviewed in this audit | none | reviewed in this audit |
+| `tests/cli_parity_test.rs` | Production source | developers | implementation | no | current | implementation comments audited in this audit | none | reviewed in this audit |
 | `tests/fixtures/README.md` | Test fixture | maintainers | upstream source or synthetic generator | no | current | provenance reviewed in this audit | none | reviewed in this audit |
 | `tests/fixtures/grnoc/INC0301970.json` | Test fixture | maintainers | upstream source or synthetic generator | no | current | provenance reviewed in this audit | none | reviewed in this audit |
 | `tests/fixtures/grnoc/viewer/CHG0099999.json` | Test fixture | maintainers | upstream source or synthetic generator | no | current | provenance reviewed in this audit | none | reviewed in this audit |
@@ -383,6 +402,9 @@ Tracked files: **340** · inventory entries: **340**
 | `tests/fixtures/mrt/update-example.gz` | Test fixture | maintainers | upstream source or synthetic generator | no | current | provenance reviewed in this audit | none | reviewed in this audit |
 | `tests/fixtures/ris/updates.20190821.1600.gz` | Test fixture | maintainers | upstream source or synthetic generator | no | current | provenance reviewed in this audit | none | reviewed in this audit |
 | `tests/i2px_audit_test.rs` | Test source | maintainers | implementation behavior + fixtures | no | current | reviewed in this audit | none | reviewed in this audit |
+| `tests/job_migration_test.rs` | Production source | developers | implementation | no | current | implementation comments audited in this audit | none | reviewed in this audit |
+| `tests/job_workflow_tests.rs` | Production source | developers | implementation | no | current | implementation comments audited in this audit | none | reviewed in this audit |
+| `tests/queued_analysis_e2e_test.rs` | Production source | developers | implementation | no | current | implementation comments audited in this audit | none | reviewed in this audit |
 | `tests/release_test.rs` | Test source | maintainers | implementation behavior + fixtures | no | current | reviewed in this audit | none | reviewed in this audit |
 | `tests/rrc11_audit_test.rs` | Test source | maintainers | implementation behavior + fixtures | no | current | reviewed in this audit | none | reviewed in this audit |
 | `tests/vertical_slice_test.rs` | Test source | maintainers | implementation behavior + fixtures | no | current | reviewed in this audit | none | reviewed in this audit |

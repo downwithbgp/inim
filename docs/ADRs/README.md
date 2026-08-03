@@ -10,8 +10,9 @@ a later ADR records the change.
 | Number | Title | Status | Current relevance | Superseded by |
 |---|---|---|---|---|
 | ADR-001 | Reject Monocle as inim's BGP data plane (`MONOCLE-DATAPLANE.md`) | Accepted | Fully applicable; bgpkit-parser + bgpkit-broker remain the data plane | — |
-| ADR-002 | Local event catalog and first web interface (`LOCAL-CATALOG-AND-WEB.md`) | Accepted | Catalog + read-only web workbench are the primary interface | Extended by ADR-003 |
+| ADR-002 | Local event catalog and first web interface (`LOCAL-CATALOG-AND-WEB.md`) | Accepted | Catalog + read-only web workbench are the primary interface | Extended by ADR-003, ADR-004 |
 | ADR-003 | Multi-ticket incident case-study layer (`CASE-STUDY-LAYER.md`) | Accepted | Case-study layer, extended by reviewed-interpretation tables (V7) | — |
+| ADR-004 | Durable local analysis jobs and worker boundary (`DURABLE-ANALYSIS-JOBS.md`) | Accepted | Queued reviewed plans, separate worker, atomic publication | — |
 | — | RIPE RIS observer support (`RIPE-RIS-SUPPORT.md`) | Accepted | RIS planning and execution supported end-to-end | — |
 
 ## Earlier decision log (`docs/DECISIONS.md`)

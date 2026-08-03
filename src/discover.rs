@@ -339,10 +339,14 @@ fn sha_sidecar_path(path: &Path) -> PathBuf {
 /// `.sha256` sidecar, then atomically renames into the cache directory.
 /// Reuses a cached file only after validated integrity (SHA-256 sidecar).
 ///
+/// When `offline` is set, a cache miss is a hard error (`NotCached`):
+/// the caller must not perform network acquisition.
+///
 /// Returns an `InimArchiveError` on failure — never an analysis verdict.
 pub fn cache_archive(
     item: &ArchiveItem,
     cache_dir: &Path,
+    offline: bool,
 ) -> Result<CachedArchive, InimArchiveError> {
     let basename = Path::new(&item.url)
         .file_name()
@@ -375,6 +379,11 @@ pub fn cache_archive(
     }
 
     // Download to temp file
+    if offline {
+        return Err(InimArchiveError::NotCached {
+            url: item.url.clone(),
+        });
+    }
     let part_path = local_dir.join(format!(".{}.part", basename));
 
     let mut response =
@@ -500,6 +509,11 @@ pub enum InimArchiveError {
         path: String,
         reason: String,
     },
+    /// Offline mode: the archive is not in the local cache and network
+    /// acquisition is disabled.
+    NotCached {
+        url: String,
+    },
     BrokerQueryError {
         reason: String,
     },
@@ -523,6 +537,9 @@ impl std::fmt::Display for InimArchiveError {
             }
             InimArchiveError::CacheError { path, reason } => {
                 write!(f, "cache error at {path}: {reason}")
+            }
+            InimArchiveError::NotCached { url } => {
+                write!(f, "archive not cached and offline mode is set: {url}")
             }
             InimArchiveError::BrokerQueryError { reason } => {
                 write!(f, "broker query failed: {reason}")

@@ -1,6 +1,11 @@
 /target/
 **/*.rs.bk
 cache/
+# Job runtime material (durable queue state lives in the SQLite catalog;
+# staging and published run directories are runtime artifacts, never tracked).
+data/
+data/jobs/
+data/runs/
 __pycache__/
 *.pyc
 data/

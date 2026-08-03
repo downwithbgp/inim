@@ -132,6 +132,16 @@ terms" — the historical meaning is never used in current output.
 | **Observer-session absence** | absence at one selected collector peer |
 | **Traffic interruption** | NOT measured by inim; BGP evidence does not measure traffic |
 
+## Analysis jobs and the worker
+
+| Term | Meaning |
+|---|---|
+| **Analysis job** | durable execution state for one exact immutable plan revision: Queued → Claimed → execution stages → Completed/Cancelled/Failed. Job state is execution state, never ticket lifecycle, plan status, or analysis outcome (a completed analysis may be InsufficientVisibility without the job failing). |
+| **Plan revision** | one immutable `analysis_plans` row: reviewed manifest + derived plan payload + status. Editing creates a new revision; a queued or completed revision is never mutated. |
+| **Worker lease** | the time-bounded claim a worker holds on a job. A lease expires after a fixed interval unless renewed; an expired lease marks the job Failed (`worker_lease_expired`), preserves staging, and requires explicit retry — never silent auto-resume. |
+| **Staging artifact** | an output written under `data/jobs/<job-id>/staging` before validation and atomic publication into `data/runs/<job-id>/`. An incomplete job never appears as a completed workbench. |
+| **Canonical plan hash** | SHA-256 over the canonical serialized plan (execution-relevant fields only, no generated timestamps). Used for queue idempotency and run provenance. |
+
 ## Prohibited stale terms
 
 These terms are not used in current output or current documentation
