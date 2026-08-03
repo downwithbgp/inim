@@ -136,9 +136,7 @@ fn excluded_event_cannot_be_ready_or_queued() {
     let event = db::get_event_by_external(&conn, EXCLUDED_FAMILY, EXCLUDED_EVENT)
         .unwrap()
         .unwrap();
-    assert!(
-        inim::catalog::web::view::event_scope_excluded(&conn, &scope, &event).unwrap()
-    );
+    assert!(inim::catalog::web::view::event_scope_excluded(&conn, &scope, &event).unwrap());
 
     // Queueing is refused with the stable scope code and language.
     let payload = plan::manifest_payload_for_plan(&conn, fx.plan_id).unwrap();
@@ -460,5 +458,26 @@ fn exclusion_removal_does_not_restore_old_esnet_assessment() {
     assert_ne!(
         ProjectScopeStatus::Excluded.as_str(),
         inim::catalog::domain::applicability::NOT_DIRECTLY_OBSERVABLE
+    );
+}
+
+#[test]
+fn demo_verify_catches_manifest_imported_excluded_event() {
+    // A STALE demo catalog carries the excluded event under
+    // local-repository (the manifest-import source kind). The verify
+    // gate matches by exact external ID and must still fail.
+    let fx = build_exclusion_fixture();
+    let conn = db::open_catalog(&fx.db).unwrap();
+    conn.execute(
+        "UPDATE catalog_events SET source_kind = 'local-repository'
+         WHERE external_id = ?1",
+        [EXCLUDED_EVENT],
+    )
+    .unwrap();
+    drop(conn);
+    let err = inim::catalog::demo::demo_verify(&fx.db, &fx.root).unwrap_err();
+    assert!(
+        err.contains("excluded source record"),
+        "verify must catch the excluded event regardless of source kind: {err}"
     );
 }

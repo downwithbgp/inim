@@ -1291,7 +1291,10 @@ fn cmd_analyze(
         // completion (no updates acquired, by design); only other
         // failures are reported.
         if let inim::outcome::AnalysisOutcome::Incomplete { failure } = &outcome {
-            if !failure.contains("preflight-only stage") {
+            // The preflight-mode stop is the pipeline's structured
+            // marker, matched exactly — a real failure that merely
+            // mentions the stage name must still be reported.
+            if failure != "preflight-only stage (no updates acquired, by design)" {
                 let _ = writeln!(stderr, "error: preflight failed: {failure}");
                 return EXIT_ANALYSIS_INCOMPLETE;
             }

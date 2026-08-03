@@ -112,9 +112,11 @@ pub fn demo_verify(db_path: &Path, root: &Path) -> Result<DemoReport, String> {
     // skips excluded manifests; this check is the verify-side gate.
     let scope = crate::catalog::scope::ProjectScope::load(root)?;
     for rec in scope.source_records() {
-        if crate::catalog::db::get_event_by_external(&conn, &rec.source_family, &rec.external_id)?
-            .is_some()
-        {
+        // The source-record exclusion matches by exact external ID
+        // wherever the event lives (manifest-imported events are stored
+        // under local-repository), so the verify gate uses the same
+        // ID-based lookup.
+        if crate::catalog::db::get_event_by_external_any(&conn, &rec.external_id)?.is_some() {
             return Err(format!(
                 "demo catalog contains an excluded source record {} / {}; rebuild the demo with the current policy",
                 rec.source_family, rec.external_id
