@@ -481,16 +481,15 @@ fn execute_one(
     // treated as an analytical failure, zero network calls.
     {
         let conn = conn.lock().unwrap();
-        match crate::catalog::jobs::plan::plan_scope_exclusion(
-            &conn,
-            job.plan_revision_id,
-            scope,
-        ) {
+        match crate::catalog::jobs::plan::plan_scope_exclusion(&conn, job.plan_revision_id, scope) {
             Ok(Some(_reason)) => {
                 eprintln!(
                     "worker: job {job_id} is outside the configured project scope; cancelling before execution"
                 );
-                let _ = service::cancel_queued_excluded(&conn, &job_id);
+                match service::cancel_scope_excluded(&conn, &job_id) {
+                    Ok(()) => {}
+                    Err(e) => eprintln!("worker: scope cancel failed for {job_id}: {e}"),
+                }
                 return true;
             }
             Ok(None) => {}
@@ -1192,19 +1191,18 @@ mod sink_tests {
         .unwrap();
         let plan = crate::catalog::import::build_plan_record(&conn, mid, &manifest, true).unwrap();
         let pid = crate::catalog::store::insert_plan(&conn, &plan).unwrap();
-        let id =
-            match jobs::queue(
-                &conn,
-                pid,
-                crate::catalog::jobs::RequestSource::Cli,
-                "h",
-                &crate::catalog::scope::ProjectScope::default(),
-            )
-            .unwrap()
-            {
-                jobs::QueueOutcome::Created(id) => id,
-                _ => unreachable!(),
-            };
+        let id = match jobs::queue(
+            &conn,
+            pid,
+            crate::catalog::jobs::RequestSource::Cli,
+            "h",
+            &crate::catalog::scope::ProjectScope::default(),
+        )
+        .unwrap()
+        {
+            jobs::QueueOutcome::Created(id) => id,
+            _ => unreachable!(),
+        };
         drop(conn);
         let conn = crate::catalog::db::open_catalog(&dir.path().join("c.sqlite")).unwrap();
         let conn = Arc::new(Mutex::new(conn));

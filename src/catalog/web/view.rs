@@ -602,8 +602,13 @@ pub fn event_scope_excluded(
         }
     }
     for manifest in db::list_manifest_revisions(conn, event.id)? {
-        let payload: serde_json::Value = serde_json::from_str(&manifest.payload).unwrap_or_default();
-        if let Some(label) = payload.get("target").and_then(|t| t.get("label")).and_then(|v| v.as_str()) {
+        let payload: serde_json::Value =
+            serde_json::from_str(&manifest.payload).unwrap_or_default();
+        if let Some(label) = payload
+            .get("target")
+            .and_then(|t| t.get("label"))
+            .and_then(|v| v.as_str())
+        {
             if scope.excluded_entity_name(label) {
                 return Ok(true);
             }

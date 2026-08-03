@@ -171,7 +171,15 @@ fn direct_execution_and_queued_execution_are_semantically_identical() {
 
     // Queued execution through the worker into the catalog.
     let conn = db::open_catalog(&db).unwrap();
-    let job_id = match service::queue(&conn, plan_id, RequestSource::Cli, &hash, &inim::catalog::scope::ProjectScope::default()).unwrap() {
+    let job_id = match service::queue(
+        &conn,
+        plan_id,
+        RequestSource::Cli,
+        &hash,
+        &inim::catalog::scope::ProjectScope::default(),
+    )
+    .unwrap()
+    {
         service::QueueOutcome::Created(id) => id,
         _ => unreachable!(),
     };
@@ -240,7 +248,15 @@ fn completed_insufficient_visibility_is_not_failed_job() {
     let plan_id = inim::catalog::store::insert_plan(&conn, &plan_rec).unwrap();
     let payload = plan::manifest_payload_for_plan(&conn, plan_id).unwrap();
     let hash = plan::canonical_plan_hash(&payload).unwrap();
-    let job_id = match service::queue(&conn, plan_id, RequestSource::Cli, &hash, &inim::catalog::scope::ProjectScope::default()).unwrap() {
+    let job_id = match service::queue(
+        &conn,
+        plan_id,
+        RequestSource::Cli,
+        &hash,
+        &inim::catalog::scope::ProjectScope::default(),
+    )
+    .unwrap()
+    {
         service::QueueOutcome::Created(id) => id,
         _ => unreachable!(),
     };
@@ -288,7 +304,15 @@ fn worker_failure_and_analysis_insufficient_visibility_are_distinct() {
     let hash = plan::canonical_plan_hash(&payload).unwrap();
     // Remove the cache entirely -> worker failure with a precise code.
     std::fs::remove_dir_all(root.join("cache")).unwrap();
-    let job_id = match service::queue(&conn, plan_id, RequestSource::Cli, &hash, &inim::catalog::scope::ProjectScope::default()).unwrap() {
+    let job_id = match service::queue(
+        &conn,
+        plan_id,
+        RequestSource::Cli,
+        &hash,
+        &inim::catalog::scope::ProjectScope::default(),
+    )
+    .unwrap()
+    {
         service::QueueOutcome::Created(id) => id,
         _ => unreachable!(),
     };
@@ -334,7 +358,15 @@ fn failure_summary_contains_no_backtrace() {
     let payload = plan::manifest_payload_for_plan(&conn, plan_id).unwrap();
     let hash = plan::canonical_plan_hash(&payload).unwrap();
     std::fs::remove_dir_all(root.join("cache")).unwrap();
-    let job_id = match service::queue(&conn, plan_id, RequestSource::Cli, &hash, &inim::catalog::scope::ProjectScope::default()).unwrap() {
+    let job_id = match service::queue(
+        &conn,
+        plan_id,
+        RequestSource::Cli,
+        &hash,
+        &inim::catalog::scope::ProjectScope::default(),
+    )
+    .unwrap()
+    {
         service::QueueOutcome::Created(id) => id,
         _ => unreachable!(),
     };
@@ -360,7 +392,15 @@ fn job_metrics_do_not_enter_cache_identity() {
     drop(conn);
     let run = |db: &Path| {
         let conn = db::open_catalog(db).unwrap();
-        let job_id = match service::queue(&conn, plan_id, RequestSource::Cli, &hash, &inim::catalog::scope::ProjectScope::default()).unwrap() {
+        let job_id = match service::queue(
+            &conn,
+            plan_id,
+            RequestSource::Cli,
+            &hash,
+            &inim::catalog::scope::ProjectScope::default(),
+        )
+        .unwrap()
+        {
             service::QueueOutcome::Created(id) => id,
             _ => unreachable!(),
         };
@@ -403,7 +443,15 @@ fn add_path_semantics_preserved_in_plan_identity() {
     let conn = db::open_catalog(&db).unwrap();
     let payload = plan::manifest_payload_for_plan(&conn, plan_id).unwrap();
     let hash = plan::canonical_plan_hash(&payload).unwrap();
-    let job_id = match service::queue(&conn, plan_id, RequestSource::Cli, &hash, &inim::catalog::scope::ProjectScope::default()).unwrap() {
+    let job_id = match service::queue(
+        &conn,
+        plan_id,
+        RequestSource::Cli,
+        &hash,
+        &inim::catalog::scope::ProjectScope::default(),
+    )
+    .unwrap()
+    {
         service::QueueOutcome::Created(id) => id,
         _ => unreachable!(),
     };
@@ -428,7 +476,12 @@ fn open_event_plan_has_explicit_cutoff() {
     let plan_id = seed_plan_with(&conn, true, None);
     let payload = plan::manifest_payload_for_plan(&conn, plan_id).unwrap();
     assert!(plan::canonical_plan_hash(&payload).is_ok());
-    let err = plan::validate_plan_for_queue(&conn, plan_id, &inim::catalog::scope::ProjectScope::default()).unwrap_err();
+    let err = plan::validate_plan_for_queue(
+        &conn,
+        plan_id,
+        &inim::catalog::scope::ProjectScope::default(),
+    )
+    .unwrap_err();
     assert!(err.contains("cutoff") || err.contains("event end"), "{err}");
 }
 
@@ -500,7 +553,12 @@ fn seed_plan_with(conn: &rusqlite::Connection, open_event: bool, end: Option<&st
 fn open_event_plan_with_cutoff_is_queueable() {
     let (_dir, conn) = open_temp_catalog();
     let plan_id = seed_plan_with(&conn, true, Some("2026-08-02T00:00:00Z"));
-    let hash = plan::validate_plan_for_queue(&conn, plan_id, &inim::catalog::scope::ProjectScope::default()).unwrap();
+    let hash = plan::validate_plan_for_queue(
+        &conn,
+        plan_id,
+        &inim::catalog::scope::ProjectScope::default(),
+    )
+    .unwrap();
     assert_eq!(hash.len(), 64);
 }
 
@@ -657,7 +715,14 @@ fn web_post_queue_performs_zero_archive_calls() {
     let conn = db::open_catalog(&db).unwrap();
     let payload = plan::manifest_payload_for_plan(&conn, plan_id).unwrap();
     let hash = plan::canonical_plan_hash(&payload).unwrap();
-    let out = service::queue(&conn, plan_id, RequestSource::LocalWeb, &hash, &inim::catalog::scope::ProjectScope::default()).unwrap();
+    let out = service::queue(
+        &conn,
+        plan_id,
+        RequestSource::LocalWeb,
+        &hash,
+        &inim::catalog::scope::ProjectScope::default(),
+    )
+    .unwrap();
     match out {
         service::QueueOutcome::Created(_) => {}
         other => panic!("queue must succeed without any archive access: {other:?}"),
@@ -679,7 +744,15 @@ fn get_requests_are_database_read_only() {
     let conn = db::open_catalog(&db).unwrap();
     let payload = plan::manifest_payload_for_plan(&conn, plan_id).unwrap();
     let hash = plan::canonical_plan_hash(&payload).unwrap();
-    let job_id = match service::queue(&conn, plan_id, RequestSource::Cli, &hash, &inim::catalog::scope::ProjectScope::default()).unwrap() {
+    let job_id = match service::queue(
+        &conn,
+        plan_id,
+        RequestSource::Cli,
+        &hash,
+        &inim::catalog::scope::ProjectScope::default(),
+    )
+    .unwrap()
+    {
         service::QueueOutcome::Created(id) => id,
         _ => unreachable!(),
     };
@@ -702,7 +775,15 @@ fn server_reads_while_worker_writes_progress() {
     let conn = db::open_catalog(&db).unwrap();
     let payload = plan::manifest_payload_for_plan(&conn, plan_id).unwrap();
     let hash = plan::canonical_plan_hash(&payload).unwrap();
-    let job_id = match service::queue(&conn, plan_id, RequestSource::Cli, &hash, &inim::catalog::scope::ProjectScope::default()).unwrap() {
+    let job_id = match service::queue(
+        &conn,
+        plan_id,
+        RequestSource::Cli,
+        &hash,
+        &inim::catalog::scope::ProjectScope::default(),
+    )
+    .unwrap()
+    {
         service::QueueOutcome::Created(id) => id,
         _ => unreachable!(),
     };

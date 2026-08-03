@@ -348,6 +348,9 @@ impl GrnocViewerClient {
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub struct CorpusSyncSummary {
     pub examined: usize,
+    /// Records skipped WITHOUT fetching because their exact source
+    /// record is excluded by project scope.
+    pub scope_excluded: usize,
     pub new_snapshots: usize,
     pub unchanged: usize,
     pub not_modified: usize,
@@ -381,6 +384,7 @@ pub fn sync_frontier(
     source_kind: &str,
     ids: &[String],
     started_at: &str,
+    scope: &crate::catalog::scope::ProjectScope,
 ) -> Result<CorpusSyncSummary, String> {
     let mut summary = CorpusSyncSummary::default();
     let tx = conn
@@ -405,6 +409,13 @@ pub fn sync_frontier(
         if client.budget_remaining() == 0 {
             summary.stopped = Some(StopReason::BudgetExhausted);
             break;
+        }
+        // Project scope: an exact excluded source record is never
+        // fetched (no snapshot acquisition to confirm what reviewed
+        // policy already establishes) and never counted as active.
+        if scope.excluded_source_record(source_kind, external_id) {
+            summary.scope_excluded += 1;
+            continue;
         }
         summary.examined += 1;
         match client.fetch_ticket(external_id) {
@@ -794,6 +805,7 @@ mod tests {
             "grnoc-public-task-viewer",
             &frontier,
             "2026-08-01T00:00:00Z",
+            &crate::catalog::scope::ProjectScope::default(),
         )
         .unwrap();
         assert_eq!(summary.stopped, None);
@@ -885,6 +897,7 @@ mod tests {
             "grnoc-public-task-viewer",
             &frontier,
             "2026-08-01T00:00:00Z",
+            &crate::catalog::scope::ProjectScope::default(),
         )
         .unwrap();
         // The retrieved ticket links to its existing document reference
@@ -939,6 +952,7 @@ mod tests {
             "grnoc-public-task-viewer",
             frontier,
             "2026-08-01T00:00:00Z",
+            &crate::catalog::scope::ProjectScope::default(),
         )
         .unwrap();
         link_case_study_tickets(&conn, cs_id, "grnoc-public-task-viewer").unwrap();
@@ -982,6 +996,7 @@ mod tests {
             "grnoc-public-task-viewer",
             &frontier,
             "2026-08-01T00:00:00Z",
+            &crate::catalog::scope::ProjectScope::default(),
         )
         .unwrap();
         assert_eq!(summary.not_found, 1);
@@ -1027,6 +1042,7 @@ mod tests {
             "grnoc-public-task-viewer",
             &frontier,
             "2026-08-01T00:00:00Z",
+            &crate::catalog::scope::ProjectScope::default(),
         )
         .unwrap();
         let resolved = link_case_study_tickets(&conn, cs_id, "grnoc-public-task-viewer").unwrap();

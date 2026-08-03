@@ -71,8 +71,7 @@ pub async fn api_event_detail(
         Ok(Some(v)) => {
             // Direct access to an excluded event is consistently 404.
             if let Ok(Some(event)) = crate::catalog::db::get_event_by_external_any(&db, &event_id) {
-                if super::view::event_scope_excluded(&db, &state.scope, &event).unwrap_or(false)
-                {
+                if super::view::event_scope_excluded(&db, &state.scope, &event).unwrap_or(false) {
                     return json_error(StatusCode::NOT_FOUND, "event not found");
                 }
             }

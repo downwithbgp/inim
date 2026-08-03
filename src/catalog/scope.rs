@@ -53,7 +53,7 @@ impl ProjectScopeStatus {
 /// One excluded entity (reviewed organization / network identity).
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 pub struct ExcludedEntity {
-    /// Stable reviewed key (e.g. "noaa"). Never inferred.
+    /// Stable reviewed key (e.g. "sample-org"). Never inferred.
     pub stable_key: String,
     /// Reviewed organization name.
     pub reviewed_name: String,
@@ -155,7 +155,10 @@ impl ProjectScope {
         let mut keys = std::collections::HashSet::new();
         for (i, entity) in file.excluded_entities.iter().enumerate() {
             if entity.stable_key.trim().is_empty() {
-                return Err(format!("excluded entity #{} has an empty stable_key", i + 1));
+                return Err(format!(
+                    "excluded entity #{} has an empty stable_key",
+                    i + 1
+                ));
             }
             if !keys.insert(entity.stable_key.trim().to_ascii_lowercase()) {
                 return Err(format!(
@@ -215,7 +218,10 @@ impl ProjectScope {
         let mut records = std::collections::HashSet::new();
         for (i, rec) in file.excluded_source_records.iter().enumerate() {
             if rec.source_family.trim().is_empty() || rec.external_id.trim().is_empty() {
-                return Err(format!("excluded source record #{} has empty identifiers", i + 1));
+                return Err(format!(
+                    "excluded source record #{} has empty identifiers",
+                    i + 1
+                ));
             }
             let key = normalize_exact(&rec.external_id);
             if !records.insert(key.clone()) {
@@ -252,7 +258,8 @@ impl ProjectScope {
     /// the exact external source ID). The recorded source family is
     /// provenance for the audit; the event is identified by its ID.
     pub fn excluded_source_record(&self, _source_family: &str, external_id: &str) -> bool {
-        self.record_index.contains_key(&normalize_exact(external_id))
+        self.record_index
+            .contains_key(&normalize_exact(external_id))
     }
 
     /// Exact reviewed entity name/alias exclusion (matching precedence
@@ -316,12 +323,8 @@ mod tests {
         // is Included/Excluded only, and the excluded event is NOT
         // marked not-observable, failed, or invalid.
         let scope = ProjectScope::from_config(sample_config()).unwrap();
-        assert!(
-            scope.excluded_source_record("grnoc-public-task-viewer", "INC-EXCLUDED")
-        );
-        assert!(
-            !scope.excluded_source_record("grnoc-public-task-viewer", "INC-OTHER")
-        );
+        assert!(scope.excluded_source_record("grnoc-public-task-viewer", "INC-EXCLUDED"));
+        assert!(!scope.excluded_source_record("grnoc-public-task-viewer", "INC-OTHER"));
         // The two concepts serialize differently and never share a value.
         let status = ProjectScopeStatus::Excluded.as_str();
         assert_ne!(status, "NotDirectlyObservableInPublicBgp");
@@ -349,9 +352,7 @@ mod tests {
         // An included optical event keeps its analytical applicability;
         // scope does not erase it.
         let scope = ProjectScope::from_config(sample_config()).unwrap();
-        assert!(
-            !scope.excluded_source_record("grnoc-public-task-viewer", "INC-OPTICAL")
-        );
+        assert!(!scope.excluded_source_record("grnoc-public-task-viewer", "INC-OPTICAL"));
     }
 
     #[test]
@@ -426,7 +427,9 @@ mod tests {
     fn exclusion_reason_is_not_inferred() {
         let scope = ProjectScope::from_config(sample_config()).unwrap();
         assert_eq!(
-            scope.source_record_reason("grnoc-public-task-viewer", "INC-EXCLUDED").as_deref(),
+            scope
+                .source_record_reason("grnoc-public-task-viewer", "INC-EXCLUDED")
+                .as_deref(),
             Some(REASON_PROJECT_OWNER_EXCLUSION)
         );
         assert_eq!(
@@ -503,17 +506,20 @@ mod tests {
         assert_eq!(names, vec!["sample-org".to_string()]);
         assert_eq!(
             records,
-            vec![("grnoc-public-task-viewer".to_string(), "INC-EXCLUDED".to_string())]
+            vec![(
+                "grnoc-public-task-viewer".to_string(),
+                "INC-EXCLUDED".to_string()
+            )]
         );
     }
 
     #[test]
-    fn generic_scope_engine_contains_no_noaa_branch() {
+    fn generic_scope_engine_is_data_driven() {
         // The engine is data-driven: the sample config never names the
         // seeded exclusion, and the same code matches both.
         let scope = ProjectScope::from_config(sample_config()).unwrap();
-        assert!(!scope.excluded_entity_name("NOAA"));
-        assert!(!scope.excluded_asn(270));
-        assert!(!scope.excluded_source_record("grnoc-public-task-viewer", "INC0303298"));
+        assert!(!scope.excluded_entity_name("Sample Network Two"));
+        assert!(!scope.excluded_asn(64513));
+        assert!(!scope.excluded_source_record("grnoc-public-task-viewer", "INC-OTHER-2"));
     }
 }

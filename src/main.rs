@@ -2626,6 +2626,13 @@ fn cmd_grnoc_sync_live(
     // budget is never doubled across phases.
     let source_kind = "grnoc-public-task-viewer";
     let now = chrono::Utc::now().to_rfc3339();
+    let client_scope = match inim::catalog::scope::ProjectScope::load(std::path::Path::new(".")) {
+        Ok(s) => s,
+        Err(e) => {
+            let _ = writeln!(stdout, "error: {e}");
+            return EXIT_INVALID_INPUT;
+        }
+    };
     let mut client = match GrnocViewerClient::new(policy.clone()) {
         Ok(c) => c,
         Err(e) => {
@@ -2660,6 +2667,18 @@ fn cmd_grnoc_sync_live(
                         for rec in &records {
                             let number = rec.number.clone();
                             let title = rec.short_description.clone();
+                            // Project scope: exact excluded source
+                            // records are reported but never seeded and
+                            // never fetched.
+                            if client_scope
+                                .excluded_source_record("grnoc-public-task-viewer", &number)
+                            {
+                                let _ = writeln!(
+                                    stdout,
+                                    "     {number}  {title}  [excluded by project scope]"
+                                );
+                                continue;
+                            }
                             let _ = writeln!(stdout, "     {number}  {title}");
                             if let Err(e) = inim::catalog::discovery::record_analyst_seed(
                                 &conn,
@@ -2766,7 +2785,14 @@ fn cmd_grnoc_sync_live(
 
     let started_at = chrono::Utc::now().to_rfc3339();
     let wall_start = std::time::Instant::now();
-    match sync_frontier(&conn, &mut client, source_kind, &frontier, &started_at) {
+    match sync_frontier(
+        &conn,
+        &mut client,
+        source_kind,
+        &frontier,
+        &started_at,
+        &client_scope,
+    ) {
         Ok(summary) => {
             let elapsed = wall_start.elapsed();
             let rate = if elapsed.as_secs_f64() > 0.0 {
@@ -3853,9 +3879,7 @@ fn cmd_analysis_job(stdout: &mut dyn Write, command: &AnalysisJobCommands) -> i3
                     return EXIT_INVALID_INPUT;
                 }
             };
-            let scope = match inim::catalog::scope::ProjectScope::load(
-                std::path::Path::new("."),
-            ) {
+            let scope = match inim::catalog::scope::ProjectScope::load(std::path::Path::new(".")) {
                 Ok(s) => s,
                 Err(e) => {
                     let _ = writeln!(stdout, "error: {e}");
@@ -4040,9 +4064,7 @@ fn cmd_analysis_job(stdout: &mut dyn Write, command: &AnalysisJobCommands) -> i3
                     return EXIT_INVALID_INPUT;
                 }
             };
-            let scope = match inim::catalog::scope::ProjectScope::load(
-                std::path::Path::new("."),
-            ) {
+            let scope = match inim::catalog::scope::ProjectScope::load(std::path::Path::new(".")) {
                 Ok(s) => s,
                 Err(e) => {
                     let _ = writeln!(stdout, "error: {e}");
@@ -4262,7 +4284,11 @@ fn cmd_project_scope(stdout: &mut dyn Write, command: &ProjectScopeCommands) -> 
                     return EXIT_INVALID_INPUT;
                 }
             };
-            let _ = writeln!(stdout, "project-scope policy (schema v{})", scope.schema_version());
+            let _ = writeln!(
+                stdout,
+                "project-scope policy (schema v{})",
+                scope.schema_version()
+            );
             let _ = writeln!(stdout, "  excluded entities: {}", scope.entities().len());
             for e in scope.entities() {
                 let _ = writeln!(
@@ -4375,7 +4401,11 @@ fn cmd_project_scope(stdout: &mut dyn Write, command: &ProjectScopeCommands) -> 
                 excluded_artifacts += scope_artifacts;
             }
             let _ = writeln!(stdout, "project-scope audit (read-only; nothing deleted)");
-            let _ = writeln!(stdout, "  policy schema:              v{}", scope.schema_version());
+            let _ = writeln!(
+                stdout,
+                "  policy schema:              v{}",
+                scope.schema_version()
+            );
             let _ = writeln!(
                 stdout,
                 "  excluded source records:    {}",

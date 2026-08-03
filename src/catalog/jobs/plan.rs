@@ -139,7 +139,10 @@ pub fn manifest_payload_for_plan(
 /// reviewed manifest so a stale or hand-edited status cannot slip
 /// through.
 /// Resolve the catalog event for a plan revision.
-fn event_for_plan(conn: &Connection, plan_revision_id: i64) -> Result<crate::catalog::domain::CatalogEvent, String> {
+fn event_for_plan(
+    conn: &Connection,
+    plan_revision_id: i64,
+) -> Result<crate::catalog::domain::CatalogEvent, String> {
     conn.query_row(
         "SELECT e.id, e.source_kind, e.external_id, e.first_seen, e.last_seen
          FROM catalog_events e
@@ -185,7 +188,9 @@ pub fn plan_scope_exclusion(
         return Ok(Some(reason));
     }
     if scope.any_asn_excluded(&manifest.target.origin_asns) {
-        return Ok(Some(crate::catalog::scope::REASON_PROJECT_OWNER_EXCLUSION.to_string()));
+        return Ok(Some(
+            crate::catalog::scope::REASON_PROJECT_OWNER_EXCLUSION.to_string(),
+        ));
     }
     Ok(None)
 }

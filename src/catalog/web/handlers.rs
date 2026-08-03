@@ -116,9 +116,7 @@ pub async fn event_detail(
         Ok(Some(view)) => {
             // Direct access to an excluded event is consistently 404:
             // it is not an active project result.
-            if super::view::event_scope_excluded(&db, &state.scope, &view.event)
-                .unwrap_or(false)
-            {
+            if super::view::event_scope_excluded(&db, &state.scope, &view.event).unwrap_or(false) {
                 return not_found_view("event");
             }
             render_view(view)

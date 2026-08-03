@@ -159,7 +159,15 @@ fn worker_config(root: &Path, db: &Path, once: bool) -> inim::worker::WorkerConf
 fn queue_ready(conn: &rusqlite::Connection, plan_id: i64, source: RequestSource) -> String {
     let payload = plan::manifest_payload_for_plan(conn, plan_id).unwrap();
     let hash = plan::canonical_plan_hash(&payload).unwrap();
-    match service::queue(conn, plan_id, source, &hash, &inim::catalog::scope::ProjectScope::default()).unwrap() {
+    match service::queue(
+        conn,
+        plan_id,
+        source,
+        &hash,
+        &inim::catalog::scope::ProjectScope::default(),
+    )
+    .unwrap()
+    {
         service::QueueOutcome::Created(id) => id,
         _ => unreachable!(),
     }
@@ -250,7 +258,14 @@ fn queue_is_idempotent_while_active() {
     let second = {
         let payload = plan::manifest_payload_for_plan(&conn, plan_id).unwrap();
         let hash = plan::canonical_plan_hash(&payload).unwrap();
-        service::queue(&conn, plan_id, RequestSource::LocalWeb, &hash, &inim::catalog::scope::ProjectScope::default()).unwrap()
+        service::queue(
+            &conn,
+            plan_id,
+            RequestSource::LocalWeb,
+            &hash,
+            &inim::catalog::scope::ProjectScope::default(),
+        )
+        .unwrap()
     };
     match second {
         service::QueueOutcome::Duplicate(existing) => assert_eq!(existing, first),
@@ -381,4 +396,83 @@ fn queue_operation_performs_no_analysis() {
     assert_eq!(events[0].state, JobState::Queued);
     // The web GET path performs no execution either (database read-only
     // already proven in the web test suite).
+}
+
+#[test]
+fn scope_change_cancels_queued_job_before_source_access() {
+    // A job queued under an INCLUDED policy becomes excluded before the
+    // worker starts (policy changed while queued). The worker rechecks
+    // scope after claim and cancels with excluded_by_project_scope:
+    // zero network, zero MRT parse, no run published, no staging.
+    let fx = build_fixture();
+    // The fixture root has no config yet: the worker's scope load
+    // yields an empty (all-Included) policy. Queue with that empty
+    // scope (job valid when queued).
+    let conn = db::open_catalog(&fx.db).unwrap();
+    let plan_row = conn
+        .query_row(
+            "SELECT p.id FROM analysis_plans p
+             JOIN manifest_revisions m ON m.id = p.manifest_revision_id
+             JOIN catalog_events e ON e.id = m.event_id WHERE e.external_id = ?1",
+            [EVENT_ID],
+            |r| r.get::<_, i64>(0),
+        )
+        .unwrap();
+    let payload = plan::manifest_payload_for_plan(&conn, plan_row).unwrap();
+    let hash = plan::canonical_plan_hash(&payload).unwrap();
+    let job_id = match service::queue(
+        &conn,
+        plan_row,
+        RequestSource::Cli,
+        &hash,
+        &inim::catalog::scope::ProjectScope::default(),
+    )
+    .unwrap()
+    {
+        service::QueueOutcome::Created(id) => id,
+        _ => unreachable!(),
+    };
+    drop(conn);
+
+    // The policy changes before execution: the event is now excluded.
+    std::fs::create_dir_all(fx.root.join("config")).unwrap();
+    std::fs::write(
+        fx.root.join("config/project-scope.toml"),
+        format!(
+            "schema_version = 1\n\
+             [[excluded_source_records]]\n\
+             source_family = \"local-repository\"\n\
+             external_id = \"{EVENT_ID}\"\n\
+             reason_code = \"project_owner_exclusion\"\n"
+        ),
+    )
+    .unwrap();
+
+    let code = inim::worker::run_worker(&worker_config(&fx.root, &fx.db, true));
+    assert_eq!(code, 0, "scope-cancel is a clean terminal state, not a worker failure");
+
+    let conn = db::open_catalog(&fx.db).unwrap();
+    let job = service::get(&conn, &job_id).unwrap();
+    assert_eq!(job.state, inim::catalog::jobs::JobState::Cancelled);
+    // No run was published and no staging remained.
+    let runs: i64 = conn
+        .query_row("SELECT COUNT(*) FROM analysis_runs", [], |r| r.get(0))
+        .unwrap();
+    assert_eq!(runs, 0, "no run may be published for a scope-excluded job");
+    let events: Vec<String> = conn
+        .prepare("SELECT message_code FROM analysis_job_events WHERE job_id = ?1 ORDER BY sequence")
+        .unwrap()
+        .query_map([&job_id], |r| r.get::<_, String>(0))
+        .unwrap()
+        .collect::<Result<_, _>>()
+        .unwrap();
+    assert!(
+        events.iter().any(|c| c == "excluded_by_project_scope"),
+        "an exact job event must record the scope block: {events:?}"
+    );
+    // Not an analytical failure: the job was cancelled, never Failed.
+    assert_ne!(job.state, inim::catalog::jobs::JobState::Failed);
+    drop(conn);
+    // No run directory was created (zero source access, zero staging).
+    assert!(!fx.root.join("data/runs").join(&job_id).exists());
 }

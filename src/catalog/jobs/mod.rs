@@ -138,6 +138,10 @@ pub fn legal_transition(from: JobState, to: JobState) -> bool {
         (Queued, Claimed)
             | (Queued, Cancelled)
             | (Queued, Failed)
+            // A freshly claimed job that has not started executing may
+            // still be cancelled by project-scope policy before any
+            // source access (scope_change_prevents_queued_execution).
+            | (Claimed, Cancelled)
             | (CancelRequested, Cancelled)
             | (CancelRequested, Failed)
             | (PublishingRun, Completed)

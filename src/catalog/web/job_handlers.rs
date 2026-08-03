@@ -140,12 +140,14 @@ pub async fn queue_plan(
             Ok(p) => p,
             Err(e) => return (StatusCode::BAD_REQUEST, e).into_response(),
         };
-    let plan_hash =
-        match crate::catalog::jobs::plan::validate_plan_for_queue(&db, plan_revision_id, &state.scope)
-        {
-            Ok(h) => h,
-            Err(e) => return (StatusCode::BAD_REQUEST, e).into_response(),
-        };
+    let plan_hash = match crate::catalog::jobs::plan::validate_plan_for_queue(
+        &db,
+        plan_revision_id,
+        &state.scope,
+    ) {
+        Ok(h) => h,
+        Err(e) => return (StatusCode::BAD_REQUEST, e).into_response(),
+    };
     let outcome = crate::catalog::jobs::service::queue(
         &db,
         plan_revision_id,
@@ -325,9 +327,11 @@ pub async fn api_queue_plan(
         return *resp;
     }
     let db = state.db.lock().unwrap();
-    let plan_hash =
-        match crate::catalog::jobs::plan::validate_plan_for_queue(&db, plan_revision_id, &state.scope)
-        {
+    let plan_hash = match crate::catalog::jobs::plan::validate_plan_for_queue(
+        &db,
+        plan_revision_id,
+        &state.scope,
+    ) {
         Ok(h) => h,
         Err(e) => return super::handlers::json_error(StatusCode::BAD_REQUEST, &e),
     };
