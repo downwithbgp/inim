@@ -371,7 +371,7 @@ mod tests {
         let job = seed_job(&conn);
         seed_old_failed_staging(&dir, &conn, &job);
         let report = cleanup(&conn, dir.path(), Duration::from_secs(86400), false).unwrap();
-        assert!(!report.is_dry_run() == false || report.deleted.is_empty());
+        assert!(report.is_dry_run() || report.deleted.is_empty());
         assert!(report.deleted.is_empty(), "dry-run must not delete");
         assert_eq!(report.proposals.len(), 1);
         assert_eq!(report.proposals[0].job_id, job);
