@@ -168,7 +168,11 @@ pub fn cleanup(
         .map_err(|e| format!("cannot begin cleanup transaction: {e}"))?;
     for p in proposals {
         // Re-check eligibility inside the transaction: the job must
-        // still be terminal and the path still unreferenced.
+        // still be terminal and the recorded staging root must match
+        // the EXACT canonical location for this job
+        // (data/jobs/{job_id}/staging) — a stale or tampered value
+        // pointing elsewhere can never be deleted.
+        let canonical = format!("data/jobs/{}/staging", p.job_id);
         let recheck = service::get(&tx, &p.job_id);
         let eligible = match recheck {
             Ok(job) => {
@@ -178,18 +182,18 @@ pub fn cleanup(
                 ) && job
                     .staged_artifact_root
                     .as_deref()
-                    .map(|s| s == p.relative_path)
+                    .map(|s| s == p.relative_path && s == canonical)
                     .unwrap_or(false)
             }
             Err(_) => false,
         };
-        if !eligible || !containment_ok(catalog_root, &p.relative_path) {
+        if !eligible || !containment_ok(catalog_root, &canonical) {
             report
                 .refused
                 .push(format!("{} (eligibility re-check failed)", p.job_id));
             continue;
         }
-        let full = catalog_root.join(&p.relative_path);
+        let full = catalog_root.join(&canonical);
         match std::fs::remove_dir_all(&full) {
             Ok(()) => {
                 report.deleted.push(p.job_id.clone());

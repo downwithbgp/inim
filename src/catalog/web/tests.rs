@@ -2344,20 +2344,6 @@ async fn manlan_global_distinct_prefix_count_is_not_stream_total() {
         return;
     }
     assert_eq!(status, StatusCode::OK);
-    if !body.contains("58 of 80 baseline streams changed (12 distinct prefixes)") {
-        for line in body.lines().filter(|l| {
-            l.contains("baseline streams") || l.contains("distinct prefix") || l.contains("changed")
-        }) {
-            eprintln!("DEBUG line: {line}");
-        }
-        eprintln!("DEBUG body len: {}", body.len());
-        for line in body
-            .lines()
-            .filter(|l| l.contains("streams changed") || l.contains("baseline streams"))
-        {
-            eprintln!("DEBUG agg: {line}");
-        }
-    }
     assert!(
         body.contains("58 of 80 baseline streams changed (12 distinct prefixes)"),
         "global distinct-prefix count is a union, not the stream total"
@@ -2418,14 +2404,6 @@ async fn header_uses_human_time_range() {
         body.contains("Operator incident</dt><dd class=\"wb-nowrap\">2019-08-21 04:00–22:38 UTC"),
         "incident range human-readable with date"
     );
-    if !body.contains("Displayed BGP pilot</dt><dd class=\"wb-nowrap\">16:00–17:30 UTC") {
-        for line in body
-            .lines()
-            .filter(|l| l.contains("Displayed BGP pilot") || l.contains("Operator incident"))
-        {
-            eprintln!("DEBUG HDR: {line}");
-        }
-    }
     assert!(
         body.contains("Displayed BGP pilot</dt><dd class=\"wb-nowrap\">16:00–17:30 UTC"),
         "pilot range human-readable, date implied"
