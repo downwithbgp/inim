@@ -441,3 +441,28 @@ fn no_candidate_ready_page_is_not_empty() {
         view.rows.len()
     );
 }
+
+#[test]
+fn corpus_manifest_path_traversal_is_rejected() {
+    // A manifest entry like "../../x" must be refused (security
+    // hardening; the tracked corpus never contains one).
+    let dir = tempfile::tempdir().unwrap();
+    let corpus = dir.path().join("corpus");
+    std::fs::create_dir_all(&corpus).unwrap();
+    std::fs::write(
+        corpus.join("manifest.json"),
+        r#"{"schema_version":1,"snapshots":[{"external_id":"EVIL","file":"../../etc/passwd","fetched_at":"2026-01-01T00:00:00Z","source_url":"","sha256":"x","bytes":1}]}"#,
+    )
+    .unwrap();
+    let conn = db::open_catalog(&dir.path().join("c.sqlite")).unwrap();
+    let err = inim::catalog::corpus_import::import_corpus(&conn, &corpus).unwrap_err();
+    assert!(err.contains("escapes"), "{err}");
+    // Absolute paths are rejected too.
+    std::fs::write(
+        corpus.join("manifest.json"),
+        r#"{"schema_version":1,"snapshots":[{"external_id":"EVIL","file":"/etc/passwd","fetched_at":"2026-01-01T00:00:00Z","source_url":"","sha256":"x","bytes":1}]}"#,
+    )
+    .unwrap();
+    let err = inim::catalog::corpus_import::import_corpus(&conn, &corpus).unwrap_err();
+    assert!(err.contains("escapes"), "{err}");
+}

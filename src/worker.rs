@@ -14,6 +14,9 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
+#[cfg(unix)]
+use std::os::unix::fs::PermissionsExt;
+
 use rusqlite::Connection;
 
 use crate::catalog::jobs::plan::{canonical_plan_hash, manifest_payload_for_plan};
@@ -937,13 +940,23 @@ impl Drop for TempDirGuard {
 }
 
 fn unique_temp_dir() -> Result<TempDirGuard, String> {
+    // The per-process base is created with create_dir (fails if a
+    // local attacker pre-created it) and restricted to the owner; the
+    // unique subdirectory then cannot be predicted or planted.
     let base = std::env::temp_dir().join(format!("inim-worker-{}", std::process::id()));
-    std::fs::create_dir_all(&base).map_err(|e| format!("cannot create temp dir: {e}"))?;
+    if base.exists() {
+        return Err(format!(
+            "temp dir {} already exists; refusing to reuse a possibly planted directory",
+            base.display()
+        ));
+    }
+    std::fs::create_dir(&base).map_err(|e| format!("cannot create temp dir: {e}"))?;
+    let _ = std::fs::set_permissions(&base, std::fs::Permissions::from_mode(0o700));
     let unique = base.join(format!(
         "{}",
         chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0)
     ));
-    std::fs::create_dir_all(&unique).map_err(|e| format!("cannot create temp dir: {e}"))?;
+    std::fs::create_dir(&unique).map_err(|e| format!("cannot create temp dir: {e}"))?;
     Ok(TempDirGuard(unique))
 }
 

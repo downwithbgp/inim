@@ -57,6 +57,16 @@ pub fn import_corpus(conn: &Connection, corpus_dir: &Path) -> Result<CorpusImpor
             .and_then(|v| v.as_str())
             .unwrap_or("")
             .to_string();
+        // Containment: snapshot paths must stay inside the corpus
+        // directory (no .., no absolute, no backslash components).
+        if file.starts_with('/')
+            || file.split('/').any(|c| c == ".." || c.is_empty())
+            || file.contains('\\')
+        {
+            return Err(format!(
+                "corpus manifest snapshot path escapes the corpus directory: {file}"
+            ));
+        }
         let raw = std::fs::read_to_string(corpus_dir.join(&file))
             .map_err(|e| format!("cannot read corpus snapshot {file}: {e}"))?;
         let sha = hex_sha256(raw.as_bytes());
