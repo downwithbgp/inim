@@ -29,10 +29,13 @@ fn demo_grnoc_event_count_is_explicit() {
     let report = inim::catalog::demo::demo_init(&db, Path::new("."), false).unwrap();
     // The demo report states the GRNOC event count explicitly rather
     // than implying a global corpus.
-    assert_eq!(report.grnoc_events, 10, "{report:?}");
-    assert_eq!(report.grnoc_snapshots, 10);
+    // INC0040293 has a reviewed analysis plan (manifests/), so the
+    // corpus import represents it once via the reviewed event; the
+    // remaining nine corpus tickets are imported as discovered events.
+    assert_eq!(report.grnoc_events, 9, "{report:?}");
+    assert_eq!(report.grnoc_snapshots, 9);
     assert_eq!(report.grnoc_relationships, 36);
-    assert_eq!(report.grnoc_reviews, 10);
+    assert_eq!(report.grnoc_reviews, 9);
     assert!(report.is_ok(), "{report:?}");
 }
 
@@ -90,7 +93,10 @@ fn catalog_event_requires_source_snapshot() {
             |r| r.get(0),
         )
         .unwrap();
-    assert_eq!(without, 0, "every catalog event must have a source snapshot");
+    assert_eq!(
+        without, 0,
+        "every catalog event must have a source snapshot"
+    );
     drop(dir);
 }
 
@@ -100,11 +106,13 @@ fn demo_imports_bounded_reviewed_grnoc_corpus() {
         return;
     }
     let (dir, conn) = temp_catalog();
-    let summary = inim::catalog::corpus_import::import_corpus(&conn, Path::new(CORPUS_DIR)).unwrap();
+    let summary =
+        inim::catalog::corpus_import::import_corpus(&conn, Path::new(CORPUS_DIR)).unwrap();
     assert_eq!(summary.events, 10);
     assert_eq!(summary.snapshots, 10);
     assert_eq!(summary.relationships, 36);
-    let check = inim::catalog::corpus_import::validate_corpus_directory(Path::new(CORPUS_DIR)).unwrap();
+    let check =
+        inim::catalog::corpus_import::validate_corpus_directory(Path::new(CORPUS_DIR)).unwrap();
     assert!(check.consistent, "{check:?}");
     drop(dir);
 }
@@ -128,7 +136,10 @@ fn demo_imports_no_untracked_runtime_snapshot() {
             "manifest references a snapshot that is not tracked: {file}"
         );
         // No absolute path may appear in the manifest.
-        assert!(!file.starts_with('/'), "absolute snapshot path in manifest: {file}");
+        assert!(
+            !file.starts_with('/'),
+            "absolute snapshot path in manifest: {file}"
+        );
     }
 }
 
@@ -178,8 +189,11 @@ fn demo_import_creates_no_ready_plan_without_reviewed_mapping() {
             |r| r.get(0),
         )
         .unwrap();
-    assert_eq!(ready_for_grnoc, 0, "no GRNOC ticket may get a Ready plan automatically");
-    assert_eq!(report.events_awaiting_review, 10, "{report:?}");
+    assert_eq!(
+        ready_for_grnoc, 0,
+        "no GRNOC ticket may get a Ready plan automatically"
+    );
+    assert_eq!(report.events_awaiting_review, 9, "{report:?}");
     drop(dir);
 }
 
@@ -203,11 +217,14 @@ fn demo_manifest_matches_import() {
         .query_row("SELECT COUNT(*) FROM analysis_jobs", [], |r| r.get(0))
         .unwrap();
     assert_eq!(manifest["schema_version"], 1);
-    assert_eq!(manifest["grnoc_source_events"], 10);
-    assert_eq!(manifest["tracked_source_events"], 3);
+    assert_eq!(manifest["grnoc_source_events"], 9);
+    assert_eq!(manifest["tracked_source_events"], 4);
     assert_eq!(manifest["jobs"], jobs);
-    assert_eq!(manifest["runs"], 2);
-    assert_eq!(events, 13, "3 manifest events + 10 corpus events");
+    assert_eq!(manifest["runs"], 3);
+    assert_eq!(
+        events, 13,
+        "4 manifest events + 9 corpus events (INC0040293 represented by its reviewed event)"
+    );
     drop(conn);
 }
 
@@ -223,7 +240,10 @@ fn demo_manifest_is_deterministic() {
     inim::catalog::demo::demo_init(&db2, Path::new("."), false).unwrap();
     let m1 = std::fs::read_to_string(db1.with_file_name("demo-manifest.json")).unwrap();
     let m2 = std::fs::read_to_string(db2.with_file_name("demo-manifest.json")).unwrap();
-    assert_eq!(m1, m2, "demo manifest must be byte-deterministic (no timestamps)");
+    assert_eq!(
+        m1, m2,
+        "demo manifest must be byte-deterministic (no timestamps)"
+    );
 }
 
 #[test]
@@ -242,7 +262,10 @@ fn demo_manifest_urls_resolve() {
     assert!(!urls.is_empty());
     for u in urls {
         let s = u.as_str().unwrap();
-        assert!(s.starts_with('/'), "workbench URL must be root-relative: {s}");
+        assert!(
+            s.starts_with('/'),
+            "workbench URL must be root-relative: {s}"
+        );
     }
 }
 
@@ -259,7 +282,10 @@ fn package_contains_required_demo_material() {
         CORPUS_DIR.to_string() + "/relationships.json",
         REVIEWS_PATH.to_string(),
     ] {
-        assert!(Path::new(&path).is_file(), "required demo material missing: {path}");
+        assert!(
+            Path::new(&path).is_file(),
+            "required demo material missing: {path}"
+        );
     }
 }
 

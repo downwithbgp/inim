@@ -382,7 +382,11 @@ fn v9_to_v10_preserves_catalog_events() {
         .unwrap();
     assert_eq!(n, 1, "events must be retained");
     let (kind, ext): (String, String) = conn
-        .query_row("SELECT source_kind, external_id FROM catalog_events", [], |r| Ok((r.get(0)?, r.get(1)?)))
+        .query_row(
+            "SELECT source_kind, external_id FROM catalog_events",
+            [],
+            |r| Ok((r.get(0)?, r.get(1)?)),
+        )
         .unwrap();
     assert_eq!(kind, "grnoc-public-task-viewer");
     assert_eq!(ext, "CORPUS-TICKET-001");
@@ -394,9 +398,16 @@ fn v9_to_v10_preserves_snapshots() {
     let (dir, conn) = open_v9_db_with_data();
     inim::catalog::db::migrate(&conn).unwrap();
     let (raw, sha): (String, String) = conn
-        .query_row("SELECT raw_payload, content_sha256 FROM event_snapshots", [], |r| Ok((r.get(0)?, r.get(1)?)))
+        .query_row(
+            "SELECT raw_payload, content_sha256 FROM event_snapshots",
+            [],
+            |r| Ok((r.get(0)?, r.get(1)?)),
+        )
         .unwrap();
-    assert!(raw.contains("public record body"), "raw snapshot must be byte-identical");
+    assert!(
+        raw.contains("public record body"),
+        "raw snapshot must be byte-identical"
+    );
     assert_eq!(
         sha,
         inim::catalog::document::hex_sha256(raw.as_bytes()),

@@ -18,6 +18,7 @@ pub const DEMO_EXPECTED_EVENTS: &[&str] = &[
     "INC0299001", // UVA event
     "INC0301970", // MAN LAN related event
     "INC0302574", // visibility audit event
+    "INC0040293", // MAN LAN participant event (fresh reviewed case study)
 ];
 
 pub fn demo_init(db_path: &Path, root: &Path, force: bool) -> Result<DemoReport, String> {
@@ -78,20 +79,27 @@ fn write_demo_manifest(db_path: &Path, report: &DemoReport) -> Result<(), String
         "expected_workbench_urls": [
             "/events/INC0302574/workbench",
             "/events/INC0299001/workbench",
+            "/events/INC0040293/workbench",
             "/case-studies/manlan-2019/workbench",
         ],
     });
     let path = db_path.with_file_name("demo-manifest.json");
-    std::fs::write(&path, serde_json::to_string_pretty(&manifest).unwrap_or_default())
-        .map_err(|e| format!("cannot write demo manifest: {e}"))
+    std::fs::write(
+        &path,
+        serde_json::to_string_pretty(&manifest).unwrap_or_default(),
+    )
+    .map_err(|e| format!("cannot write demo manifest: {e}"))
 }
 
 /// Count helpers used by verify + manifest.
 fn manifest_counts(conn: &Connection) -> (i64, i64, i64) {
     (
-        conn.query_row("SELECT COUNT(*) FROM analysis_plans", [], |r| r.get(0)).unwrap_or(0),
-        conn.query_row("SELECT COUNT(*) FROM analysis_jobs", [], |r| r.get(0)).unwrap_or(0),
-        conn.query_row("SELECT COUNT(*) FROM analysis_artifacts", [], |r| r.get(0)).unwrap_or(0),
+        conn.query_row("SELECT COUNT(*) FROM analysis_plans", [], |r| r.get(0))
+            .unwrap_or(0),
+        conn.query_row("SELECT COUNT(*) FROM analysis_jobs", [], |r| r.get(0))
+            .unwrap_or(0),
+        conn.query_row("SELECT COUNT(*) FROM analysis_artifacts", [], |r| r.get(0))
+            .unwrap_or(0),
     )
 }
 
@@ -153,7 +161,9 @@ pub fn demo_verify(db_path: &Path, root: &Path) -> Result<DemoReport, String> {
         )
         .unwrap_or(0);
     report.grnoc_relationships = conn
-        .query_row("SELECT COUNT(*) FROM ticket_relationships", [], |r| r.get(0))
+        .query_row("SELECT COUNT(*) FROM ticket_relationships", [], |r| {
+            r.get(0)
+        })
         .unwrap_or(0);
     report.grnoc_reviews = conn
         .query_row("SELECT COUNT(*) FROM ticket_reviews", [], |r| r.get(0))
@@ -260,7 +270,10 @@ pub fn render_report(report: &DemoReport) -> String {
     }
     out.push_str(&format!(
         "GRNOC corpus: {} events, {} snapshots, {} relationships, {} reviews\n",
-        report.grnoc_events, report.grnoc_snapshots, report.grnoc_relationships, report.grnoc_reviews
+        report.grnoc_events,
+        report.grnoc_snapshots,
+        report.grnoc_relationships,
+        report.grnoc_reviews
     ));
     out.push_str(&format!(
         "events awaiting analysis review: {}\n",
@@ -287,6 +300,7 @@ fn resolve_artifact(root: &Path, rel: &str) -> std::path::PathBuf {
         root.join(rel),
         root.join("out").join(rel),
         root.join("case-studies/manlan-2019/pilot/out").join(rel),
+        root.join("case-studies/manlan-esnet-2019/out").join(rel),
         root.join("case-studies/inc0302574/out").join(rel),
         root.join("case-studies/inc0299001/out").join(rel),
     ];

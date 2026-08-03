@@ -1,0 +1,47 @@
+{
+  "metadata_schema_version": 1,
+  "plan_hash": "adcffe6f92434800a9a0ada6af0b116c831a9979745bddb8b42ba513863e7c58",
+  "job_id": "ce258f4d8a07d7395d9d751f8d7512b2",
+  "attempt": 1,
+  "original_job_id": null,
+  "worker_id": "w-d0c42a5ffce0f832",
+  "requested_by": "local-web",
+  "requested_at": "2026-08-03T03:44:56Z",
+  "started_at": "2026-08-03T03:45:02Z",
+  "finished_at": "2026-08-03T03:45:26Z",
+  "wall_secs": 23.769556291,
+  "stage_durations_secs": [
+    [
+      "broker+cache",
+      0.004746515
+    ],
+    [
+      "UPDATE cache+parse",
+      8.873007682
+    ],
+    [
+      "reconstruction",
+      0.000098492
+    ],
+    [
+      "tokenize",
+      0.000012452
+    ],
+    [
+      "waves+motifs",
+      0.000018202
+    ],
+    [
+      "assess",
+      0.0003437
+    ],
+    [
+      "outputs",
+      0.006028432
+    ]
+  ],
+  "offline": true,
+  "cache_hits": null,
+  "bytes_downloaded": null,
+  "bytes_read_local": null
+}

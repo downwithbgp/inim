@@ -1,0 +1,44 @@
+{
+  "analyst_notes": [
+    "Fresh-event validation (Session 47). Expected semantics: reviewed-plane visibility of ESnet prefixes at the single qualifying observer during the MAN LAN outage; evidence shows stability throughout the cached window."
+  ],
+  "collectors": [
+    "route-views2"
+  ],
+  "collectors_provenance": "single qualifying collector from event-date preflight (rrc06/rrc15: target present, predicate absent)",
+  "cooldown_minutes": 60,
+  "event_id": "INC0040293",
+  "event_window_utc": {
+    "end": "2019-08-21T20:25:24Z",
+    "start": "2019-08-21T16:36:38Z"
+  },
+  "open": false,
+  "revision": 1,
+  "schema_version": 2,
+  "source_family": "RouteViews",
+  "target": {
+    "label": "ESnet (Energy Sciences Network)",
+    "origin_asns": [
+      293
+    ],
+    "transit_predicate": {
+      "predicate": {
+        "ContainsAny": [
+          11537
+        ]
+      },
+      "provenance": {
+        "date": "2026-08-02",
+        "reviewed_by": "session-47-review",
+        "statement": "Origin AS293 historically reviewed (2019-dated PeeringDB capture + ARIN RDAP autnum ESNET, registration 1997-06-16; case-studies/manlan-2019/target-research.json). Transit predicate ContainsAny[11537] (Internet2 R&E) empirically validated by the 2019-08-21 event-date preflight: route-views2 rib.20190821.0200 shows 3 qualifying observer-prefix streams (peer 64.57.28.241, prefixes 134.55.0.0/16, 192.107.175.0/24, 192.188.24.0/22, path [11537, 293]). Ticket window and role from the immutable GRNOC snapshot INC0040293."
+      },
+      "status": "Reviewed"
+    }
+  },
+  "ticket_window_local": {
+    "end": "2019-08-21 20:25:24",
+    "start": "2019-08-21 16:36:38",
+    "timezone": "UTC"
+  },
+  "warmup_minutes": 60
+}

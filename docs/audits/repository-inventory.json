@@ -1416,6 +1416,86 @@
   "current": true
  },
  {
+  "path": "case-studies/manlan-esnet-2019/README.md",
+  "category": "Reviewed case-study interpretation",
+  "audience": "analysts",
+  "authoritative": "reviewed case-study claims",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-esnet-2019/out/INC0040293/archive_manifest.json",
+  "category": "Immutable or generated evidence",
+  "audience": "analysts",
+  "authoritative": "canonical run artifacts",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-esnet-2019/out/INC0040293/execution_metadata.json",
+  "category": "Immutable or generated evidence",
+  "audience": "analysts",
+  "authoritative": "canonical run artifacts",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-esnet-2019/out/INC0040293/lifecycle.json",
+  "category": "Immutable or generated evidence",
+  "audience": "analysts",
+  "authoritative": "canonical run artifacts",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-esnet-2019/out/INC0040293/limitations.json",
+  "category": "Immutable or generated evidence",
+  "audience": "analysts",
+  "authoritative": "canonical run artifacts",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-esnet-2019/out/INC0040293/performance.json",
+  "category": "Immutable or generated evidence",
+  "audience": "analysts",
+  "authoritative": "canonical run artifacts",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-esnet-2019/out/INC0040293/report.json",
+  "category": "Immutable or generated evidence",
+  "audience": "analysts",
+  "authoritative": "canonical run artifacts",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-esnet-2019/out/INC0040293/semantic_waves.json",
+  "category": "Immutable or generated evidence",
+  "audience": "analysts",
+  "authoritative": "canonical run artifacts",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-esnet-2019/out/INC0040293/transitions.json",
+  "category": "Immutable or generated evidence",
+  "audience": "analysts",
+  "authoritative": "canonical run artifacts",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-esnet-2019/out/INC0040293/withdrawal_audit.json",
+  "category": "Immutable or generated evidence",
+  "audience": "analysts",
+  "authoritative": "canonical run artifacts",
+  "generated": true,
+  "current": true
+ },
+ {
   "path": "deny.toml",
   "category": "Configuration",
   "audience": "maintainers",
@@ -1600,6 +1680,14 @@
   "current": true
  },
  {
+  "path": "docs/audits/2026-08-manlan-ticket-readiness.md",
+  "category": "Normative current documentation",
+  "audience": "maintainers",
+  "authoritative": "dated audit evidence",
+  "generated": false,
+  "current": true
+ },
+ {
   "path": "docs/audits/2026-08-repository-truth-audit.md",
   "category": "Normative current documentation",
   "audience": "maintainers",
@@ -1652,6 +1740,14 @@
   "category": "Normative current documentation",
   "audience": "contributors and operators",
   "authoritative": "implementation + canonical evidence (see docs/README authority map)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "manifests/INC0040293.json",
+  "category": "Reviewed case-study interpretation",
+  "audience": "analysts",
+  "authoritative": "reviewed manifest",
   "generated": false,
   "current": true
  },

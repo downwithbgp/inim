@@ -390,6 +390,7 @@ fn production_source_contains_no_internet2_specific_plane_branch() {
         "src/sources/internet2/ticket.rs",
         "src/sources/mod.rs",
         "src/tokenize.rs",
+        "src/worker.rs",
     ];
 
     // 1. The I2PX plane identity is data-only: zero occurrences in src/.

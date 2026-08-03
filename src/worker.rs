@@ -187,12 +187,23 @@ impl crate::discover::ArchiveDiscovery for CacheScanDiscovery {
                     continue;
                 }
                 let size = path.metadata().map(|m| m.len()).unwrap_or(0);
+                // Archive coverage mirrors the live conventions:
+                // UPDATE files cover the next 15 minutes, RIB/bview
+                // files cover the full day. The pipeline uses ts_start
+                // for selection and ts_end only for gap validation;
+                // setting ts_end = ts_start would fabricate a gap
+                // between every consecutive 15-minute UPDATE archive.
+                let ts_end = if data_type == "updates" {
+                    ts + chrono::Duration::minutes(15)
+                } else {
+                    ts + chrono::Duration::hours(24)
+                };
                 items.push(crate::discover::ArchiveItem {
                     project: "local".to_string(),
                     collector_id: collector.to_string(),
                     data_type: data_type.to_string(),
                     ts_start: ts,
-                    ts_end: ts,
+                    ts_end,
                     url: format!("file://{}", path.display()),
                     size,
                 });
@@ -571,10 +582,15 @@ fn materialize_inputs(
     };
     let snapshot_payload =
         snapshot_payload.ok_or_else(|| "invalid_plan: event snapshot missing".to_string())?;
+    // The pipeline consumes an event ticket input. Ticket-fixture-
+    // shaped snapshots pass through unchanged; any other catalog event
+    // (e.g. GRNOC viewer records) is translated generically from the
+    // snapshot's normalized model — never entity-specific.
+    let event_file_content = generic_ticket_input(&snapshot_payload, conn, job.plan_revision_id)?;
     let plan_hash = canonical_plan_hash(&manifest_payload)?;
     let event_path = dir.path().join(format!("{event_id}.json"));
     let manifest_path = dir.path().join(format!("{event_id}.manifest.json"));
-    std::fs::write(&event_path, snapshot_payload)
+    std::fs::write(&event_path, event_file_content)
         .map_err(|e| format!("cannot write event temp file: {e}"))?;
     std::fs::write(&manifest_path, manifest_payload)
         .map_err(|e| format!("cannot write manifest temp file: {e}"))?;
@@ -802,6 +818,70 @@ fn read_stage_durations(event_out: &Path) -> Vec<(String, f64)> {
         }
     }
     out
+}
+
+/// Translate a snapshot's payload into the pipeline's ticket input.
+///
+/// The raw payload is used verbatim when it already parses as a ticket
+/// fixture (legacy fixture-shaped snapshots keep their exact
+/// semantics, including timezone handling). Otherwise a generic ticket
+/// input is derived from the snapshot's NORMALIZED model (id, title,
+/// RFC3339 start/end, task type, description) — this covers any source
+/// kind, including GRNOC Public Task Viewer records, without any
+/// source-specific branch in the pipeline.
+fn generic_ticket_input(
+    raw_payload: &str,
+    conn: &Arc<Mutex<Connection>>,
+    plan_revision_id: i64,
+) -> Result<String, String> {
+    if crate::sources::internet2::ticket::parse_ticket_fixture(raw_payload).is_ok() {
+        return Ok(raw_payload.to_string());
+    }
+    let normalized: String = {
+        let conn = conn.lock().unwrap();
+        conn.query_row(
+            "SELECT s.normalized_json FROM event_snapshots s
+             JOIN manifest_revisions m ON m.snapshot_id = s.id
+             JOIN analysis_plans p ON p.manifest_revision_id = m.id
+             WHERE p.id = ?1",
+            rusqlite::params![plan_revision_id],
+            |r| r.get(0),
+        )
+        .map_err(|e| format!("cannot load normalized event: {e}"))?
+    };
+    let v: serde_json::Value = serde_json::from_str(&normalized)
+        .map_err(|e| format!("normalized event unreadable: {e}"))?;
+    let id = v
+        .get("id")
+        .and_then(|x| x.as_str())
+        .ok_or_else(|| "invalid_plan: normalized event missing id".to_string())?;
+    let title = v.get("title").and_then(|x| x.as_str()).unwrap_or(id);
+    let start = v
+        .get("start")
+        .and_then(|x| x.as_str())
+        .ok_or_else(|| "invalid_plan: normalized event missing start".to_string())?;
+    let end = v.get("end").and_then(|x| x.as_str()).unwrap_or("");
+    let task_type = v
+        .get("task_type")
+        .and_then(|x| x.as_str())
+        .unwrap_or("incident");
+    let description = v.get("description").and_then(|x| x.as_str()).unwrap_or("");
+    let fmt = |ts: &str| -> String {
+        chrono::DateTime::parse_from_rfc3339(ts)
+            .map(|t| t.format("%Y-%m-%d %H:%M:%S").to_string())
+            .unwrap_or_else(|_| ts.to_string())
+    };
+    // The ticket parser treats an absent timezone as UTC (backward
+    // compatible), so no timezone field is emitted.
+    serde_json::to_string(&serde_json::json!({
+        "id": id,
+        "title": title,
+        "start": fmt(start),
+        "end": fmt(end),
+        "type": task_type,
+        "description": description,
+    }))
+    .map_err(|e| format!("cannot build generic ticket input: {e}"))
 }
 
 /// Minimal unique temp directory (tempfile is a dev-dependency only).

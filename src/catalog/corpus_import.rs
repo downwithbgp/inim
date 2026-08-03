@@ -10,7 +10,7 @@
 
 use std::path::Path;
 
-use rusqlite::Connection;
+use rusqlite::{Connection, OptionalExtension};
 
 use crate::catalog::document::hex_sha256;
 use crate::sources::grnoc::ViewerRecord;
@@ -67,6 +67,25 @@ pub fn import_corpus(conn: &Connection, corpus_dir: &Path) -> Result<CorpusImpor
         }
         seen.push((ext.clone(), sha.clone()));
 
+        // A corpus ticket that already has a reviewed Ready plan under
+        // ANY source kind (e.g. a reviewed analysis manifest imported
+        // from manifests/) is represented by that reviewed analysis
+        // event; importing the raw corpus row again would create a
+        // duplicate catalog event for the same public ticket.
+        let already_reviewed: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM analysis_plans p
+                 JOIN manifest_revisions m ON m.id = p.manifest_revision_id
+                 JOIN catalog_events e ON e.id = m.event_id
+                 WHERE e.external_id = ?1 AND p.status = 'Ready'",
+                [&ext],
+                |r| r.get(0),
+            )
+            .unwrap_or(0);
+        if already_reviewed > 0 {
+            summary.skip_reviewed_tickets.push(ext.clone());
+            continue;
+        }
         // Parse the stored viewer record and derive the normalized
         // catalog item the same way the live sync does.
         let record: ViewerRecord = serde_json::from_str(&raw)
@@ -160,17 +179,11 @@ pub fn import_corpus(conn: &Connection, corpus_dir: &Path) -> Result<CorpusImpor
                     .and_then(|v| v.as_str())
                     .and_then(|t| summary.snapshot_ids.get(t))
                     .copied();
-                let from_id = crate::catalog::db::get_event_by_external(
-                    conn,
-                    "grnoc-public-task-viewer",
-                    from,
-                )?
-                .map(|e| e.id);
+                let from_id = resolve_event_id(conn, from)?;
                 let to_id = if to.is_empty() {
                     None
                 } else {
-                    crate::catalog::db::get_event_by_external(conn, "grnoc-public-task-viewer", to)?
-                        .map(|e| e.id)
+                    resolve_event_id(conn, to)?
                 };
                 if let Some(from_id) = from_id {
                     let edge = crate::catalog::domain::TicketRelationship {
@@ -230,7 +243,11 @@ pub fn import_reviews(conn: &Connection, reviews_path: &Path) -> Result<usize, S
             else {
                 continue; // unresolved reference, not an event
             };
-            let roles = r.get("roles").cloned().unwrap_or(serde_json::json!([])).to_string();
+            let roles = r
+                .get("roles")
+                .cloned()
+                .unwrap_or(serde_json::json!([]))
+                .to_string();
             let labels = r
                 .get("entity_labels")
                 .cloned()
@@ -256,7 +273,10 @@ pub fn import_reviews(conn: &Connection, reviews_path: &Path) -> Result<usize, S
                 .and_then(|v| v.as_str())
                 .unwrap_or("Related")
                 .to_string();
-            let provenance = r.get("provenance").cloned().unwrap_or(serde_json::json!([]));
+            let provenance = r
+                .get("provenance")
+                .cloned()
+                .unwrap_or(serde_json::json!([]));
             conn.execute(
                 "INSERT INTO ticket_reviews (catalog_event_id, external_id, reviewed_roles_json,
                      entity_labels_json, linked_change_ids_json, analysis_applicability,
@@ -284,6 +304,24 @@ pub fn import_reviews(conn: &Connection, reviews_path: &Path) -> Result<usize, S
     Ok(count)
 }
 
+/// Resolve a ticket to a catalog event: first under the corpus source
+/// kind, then (for tickets with a reviewed analysis event) under any
+/// other source kind.
+fn resolve_event_id(conn: &Connection, external_id: &str) -> Result<Option<i64>, String> {
+    if let Some(e) =
+        crate::catalog::db::get_event_by_external(conn, "grnoc-public-task-viewer", external_id)?
+    {
+        return Ok(Some(e.id));
+    }
+    conn.query_row(
+        "SELECT id FROM catalog_events WHERE external_id = ?1 ORDER BY id LIMIT 1",
+        [external_id],
+        |r| r.get(0),
+    )
+    .optional()
+    .map_err(|e| format!("cannot resolve event {external_id}: {e}"))
+}
+
 /// Result of a corpus import.
 #[derive(Debug, Default)]
 pub struct CorpusImportSummary {
@@ -291,6 +329,8 @@ pub struct CorpusImportSummary {
     pub snapshots: usize,
     pub relationships: usize,
     pub unresolved_references: usize,
+    /// Tickets skipped because a reviewed Ready plan already exists.
+    pub skip_reviewed_tickets: Vec<String>,
     snapshot_ids: std::collections::HashMap<String, i64>,
 }
 
@@ -308,7 +348,11 @@ pub fn validate_corpus_directory(corpus_dir: &Path) -> Result<CorpusDirCheck, St
         .map(|a| a.len())
         .unwrap_or(0);
     let on_disk = std::fs::read_dir(corpus_dir.join("snapshots"))
-        .map(|it| it.filter_map(|e| e.ok()).filter(|e| e.path().is_file()).count())
+        .map(|it| {
+            it.filter_map(|e| e.ok())
+                .filter(|e| e.path().is_file())
+                .count()
+        })
         .unwrap_or(0);
     Ok(CorpusDirCheck {
         listed,
