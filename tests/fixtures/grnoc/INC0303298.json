@@ -1,0 +1,13 @@
+{
+ "number": "INC0303298",
+ "task_type": "Incident",
+ "short_description": "Brief Outage - I2 Participant NOAA (KANS-WASH)",
+ "category": "Investigating",
+ "start": "2026-08-03T12:16:06Z",
+ "end": "2026-08-03T13:07:17Z",
+ "opened": "2026-08-03T12:40:31Z",
+ "state": "2",
+ "priority": "3",
+ "description": "*** No Notifications or Inquiries needed for Sub5 Customer outages ***",
+ "source_url": "https://grnoc.iu.edu/tasks/INC0303298"
+}

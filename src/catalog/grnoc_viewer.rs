@@ -94,7 +94,13 @@ impl GrnocViewerClient {
 impl GrnocViewerClient {
     /// A client against the production viewer with the given policy.
     pub fn new(policy: AccessPolicy) -> Result<Self, String> {
-        GrnocViewerClient::new_with_base(policy, GRNOC_VIEWER_BASE.to_string())
+        let mut client = GrnocViewerClient::new_with_base(policy, GRNOC_VIEWER_BASE.to_string())?;
+        // Enforce the reviewed request budget from the access policy.
+        // Without this the polite client starts unbounded and the
+        // documented per-sync budget is never enforced.
+        let budget = client.client.policy().max_requests;
+        client.client.set_budget(budget);
+        Ok(client)
     }
 
     /// A client against an explicit base URL (tests use the mock server).

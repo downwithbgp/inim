@@ -1250,8 +1250,13 @@ fn cmd_analyze(
     );
 
     if preflight_only {
-        // Stage A: the preflight JSON was already printed by the runner;
-        // do not emit an analysis outcome or write outputs.
+        // Stage A: the preflight JSON was already printed by the runner
+        // on success; do not emit an analysis outcome or write outputs.
+        // A failed preflight must still be reported.
+        if let inim::outcome::AnalysisOutcome::Incomplete { failure } = &outcome {
+            let _ = writeln!(stderr, "error: preflight failed: {failure}");
+            return EXIT_ANALYSIS_INCOMPLETE;
+        }
         return EXIT_SUCCESS;
     }
 
