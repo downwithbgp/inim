@@ -777,6 +777,10 @@ enum SyncSource {
         /// Print the self-imposed access policy and exit; no network.
         #[arg(long)]
         show_access_policy: bool,
+        /// Fetch and print the viewer's public network/domain list
+        /// (one polite request), then exit.
+        #[arg(long)]
+        show_domains: bool,
     },
 }
 
@@ -1745,7 +1749,36 @@ fn cmd_catalog(stdout: &mut dyn Write, command: &CatalogCommands) -> i32 {
                 contact,
                 dry_run,
                 show_access_policy,
+                show_domains,
             } => {
+                use inim::catalog::access::AccessPolicy;
+                use inim::catalog::grnoc_viewer::GrnocViewerClient;
+                let policy = AccessPolicy::conservative();
+                if *show_domains {
+                    let mut client = match GrnocViewerClient::new(policy.clone()) {
+                        Ok(c) => c,
+                        Err(e) => {
+                            let _ = writeln!(stdout, "error: {e}");
+                            return EXIT_INVALID_INPUT;
+                        }
+                    };
+                    match client.fetch_domains() {
+                        Ok(domains) => {
+                            for d in domains {
+                                let name = d.get("name").and_then(|v| v.as_str()).unwrap_or("?");
+                                let id = d.get("sys_id").and_then(|v| v.as_str()).unwrap_or("?");
+                                let criteria =
+                                    d.get("criteria").and_then(|v| v.as_str()).unwrap_or("");
+                                let _ = writeln!(stdout, "{name}	{id}	{criteria}");
+                            }
+                        }
+                        Err(e) => {
+                            let _ = writeln!(stdout, "error: cannot fetch domains: {e}");
+                            return EXIT_INVALID_INPUT;
+                        }
+                    }
+                    return EXIT_SUCCESS;
+                }
                 if *show_access_policy {
                     use inim::catalog::access::AccessPolicy;
                     let policy = AccessPolicy::conservative();
@@ -2556,22 +2589,24 @@ fn cmd_grnoc_sync_live(
     // reviewed queries; incident search requires a domain (unscoped
     // incident search returns 403). Every query is recorded below as
     // a discovery-source line, and results are recorded as frontier
-    // events with exact provenance.
+    // events with exact provenance. ONE polite client is created and
+    // shared with the frontier phase below so the reviewed request
+    // budget is never doubled across phases.
     let source_kind = "grnoc-public-task-viewer";
     let now = chrono::Utc::now().to_rfc3339();
+    let mut client = match GrnocViewerClient::new(policy.clone()) {
+        Ok(c) => c,
+        Err(e) => {
+            let _ = writeln!(stdout, "error: {e}");
+            return EXIT_INVALID_INPUT;
+        }
+    };
     if !searches.is_empty() {
         if dry_run {
             for q in searches {
                 let _ = writeln!(stdout, "dry-run: would search {q:?} (domain {domain:?})");
             }
         } else {
-            let mut client = match GrnocViewerClient::new(policy.clone()) {
-                Ok(c) => c,
-                Err(e) => {
-                    let _ = writeln!(stdout, "error: {e}");
-                    return EXIT_INVALID_INPUT;
-                }
-            };
             for q in searches {
                 if client.budget_remaining() == 0 {
                     let _ = writeln!(stdout, "stop: request budget exhausted");
@@ -2697,13 +2732,6 @@ fn cmd_grnoc_sync_live(
         return EXIT_SUCCESS;
     }
 
-    let mut client = match GrnocViewerClient::new(policy.clone()) {
-        Ok(c) => c,
-        Err(e) => {
-            let _ = writeln!(stdout, "error: {e}");
-            return EXIT_INVALID_INPUT;
-        }
-    };
     let started_at = chrono::Utc::now().to_rfc3339();
     let wall_start = std::time::Instant::now();
     match sync_frontier(&conn, &mut client, source_kind, &frontier, &started_at) {
@@ -3513,6 +3541,7 @@ mod session33_cli_tests {
                 dry_run,
                 source_dir,
                 show_access_policy,
+                show_domains: _,
             })) => {
                 assert_eq!(db.to_string_lossy(), "c.sqlite");
                 assert_eq!(seed, vec!["CHG0099999", "INC0040257"]);

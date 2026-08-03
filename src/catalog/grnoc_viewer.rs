@@ -143,7 +143,16 @@ impl GrnocViewerClient {
                     .cloned()
                     .unwrap_or_default())
             }
-            _ => Err(GrnocViewerError::UnexpectedStatus(0)),
+            FetchOutcome::Forbidden => Err(GrnocViewerError::Stop(StopReason::Forbidden)),
+            FetchOutcome::Unauthorized => {
+                Err(GrnocViewerError::Stop(StopReason::AuthenticationRequired))
+            }
+            FetchOutcome::NotFound => {
+                Err(GrnocViewerError::Transport("domains endpoint not found".to_string()))
+            }
+            FetchOutcome::NotModified => {
+                Err(GrnocViewerError::Transport("domains endpoint 304 unexpected".to_string()))
+            }
         }
     }
 

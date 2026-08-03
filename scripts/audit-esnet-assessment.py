@@ -55,9 +55,9 @@ def main() -> int:
     check("ticket_work_end_utc", "2019-08-21T20:25:24Z", "snapshot work_end epoch 1566419124")
     check("analysis_window_utc", report["observed_event_signature"]["analysis_window_utc"],
           "report.json observed_event_signature")
-    check("ticket_title_matches_report", report["event_id"] == "INC0040293"
-          and "Outage Resolved" in report["observed_event_signature"]["final_impact_assessment"]["assessment"]["event_id"] or True,
-          "report.json (event id)")  # event id check below
+    check("ticket_title_matches_report",
+          report["event_id"] == "INC0040293",
+          "report.json result.verdict (event id)")
 
     # ── Target and route scope ─────────────────────────────────────
     origin_asns = manifest["target"]["origin_asns"]

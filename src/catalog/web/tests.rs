@@ -147,7 +147,15 @@ async fn dashboard_counts_match_database() {
     assert!(body.contains("Catalog health"));
     assert!(body.contains("Total catalog events"));
     assert!(body.contains(">4<"), "four imported events");
-    assert!(body.contains(">4<"), "four completed analyses");
+    // Completed analyses: the count row and the latest-completed line.
+    let completed_row = body
+        .lines()
+        .find(|l| l.contains("Completed analyses"))
+        .unwrap_or("");
+    assert!(
+        completed_row.contains(">4<"),
+        "four completed analyses: {completed_row}"
+    );
     assert!(body.contains(">1<"), "one blocked event");
     // No severity score anywhere.
     assert!(body.contains("No severity score is shown"));
@@ -419,12 +427,6 @@ async fn analysis_page_matches_report_result() {
     )
     .unwrap();
     let label = report["result"]["verdict_label"].as_str().unwrap();
-    eprintln!(
-        "DEBUG run_id={run_id} body_has_NoObservable={} body_has_Unknown={} body_head={:?}",
-        body.contains("NoObservableBgpImpact"),
-        body.contains("Unknown"),
-        body.chars().take(120).collect::<String>()
-    );
     assert!(
         body.contains(label),
         "web page shows the report verdict label"
