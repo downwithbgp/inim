@@ -1,5 +1,13 @@
 [
  {
+  "path": ".github/ISSUE_TEMPLATE/noc-alpha-feedback.md",
+  "category": "GitHub/community metadata",
+  "audience": "contributors",
+  "authoritative": "reviewed protocol",
+  "generated": false,
+  "current": true
+ },
+ {
   "path": ".github/dependabot.yml",
   "category": "GitHub/community metadata",
   "audience": "contributors",
@@ -1500,6 +1508,14 @@
   "category": "Configuration",
   "audience": "maintainers",
   "authoritative": "reviewed classification of tracked files",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "docs/evaluation/NOC-ALPHA-EVALUATION.md",
+  "category": "Normative current documentation",
+  "audience": "evaluators",
+  "authoritative": "reviewed protocol",
   "generated": false,
   "current": true
  },
