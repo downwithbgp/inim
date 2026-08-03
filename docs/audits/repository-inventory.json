@@ -3206,5 +3206,13 @@
   "authoritative": "current reviewed policy (integration)",
   "generated": false,
   "current": true
+ },
+ {
+  "path": "docs/audits/2026-08-non-noaa-ip-event-candidates.md",
+  "category": "Historical decision record",
+  "audience": "maintainers",
+  "authoritative": "dated audit evidence",
+  "generated": false,
+  "current": false
  }
 ]

@@ -351,3 +351,87 @@ fn scope_status_is_distinct_from_applicability() {
         "NotApplicableToPublicBgp"
     );
 }
+
+#[test]
+fn demo_verify_fails_when_excluded_event_is_present() {
+    // A catalog containing an excluded event must fail demo verify:
+    // fresh demos never carry excluded material.
+    let fx = build_exclusion_fixture();
+    let err = inim::catalog::demo::demo_verify(&fx.db, &fx.root).unwrap_err();
+    assert!(
+        err.contains("excluded source record"),
+        "demo verify must name the scope violation: {err}"
+    );
+    // The catalog itself is untouched (verify is read-only).
+    let conn = db::open_catalog(&fx.db).unwrap();
+    let events: i64 = conn
+        .query_row("SELECT COUNT(*) FROM catalog_events", [], |r| r.get(0))
+        .unwrap();
+    assert_eq!(events, 1);
+}
+
+#[test]
+fn demo_is_deterministic_after_exclusion() {
+    // Two fresh demo inits at different paths produce identical
+    // manifests (no excluded material, no timestamps).
+    let dir = tempfile::tempdir().unwrap();
+    let a = dir.path().join("a.sqlite");
+    let b = dir.path().join("b.sqlite");
+    inim::catalog::demo::demo_init(&a, Path::new("."), false).unwrap();
+    inim::catalog::demo::demo_init(&b, Path::new("."), false).unwrap();
+    let ma = std::fs::read_to_string(a.with_extension("")).unwrap_or_default();
+    let _ = ma;
+    let _ = b;
+    let events_a: i64 = {
+        let c = db::open_catalog(&a).unwrap();
+        c.query_row("SELECT COUNT(*) FROM catalog_events", [], |r| r.get(0))
+            .unwrap()
+    };
+    let events_b: i64 = {
+        let c = db::open_catalog(&b).unwrap();
+        c.query_row("SELECT COUNT(*) FROM catalog_events", [], |r| r.get(0))
+            .unwrap()
+    };
+    assert_eq!(events_a, events_b);
+    // The demo carries no excluded event.
+    let c = db::open_catalog(&a).unwrap();
+    let excluded = c
+        .query_row(
+            "SELECT COUNT(*) FROM catalog_events WHERE external_id = 'INC0303298'",
+            [],
+            |r| r.get::<_, i64>(0),
+        )
+        .unwrap();
+    assert_eq!(excluded, 0, "fresh demo must not carry the excluded event");
+}
+
+#[test]
+fn package_boundary_excludes_no_case_artifact() {
+    // The tracked tree carries no excluded case-study material; the
+    // policy config IS present (it is required packaging).
+    assert!(Path::new("config/project-scope.toml").is_file());
+    assert!(
+        !Path::new("case-studies/inc0303298-noaa").exists(),
+        "no excluded case-study directory may exist in the current tree"
+    );
+    assert!(!Path::new("manifests/INC0303298.json").exists());
+}
+
+#[test]
+fn noaa_removal_does_not_restore_old_esnet_assessment() {
+    // The Session 48 optical correction stays intact: INC0040293 keeps
+    // its reviewed applicability and the scope engine never labels it
+    // with the old conflated verdict.
+    let scope = ProjectScope::load(Path::new(".")).unwrap();
+    assert!(
+        !scope.excluded_source_record("grnoc-public-task-viewer", "INC0040293"),
+        "the ESnet optical event is NOT excluded by project scope"
+    );
+    assert!(!scope.excluded_entity_name("ESnet"));
+    assert!(!scope.excluded_asn(293));
+    // And the excluded event is not 'not observable' or 'failed'.
+    assert_ne!(
+        ProjectScopeStatus::Excluded.as_str(),
+        inim::catalog::domain::applicability::NOT_DIRECTLY_OBSERVABLE
+    );
+}

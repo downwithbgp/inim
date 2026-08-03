@@ -24,14 +24,14 @@ This audit verifies that every tracked file is classified, that every current st
 
 ## Summary
 
-Tracked files: **401** · inventory entries: **401**
+Tracked files: **402** · inventory entries: **402**
 
 | Category | Files |
 |---|---|
 | Immutable or generated evidence | 138 |
 | Production source | 102 |
+| Historical decision record | 27 |
 | Reviewed case-study interpretation | 26 |
-| Historical decision record | 26 |
 | Configuration | 23 |
 | Script or developer tool | 22 |
 | Normative current documentation | 21 |
@@ -263,6 +263,7 @@ Tracked files: **401** · inventory entries: **401**
 | `docs/audits/2026-08-grnoc-catalog-reconciliation.md` | Normative current documentation | maintainers | dated audit evidence | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
 | `docs/audits/2026-08-incident-family-deferral.md` | Historical decision record | maintainers | dated audit evidence | no | historical | status and applicability reviewed in this audit | none | reviewed in this audit |
 | `docs/audits/2026-08-manlan-ticket-readiness.md` | Normative current documentation | maintainers | dated audit evidence | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
+| `docs/audits/2026-08-non-noaa-ip-event-candidates.md` | Historical decision record | maintainers | dated audit evidence | no | historical | status and applicability reviewed in this audit | none | reviewed in this audit |
 | `docs/audits/2026-08-project-scope-noaa-removal.md` | Historical decision record | maintainers | dated audit evidence | no | historical | status and applicability reviewed in this audit | none | reviewed in this audit |
 | `docs/audits/2026-08-repository-truth-audit.md` | Normative current documentation | maintainers | repository-inventory.json + git state (rendered, reviewed content) | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
 | `docs/audits/external-links-2026-08.md` | Normative current documentation | maintainers | dated curl checks of documented external URLs | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
