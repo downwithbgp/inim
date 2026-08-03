@@ -49,6 +49,20 @@
 {% endif %}
 </div>
 
+<div class="panel">
+<details>
+<summary>Execution details</summary>
+<table>
+  <tr><th>Canonical plan hash</th><td><code>{{ job.plan_hash }}</code></td></tr>
+  <tr><th>Attempt</th><td>{{ job.attempt }}</td></tr>
+  <tr><th>Requested by</th><td>{{ job.requested_by }}</td></tr>
+  <tr><th>Worker</th><td>{{ job.worker_id }}</td></tr>
+  <tr><th>Source access</th><td>{{ job.source_access }}</td></tr>
+</table>
+<p class="muted">Cache hit counts, archive counts, and parser throughput are recorded in the published run's <code>performance.json</code> and <code>execution_metadata.json</code>.</p>
+</details>
+</div>
+
 {% if !worker.is_empty() %}
 <div class="panel">
 <h3>Workers</h3>
