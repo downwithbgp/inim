@@ -118,3 +118,22 @@ snapshots (manifest + relationships; redistribution documented in
 discovered events with reviewed roles; they never create Ready plans
 or jobs automatically. INC0040293 has its own narrow analysis case
 study (`case-studies/manlan-esnet-2019/`).
+
+## Participant relationship types (2026-08-03 correction)
+
+The MAN LAN tickets name different relationship types that must not be
+conflated:
+
+- **IP participants** — Internet2 IP-layer participant relationships
+  (e.g. NORDUnet, SINET). Directly observable in public BGP via the
+  reviewed plane when a qualifying baseline exists.
+- **I2PX peers** — Internet2 Peer Exchange (AS11164 plane) peer
+  relationships; require a direct AS11164 observer session.
+- **Optical participants** — e.g. INC0040293 (I2 Optical Participant
+  ESnet) and INC0040291 (MANLAN Optical Participant ESNet): the ticket
+  names an optical participant interface. Public BGP does not directly
+  observe the optical interface; these are reviewed as
+  `NotDirectlyObservableInPublicBgp` and no IP expectation assessment
+  is attached (see `case-studies/manlan-esnet-2019/README.md`).
+- **Layer-2 / fabric / test records** — WIX interconnect and Ixia test
+  equipment are `NotOriginAttributable` in public BGP.

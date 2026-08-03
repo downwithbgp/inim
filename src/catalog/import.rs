@@ -119,9 +119,22 @@ pub(crate) fn import_one(
         let raw = std::fs::read_to_string(&fixture)
             .map_err(|e| format!("cannot read fixture {}: {e}", fixture.display()))?;
         let sha = hex_sha256(&raw);
+        // The normalized event must carry the TICKET title: the
+        // expectation convention (parenthesized site code / participant
+        // wording) is derived from the ticket title, not from the
+        // reviewed target label.
+        let fixture_title = serde_json::from_str::<serde_json::Value>(&raw)
+            .ok()
+            .and_then(|v| {
+                v.get("short_description")
+                    .or_else(|| v.get("title"))
+                    .and_then(|t| t.as_str())
+                    .map(|s| s.to_string())
+            })
+            .unwrap_or_else(|| manifest.target.label.clone());
         let normalized = serde_json::json!({
             "id": event_id_str,
-            "title": manifest.target.label,
+            "title": fixture_title,
             "source": "ticket-fixture",
             "start": manifest.event_window_utc.start,
             "end": manifest.event_window_utc.end,
@@ -222,17 +235,23 @@ pub(crate) fn import_one(
                 .get("schema_version")
                 .and_then(|v| v.as_u64())
                 .unwrap_or(0) as u32;
-            if report_schema != crate::schema::REPORT_SCHEMA_VERSION {
+            // Historical immutable reports (v2) remain importable; the
+            // schema is additive and the presentation layer maps stored
+            // verdicts through the source-neutral vocabulary.
+            if !(2..=crate::schema::REPORT_SCHEMA_VERSION).contains(&report_schema) {
                 return Err(format!(
-                    "import rejected for {event_id_str}: report schema v{report_schema} is not current v{}",
+                    "import rejected for {event_id_str}: report schema v{report_schema} is not a supported historical schema (v2..=v{})",
                     crate::schema::REPORT_SCHEMA_VERSION
                 ));
             }
 
+            // Store the MACHINE verdict name when present (stable
+            // identity across label vocabulary changes); fall back to
+            // the frozen legacy human label for very old artifacts.
             let verdict = report
                 .get("result")
-                .and_then(|r| r.get("verdict_label"))
-                .or_else(|| report.get("result").and_then(|r| r.get("verdict")))
+                .and_then(|r| r.get("verdict"))
+                .or_else(|| report.get("result").and_then(|r| r.get("verdict_label")))
                 .and_then(|v| v.as_str())
                 .map(|s| s.to_string());
             let assessment = report
@@ -775,11 +794,12 @@ mod tests {
         }
         let (_dir, conn) = open_temp_db();
         let summary = import_repository(&conn, Path::new("."), "0.1.0", Some("test-git")).unwrap();
-        // INC0302574 + INC0299001 + INC0040293 completed; INC0301970 blocked.
-        assert_eq!(summary.events, 4);
-        assert_eq!(summary.manifests, 4);
-        assert_eq!(summary.plans, 4);
-        assert_eq!(summary.runs, 3);
+        // INC0302574 + INC0299001 + INC0040293 + INC0303298 completed;
+        // INC0301970 blocked.
+        assert_eq!(summary.events, 5);
+        assert_eq!(summary.manifests, 5);
+        assert_eq!(summary.plans, 5);
+        assert_eq!(summary.runs, 4);
         assert!(summary.artifacts > 0);
         // INC0301970: no run, no outcome.
         let e = db::get_event_by_external(&conn, "local-repository", "INC0301970")

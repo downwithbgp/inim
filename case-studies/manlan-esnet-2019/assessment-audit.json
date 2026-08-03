@@ -1,0 +1,321 @@
+{
+ "audit_schema_version": 1,
+ "subject": "INC0040293",
+ "generated_from": [
+  "case-studies/manlan-esnet-2019/out/INC0040293/{report,lifecycle,transitions,limitations,archive_manifest,performance,execution_metadata}.json",
+  "manifests/INC0040293.json",
+  "case-studies/manlan-2019/corpus/snapshots/INC0040293.json"
+ ],
+ "checked": [
+  {
+   "fact": "event_title",
+   "value": "Outage Resolved -  I2 Optical Participant ESnet",
+   "source": "corpus snapshot INC0040293"
+  },
+  {
+   "fact": "source_ticket_description",
+   "value": "The listed assets are now available. ESnet and Vendor Engineers have been contacted and confirmed the outage was due to internal testing by ESNet. No further outages are expected. ",
+   "source": "corpus snapshot INC0040293"
+  },
+  {
+   "fact": "ticket_state",
+   "value": "7",
+   "source": "corpus snapshot INC0040293"
+  },
+  {
+   "fact": "ticket_category",
+   "value": "Customer",
+   "source": "corpus snapshot INC0040293"
+  },
+  {
+   "fact": "ticket_work_start_utc",
+   "value": "2019-08-21T16:36:38Z",
+   "source": "snapshot work_start epoch 1566405398"
+  },
+  {
+   "fact": "ticket_work_end_utc",
+   "value": "2019-08-21T20:25:24Z",
+   "source": "snapshot work_end epoch 1566419124"
+  },
+  {
+   "fact": "analysis_window_utc",
+   "value": "2019-08-21 16:36:38 UTC \u2013 2019-08-21 20:25:24 UTC",
+   "source": "report.json observed_event_signature"
+  },
+  {
+   "fact": "ticket_title_matches_report",
+   "value": true,
+   "source": "report.json (event id)"
+  },
+  {
+   "fact": "target_origin_asns",
+   "value": [
+    293
+   ],
+   "source": "manifests/INC0040293.json target"
+  },
+  {
+   "fact": "reviewed_transit_predicate",
+   "value": {
+    "ContainsAny": [
+     11537
+    ]
+   },
+   "source": "manifests/INC0040293.json target"
+  },
+  {
+   "fact": "exact_transit_predicate_reported",
+   "value": "ContainsAny { 11537 }",
+   "source": "report.json observer_scope"
+  },
+  {
+   "fact": "selected_prefixes",
+   "value": [
+    "134.55.0.0/16",
+    "192.107.175.0/24",
+    "192.188.24.0/22"
+   ],
+   "source": "lifecycle.json lifecycles[].prefix"
+  },
+  {
+   "fact": "qualifying_peer_ips",
+   "value": [
+    "64.57.28.241"
+   ],
+   "source": "lifecycle.json lifecycles[].peer_ip"
+  },
+  {
+   "fact": "qualifying_collectors",
+   "value": [
+    "route-views2"
+   ],
+   "source": "lifecycle.json lifecycles[].collector"
+  },
+  {
+   "fact": "baseline_paths",
+   "value": [
+    [
+     11537,
+     293
+    ]
+   ],
+   "source": "lifecycle.json lifecycles[].baseline_path"
+  },
+  {
+   "fact": "baseline_route_instances",
+   "value": 3,
+   "source": "report.json observer_scope"
+  },
+  {
+   "fact": "baseline_observer_prefix_streams",
+   "value": 3,
+   "source": "report.json observer_scope"
+  },
+  {
+   "fact": "source_family",
+   "value": "RouteViews",
+   "source": "manifests/INC0040293.json"
+  },
+  {
+   "fact": "collectors",
+   "value": [
+    "route-views2"
+   ],
+   "source": "manifests/INC0040293.json"
+  },
+  {
+   "fact": "rib_archive_count",
+   "value": 1,
+   "source": "archive_manifest.json ribs"
+  },
+  {
+   "fact": "update_archive_count",
+   "value": 80,
+   "source": "archive_manifest.json updates"
+  },
+  {
+   "fact": "first_update_archive",
+   "value": "updates.20190821.0130.bz2",
+   "source": "archive_manifest.json"
+  },
+  {
+   "fact": "last_update_archive",
+   "value": "updates.20190821.2115.bz2",
+   "source": "archive_manifest.json"
+  },
+  {
+   "fact": "parsed_elements_total",
+   "value": 46230865,
+   "source": "performance.json archives[].parsed_elements"
+  },
+  {
+   "fact": "admitted_observations_total",
+   "value": 0,
+   "source": "performance.json archives[].admitted_observations"
+  },
+  {
+   "fact": "cache_hits",
+   "value": 80,
+   "source": "performance.json archives[].cache_hit"
+  },
+  {
+   "fact": "transition_count",
+   "value": 0,
+   "source": "transitions.json transitions"
+  },
+  {
+   "fact": "report_transition_total",
+   "value": 0,
+   "source": "report.json transitions.total"
+  },
+  {
+   "fact": "stream_categories",
+   "value": [
+    "Unchanged"
+   ],
+   "source": "lifecycle.json lifecycles[].category"
+  },
+  {
+   "fact": "unchanged_streams",
+   "value": 3,
+   "source": "lifecycle.json lifecycles[].category"
+  },
+  {
+   "fact": "event_window_final_paths",
+   "value": [
+    [
+     11537,
+     293
+    ]
+   ],
+   "source": "lifecycle.json (no transitions => final paths equal baseline paths)"
+  },
+  {
+   "fact": "analysis_final_paths",
+   "value": [
+    [
+     11537,
+     293
+    ]
+   ],
+   "source": "lifecycle.json (no transitions => analysis final paths equal baseline paths)"
+  },
+  {
+   "fact": "machine_verdict",
+   "value": "UnexpectedContinuedInternet2Path",
+   "source": "report.json result.verdict"
+  },
+  {
+   "fact": "machine_assessment_verdict",
+   "value": "UnexpectedContinuedInternet2Path",
+   "source": "report.json assessment.verdict"
+  },
+  {
+   "fact": "limitations",
+   "value": {
+    "observer": [
+     "Analysis uses selected RouteViews collectors only. Selected collectors do not provide global visibility.",
+     "BGP route state is not traffic measurement."
+    ],
+    "continuity_gaps": [],
+    "add_path": [
+     "ADD-PATH identity is preserved per route instance. Streams with mixed keyed/unkeyed encoding are flagged add-path ambiguous and excluded from strong stream-level assessment."
+    ],
+    "manual_mappings": [
+     "Participant-to-ASN mapping is manually supplied in the reviewed manifest. It is not derived automatically from ticket text."
+    ],
+    "archive_parser": [
+     "Parsed via bgpkit-parser. Parser limitations apply."
+    ],
+    "unsupported_conclusions": [
+     "Local session state is not observed.",
+     "Physical-link state is not observed.",
+     "Absent communities do not prove a mechanism was unused.",
+     "Event declarations and BGP changes establish temporal association, not automatic causation.",
+     "Global reachability cannot be asserted from a limited set of observer streams."
+    ]
+   },
+   "source": "limitations.json"
+  },
+  {
+   "fact": "report_limitations",
+   "value": [
+    "1 of 1 requested collectors retained after RIB preflight (route-views2)"
+   ],
+   "source": "report.json limitations"
+  },
+  {
+   "fact": "preflight_observer_evidence",
+   "value": "single qualifying collector from event-date preflight (rrc06/rrc15: target present, predicate absent)",
+   "source": "manifests/INC0040293.json collectors_provenance (reviewed)"
+  },
+  {
+   "fact": "plan_hash",
+   "value": "adcffe6f92434800a9a0ada6af0b116c831a9979745bddb8b42ba513863e7c58",
+   "source": "execution_metadata.json"
+  },
+  {
+   "fact": "job_id",
+   "value": "ce258f4d8a07d7395d9d751f8d7512b2",
+   "source": "execution_metadata.json"
+  },
+  {
+   "fact": "worker_id",
+   "value": "w-d0c42a5ffce0f832",
+   "source": "execution_metadata.json"
+  },
+  {
+   "fact": "offline",
+   "value": true,
+   "source": "execution_metadata.json"
+  }
+ ],
+ "verified": true,
+ "failures": [],
+ "assessments": {
+  "observed_result": {
+   "label": "No route-state change observed",
+   "statement": "route-views2 continued to receive the same three selected ESnet-origin prefixes through Internet2 R&E AS11537 throughout the reviewed event window.",
+   "eligible_observer_sessions": 1,
+   "eligible_observer_evidence": {
+    "collector": "route-views2",
+    "peer_ip": "64.57.28.241",
+    "prefixes": [
+     "134.55.0.0/16",
+     "192.107.175.0/24",
+     "192.188.24.0/22"
+    ],
+    "baseline_paths": [
+     [
+      11537,
+      293
+     ]
+    ]
+   },
+   "excluded_observer_evidence": [
+    {
+     "collector": "rrc06",
+     "reason": "target present, reviewed predicate absent",
+     "source": "manifests/INC0040293.json collectors_provenance (reviewed)"
+    },
+    {
+     "collector": "rrc15",
+     "reason": "target present, reviewed predicate absent",
+     "source": "manifests/INC0040293.json collectors_provenance (reviewed)"
+    }
+   ]
+  },
+  "relationship_observability": {
+   "classification": "NotDirectlyObservableInPublicBgp",
+   "relationship_type": "Optical participant relationship (I2 optical participant)",
+   "rationale": "Ticket title 'I2 Optical Participant ESnet'; outage attributed by ticket text to internal ESnet testing. Public BGP does not directly observe the optical interface.",
+   "review_source": "case-studies/manlan-2019/pilot/ticket-reviews.json (ReviewedCorrection:2026-08-02)"
+  },
+  "run_role": {
+   "role": "Contemporaneous supporting BGP observation with scope mismatch",
+   "statement": "The AS293/AS11537 run is retained as an immutable contemporaneous supporting observation. It does not assess the optical participant interface named by the ticket."
+  },
+  "operational_interpretation_limit": "This observation does not establish whether the documented interface action occurred, whether other ESnet routes changed outside the selected observer scope, or whether traffic was affected.",
+  "ticket_level_result": "The named optical relationship is not directly assessable with public BGP."
+ }
+}

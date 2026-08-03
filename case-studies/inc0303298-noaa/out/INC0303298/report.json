@@ -1,0 +1,142 @@
+{
+  "schema_version": 3,
+  "event_id": "INC0303298",
+  "result": {
+    "finding": "Across 284 selected observer-prefix streams at route-views2, inim observed no announcements, withdrawals, path changes, or community changes during the event analysis window.",
+    "observed_result": {
+      "kind": "NoRouteStateChangeObserved",
+      "label": "No route-state change observed",
+      "scope": "Observation is limited to externally exported BGP route state at the selected public-BGP observer sessions; it does not measure traffic, circuit, or service state."
+    },
+    "verdict": "NoObservableBgpImpact",
+    "verdict_label": "No route-state change observed"
+  },
+  "assessment": {
+    "kind": "ConsistentWithReviewedExpectation",
+    "provisional": false,
+    "statement": "Consistent with the reviewed expectation (redundant-attachment).",
+    "verdict": "NoObservableBgpImpact"
+  },
+  "observed_event_signature": {
+    "analysis_window_utc": "2026-08-03 12:16:06 UTC – 2026-08-03 13:07:17 UTC",
+    "final_impact_assessment": {
+      "assessment": {
+        "event_id": "INC0303298",
+        "evidence": [
+          {
+            "description": "Total route transitions observed: 0",
+            "source_records": []
+          },
+          {
+            "description": "Withdrawal transitions: 0",
+            "source_records": []
+          },
+          {
+            "description": "Path-replacement transitions: 0",
+            "source_records": []
+          },
+          {
+            "description": "Restorations to baseline (transitions): 0",
+            "source_records": []
+          },
+          {
+            "description": "Stream lifecycle: total=284 unchanged=284 prepend-only=0 withdrawn=0 departed-transit=0 restored=0 not-restored=0 add-path-ambiguous=0",
+            "source_records": []
+          }
+        ],
+        "expectation": {
+          "description": "Parenthesized site code (KANS-WASH) indicates expected redundancy",
+          "kind": "Redundant",
+          "provenance": "Internet2 title convention: parenthesized site code indicates expected redundancy"
+        },
+        "generated_at": "2026-08-03T15:35:06.905861655Z",
+        "verdict": "NoObservableBgpImpact",
+        "waves": []
+      },
+      "status": "completed"
+    },
+    "observer_scope": {
+      "archive_coverage": "Complete for the selected analysis plan (selected collectors, planned interval, verified archives).",
+      "baseline_observer_prefix_streams": 284,
+      "baseline_qualification": "at least one route path traversed AS11537",
+      "baseline_route_instances": 284,
+      "collectors": [
+        "route-views2"
+      ],
+      "exact_transit_predicate": "ContainsAny { 11537 }",
+      "multiple_instance_streams": 0
+    },
+    "semantic_waves": [],
+    "stream_lifecycle": {
+      "add_path_ambiguous_streams": 0,
+      "material_path_changes": 0,
+      "prepend_only": 0,
+      "restored_streams": 0,
+      "streams_departing_transit": 0,
+      "streams_retaining_transit": 284,
+      "unchanged": 284,
+      "unresolved_streams": 0,
+      "withdrawn_streams": 0
+    },
+    "ticket_expectation": "Redundant: Parenthesized site code (KANS-WASH) indicates expected redundancy",
+    "ticket_lifecycle": "Closed",
+    "transit_predicate": "ContainsAny[11537]"
+  },
+  "observable_mechanism_hints": {
+    "community_only_changes": 0,
+    "graceful_restart": "negotiated session capability/state not directly observable from this dataset",
+    "mechanism_hints_do_not_change_impact_assessment": true,
+    "rfc8326": {
+      "gshut_streams": 0,
+      "gshut_timing": [],
+      "statement": "No RFC 8326 GRACEFUL_SHUTDOWN community reached the selected observers. Its absence does not establish that graceful shutdown was not used."
+    },
+    "rfc8327": "operational intent not directly observable",
+    "rfc9003": "administrative-shutdown message not observable from these remote collector sessions"
+  },
+  "limitations": [
+    "1 of 1 requested collectors retained after RIB preflight (route-views2)"
+  ],
+  "outcome": {
+    "assessment": {
+      "event_id": "INC0303298",
+      "evidence": [
+        {
+          "description": "Total route transitions observed: 0",
+          "source_records": []
+        },
+        {
+          "description": "Withdrawal transitions: 0",
+          "source_records": []
+        },
+        {
+          "description": "Path-replacement transitions: 0",
+          "source_records": []
+        },
+        {
+          "description": "Restorations to baseline (transitions): 0",
+          "source_records": []
+        },
+        {
+          "description": "Stream lifecycle: total=284 unchanged=284 prepend-only=0 withdrawn=0 departed-transit=0 restored=0 not-restored=0 add-path-ambiguous=0",
+          "source_records": []
+        }
+      ],
+      "expectation": {
+        "description": "Parenthesized site code (KANS-WASH) indicates expected redundancy",
+        "kind": "Redundant",
+        "provenance": "Internet2 title convention: parenthesized site code indicates expected redundancy"
+      },
+      "generated_at": "2026-08-03T15:35:06.905861655Z",
+      "verdict": "NoObservableBgpImpact",
+      "waves": []
+    },
+    "status": "completed"
+  },
+  "transitions": {
+    "total": 0,
+    "event_window": 0,
+    "cooldown": 0
+  },
+  "waves": []
+}

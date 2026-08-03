@@ -121,6 +121,10 @@ fn schema_line() -> String {
 }
 
 /// Human-facing assessment sentence for the expectation.
+///
+/// Legacy presentation vocabulary (deprecated for current presentation;
+/// retained for artifact compatibility). Use
+/// `render_expectation_assessment_line` for current reports.
 pub fn render_assessment_line(
     verdict: &crate::domain::assessment::Verdict,
     expectation: &str,
@@ -137,6 +141,61 @@ pub fn render_assessment_line(
             }
             line
         }
+    }
+}
+
+/// Current observed-result line: route-state vocabulary only, with the
+/// explicit public-BGP observer scope. Never contains expectation language.
+pub fn render_observed_result_line(verdict: &crate::domain::assessment::Verdict) -> String {
+    use crate::domain::assessment::ObservedResultKind;
+    match verdict.observed_result_kind() {
+        ObservedResultKind::AnalysisIncomplete => "Analysis incomplete.".to_string(),
+        ObservedResultKind::InsufficientQualifyingVisibility => {
+            "Insufficient qualifying visibility at the selected public-BGP observers.".to_string()
+        }
+        kind => format!(
+            "{} at the selected public-BGP observer sessions.",
+            kind.human_label()
+        ),
+    }
+}
+
+/// Current expectation-assessment line: references the reviewed
+/// expectation and never contains route-transition counts.
+pub fn render_expectation_assessment_line(
+    verdict: &crate::domain::assessment::Verdict,
+    expectation: &str,
+) -> String {
+    use crate::domain::assessment::ExpectationAssessmentKind;
+    let kind = verdict.expectation_assessment_kind();
+    let mut line = match kind {
+        ExpectationAssessmentKind::NotAssessableFromSelectedPublicObservers => {
+            "Not assessable from the selected public observers.".to_string()
+        }
+        ExpectationAssessmentKind::NoReviewedExpectationExists => {
+            "No reviewed expectation exists.".to_string()
+        }
+        k => format!("{} ({expectation}).", k.human_label()),
+    };
+    if verdict.is_provisional() {
+        line.push_str(" Observation is provisional (open event); so far the assessment stands, and later route-state changes may alter it.");
+    }
+    line
+}
+
+/// The operational-interpretation limit for no-change results: an absent
+/// route-state change never proves the documented operator action did not
+/// occur, that all target routes were unaffected, or that traffic was
+/// unaffected.
+pub fn render_operational_interpretation_limit(
+    verdict: &crate::domain::assessment::Verdict,
+) -> Option<String> {
+    use crate::domain::assessment::ObservedResultKind;
+    match verdict.observed_result_kind() {
+        ObservedResultKind::NoRouteStateChangeObserved => Some(
+            "This does not establish whether the documented operator action occurred, whether other routes of the target changed outside the selected observer scope, or whether traffic was affected.".to_string(),
+        ),
+        _ => None,
     }
 }
 
@@ -352,7 +411,7 @@ pub fn render_report_txt(ctx: &OutputContext) -> String {
         AnalysisOutcome::Completed { assessment } => {
             push_ln(
                 &mut buf,
-                &format!("    {}", assessment.verdict.human_label()),
+                &format!("    {}", render_observed_result_line(&assessment.verdict)),
             );
             push_ln(&mut buf, "");
             let finding = render_finding(lcs, ctx.transitions, ctx.collectors);
@@ -376,24 +435,19 @@ pub fn render_report_txt(ctx: &OutputContext) -> String {
     // ── Assessment against ticket expectation ─────────────────────
     push_ln(&mut buf, "Assessment against ticket expectation");
     if let AnalysisOutcome::Completed { assessment } = ctx.outcome {
-        let line = render_assessment_line(&assessment.verdict, ctx.expectation_kind_label);
+        let line =
+            render_expectation_assessment_line(&assessment.verdict, ctx.expectation_kind_label);
         for l in wrap_text(&line, 76, 4) {
             push_ln(&mut buf, &l);
         }
         // Explicitly separate the observed signature from the assessment.
-        if matches!(
-            assessment.verdict,
-            crate::domain::assessment::Verdict::NoObservableBgpImpact
-        ) {
+        // The operational-interpretation limit applies to every
+        // no-change result, regardless of the expectation kind.
+        if let Some(limit) = render_operational_interpretation_limit(&assessment.verdict) {
             push_ln(&mut buf, "");
-            push_ln(
-                &mut buf,
-                "    The absence of observed route-state changes does not prove that the",
-            );
-            push_ln(
-                &mut buf,
-                "    attachment, circuit, or network was physically redundant.",
-            );
+            for l in wrap_text(&limit, 76, 4) {
+                push_ln(&mut buf, &l);
+            }
         }
     } else {
         push_ln(
@@ -907,20 +961,30 @@ fn write_report_json(ctx: &OutputContext, path: &Path) -> Result<(), String> {
     let (result_json, assessment_json) = if let AnalysisOutcome::Completed { assessment } =
         ctx.outcome
     {
-        let verdict_label = assessment.verdict.human_label();
         let finding = render_finding(lcs, ctx.transitions, ctx.collectors);
+        let observed = assessment.verdict.observed_result_kind();
+        let expectation = assessment.verdict.expectation_assessment_kind();
         let assessment_text =
-            render_assessment_line(&assessment.verdict, ctx.expectation_kind_label);
+            render_expectation_assessment_line(&assessment.verdict, ctx.expectation_kind_label);
         (
             serde_json::json!({
                 "verdict": assessment.verdict,
-                "verdict_label": verdict_label,
+                // Deprecated combined label, frozen for artifact
+                // compatibility; current presentation must use
+                // `observed_result`.
+                "verdict_label": observed.human_label(),
+                "observed_result": {
+                    "kind": observed,
+                    "label": observed.human_label(),
+                    "scope": observed.scope_statement(),
+                },
                 "finding": finding,
             }),
             serde_json::json!({
                 "statement": assessment_text,
                 "verdict": assessment.verdict,
                 "provisional": assessment.verdict.is_provisional(),
+                "kind": expectation,
             }),
         )
     } else {
@@ -928,8 +992,25 @@ fn write_report_json(ctx: &OutputContext, path: &Path) -> Result<(), String> {
             serde_json::json!({
                 "verdict": null,
                 "verdict_label": match ctx.outcome {
-                    AnalysisOutcome::InsufficientVisibility { .. } => "Insufficient visibility",
+                    AnalysisOutcome::InsufficientVisibility { .. } => "Insufficient qualifying visibility",
                     AnalysisOutcome::Incomplete { .. } => "Analysis incomplete",
+                    AnalysisOutcome::Completed { .. } => unreachable!(),
+                },
+                "observed_result": match ctx.outcome {
+                    AnalysisOutcome::InsufficientVisibility { .. } => {
+                        serde_json::json!({
+                            "kind": "InsufficientQualifyingVisibility",
+                            "label": "Insufficient qualifying visibility",
+                            "scope": "Observation is limited to externally exported BGP route state at the selected public-BGP observer sessions; it does not measure traffic, circuit, or service state.",
+                        })
+                    }
+                    AnalysisOutcome::Incomplete { .. } => {
+                        serde_json::json!({
+                            "kind": "AnalysisIncomplete",
+                            "label": "Analysis incomplete",
+                            "scope": "No observation was completed.",
+                        })
+                    }
                     AnalysisOutcome::Completed { .. } => unreachable!(),
                 },
                 "finding": null,
@@ -2242,7 +2323,10 @@ mod tests {
             )],
         )
         .report();
-        assert!(report.contains("Partial routing impact observed"));
+        assert!(report.contains(
+            "Route-state changes observed at the selected public-BGP observer sessions."
+        ));
+        assert!(report.contains("Partially consistent with the reviewed expectation"));
         assert!(!report.contains("PARTIAL IMPACT"));
     }
 
@@ -2254,11 +2338,11 @@ mod tests {
         for (v, phrase) in [
             (
                 Verdict::ProvisionalImpactObserved,
-                "Routing impact observed so far",
+                "Route-state changes observed at the selected public-BGP observer sessions.",
             ),
             (
                 Verdict::ProvisionalNoImpactSoFar,
-                "No route-state change observed so far",
+                "No route-state change observed at the selected public-BGP observer sessions.",
             ),
         ] {
             let outcome = AnalysisOutcome::Completed {
@@ -2490,13 +2574,17 @@ mod tests {
             .unwrap();
         assert!(result < assessment);
         assert!(report.contains("Assessment against ticket expectation"));
-        assert!(report.contains("Consistent with the redundant-attachment expectation"));
+        assert!(report.contains("Consistent with the reviewed expectation (redundant-attachment)."));
     }
 
     #[test]
     fn no_change_does_not_render_redundancy_proven() {
         let report = no_change_ctx().report();
-        assert!(report.contains("does not prove that the"));
+        // The operational-interpretation limit is a scope statement, not a
+        // proof claim.
+        assert!(
+            report.contains("does not establish whether the documented operator action occurred")
+        );
         assert!(!report.contains("redundancy proven"));
         assert!(!report.contains("proves that the attachment"));
     }
@@ -2807,7 +2895,7 @@ mod tests {
     fn mechanism_section_does_not_change_assessment() {
         let a = no_change_ctx().report();
         let b = no_change_ctx().report();
-        assert!(a.contains("Consistent with the redundant-attachment expectation"));
+        assert!(a.contains("Consistent with the reviewed expectation (redundant-attachment)."));
         assert_eq!(a, b);
     }
 
@@ -2846,7 +2934,12 @@ mod tests {
     fn report_never_claims_traffic_impact_from_route_state() {
         let report = no_change_ctx().report();
         assert!(!report.contains("traffic impact"));
-        assert!(!report.contains("traffic was"));
+        // The only "traffic was" phrasing is the scope limit stating the
+        // observation does not establish whether traffic was affected.
+        assert!(
+            report.contains("whether traffic was affected"),
+            "no-change scope limit must state the traffic limit"
+        );
     }
 
     #[test]

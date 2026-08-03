@@ -248,8 +248,17 @@ pub fn import_reviews(conn: &Connection, reviews_path: &Path) -> Result<usize, S
                 .get("external_id")
                 .and_then(|v| v.as_str())
                 .ok_or_else(|| "review missing external_id".to_string())?;
+            // Reviews may attach to GRNOC corpus events or to events
+            // imported from reviewed manifests (e.g. an optical
+            // participant whose applicability was corrected after the
+            // manifest was created).
             let Some(event) =
                 crate::catalog::db::get_event_by_external(conn, "grnoc-public-task-viewer", ext)?
+                    .or(crate::catalog::db::get_event_by_external(
+                        conn,
+                        "local-repository",
+                        ext,
+                    )?)
             else {
                 continue; // unresolved reference, not an event
             };

@@ -473,6 +473,9 @@ enum CatalogCommands {
         peer: String,
         #[arg(long, value_name = "PATH")]
         out: Option<PathBuf>,
+        /// Run directory override (default case-studies/<event>/out/<event>).
+        #[arg(long, value_name = "DIR")]
+        run_dir: Option<PathBuf>,
     },
     /// Manage incident case studies.
     #[command(subcommand)]
@@ -745,6 +748,16 @@ enum SyncSource {
         /// Live mode: expand the frontier from fetched public descriptions.
         #[arg(long)]
         expand_references: bool,
+        /// Live mode: bounded scoped search (repeatable). Searches the
+        /// documented viewer search mechanism with a non-empty reviewed
+        /// query; incident search requires --domain. Never issues
+        /// empty or unscoped queries.
+        #[arg(long, value_name = "QUERY")]
+        search: Vec<String>,
+        /// Domain id (sys_id) from `get_domains` used to scope incident
+        /// searches (unscoped incident search returns 403).
+        #[arg(long, value_name = "ID")]
+        domain: Option<String>,
         /// Request budget for this sync (default 100; never unbounded).
         #[arg(long, value_name = "N")]
         max_requests: Option<usize>,
@@ -764,6 +777,10 @@ enum SyncSource {
         /// Print the self-imposed access policy and exit; no network.
         #[arg(long)]
         show_access_policy: bool,
+        /// Fetch and print the viewer's public network/domain list
+        /// (one polite request), then exit.
+        #[arg(long)]
+        show_domains: bool,
     },
 }
 
@@ -1240,8 +1257,13 @@ fn cmd_analyze(
     );
 
     if preflight_only {
-        // Stage A: the preflight JSON was already printed by the runner;
-        // do not emit an analysis outcome or write outputs.
+        // Stage A: the preflight JSON was already printed by the runner
+        // on success; do not emit an analysis outcome or write outputs.
+        // A failed preflight must still be reported.
+        if let inim::outcome::AnalysisOutcome::Incomplete { failure } = &outcome {
+            let _ = writeln!(stderr, "error: preflight failed: {failure}");
+            return EXIT_ANALYSIS_INCOMPLETE;
+        }
         return EXIT_SUCCESS;
     }
 
@@ -1616,11 +1638,14 @@ fn cmd_catalog(stdout: &mut dyn Write, command: &CatalogCommands) -> i32 {
             collector,
             peer,
             out,
+            run_dir: run_dir_override,
         } => {
-            let run_dir = std::path::Path::new("case-studies")
-                .join(event.to_lowercase())
-                .join("out")
-                .join(event);
+            let run_dir = run_dir_override.clone().unwrap_or_else(|| {
+                std::path::Path::new("case-studies")
+                    .join(event.to_lowercase())
+                    .join("out")
+                    .join(event)
+            });
             let audit = match inim::catalog::workbench::load_finding_chronology_audit(
                 &run_dir, event, collector, peer,
             ) {
@@ -1716,13 +1741,44 @@ fn cmd_catalog(stdout: &mut dyn Write, command: &CatalogCommands) -> i32 {
                 seed,
                 case_study,
                 expand_references,
+                search,
+                domain,
                 max_requests,
                 requests_per_second,
                 allow_higher_rate,
                 contact,
                 dry_run,
                 show_access_policy,
+                show_domains,
             } => {
+                use inim::catalog::access::AccessPolicy;
+                use inim::catalog::grnoc_viewer::GrnocViewerClient;
+                let policy = AccessPolicy::conservative();
+                if *show_domains {
+                    let mut client = match GrnocViewerClient::new(policy.clone()) {
+                        Ok(c) => c,
+                        Err(e) => {
+                            let _ = writeln!(stdout, "error: {e}");
+                            return EXIT_INVALID_INPUT;
+                        }
+                    };
+                    match client.fetch_domains() {
+                        Ok(domains) => {
+                            for d in domains {
+                                let name = d.get("name").and_then(|v| v.as_str()).unwrap_or("?");
+                                let id = d.get("sys_id").and_then(|v| v.as_str()).unwrap_or("?");
+                                let criteria =
+                                    d.get("criteria").and_then(|v| v.as_str()).unwrap_or("");
+                                let _ = writeln!(stdout, "{name}	{id}	{criteria}");
+                            }
+                        }
+                        Err(e) => {
+                            let _ = writeln!(stdout, "error: cannot fetch domains: {e}");
+                            return EXIT_INVALID_INPUT;
+                        }
+                    }
+                    return EXIT_SUCCESS;
+                }
                 if *show_access_policy {
                     use inim::catalog::access::AccessPolicy;
                     let policy = AccessPolicy::conservative();
@@ -1773,6 +1829,8 @@ fn cmd_catalog(stdout: &mut dyn Write, command: &CatalogCommands) -> i32 {
                         seed,
                         case_study,
                         *expand_references,
+                        search,
+                        domain.as_deref(),
                         *max_requests,
                         *requests_per_second,
                         *allow_higher_rate,
@@ -2484,6 +2542,8 @@ fn cmd_grnoc_sync_live(
     seeds: &[String],
     case_studies: &[String],
     expand_references: bool,
+    searches: &[String],
+    domain: Option<&str>,
     max_requests: Option<usize>,
     requests_per_second: Option<f64>,
     allow_higher_rate: bool,
@@ -2524,9 +2584,77 @@ fn cmd_grnoc_sync_live(
         return EXIT_INVALID_INPUT;
     }
 
-    // ── Discovery frontier ─────────────────────────────────────────
+    // ── Bounded scoped search (Part E) ────────────────────────────
+    // The viewer's search mechanism is used only with non-empty
+    // reviewed queries; incident search requires a domain (unscoped
+    // incident search returns 403). Every query is recorded below as
+    // a discovery-source line, and results are recorded as frontier
+    // events with exact provenance. ONE polite client is created and
+    // shared with the frontier phase below so the reviewed request
+    // budget is never doubled across phases.
     let source_kind = "grnoc-public-task-viewer";
     let now = chrono::Utc::now().to_rfc3339();
+    let mut client = match GrnocViewerClient::new(policy.clone()) {
+        Ok(c) => c,
+        Err(e) => {
+            let _ = writeln!(stdout, "error: {e}");
+            return EXIT_INVALID_INPUT;
+        }
+    };
+    if !searches.is_empty() {
+        if dry_run {
+            for q in searches {
+                let _ = writeln!(stdout, "dry-run: would search {q:?} (domain {domain:?})");
+            }
+        } else {
+            for q in searches {
+                if client.budget_remaining() == 0 {
+                    let _ = writeln!(stdout, "stop: request budget exhausted");
+                    break;
+                }
+                let endpoint = if domain.is_some() {
+                    "/api/get_incidents"
+                } else {
+                    "/api/get_change_requests"
+                };
+                let _ = writeln!(
+                    stdout,
+                    "search {q:?} via {endpoint} (domain {domain:?}, remaining budget {})",
+                    client.budget_remaining()
+                );
+                match client.search(endpoint, q, domain, 20) {
+                    Ok(records) => {
+                        let _ = writeln!(stdout, "  -> {} records", records.len());
+                        for rec in &records {
+                            let number = rec.number.clone();
+                            let title = rec.short_description.clone();
+                            let _ = writeln!(stdout, "     {number}  {title}");
+                            if let Err(e) = inim::catalog::discovery::record_analyst_seed(
+                                &conn,
+                                source_kind,
+                                &number,
+                                &now,
+                            ) {
+                                let _ = writeln!(stdout, "error: {e}");
+                                return EXIT_INVALID_INPUT;
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        let _ = writeln!(stdout, "  search failed: {e}");
+                        let _ = writeln!(
+                            stdout,
+                            "note: search stopped (403/429/budget); continuing with the frontier"
+                        );
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    // ── Discovery frontier ─────────────────────────────────────────
+
     for seed in seeds {
         if let Err(e) =
             inim::catalog::discovery::record_analyst_seed(&conn, source_kind, seed, &now)
@@ -2604,13 +2732,6 @@ fn cmd_grnoc_sync_live(
         return EXIT_SUCCESS;
     }
 
-    let mut client = match GrnocViewerClient::new(policy.clone()) {
-        Ok(c) => c,
-        Err(e) => {
-            let _ = writeln!(stdout, "error: {e}");
-            return EXIT_INVALID_INPUT;
-        }
-    };
     let started_at = chrono::Utc::now().to_rfc3339();
     let wall_start = std::time::Instant::now();
     match sync_frontier(&conn, &mut client, source_kind, &frontier, &started_at) {
@@ -3411,6 +3532,8 @@ mod session33_cli_tests {
                 seed,
                 case_study,
                 expand_references,
+                search: _,
+                domain: _,
                 max_requests,
                 requests_per_second,
                 allow_higher_rate,
@@ -3418,6 +3541,7 @@ mod session33_cli_tests {
                 dry_run,
                 source_dir,
                 show_access_policy,
+                show_domains: _,
             })) => {
                 assert_eq!(db.to_string_lossy(), "c.sqlite");
                 assert_eq!(seed, vec!["CHG0099999", "INC0040257"]);
@@ -3446,6 +3570,8 @@ mod session33_cli_tests {
             &["INC0040257".to_string()],
             &[],
             false,
+            &[],
+            None,
             None,
             Some(6.0),
             false,
@@ -3464,6 +3590,8 @@ mod session33_cli_tests {
             &["INC0040257".to_string()],
             &[],
             false,
+            &[],
+            None,
             None,
             Some(6.0),
             true,
@@ -3492,6 +3620,8 @@ mod session33_cli_tests {
             &[],
             &[],
             false,
+            &[],
+            None,
             None,
             None,
             false,
@@ -3517,6 +3647,8 @@ mod session33_cli_tests {
             &[],
             &[],
             false,
+            &[],
+            None,
             None,
             None,
             false,

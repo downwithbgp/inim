@@ -281,11 +281,11 @@ mod tests {
             "2026-07-31T00:00:00Z".into(),
         );
         let summary = sync_catalog(&conn, &source, "2026-07-31T00:00:00Z").unwrap();
-        assert_eq!(summary.new_events, 1);
+        assert_eq!(summary.new_events, 2); // INC0301970 + INC0303298
         assert_eq!(summary.failures, 0);
         let events = db::list_events(&conn).unwrap();
-        assert_eq!(events.len(), 1);
-        assert_eq!(events[0].external_id, "INC0301970");
+        assert_eq!(events.len(), 2);
+        assert!(events.iter().any(|e| e.external_id == "INC0301970"));
         let snapshots = db::list_snapshots(&conn, events[0].id).unwrap();
         assert_eq!(snapshots.len(), 1);
         // Sync does NOT create manifests, plans, or runs.
@@ -308,11 +308,17 @@ mod tests {
         let s2 = sync_catalog(&conn, &source, "2026-07-31T01:00:00Z").unwrap();
         assert_eq!(s2.new_events, 0);
         assert_eq!(s2.changed_events, 0);
-        assert_eq!(s2.unchanged_events, 1);
+        assert_eq!(s2.unchanged_events, 2); // INC0301970 + INC0303298
         let events = db::list_events(&conn).unwrap();
+        assert_eq!(events.len(), 2);
+        let event = events
+            .iter()
+            .find(|e| e.external_id == "INC0301970")
+            .cloned()
+            .unwrap();
         // last_seen refreshed; still one snapshot.
-        assert_eq!(events[0].last_seen, "2026-07-31T01:00:00Z");
-        assert_eq!(db::list_snapshots(&conn, events[0].id).unwrap().len(), 1);
+        assert_eq!(event.last_seen, "2026-07-31T01:00:00Z");
+        assert_eq!(db::list_snapshots(&conn, event.id).unwrap().len(), 1);
     }
 
     #[test]

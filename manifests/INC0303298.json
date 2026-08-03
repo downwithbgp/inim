@@ -1,0 +1,29 @@
+{
+  "event_id": "INC0303298",
+  "revision": 1,
+  "schema_version": 2,
+  "open": false,
+  "event_window_utc": {"start": "2026-08-03T12:16:06Z", "end": "2026-08-03T13:07:17Z"},
+  "ticket_window_local": {"start": "2026-08-03 12:16:06", "end": "2026-08-03 13:07:17", "timezone": "UTC"},
+  "warmup_minutes": 60,
+  "cooldown_minutes": 60,
+  "target": {
+    "label": "NOAA",
+    "origin_asns": [270],
+    "transit_predicate": {
+      "predicate": {"ContainsAny": [11537]},
+      "status": "Reviewed",
+      "provenance": {
+        "statement": "NOAA (AS270, ARIN RDAP autnum AS270, registrant NASA-Z, registration 1989-02-24) is named by ticket INC0303298 as an I2 Participant with parenthesized site code (KANS-WASH); under the reviewed Internet2 title convention the parenthesized code indicates expected redundancy. Selection scope: target-origin routes traversing the Internet2 R&E plane AS11537. Event-date preflight (route-views2 rib.20260803.0800.bz2): 3,350 origin-matching routes, 284 qualifying observer-prefix streams across 142 distinct prefixes.",
+        "reviewed_by": "session-48-review",
+        "date": "2026-08-03"
+      }
+    }
+  },
+  "collectors": ["route-views2"],
+  "source_family": "RouteViews",
+  "collectors_provenance": "single qualifying collector from event-date preflight (route-views2 rib.20260803.0800: 284 qualifying streams / 142 prefixes; no RIS observer probed in this session)",
+  "analyst_notes": [
+    "Fresh-event selection (Session 48, bounded viewer discovery). Ticket INC0303298 'Brief Outage - I2 Participant NOAA (KANS-WASH)', state=2, window 2026-08-03 12:16:06-13:07:17 UTC; source description is Sub5 boilerplate only. Origin identity: ARIN RDAP AS270. Candidates INC0303260 (I2PX peer Amazon, direct AS11164 session absent in rrc11 baseline) and INC0303264 (I2 Participant Cloudflare, no qualifying baseline under AS11537 or AS11164 at route-views2) were blocked by preflight."
+  ]
+}

@@ -313,6 +313,11 @@ pub struct EventDetailView {
     pub workflow_detail: String,
     pub active_job_id: Option<String>,
     pub completed_run_id: Option<i64>,
+    /// Reviewed relationship is not directly observable in public BGP;
+    /// any BGP run is a scope-mismatched supporting observation.
+    pub supporting_only: bool,
+    /// Reviewed BGP applicability (ticket_reviews), empty when none.
+    pub applicability: String,
 }
 
 pub struct SnapshotView {
@@ -579,6 +584,66 @@ fn latest_expectation(
         .map(|s| s.to_string()))
 }
 
+/// Present a stored verdict string (machine name or frozen legacy
+/// label) through the source-neutral observed-result vocabulary.
+/// Returns (observed_result_label, expectation_assessment_label).
+fn present_run_verdict(stored: &str) -> (String, String) {
+    use crate::domain::assessment::Verdict;
+    match Verdict::from_stored(stored) {
+        Some(v) => (
+            v.observed_result_kind().human_label().to_string(),
+            v.expectation_assessment_kind().human_label().to_string(),
+        ),
+        None => (stored.to_string(), String::new()),
+    }
+}
+
+/// Extract the expectation name from a frozen legacy assessment
+/// statement ("Consistent with the redundant-attachment expectation."
+/// -> "redundant-attachment") so current presentation can keep the
+/// parenthetical without reinterpreting evidence.
+fn expectation_name_from_legacy(statement: &str) -> Option<String> {
+    for prefix in [
+        "Consistent with the ",
+        "Inconsistent with the ",
+        "Partially consistent with the ",
+        "Indeterminate relative to the ",
+        "Not assessable from the ",
+    ] {
+        if let Some(rest) = statement.strip_prefix(prefix) {
+            for suffix in [" expectation.", " expectation"] {
+                if let Some(name) = rest.strip_suffix(suffix) {
+                    return Some(name.to_string());
+                }
+            }
+        }
+    }
+    None
+}
+
+/// The reviewed BGP applicability of an event (ticket_reviews), if any.
+fn reviewed_applicability(
+    conn: &rusqlite::Connection,
+    event_id: i64,
+) -> Result<Option<String>, String> {
+    use rusqlite::OptionalExtension;
+    conn.query_row(
+        "SELECT analysis_applicability FROM ticket_reviews
+         WHERE catalog_event_id = ?1
+         ORDER BY reviewed_at DESC, id DESC LIMIT 1",
+        [event_id],
+        |r| r.get(0),
+    )
+    .optional()
+    .map_err(|e| format!("catalog read failed: {e}"))
+}
+
+/// The ticket-level result line for an event whose reviewed
+/// relationship is not directly observable in public BGP.
+fn not_directly_observable_line() -> &'static str {
+    "The named relationship is not directly assessable with public BGP."
+}
+
 fn latest_result(
     conn: &rusqlite::Connection,
     event_id: i64,
@@ -628,6 +693,21 @@ pub fn load_event_detail(
     .to_string();
     let expectation = latest_expectation(conn, event.id)?;
     let (result, assessment) = latest_result(conn, event.id)?;
+    let applicability = reviewed_applicability(conn, event.id)?;
+    let supporting_only = applicability.as_deref()
+        == Some(crate::catalog::domain::applicability::NOT_DIRECTLY_OBSERVABLE);
+    // For a relationship not directly observable in public BGP, the
+    // ticket-level result is the observability statement; any BGP run
+    // is a scope-mismatched supporting observation and carries NO
+    // expectation assessment against the ticket.
+    let (result, assessment) = if supporting_only {
+        (
+            Some(not_directly_observable_line().to_string()),
+            Some(String::new()),
+        )
+    } else {
+        (result, assessment)
+    };
     let stale_reason = if st == CatalogStatus::Stale {
         "The latest source snapshot or reviewed manifest changed after the latest completed analysis. The current event state has not yet been analyzed under the latest inputs; the historical run remains valid.".to_string()
     } else {
@@ -656,12 +736,33 @@ pub fn load_event_detail(
         .collect();
     let run_rows = db::list_runs_for_event(conn, event.id)?
         .iter()
-        .map(|r| RunRowView {
-            id: r.id,
-            status: r.status.clone(),
-            started_at: r.started_at.clone(),
-            verdict: r.verdict.clone().unwrap_or_default(),
-            assessment: r.assessment.clone().unwrap_or_default(),
+        .map(|r| {
+            let stored = r.verdict.clone().unwrap_or_default();
+            let (observed, expectation) = present_run_verdict(&stored);
+            let mut assessment = r.assessment.clone().unwrap_or_default();
+            if supporting_only {
+                // Scope-mismatched supporting observation: the run row
+                // names the observed result but carries no expectation
+                // assessment against the optical relationship.
+                assessment = String::new();
+            } else if !expectation.is_empty() {
+                if let Some(name) = expectation_name_from_legacy(&assessment) {
+                    assessment = format!("{expectation} ({name}).");
+                } else {
+                    assessment = expectation;
+                }
+            }
+            RunRowView {
+                id: r.id,
+                status: r.status.clone(),
+                started_at: r.started_at.clone(),
+                verdict: if supporting_only {
+                    format!("{observed} (supporting observation; scope mismatch)")
+                } else {
+                    observed
+                },
+                assessment,
+            }
         })
         .collect();
 
@@ -680,6 +781,8 @@ pub fn load_event_detail(
         expectation: expectation.unwrap_or_default(),
         latest_result: result.unwrap_or_default(),
         assessment: assessment.unwrap_or_default(),
+        supporting_only,
+        applicability: applicability.unwrap_or_default(),
         stale_reason,
         snapshots: snapshot_views,
         manifests: manifest_views,
@@ -829,15 +932,22 @@ pub fn load_run(
         }
     }
 
+    // Current presentation: the stored machine verdict (or frozen
+    // legacy label) is mapped through the source-neutral observed-result
+    // vocabulary. The report's stored verdict_label is never rendered
+    // verbatim when it conflates observation with expectation.
+    let stored = run.verdict.clone().unwrap_or_else(|| "Unknown".to_string());
+    let (observed, expectation) = present_run_verdict(&stored);
     let result_label = if report_available {
         report_value
             .get("result")
-            .and_then(|r| r.get("verdict_label"))
+            .and_then(|r| r.get("observed_result"))
+            .and_then(|o| o.get("label"))
             .and_then(|v| v.as_str())
-            .unwrap_or(run.verdict.as_deref().unwrap_or("Unknown"))
-            .to_string()
+            .map(|s| s.to_string())
+            .unwrap_or(observed)
     } else {
-        run.verdict.clone().unwrap_or_else(|| "Unknown".to_string())
+        observed
     };
     let finding = if report_available {
         report_value
@@ -850,12 +960,28 @@ pub fn load_run(
         String::new()
     };
     let assessment = if report_available {
-        report_value
+        // Prefer the structured v3 kind; for v2 reports map the machine
+        // verdict and keep the legacy statement's expectation name.
+        if let Some(kind) = report_value
             .get("assessment")
-            .and_then(|a| a.get("statement"))
+            .and_then(|a| a.get("kind"))
             .and_then(|v| v.as_str())
-            .unwrap_or(run.assessment.as_deref().unwrap_or(""))
-            .to_string()
+        {
+            crate::domain::assessment::ExpectationAssessmentKind::from_label(kind)
+                .map(|k| format!("{}.", k.human_label()))
+                .unwrap_or_default()
+        } else {
+            let statement = report_value
+                .get("assessment")
+                .and_then(|a| a.get("statement"))
+                .and_then(|v| v.as_str())
+                .unwrap_or("");
+            if let Some(name) = expectation_name_from_legacy(statement) {
+                format!("{expectation} ({name}).")
+            } else {
+                expectation
+            }
+        }
     } else {
         run.assessment.clone().unwrap_or_default()
     };

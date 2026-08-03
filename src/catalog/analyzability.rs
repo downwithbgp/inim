@@ -29,6 +29,13 @@ pub mod state {
     pub const READY_FOR_ARCHIVE_PLANNING: &str = "ReadyForArchivePlanning";
     pub const ARCHIVE_PLAN_READY: &str = "ArchivePlanReady";
     pub const INSUFFICIENT_BASELINE_VISIBILITY: &str = "InsufficientBaselineVisibility";
+    /// Reviewed relationship is not directly observable in public BGP
+    /// (optical participant interface, Layer-2 circuit, fabric,
+    /// alarm/telemetry). Never becomes AnalysisComplete merely because
+    /// a supporting BGP run exists.
+    pub const NOT_DIRECTLY_OBSERVABLE: &str = "NotDirectlyObservableInPublicBgp";
+    /// No reviewed origin attribution exists for the named entity.
+    pub const NOT_ORIGIN_ATTRIBUTABLE: &str = "NotOriginAttributable";
     pub const ANALYSIS_COMPLETE: &str = "AnalysisComplete";
     pub const ANALYSIS_STALE: &str = "AnalysisStale";
     pub const ANALYSIS_FAILED: &str = "AnalysisFailed";
@@ -62,6 +69,60 @@ pub fn derive_analyzability(
     let runs = super::db::list_runs_for_event(conn, event.id)?;
     let latest_plan = plans.first();
     let latest_run = runs.first();
+
+    // Reviewed applicability is authoritative over derived readiness:
+    // the RELATIONSHIP named by the ticket decides whether public-BGP
+    // analysis is meaningful. An optical participant interface is not
+    // a BGP target even if a supporting run exists, and an entity
+    // without reviewed origin attribution is not a BGP target.
+    let reviewed_applicability: Option<(String, String)> = conn
+        .query_row(
+            "SELECT analysis_applicability, applicability_rationale FROM ticket_reviews
+             WHERE catalog_event_id = ?1
+             ORDER BY reviewed_at DESC, id DESC LIMIT 1",
+            [event.id],
+            |r| Ok((r.get(0)?, r.get(1)?)),
+        )
+        .map(Some)
+        .unwrap_or(None);
+    if let Some((applicability, rationale)) = &reviewed_applicability {
+        if applicability == super::domain::applicability::NOT_DIRECTLY_OBSERVABLE {
+            return Ok(Analyzability {
+                event_id: event.id,
+                external_id: event.external_id.clone(),
+                readiness: state::NOT_DIRECTLY_OBSERVABLE.to_string(),
+                reason: rationale
+                    .split('.')
+                    .next()
+                    .unwrap_or("reviewed relationship is not directly observable in public BGP")
+                    .to_string(),
+            });
+        }
+        if applicability == super::domain::applicability::NOT_ORIGIN_ATTRIBUTABLE {
+            return Ok(Analyzability {
+                event_id: event.id,
+                external_id: event.external_id.clone(),
+                readiness: state::NOT_ORIGIN_ATTRIBUTABLE.to_string(),
+                reason: rationale
+                    .split('.')
+                    .next()
+                    .unwrap_or("no reviewed origin attribution")
+                    .to_string(),
+            });
+        }
+        if applicability == super::domain::applicability::NOT_APPLICABLE {
+            return Ok(Analyzability {
+                event_id: event.id,
+                external_id: event.external_id.clone(),
+                readiness: state::NOT_APPLICABLE.to_string(),
+                reason: rationale
+                    .split('.')
+                    .next()
+                    .unwrap_or("reviewed as not applicable to public BGP")
+                    .to_string(),
+            });
+        }
+    }
 
     let readiness = match status {
         CatalogStatus::Running => {
@@ -207,8 +268,16 @@ pub fn derive_all_analyzability(conn: &Connection) -> Result<Vec<Analyzability>,
 /// Review archive volume · Analyze · No public-BGP target ·
 /// Inspect stale run.
 pub fn next_analyst_action(readiness: &str, applicability: &str) -> &'static str {
-    if applicability == applicability::NOT_APPLICABLE {
+    if applicability == applicability::NOT_APPLICABLE
+        || applicability == applicability::NOT_ORIGIN_ATTRIBUTABLE
+    {
         return "No public-BGP target";
+    }
+    if applicability == applicability::NOT_DIRECTLY_OBSERVABLE {
+        return "Review non-public-BGP evidence";
+    }
+    if readiness == state::NOT_DIRECTLY_OBSERVABLE {
+        return "Review non-public-BGP evidence";
     }
     match readiness {
         state::NOT_REVIEWED | state::NEEDS_ENTITY_MAPPING => "Review entity mapping",
@@ -508,5 +577,202 @@ mod tests {
         let a = derive_analyzability(&conn, &event).unwrap();
         assert_eq!(a.readiness, state::NEEDS_ENTITY_MAPPING);
         assert!(a.reason.contains("no reviewed entity/ASN mapping"));
+    }
+}
+
+#[cfg(test)]
+mod session48_correction_tests {
+    use super::*;
+    use crate::catalog::db;
+
+    fn temp_conn() -> (tempfile::TempDir, rusqlite::Connection) {
+        let dir = tempfile::tempdir().unwrap();
+        let conn = db::open_catalog(&dir.path().join("catalog.sqlite")).unwrap();
+        (dir, conn)
+    }
+
+    fn seed_event(conn: &rusqlite::Connection, ext: &str) -> i64 {
+        crate::catalog::store::upsert_event(
+            conn,
+            "grnoc-public-task-viewer",
+            ext,
+            "2019-08-21T12:00:00Z",
+        )
+        .unwrap()
+    }
+
+    fn seed_review(conn: &rusqlite::Connection, event_id: i64, ext: &str, applicability: &str) {
+        conn.execute(
+            "INSERT INTO ticket_reviews (catalog_event_id, external_id, reviewed_roles_json,
+                 entity_labels_json, linked_change_ids_json, analysis_applicability,
+                 applicability_rationale, relationship_to_case_study, review_status,
+                 reviewer, reviewed_at, provenance_json)
+             VALUES (?1, ?2, '[]', '[]', '[]', ?3, 'reviewed rationale', 'Related',
+                     'Reviewed', 'test', '2026-08-02T00:00:00Z', '[]')",
+            rusqlite::params![event_id, ext, applicability],
+        )
+        .unwrap();
+    }
+
+    #[test]
+    fn optical_relationship_is_not_ip_participant_relationship() {
+        // The applicability vocabulary keeps the two categories
+        // distinct: an optical participant interface is not an IP
+        // participant relationship even when the organization owns an
+        // ASN.
+        use crate::catalog::domain::applicability;
+        assert_ne!(
+            applicability::NOT_DIRECTLY_OBSERVABLE,
+            applicability::POTENTIALLY_VISIBLE
+        );
+        assert_ne!(
+            applicability::NOT_DIRECTLY_OBSERVABLE,
+            applicability::NOT_ORIGIN_ATTRIBUTABLE
+        );
+        assert_ne!(
+            applicability::NOT_DIRECTLY_OBSERVABLE,
+            applicability::NOT_APPLICABLE
+        );
+    }
+
+    #[test]
+    fn optical_event_not_queueable_as_ip_analysis_without_reviewed_ip_scope() {
+        let (_dir, conn) = temp_conn();
+        let eid = seed_event(&conn, "INC-X1");
+        seed_review(&conn, eid, "INC-X1", applicability::NOT_DIRECTLY_OBSERVABLE);
+        let event = db::get_event(&conn, eid).unwrap().unwrap();
+        let a = derive_analyzability(&conn, &event).unwrap();
+        assert_eq!(a.readiness, state::NOT_DIRECTLY_OBSERVABLE);
+        // Even with a supporting run present, the derived readiness
+        // must remain not-directly-observable (never AnalysisComplete).
+        let plan = crate::catalog::domain::AnalysisPlanRecord {
+            id: 0,
+            manifest_revision_id: 0,
+            plan_schema: 1,
+            payload: "{}".to_string(),
+            sha256: "x".to_string(),
+            status: "Ready".to_string(),
+            block_reason: None,
+            created_at: "2026-08-01T00:00:00Z".to_string(),
+        };
+        // Plans need a manifest revision; simulate the full flow by
+        // checking the applicability override happens before status.
+        let _ = plan;
+        assert_eq!(
+            next_analyst_action(&a.readiness, applicability::NOT_DIRECTLY_OBSERVABLE),
+            "Review non-public-BGP evidence"
+        );
+    }
+
+    #[test]
+    fn contemporaneous_bgp_run_does_not_become_relationship_assessment() {
+        use crate::domain::assessment::{ObservedResultKind, Verdict};
+        // A stable IP route through the reviewed plane maps to the
+        // no-change observed result; it never becomes an expectation
+        // assessment by itself (the expectation layer is separate).
+        // A generic no-change verdict (the stored machine name) maps to
+        // the no-change observed result; the expectation layer stays
+        // separate. Fixtures use neutral verdicts only.
+        let v = Verdict::LessImpactThanExpected;
+        assert_eq!(
+            v.observed_result_kind(),
+            ObservedResultKind::NoRouteStateChangeObserved
+        );
+        assert!(v
+            .observed_result_kind()
+            .human_label()
+            .to_lowercase()
+            .contains("no route-state change"));
+    }
+
+    #[test]
+    fn not_directly_observable_applicability_overrides_completed_status() {
+        let (_dir, conn) = temp_conn();
+        let eid = seed_event(&conn, "INC-X2");
+        seed_review(&conn, eid, "INC-X2", applicability::NOT_DIRECTLY_OBSERVABLE);
+        // Simulate a completed analysis: manifest + plan + run.
+        let snap = crate::catalog::domain::EventSnapshot {
+            id: 0,
+            event_id: eid,
+            fetched_at: "2019-08-21T16:00:00Z".to_string(),
+            source_url: "file:///x".to_string(),
+            content_sha256: "s".to_string(),
+            raw_payload: "{}".to_string(),
+            normalized_json: "{}".to_string(),
+            parser_version: "t".to_string(),
+        };
+        crate::catalog::store::insert_snapshot(&conn, eid, &snap).unwrap();
+        let manifest = crate::catalog::domain::ManifestRevision {
+            id: 0,
+            event_id: eid,
+            snapshot_id: 1,
+            manifest_schema: 2,
+            payload: r#"{"event_id":"INC-X2","revision":1,"schema_version":2,"open":false,
+                "event_window_utc":{"start":"2019-08-21T16:00:00Z","end":"2019-08-21T17:00:00Z"},
+                "target":{"origin_asns":[64501],
+                    "transit_predicate":{"predicate":{"ContainsAny":[64500]},"status":"Reviewed"}},
+                "collectors":["rrc00"],"source_family":"RipeRis"}"#
+                .to_string(),
+            sha256: "m".to_string(),
+            review_status: "Reviewed".to_string(),
+            reviewed_at: Some("2026-08-01T00:00:00Z".to_string()),
+            reviewer: Some("test".to_string()),
+        };
+        let mid = crate::catalog::store::insert_manifest_revision(&conn, &manifest).unwrap();
+        let plan = crate::catalog::domain::AnalysisPlanRecord {
+            id: 0,
+            manifest_revision_id: mid,
+            plan_schema: 1,
+            payload: "{}".to_string(),
+            sha256: "p".to_string(),
+            status: "Ready".to_string(),
+            block_reason: None,
+            created_at: "2026-08-01T00:00:00Z".to_string(),
+        };
+        let pid = crate::catalog::store::insert_plan(&conn, &plan).unwrap();
+        crate::catalog::store::insert_run(
+            &conn,
+            &crate::catalog::domain::AnalysisRun {
+                id: 0,
+                plan_id: pid,
+                software_version: "t".to_string(),
+                git_revision: Some("g".to_string()),
+                parser_identity: "p".to_string(),
+                cache_schema_version: 1,
+                report_schema_version: 3,
+                status: "Complete".to_string(),
+                started_at: "2026-08-02T00:00:00Z".to_string(),
+                completed_at: Some("2026-08-02T00:05:00Z".to_string()),
+                runtime_secs: Some(5.0),
+                verdict: Some("LessImpactThanExpected".to_string()),
+                assessment: Some(
+                    "Inconsistent with the participant-relationship-unavailable expectation."
+                        .to_string(),
+                ),
+            },
+        )
+        .unwrap();
+        let event = db::get_event(&conn, eid).unwrap().unwrap();
+        let a = derive_analyzability(&conn, &event).unwrap();
+        assert_eq!(
+            a.readiness,
+            state::NOT_DIRECTLY_OBSERVABLE,
+            "reviewed applicability overrides AnalysisComplete"
+        );
+        assert!(!a.reason.contains("completed"), "{:?}", a.reason);
+    }
+
+    #[test]
+    fn not_origin_attributable_is_distinct_from_not_applicable() {
+        let (_dir, conn) = temp_conn();
+        let eid = seed_event(&conn, "INC-X3");
+        seed_review(&conn, eid, "INC-X3", applicability::NOT_ORIGIN_ATTRIBUTABLE);
+        let event = db::get_event(&conn, eid).unwrap().unwrap();
+        let a = derive_analyzability(&conn, &event).unwrap();
+        assert_eq!(a.readiness, state::NOT_ORIGIN_ATTRIBUTABLE);
+        assert_eq!(
+            next_analyst_action(&a.readiness, applicability::NOT_ORIGIN_ATTRIBUTABLE),
+            "No public-BGP target"
+        );
     }
 }

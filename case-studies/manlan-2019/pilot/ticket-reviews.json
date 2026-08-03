@@ -1,573 +1,594 @@
 {
-  "case_study": "manlan-2019",
-  "reviewer": "analyst-session-34",
-  "reviewed_at": "2026-08-01T16:00:00Z",
-  "notes": [
-    "TASK0038206 and TASK0038211 have no source snapshot and no catalog event (the viewer does not serve TASK records); they are NOT reviewed as tickets \u2014 they remain unresolved document references with AAR-cited relationship edges only. No snapshot is manufactured.",
-    "Reviewed interpretation pass over the ten acquired GRNOC public tickets (Session 34, Part 1).",
-    "Source wording is preserved in the immutable snapshots; this file is interpretation only.",
-    "ReferenceDocument citations refer to the MAN LAN Core Node Hardware Upgrade After Action Report (Appendix A timeline).",
-    "A missing source field (e.g. INC0040272 has no source window) is never backfilled except where the AAR is explicitly cited."
-  ],
-  "reviews": [
+ "case_study": "manlan-2019",
+ "reviewer": "analyst-session-34",
+ "reviewed_at": "2026-08-01T16:00:00Z",
+ "notes": [
+  "TASK0038206 and TASK0038211 have no source snapshot and no catalog event (the viewer does not serve TASK records); they are NOT reviewed as tickets \u2014 they remain unresolved document references with AAR-cited relationship edges only. No snapshot is manufactured.",
+  "Reviewed interpretation pass over the ten acquired GRNOC public tickets (Session 34, Part 1).",
+  "Source wording is preserved in the immutable snapshots; this file is interpretation only.",
+  "ReferenceDocument citations refer to the MAN LAN Core Node Hardware Upgrade After Action Report (Appendix A timeline).",
+  "A missing source field (e.g. INC0040272 has no source window) is never backfilled except where the AAR is explicitly cited.",
+  "2026-08-02 correction: INC0040293 and INC0040291 reclassified NotDirectlyObservableInPublicBgp (optical participant relationships; public BGP does not observe the optical interface; existing AS293/AS11537 run is a scope-mismatched supporting observation). INC0040290 and INC0040258 reclassified NotOriginAttributable (test equipment / exchange fabric)."
+ ],
+ "reviews": [
+  {
+   "external_id": "CHG0038258",
+   "roles": [
+    "ChangeWindow"
+   ],
+   "entity_labels": [
+    "sw.net.manlan (MAN LAN core node)"
+   ],
+   "linked_change_ids": [],
+   "analysis_applicability": "NotApplicableToPublicBgp",
+   "applicability_rationale": "The change record is the scheduled maintenance window itself; BGP visibility applies to the incidents tracking its impact (INC0040257), not to the window record.",
+   "relationship_to_case_study": "PrimaryChange",
+   "provenance": [
     {
-      "external_id": "CHG0038258",
-      "roles": [
-        "ChangeWindow"
-      ],
-      "entity_labels": [
-        "sw.net.manlan (MAN LAN core node)"
-      ],
-      "linked_change_ids": [],
-      "analysis_applicability": "NotApplicableToPublicBgp",
-      "applicability_rationale": "The change record is the scheduled maintenance window itself; BGP visibility applies to the incidents tracking its impact (INC0040257), not to the window record.",
-      "relationship_to_case_study": "PrimaryChange",
-      "provenance": [
-        {
-          "field": "roles",
-          "source": "SnapshotField:title",
-          "detail": "Maintenance 1 of 2 Completed - MAN LAN Core Node (sw.net.manlan)"
-        },
-        {
-          "field": "entity_labels",
-          "source": "SnapshotField:title",
-          "detail": "MAN LAN Core Node (sw.net.manlan)"
-        },
-        {
-          "field": "applicability",
-          "source": "Analyst",
-          "detail": "window record, not a BGP-observable event"
-        },
-        {
-          "field": "relationship_to_case_study",
-          "source": "Analyst",
-          "detail": "scheduled maintenance window 1 of 2 for the case-study core node"
-        },
-        {
-          "field": "window",
-          "source": "SnapshotField:start/end",
-          "detail": "source window 2019-08-21T04:38:38Z..2019-08-21T13:00:00Z; planned 04:00..13:00"
-        },
-        {
-          "field": "window",
-          "source": "ReferenceDocument:AAR Appendix A",
-          "detail": "04:00 - 13:00 GMT Maintenance 1 of 2 Completed - MAN LAN Core Node (sw.net.manlan) CHG0038258"
-        }
-      ]
+     "field": "roles",
+     "source": "SnapshotField:title",
+     "detail": "Maintenance 1 of 2 Completed - MAN LAN Core Node (sw.net.manlan)"
     },
     {
-      "external_id": "CHG0038386",
-      "roles": [
-        "RollbackOrRecovery",
-        "ChangeWindow"
-      ],
-      "entity_labels": [
-        "sw.net.manlan (MAN LAN core node)"
-      ],
-      "linked_change_ids": [],
-      "analysis_applicability": "NotApplicableToPublicBgp",
-      "applicability_rationale": "Emergency change performing the rollback; the change record itself is not a BGP-observable event.",
-      "relationship_to_case_study": "RollbackChange",
-      "provenance": [
-        {
-          "field": "roles",
-          "source": "SnapshotField:title",
-          "detail": "Emergency Maintenance Completed - MAN LAN Core Node (sw.net.manlan)"
-        },
-        {
-          "field": "roles",
-          "source": "ReferenceDocument:AAR Appendix A",
-          "detail": "19:17 SD requests Emergency change to perform rollback; rollback to original configuration 18:01-22:22 GMT"
-        },
-        {
-          "field": "entity_labels",
-          "source": "SnapshotField:title",
-          "detail": "MAN LAN Core Node (sw.net.manlan)"
-        },
-        {
-          "field": "applicability",
-          "source": "Analyst",
-          "detail": "rollback window record, not a BGP-observable event"
-        },
-        {
-          "field": "relationship_to_case_study",
-          "source": "Analyst",
-          "detail": "emergency maintenance is the reviewed rollback change"
-        },
-        {
-          "field": "window",
-          "source": "SnapshotField:start/end",
-          "detail": "source window 2019-08-21T20:00:00Z..2019-08-21T22:29:13Z; planned 20:00..23:59:59"
-        }
-      ]
+     "field": "entity_labels",
+     "source": "SnapshotField:title",
+     "detail": "MAN LAN Core Node (sw.net.manlan)"
     },
     {
-      "external_id": "INC0040257",
-      "roles": [
-        "PrimaryIncident"
-      ],
-      "entity_labels": [
-        "MAN LAN participants (various)"
-      ],
-      "linked_change_ids": [
-        "CHG0038258"
-      ],
-      "analysis_applicability": "PotentiallyVisibleInPublicBgp",
-      "applicability_rationale": "Umbrella outage for MAN LAN & IP participants; the reviewed NORDUnet pilot maps one participant subset (AS2603).",
-      "relationship_to_case_study": "PrimaryIncident",
-      "provenance": [
-        {
-          "field": "roles",
-          "source": "SnapshotField:description",
-          "detail": "Internet2 Engineers reviewing Layer3 services after a partner maintenance; work completed to restore services"
-        },
-        {
-          "field": "roles",
-          "source": "ReferenceDocument:AAR Appendix A",
-          "detail": "13:01 - 19:59 GMT Outage Resolved - MAN LAN & IP Various Participants INC0040257; 17:02 major incident declared"
-        },
-        {
-          "field": "entity_labels",
-          "source": "SnapshotField:title",
-          "detail": "MANLAN & IP Various Participants"
-        },
-        {
-          "field": "linked_change_ids",
-          "source": "ReferenceDocument:AAR Appendix A",
-          "detail": "outage window follows CHG0038258 maintenance 1; CHG0038258 description states remaining impact is tracked in INC0040257"
-        },
-        {
-          "field": "applicability",
-          "source": "Analyst",
-          "detail": "participant outages may be visible in public BGP"
-        },
-        {
-          "field": "relationship_to_case_study",
-          "source": "Analyst",
-          "detail": "primary incident of the case study"
-        },
-        {
-          "field": "window",
-          "source": "SnapshotField:start/end",
-          "detail": "source window 2019-08-21T13:00:00Z..2019-08-21T19:59:59Z"
-        }
-      ]
+     "field": "applicability",
+     "source": "Analyst",
+     "detail": "window record, not a BGP-observable event"
     },
     {
-      "external_id": "INC0040258",
-      "roles": [
-        "ParticipantImpact"
-      ],
-      "entity_labels": [
-        "MAN LAN to WIX interconnect"
-      ],
-      "linked_change_ids": [],
-      "analysis_applicability": "ApplicableTargetNotYetMapped",
-      "applicability_rationale": "Brief participant-circuit outage (WIX interconnect); no reviewed public-BGP target mapping yet.",
-      "relationship_to_case_study": "Related",
-      "provenance": [
-        {
-          "field": "roles",
-          "source": "SnapshotField:description",
-          "detail": "brief outage; declared related to the MAN LAN core node event underway"
-        },
-        {
-          "field": "roles",
-          "source": "ReferenceDocument:AAR Appendix A",
-          "detail": "13:26 - 13:27 GMT Brief Outage Resolved - MAN LAN to WIX Interconnect; 14:40 confirmed via slack the outage was a result of troubleshooting"
-        },
-        {
-          "field": "entity_labels",
-          "source": "SnapshotField:title",
-          "detail": "I2 Optical MAN LAN to WIX Interconnect"
-        },
-        {
-          "field": "applicability",
-          "source": "Analyst",
-          "detail": "interconnect circuit, no reviewed target mapping"
-        },
-        {
-          "field": "relationship_to_case_study",
-          "source": "Analyst",
-          "detail": "participant impact during the core-node event"
-        },
-        {
-          "field": "window",
-          "source": "SnapshotField:start/end",
-          "detail": "source window 2019-08-21T13:26:34Z..2019-08-21T13:27:36Z"
-        }
-      ]
+     "field": "relationship_to_case_study",
+     "source": "Analyst",
+     "detail": "scheduled maintenance window 1 of 2 for the case-study core node"
     },
     {
-      "external_id": "INC0040272",
-      "roles": [
-        "ParticipantImpact"
-      ],
-      "entity_labels": [
-        "NORDUnet (AS2603)"
-      ],
-      "linked_change_ids": [
-        "CHG0038258"
-      ],
-      "analysis_applicability": "PotentiallyVisibleInPublicBgp",
-      "applicability_rationale": "NORDUnet participant impact; AS2603 mapping reviewed in the pilot target research.",
-      "relationship_to_case_study": "ParticipantIncident",
-      "provenance": [
-        {
-          "field": "roles",
-          "source": "SnapshotField:title",
-          "detail": "Incident Resolved - I2 Optical Participant NORDUNet"
-        },
-        {
-          "field": "entity_labels",
-          "source": "SnapshotField:title",
-          "detail": "I2 Optical Participant NORDUNet; AS2603 mapping from reviewed target research"
-        },
-        {
-          "field": "linked_change_ids",
-          "source": "ReferenceDocument:AAR Appendix A",
-          "detail": "15:33 GMT Incident Resolved - I2 Optical Participant NORDUnet; 16:50 customer disables interface to regain stability (within maintenance-1 impact period)"
-        },
-        {
-          "field": "applicability",
-          "source": "Analyst",
-          "detail": "public participant NORDUnet"
-        },
-        {
-          "field": "relationship_to_case_study",
-          "source": "Analyst",
-          "detail": "participant impact during the primary incident"
-        },
-        {
-          "field": "window",
-          "source": "ReferenceDocument:AAR Appendix A",
-          "detail": "no source window in snapshot; AAR timeline places the event at 15:33 GMT"
-        }
-      ]
+     "field": "window",
+     "source": "SnapshotField:start/end",
+     "detail": "source window 2019-08-21T04:38:38Z..2019-08-21T13:00:00Z; planned 04:00..13:00"
     },
     {
-      "external_id": "INC0040289",
-      "roles": [
-        "ParticipantImpact"
-      ],
-      "entity_labels": [
-        "NORDUnet (AS2603)"
-      ],
-      "linked_change_ids": [
-        "CHG0038258",
-        "CHG0038386"
-      ],
-      "analysis_applicability": "PotentiallyVisibleInPublicBgp",
-      "applicability_rationale": "NORDUnet availability ticket \u2014 the reviewed pilot target (interface disabled 16:50, re-enabled 20:48).",
-      "relationship_to_case_study": "ParticipantIncident",
-      "provenance": [
-        {
-          "field": "roles",
-          "source": "SnapshotField:title",
-          "detail": "Availability - I2 PX Participant NORDUnet"
-        },
-        {
-          "field": "entity_labels",
-          "source": "SnapshotField:title",
-          "detail": "I2 PX Participant NORDUnet; AS2603 mapping from reviewed target research"
-        },
-        {
-          "field": "linked_change_ids",
-          "source": "ReferenceDocument:AAR Appendix A",
-          "detail": "16:50 customer disables interface (maintenance-1 impact); 20:48 NORDUnet re-enabled interface (emergency-maintenance section)"
-        },
-        {
-          "field": "applicability",
-          "source": "Analyst",
-          "detail": "public participant NORDUnet"
-        },
-        {
-          "field": "relationship_to_case_study",
-          "source": "Analyst",
-          "detail": "participant impact during the primary incident"
-        },
-        {
-          "field": "window",
-          "source": "SnapshotField:start/end",
-          "detail": "source window 2019-08-21T16:16:26Z..2019-08-21T21:33:31Z"
-        }
-      ]
-    },
-    {
-      "external_id": "INC0040290",
-      "roles": [
-        "ParticipantImpact"
-      ],
-      "entity_labels": [
-        "Ixia (participant)"
-      ],
-      "linked_change_ids": [],
-      "analysis_applicability": "ApplicableTargetNotYetMapped",
-      "applicability_rationale": "Participant outage; no reviewed public-BGP target mapping yet.",
-      "relationship_to_case_study": "ParticipantIncident",
-      "provenance": [
-        {
-          "field": "roles",
-          "source": "SnapshotField:title",
-          "detail": "Outage - MAN LAN Participant Ixia"
-        },
-        {
-          "field": "entity_labels",
-          "source": "SnapshotField:title",
-          "detail": "MAN LAN Participant Ixia"
-        },
-        {
-          "field": "applicability",
-          "source": "Analyst",
-          "detail": "participant outage, no reviewed mapping"
-        },
-        {
-          "field": "relationship_to_case_study",
-          "source": "Analyst",
-          "detail": "participant impact during the primary incident"
-        },
-        {
-          "field": "window",
-          "source": "ReferenceDocument:AAR Appendix A",
-          "detail": "16:54 GMT Outage - MAN LAN Participant Ixia (source window start 16:04:04Z, no end)"
-        }
-      ]
-    },
-    {
-      "external_id": "INC0040291",
-      "roles": [
-        "ParticipantImpact"
-      ],
-      "entity_labels": [
-        "ESNet (participant)"
-      ],
-      "linked_change_ids": [],
-      "analysis_applicability": "ApplicableTargetNotYetMapped",
-      "applicability_rationale": "ESNet participant availability; no reviewed public-BGP target mapping yet.",
-      "relationship_to_case_study": "ParticipantIncident",
-      "provenance": [
-        {
-          "field": "roles",
-          "source": "SnapshotField:description",
-          "detail": "ESNet Engineers reported they had manually disabled this interface"
-        },
-        {
-          "field": "roles",
-          "source": "ReferenceDocument:AAR Appendix A",
-          "detail": "16:55 - 22:24 GMT Availability - MAN LAN Optical Participant ESNet; 17:30 customer disables interface; 20:44 ESNet re-enables interface"
-        },
-        {
-          "field": "entity_labels",
-          "source": "SnapshotField:title",
-          "detail": "MANLAN Optical Participant ESNet"
-        },
-        {
-          "field": "applicability",
-          "source": "Analyst",
-          "detail": "participant outage, no reviewed mapping"
-        },
-        {
-          "field": "relationship_to_case_study",
-          "source": "Analyst",
-          "detail": "participant impact during the primary incident"
-        },
-        {
-          "field": "window",
-          "source": "SnapshotField:start/end",
-          "detail": "source window 2019-08-21T16:31:48Z..2019-08-22T06:00:00Z"
-        }
-      ]
-    },
-    {
-      "external_id": "INC0040293",
-      "roles": [
-        "ParticipantImpact"
-      ],
-      "entity_labels": [
-        "ESNet (participant)"
-      ],
-      "linked_change_ids": [],
-      "analysis_applicability": "ApplicableTargetNotYetMapped",
-      "applicability_rationale": "ESNet participant outage; no reviewed public-BGP target mapping yet.",
-      "relationship_to_case_study": "ParticipantIncident",
-      "provenance": [
-        {
-          "field": "roles",
-          "source": "SnapshotField:description",
-          "detail": "ESnet and Vendor Engineers confirmed the outage was due to internal testing by ESNet"
-        },
-        {
-          "field": "entity_labels",
-          "source": "SnapshotField:title",
-          "detail": "I2 Optical Participant ESnet"
-        },
-        {
-          "field": "applicability",
-          "source": "Analyst",
-          "detail": "participant outage, no reviewed mapping"
-        },
-        {
-          "field": "relationship_to_case_study",
-          "source": "Analyst",
-          "detail": "participant impact during the primary incident"
-        },
-        {
-          "field": "window",
-          "source": "SnapshotField:start/end",
-          "detail": "source window 2019-08-21T16:36:38Z..2019-08-21T20:25:24Z"
-        }
-      ]
-    },
-    {
-      "external_id": "INC0040318",
-      "roles": [
-        "AlarmOrTelemetry"
-      ],
-      "entity_labels": [
-        "MAN LAN core node (CPU)"
-      ],
-      "linked_change_ids": [],
-      "analysis_applicability": "NotApplicableToPublicBgp",
-      "applicability_rationale": "NSI/SNMP alarm telemetry, not a BGP-visible event.",
-      "relationship_to_case_study": "Alarm",
-      "provenance": [
-        {
-          "field": "roles",
-          "source": "SnapshotField:title",
-          "detail": "Alarm - MAN LAN CPU"
-        },
-        {
-          "field": "roles",
-          "source": "ReferenceDocument:AAR Appendix A",
-          "detail": "19:35 GMT Alarm - MAN LAN CPU INC0040318"
-        },
-        {
-          "field": "entity_labels",
-          "source": "SnapshotField:title",
-          "detail": "MAN LAN CPU"
-        },
-        {
-          "field": "applicability",
-          "source": "Analyst",
-          "detail": "alarm telemetry"
-        },
-        {
-          "field": "relationship_to_case_study",
-          "source": "Analyst",
-          "detail": "alarm during the incident"
-        },
-        {
-          "field": "window",
-          "source": "ReferenceDocument:AAR Appendix A",
-          "detail": "no source window in snapshot; AAR timeline places the alarm at 19:35 GMT"
-        }
-      ]
+     "field": "window",
+     "source": "ReferenceDocument:AAR Appendix A",
+     "detail": "04:00 - 13:00 GMT Maintenance 1 of 2 Completed - MAN LAN Core Node (sw.net.manlan) CHG0038258"
     }
-  ],
-  "relationships": [
+   ]
+  },
+  {
+   "external_id": "CHG0038386",
+   "roles": [
+    "RollbackOrRecovery",
+    "ChangeWindow"
+   ],
+   "entity_labels": [
+    "sw.net.manlan (MAN LAN core node)"
+   ],
+   "linked_change_ids": [],
+   "analysis_applicability": "NotApplicableToPublicBgp",
+   "applicability_rationale": "Emergency change performing the rollback; the change record itself is not a BGP-observable event.",
+   "relationship_to_case_study": "RollbackChange",
+   "provenance": [
     {
-      "from": "CHG0038258",
-      "to": "INC0040257",
-      "kind": "TracksRemainingImpactIn",
-      "evidence": "ExplicitTicketText",
-      "note": "CHG0038258 description: 'Some peering sessions remain unavailable after the completion of this maintenance, and are being tracked in Internet2 ticket INC0040257.'",
-      "document_cited": false
+     "field": "roles",
+     "source": "SnapshotField:title",
+     "detail": "Emergency Maintenance Completed - MAN LAN Core Node (sw.net.manlan)"
     },
     {
-      "from": "INC0040257",
-      "to": "CHG0038258",
-      "kind": "RelatedChange",
-      "evidence": "AnalystReviewed",
-      "note": "INC0040257 description: 'Internet2 Engineers are reviewing Layer3 services after a partner maintenance'; AAR Appendix A places the outage directly after maintenance 1.",
-      "document_cited": true
+     "field": "roles",
+     "source": "ReferenceDocument:AAR Appendix A",
+     "detail": "19:17 SD requests Emergency change to perform rollback; rollback to original configuration 18:01-22:22 GMT"
     },
     {
-      "from": "CHG0038386",
-      "to": "CHG0038258",
-      "kind": "RollbackFor",
-      "evidence": "AnalystReviewed",
-      "note": "AAR Appendix A: '19:17 SD requests Emergency change to perform rollback'; rollback to original configuration 18:01-22:22 GMT undoes maintenance 1.",
-      "document_cited": true
+     "field": "entity_labels",
+     "source": "SnapshotField:title",
+     "detail": "MAN LAN Core Node (sw.net.manlan)"
     },
     {
-      "from": "INC0040258",
-      "to": "INC0040257",
-      "kind": "RelatedIncident",
-      "evidence": "AnalystReviewed",
-      "note": "INC0040258 description: 'The Incident has been declared related to the MAN LAN core node event underway'; AAR Appendix A: 14:40 confirmed the brief WIX outage was a result of troubleshooting.",
-      "document_cited": true
+     "field": "applicability",
+     "source": "Analyst",
+     "detail": "rollback window record, not a BGP-observable event"
     },
     {
-      "from": "INC0040272",
-      "to": "INC0040257",
-      "kind": "ParticipantImpactDuring",
-      "evidence": "AnalystReviewed",
-      "note": "AAR Appendix A: NORDUnet flapping 15:33 and interface disable 16:50 fall inside INC0040257's outage window (13:01-19:59).",
-      "document_cited": true
+     "field": "relationship_to_case_study",
+     "source": "Analyst",
+     "detail": "emergency maintenance is the reviewed rollback change"
     },
     {
-      "from": "INC0040289",
-      "to": "INC0040257",
-      "kind": "ParticipantImpactDuring",
-      "evidence": "AnalystReviewed",
-      "note": "AAR Appendix A: NORDUnet availability 16:50-21:33 overlaps INC0040257's outage window; 20:48 re-enable under the emergency maintenance.",
-      "document_cited": true
-    },
-    {
-      "from": "INC0040290",
-      "to": "INC0040257",
-      "kind": "ParticipantImpactDuring",
-      "evidence": "AnalystReviewed",
-      "note": "AAR Appendix A: 16:54 Ixia outage falls inside INC0040257's outage window.",
-      "document_cited": true
-    },
-    {
-      "from": "INC0040291",
-      "to": "INC0040257",
-      "kind": "ParticipantImpactDuring",
-      "evidence": "AnalystReviewed",
-      "note": "AAR Appendix A: ESNet availability 16:55-22:24 overlaps INC0040257's outage window; interface disabled 17:30.",
-      "document_cited": true
-    },
-    {
-      "from": "INC0040293",
-      "to": "INC0040257",
-      "kind": "ParticipantImpactDuring",
-      "evidence": "AnalystReviewed",
-      "note": "AAR Appendix A: ESNet outage 16:58-20:25 overlaps INC0040257's outage window.",
-      "document_cited": true
-    },
-    {
-      "from": "INC0040318",
-      "to": "INC0040257",
-      "kind": "AlarmDuring",
-      "evidence": "AnalystReviewed",
-      "note": "AAR Appendix A: 19:35 CPU alarm falls inside INC0040257's outage window (13:01-19:59).",
-      "document_cited": true
-    },
-    {
-      "from": "INC0040272",
-      "to": "INC0040289",
-      "kind": "RelatedIncident",
-      "evidence": "AnalystReviewed",
-      "note": "Same participant (NORDUnet) across the incident: flapping 15:33, availability 16:50-21:33; sequential phases of the same participant impact.",
-      "document_cited": true
-    },
-    {
-      "from": "INC0040257",
-      "to": "TASK0038206",
-      "kind": "OperationalTaskDuring",
-      "evidence": "ReferenceDocument",
-      "note": "AAR Appendix A: '16:31 GMT Alarms - MAN LAN SNMP TASK0038206'; target has no source snapshot and stays an unresolved reference.",
-      "document_cited": true
-    },
-    {
-      "from": "INC0040257",
-      "to": "TASK0038211",
-      "kind": "References",
-      "evidence": "ReferenceDocument",
-      "note": "AAR Appendix A: '17:24 GMT Major incident - MAN LAN Core Node NEWY32AOA TASK0038211'; target has no source snapshot and stays an unresolved reference.",
-      "document_cited": true
+     "field": "window",
+     "source": "SnapshotField:start/end",
+     "detail": "source window 2019-08-21T20:00:00Z..2019-08-21T22:29:13Z; planned 20:00..23:59:59"
     }
-  ]
+   ]
+  },
+  {
+   "external_id": "INC0040257",
+   "roles": [
+    "PrimaryIncident"
+   ],
+   "entity_labels": [
+    "MAN LAN participants (various)"
+   ],
+   "linked_change_ids": [
+    "CHG0038258"
+   ],
+   "analysis_applicability": "PotentiallyVisibleInPublicBgp",
+   "applicability_rationale": "Umbrella outage for MAN LAN & IP participants; the reviewed NORDUnet pilot maps one participant subset (AS2603).",
+   "relationship_to_case_study": "PrimaryIncident",
+   "provenance": [
+    {
+     "field": "roles",
+     "source": "SnapshotField:description",
+     "detail": "Internet2 Engineers reviewing Layer3 services after a partner maintenance; work completed to restore services"
+    },
+    {
+     "field": "roles",
+     "source": "ReferenceDocument:AAR Appendix A",
+     "detail": "13:01 - 19:59 GMT Outage Resolved - MAN LAN & IP Various Participants INC0040257; 17:02 major incident declared"
+    },
+    {
+     "field": "entity_labels",
+     "source": "SnapshotField:title",
+     "detail": "MANLAN & IP Various Participants"
+    },
+    {
+     "field": "linked_change_ids",
+     "source": "ReferenceDocument:AAR Appendix A",
+     "detail": "outage window follows CHG0038258 maintenance 1; CHG0038258 description states remaining impact is tracked in INC0040257"
+    },
+    {
+     "field": "applicability",
+     "source": "Analyst",
+     "detail": "participant outages may be visible in public BGP"
+    },
+    {
+     "field": "relationship_to_case_study",
+     "source": "Analyst",
+     "detail": "primary incident of the case study"
+    },
+    {
+     "field": "window",
+     "source": "SnapshotField:start/end",
+     "detail": "source window 2019-08-21T13:00:00Z..2019-08-21T19:59:59Z"
+    }
+   ]
+  },
+  {
+   "external_id": "INC0040258",
+   "roles": [
+    "ParticipantImpact"
+   ],
+   "entity_labels": [
+    "MAN LAN to WIX interconnect"
+   ],
+   "linked_change_ids": [],
+   "analysis_applicability": "NotOriginAttributable",
+   "applicability_rationale": "MAN LAN-WIX interconnect is exchange fabric; not origin-attributable in public BGP (Session 31 research).",
+   "relationship_to_case_study": "Related",
+   "provenance": [
+    {
+     "field": "roles",
+     "source": "SnapshotField:description",
+     "detail": "brief outage; declared related to the MAN LAN core node event underway"
+    },
+    {
+     "field": "roles",
+     "source": "ReferenceDocument:AAR Appendix A",
+     "detail": "13:26 - 13:27 GMT Brief Outage Resolved - MAN LAN to WIX Interconnect; 14:40 confirmed via slack the outage was a result of troubleshooting"
+    },
+    {
+     "field": "entity_labels",
+     "source": "SnapshotField:title",
+     "detail": "I2 Optical MAN LAN to WIX Interconnect"
+    },
+    {
+     "field": "applicability",
+     "source": "Analyst",
+     "detail": "interconnect circuit, no reviewed target mapping"
+    },
+    {
+     "field": "relationship_to_case_study",
+     "source": "Analyst",
+     "detail": "participant impact during the core-node event"
+    },
+    {
+     "field": "window",
+     "source": "SnapshotField:start/end",
+     "detail": "source window 2019-08-21T13:26:34Z..2019-08-21T13:27:36Z"
+    },
+    {
+     "field": "applicability",
+     "source": "ReviewedCorrection:2026-08-02",
+     "detail": "WIX interconnect is exchange fabric; not origin-attributable (Session 31 research); NotOriginAttributable"
+    }
+   ]
+  },
+  {
+   "external_id": "INC0040272",
+   "roles": [
+    "ParticipantImpact"
+   ],
+   "entity_labels": [
+    "NORDUnet (AS2603)"
+   ],
+   "linked_change_ids": [
+    "CHG0038258"
+   ],
+   "analysis_applicability": "PotentiallyVisibleInPublicBgp",
+   "applicability_rationale": "NORDUnet participant impact; AS2603 mapping reviewed in the pilot target research.",
+   "relationship_to_case_study": "ParticipantIncident",
+   "provenance": [
+    {
+     "field": "roles",
+     "source": "SnapshotField:title",
+     "detail": "Incident Resolved - I2 Optical Participant NORDUNet"
+    },
+    {
+     "field": "entity_labels",
+     "source": "SnapshotField:title",
+     "detail": "I2 Optical Participant NORDUNet; AS2603 mapping from reviewed target research"
+    },
+    {
+     "field": "linked_change_ids",
+     "source": "ReferenceDocument:AAR Appendix A",
+     "detail": "15:33 GMT Incident Resolved - I2 Optical Participant NORDUnet; 16:50 customer disables interface to regain stability (within maintenance-1 impact period)"
+    },
+    {
+     "field": "applicability",
+     "source": "Analyst",
+     "detail": "public participant NORDUnet"
+    },
+    {
+     "field": "relationship_to_case_study",
+     "source": "Analyst",
+     "detail": "participant impact during the primary incident"
+    },
+    {
+     "field": "window",
+     "source": "ReferenceDocument:AAR Appendix A",
+     "detail": "no source window in snapshot; AAR timeline places the event at 15:33 GMT"
+    }
+   ]
+  },
+  {
+   "external_id": "INC0040289",
+   "roles": [
+    "ParticipantImpact"
+   ],
+   "entity_labels": [
+    "NORDUnet (AS2603)"
+   ],
+   "linked_change_ids": [
+    "CHG0038258",
+    "CHG0038386"
+   ],
+   "analysis_applicability": "PotentiallyVisibleInPublicBgp",
+   "applicability_rationale": "NORDUnet availability ticket \u2014 the reviewed pilot target (interface disabled 16:50, re-enabled 20:48).",
+   "relationship_to_case_study": "ParticipantIncident",
+   "provenance": [
+    {
+     "field": "roles",
+     "source": "SnapshotField:title",
+     "detail": "Availability - I2 PX Participant NORDUnet"
+    },
+    {
+     "field": "entity_labels",
+     "source": "SnapshotField:title",
+     "detail": "I2 PX Participant NORDUnet; AS2603 mapping from reviewed target research"
+    },
+    {
+     "field": "linked_change_ids",
+     "source": "ReferenceDocument:AAR Appendix A",
+     "detail": "16:50 customer disables interface (maintenance-1 impact); 20:48 NORDUnet re-enabled interface (emergency-maintenance section)"
+    },
+    {
+     "field": "applicability",
+     "source": "Analyst",
+     "detail": "public participant NORDUnet"
+    },
+    {
+     "field": "relationship_to_case_study",
+     "source": "Analyst",
+     "detail": "participant impact during the primary incident"
+    },
+    {
+     "field": "window",
+     "source": "SnapshotField:start/end",
+     "detail": "source window 2019-08-21T16:16:26Z..2019-08-21T21:33:31Z"
+    }
+   ]
+  },
+  {
+   "external_id": "INC0040290",
+   "roles": [
+    "ParticipantImpact"
+   ],
+   "entity_labels": [
+    "Ixia (participant)"
+   ],
+   "linked_change_ids": [],
+   "analysis_applicability": "NotOriginAttributable",
+   "applicability_rationale": "Ixia test equipment; no reviewed public origin ASN exists (Session 31 research); not origin-attributable in public BGP.",
+   "relationship_to_case_study": "ParticipantIncident",
+   "provenance": [
+    {
+     "field": "roles",
+     "source": "SnapshotField:title",
+     "detail": "Outage - MAN LAN Participant Ixia"
+    },
+    {
+     "field": "entity_labels",
+     "source": "SnapshotField:title",
+     "detail": "MAN LAN Participant Ixia"
+    },
+    {
+     "field": "applicability",
+     "source": "Analyst",
+     "detail": "participant outage, no reviewed mapping"
+    },
+    {
+     "field": "relationship_to_case_study",
+     "source": "Analyst",
+     "detail": "participant impact during the primary incident"
+    },
+    {
+     "field": "window",
+     "source": "ReferenceDocument:AAR Appendix A",
+     "detail": "16:54 GMT Outage - MAN LAN Participant Ixia (source window start 16:04:04Z, no end)"
+    },
+    {
+     "field": "applicability",
+     "source": "ReviewedCorrection:2026-08-02",
+     "detail": "Ixia is test equipment with no origin ASN (Session 31 research); NotOriginAttributable"
+    }
+   ]
+  },
+  {
+   "external_id": "INC0040291",
+   "roles": [
+    "ParticipantImpact"
+   ],
+   "entity_labels": [
+    "ESNet (participant)"
+   ],
+   "linked_change_ids": [],
+   "analysis_applicability": "NotDirectlyObservableInPublicBgp",
+   "applicability_rationale": "MAN LAN optical participant relationship (ticket title 'MANLAN Optical Participant ESNet'); ticket text states ESnet engineers manually disabled the interface; public BGP does not directly observe the optical interface. Not selected for public-BGP analysis.",
+   "relationship_to_case_study": "ParticipantIncident",
+   "provenance": [
+    {
+     "field": "roles",
+     "source": "SnapshotField:description",
+     "detail": "ESNet Engineers reported they had manually disabled this interface"
+    },
+    {
+     "field": "roles",
+     "source": "ReferenceDocument:AAR Appendix A",
+     "detail": "16:55 - 22:24 GMT Availability - MAN LAN Optical Participant ESNet; 17:30 customer disables interface; 20:44 ESNet re-enables interface"
+    },
+    {
+     "field": "entity_labels",
+     "source": "SnapshotField:title",
+     "detail": "MANLAN Optical Participant ESNet"
+    },
+    {
+     "field": "applicability",
+     "source": "Analyst",
+     "detail": "participant outage, no reviewed mapping"
+    },
+    {
+     "field": "relationship_to_case_study",
+     "source": "Analyst",
+     "detail": "participant impact during the primary incident"
+    },
+    {
+     "field": "window",
+     "source": "SnapshotField:start/end",
+     "detail": "source window 2019-08-21T16:31:48Z..2019-08-22T06:00:00Z"
+    },
+    {
+     "field": "applicability",
+     "source": "ReviewedCorrection:2026-08-02",
+     "detail": "relationship is optical participant (title 'MANLAN Optical Participant ESNet', description 'manually disabled this interface'); not an Internet2 IP participant or I2PX BGP relationship; NotDirectlyObservableInPublicBgp"
+    }
+   ]
+  },
+  {
+   "external_id": "INC0040293",
+   "roles": [
+    "ParticipantImpact"
+   ],
+   "entity_labels": [
+    "ESNet (participant)"
+   ],
+   "linked_change_ids": [],
+   "analysis_applicability": "NotDirectlyObservableInPublicBgp",
+   "applicability_rationale": "I2 optical participant relationship (ticket title 'I2 Optical Participant ESnet'); outage attributed by ticket text to internal ESnet testing; public BGP does not directly observe the optical interface. The existing AS293/AS11537 run is a contemporaneous supporting BGP observation with scope mismatch; it does not assess the optical relationship.",
+   "relationship_to_case_study": "ParticipantIncident",
+   "provenance": [
+    {
+     "field": "roles",
+     "source": "SnapshotField:description",
+     "detail": "ESnet and Vendor Engineers confirmed the outage was due to internal testing by ESNet"
+    },
+    {
+     "field": "entity_labels",
+     "source": "SnapshotField:title",
+     "detail": "I2 Optical Participant ESnet"
+    },
+    {
+     "field": "applicability",
+     "source": "Analyst",
+     "detail": "participant outage, no reviewed mapping"
+    },
+    {
+     "field": "relationship_to_case_study",
+     "source": "Analyst",
+     "detail": "participant impact during the primary incident"
+    },
+    {
+     "field": "window",
+     "source": "SnapshotField:start/end",
+     "detail": "source window 2019-08-21T16:36:38Z..2019-08-21T20:25:24Z"
+    },
+    {
+     "field": "applicability",
+     "source": "ReviewedCorrection:2026-08-02",
+     "detail": "relationship is optical participant (title 'I2 Optical Participant ESnet', description 'internal testing by ESNet'); not an Internet2 IP participant or I2PX BGP relationship; NotDirectlyObservableInPublicBgp"
+    }
+   ]
+  },
+  {
+   "external_id": "INC0040318",
+   "roles": [
+    "AlarmOrTelemetry"
+   ],
+   "entity_labels": [
+    "MAN LAN core node (CPU)"
+   ],
+   "linked_change_ids": [],
+   "analysis_applicability": "NotApplicableToPublicBgp",
+   "applicability_rationale": "NSI/SNMP alarm telemetry, not a BGP-visible event.",
+   "relationship_to_case_study": "Alarm",
+   "provenance": [
+    {
+     "field": "roles",
+     "source": "SnapshotField:title",
+     "detail": "Alarm - MAN LAN CPU"
+    },
+    {
+     "field": "roles",
+     "source": "ReferenceDocument:AAR Appendix A",
+     "detail": "19:35 GMT Alarm - MAN LAN CPU INC0040318"
+    },
+    {
+     "field": "entity_labels",
+     "source": "SnapshotField:title",
+     "detail": "MAN LAN CPU"
+    },
+    {
+     "field": "applicability",
+     "source": "Analyst",
+     "detail": "alarm telemetry"
+    },
+    {
+     "field": "relationship_to_case_study",
+     "source": "Analyst",
+     "detail": "alarm during the incident"
+    },
+    {
+     "field": "window",
+     "source": "ReferenceDocument:AAR Appendix A",
+     "detail": "no source window in snapshot; AAR timeline places the alarm at 19:35 GMT"
+    }
+   ]
+  }
+ ],
+ "relationships": [
+  {
+   "from": "CHG0038258",
+   "to": "INC0040257",
+   "kind": "TracksRemainingImpactIn",
+   "evidence": "ExplicitTicketText",
+   "note": "CHG0038258 description: 'Some peering sessions remain unavailable after the completion of this maintenance, and are being tracked in Internet2 ticket INC0040257.'",
+   "document_cited": false
+  },
+  {
+   "from": "INC0040257",
+   "to": "CHG0038258",
+   "kind": "RelatedChange",
+   "evidence": "AnalystReviewed",
+   "note": "INC0040257 description: 'Internet2 Engineers are reviewing Layer3 services after a partner maintenance'; AAR Appendix A places the outage directly after maintenance 1.",
+   "document_cited": true
+  },
+  {
+   "from": "CHG0038386",
+   "to": "CHG0038258",
+   "kind": "RollbackFor",
+   "evidence": "AnalystReviewed",
+   "note": "AAR Appendix A: '19:17 SD requests Emergency change to perform rollback'; rollback to original configuration 18:01-22:22 GMT undoes maintenance 1.",
+   "document_cited": true
+  },
+  {
+   "from": "INC0040258",
+   "to": "INC0040257",
+   "kind": "RelatedIncident",
+   "evidence": "AnalystReviewed",
+   "note": "INC0040258 description: 'The Incident has been declared related to the MAN LAN core node event underway'; AAR Appendix A: 14:40 confirmed the brief WIX outage was a result of troubleshooting.",
+   "document_cited": true
+  },
+  {
+   "from": "INC0040272",
+   "to": "INC0040257",
+   "kind": "ParticipantImpactDuring",
+   "evidence": "AnalystReviewed",
+   "note": "AAR Appendix A: NORDUnet flapping 15:33 and interface disable 16:50 fall inside INC0040257's outage window (13:01-19:59).",
+   "document_cited": true
+  },
+  {
+   "from": "INC0040289",
+   "to": "INC0040257",
+   "kind": "ParticipantImpactDuring",
+   "evidence": "AnalystReviewed",
+   "note": "AAR Appendix A: NORDUnet availability 16:50-21:33 overlaps INC0040257's outage window; 20:48 re-enable under the emergency maintenance.",
+   "document_cited": true
+  },
+  {
+   "from": "INC0040290",
+   "to": "INC0040257",
+   "kind": "ParticipantImpactDuring",
+   "evidence": "AnalystReviewed",
+   "note": "AAR Appendix A: 16:54 Ixia outage falls inside INC0040257's outage window.",
+   "document_cited": true
+  },
+  {
+   "from": "INC0040291",
+   "to": "INC0040257",
+   "kind": "ParticipantImpactDuring",
+   "evidence": "AnalystReviewed",
+   "note": "AAR Appendix A: ESNet availability 16:55-22:24 overlaps INC0040257's outage window; interface disabled 17:30.",
+   "document_cited": true
+  },
+  {
+   "from": "INC0040293",
+   "to": "INC0040257",
+   "kind": "ParticipantImpactDuring",
+   "evidence": "AnalystReviewed",
+   "note": "AAR Appendix A: ESNet outage 16:58-20:25 overlaps INC0040257's outage window.",
+   "document_cited": true
+  },
+  {
+   "from": "INC0040318",
+   "to": "INC0040257",
+   "kind": "AlarmDuring",
+   "evidence": "AnalystReviewed",
+   "note": "AAR Appendix A: 19:35 CPU alarm falls inside INC0040257's outage window (13:01-19:59).",
+   "document_cited": true
+  },
+  {
+   "from": "INC0040272",
+   "to": "INC0040289",
+   "kind": "RelatedIncident",
+   "evidence": "AnalystReviewed",
+   "note": "Same participant (NORDUnet) across the incident: flapping 15:33, availability 16:50-21:33; sequential phases of the same participant impact.",
+   "document_cited": true
+  },
+  {
+   "from": "INC0040257",
+   "to": "TASK0038206",
+   "kind": "OperationalTaskDuring",
+   "evidence": "ReferenceDocument",
+   "note": "AAR Appendix A: '16:31 GMT Alarms - MAN LAN SNMP TASK0038206'; target has no source snapshot and stays an unresolved reference.",
+   "document_cited": true
+  },
+  {
+   "from": "INC0040257",
+   "to": "TASK0038211",
+   "kind": "References",
+   "evidence": "ReferenceDocument",
+   "note": "AAR Appendix A: '17:24 GMT Major incident - MAN LAN Core Node NEWY32AOA TASK0038211'; target has no source snapshot and stays an unresolved reference.",
+   "document_cited": true
+  }
+ ]
 }

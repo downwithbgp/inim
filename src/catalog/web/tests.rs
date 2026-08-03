@@ -40,6 +40,13 @@ fn setup_catalog() -> (tempfile::TempDir, std::path::PathBuf) {
     // Import the repository's canonical data into the temp catalog.
     crate::catalog::import::import_repository(&conn, std::path::Path::new("."), "0.1.0", None)
         .unwrap();
+    // The reviewed per-ticket interpretations (ticket-reviews.json) are
+    // part of the canonical reviewed state; they attach to manifest
+    // events such as INC0040293 (optical, not directly observable).
+    let reviews = std::path::Path::new("case-studies/manlan-2019/pilot/ticket-reviews.json");
+    if reviews.is_file() {
+        crate::catalog::corpus_import::import_reviews(&conn, reviews).unwrap();
+    }
     drop(conn);
     // Artifacts live in the repository's reviewed evidence directories
     // (read-only for these tests), so the catalog root is the repo root.
@@ -139,8 +146,16 @@ async fn dashboard_counts_match_database() {
     assert_eq!(status, StatusCode::OK);
     assert!(body.contains("Catalog health"));
     assert!(body.contains("Total catalog events"));
-    assert!(body.contains(">3<"), "three imported events");
-    assert!(body.contains(">2<"), "two completed analyses");
+    assert!(body.contains(">4<"), "four imported events");
+    // Completed analyses: the count row and the latest-completed line.
+    let completed_row = body
+        .lines()
+        .find(|l| l.contains("Completed analyses"))
+        .unwrap_or("");
+    assert!(
+        completed_row.contains(">4<"),
+        "four completed analyses: {completed_row}"
+    );
     assert!(body.contains(">1<"), "one blocked event");
     // No severity score anywhere.
     assert!(body.contains("No severity score is shown"));
@@ -580,7 +595,7 @@ async fn api_event_list_is_paginated() {
     let value: serde_json::Value = serde_json::from_str(&body).unwrap();
     assert_eq!(value["api_version"], 1);
     assert_eq!(value["data"]["per_page"], 2);
-    assert_eq!(value["data"]["total"], 4);
+    assert_eq!(value["data"]["total"], 5);
     assert_eq!(value["data"]["events"].as_array().unwrap().len(), 2);
     let (_, body2) = get(&app, "/api/v1/events?per_page=2&page=1").await;
     let value2: serde_json::Value = serde_json::from_str(&body2).unwrap();
@@ -678,9 +693,10 @@ async fn api_catalog_status_counts_match_database() {
     assert_eq!(status, StatusCode::OK);
     let value: serde_json::Value = serde_json::from_str(&body).unwrap();
     let c = &value["data"]["catalog"];
-    // The repo now carries four reviewed manifests (INC0040293 added).
-    assert_eq!(c["total_events"], 4);
-    assert_eq!(c["complete"], 3);
+    // The repo now carries five reviewed manifests (INC0040293 and
+    // INC0303298 added).
+    assert_eq!(c["total_events"], 5);
+    assert_eq!(c["complete"], 4);
     assert_eq!(c["blocked"], 1);
 }
 
@@ -5473,4 +5489,62 @@ async fn csrf_token_is_not_logged() {
         !body2.contains(&state.csrf_token),
         "API must not expose the CSRF token"
     );
+}
+
+// ── Optical-relationship presentation (Session 48 correction) ──────
+
+#[tokio::test]
+async fn optical_ticket_has_no_ip_route_expectation_assessment() {
+    if !repo_artifacts_available() {
+        return;
+    }
+    let (dbdir, rootdir) = setup_catalog();
+    let app = build_app(state_from(&dbdir, &rootdir));
+    let (status, body) = get(&app, "/events/INC0040293").await;
+    assert_eq!(status, StatusCode::OK);
+    // The optical ticket's event page states the observability result
+    // and explicitly carries NO expectation assessment.
+    assert!(
+        body.contains("not directly assessable with public BGP"),
+        "optical ticket must state the observability result"
+    );
+    assert!(
+        body.contains("No public-BGP expectation assessment"),
+        "optical ticket must not show an IP expectation assessment"
+    );
+    assert!(
+        body.contains("supporting observation; scope mismatch"),
+        "supporting run must be labelled scope mismatch"
+    );
+}
+
+#[tokio::test]
+async fn scope_mismatched_run_is_preserved_but_not_primary_evidence() {
+    if !repo_artifacts_available() {
+        return;
+    }
+    let (dbdir, rootdir) = setup_catalog();
+    let app = build_app(state_from(&dbdir, &rootdir));
+    // The immutable run page is preserved and renders the observed
+    // result, never the conflated legacy label.
+    let run_id = run_id_for(&dbdir, "INC0040293");
+    let (status, body) = get(&app, &format!("/analyses/{run_id}")).await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(body.contains("No route-state change observed"), "{body}");
+    assert!(
+        !body.contains("Unexpected continued reviewed-transit path"),
+        "conflated label must not render on the run page"
+    );
+}
+
+#[tokio::test]
+async fn public_bgp_does_not_claim_optical_service_state() {
+    if !repo_artifacts_available() {
+        return;
+    }
+    let (dbdir, rootdir) = setup_catalog();
+    let app = build_app(state_from(&dbdir, &rootdir));
+    let (_, body) = get(&app, "/events/INC0040293").await;
+    assert!(!body.contains("interface remained available"), "{body}");
+    assert!(!body.contains("traffic were unaffected"), "{body}");
 }

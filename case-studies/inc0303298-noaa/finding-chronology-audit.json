@@ -1,0 +1,1995 @@
+{
+  "event_id": "INC0303298",
+  "session": "route-views2 peer 163.253.3.14",
+  "source": "case-studies/inc0303298-noaa/out/INC0303298/lifecycle.json",
+  "prefixes": [
+    {
+      "prefix": "128.102.0.0/16",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "128.154.0.0/17",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "128.154.128.0/17",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "128.155.0.0/16",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "128.156.0.0/16",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "128.157.0.0/16",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "128.158.0.0/16",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "128.159.0.0/16",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "128.183.0.0/16",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "128.217.0.0/16",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "129.164.0.0/16",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "129.164.128.0/17",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "129.168.0.0/16",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "130.134.0.0/16",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "130.135.0.0/16",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "130.40.0.0/16",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "131.182.0.0/16",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "134.118.112.0/22",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "134.118.96.0/19",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "134.12.0.0/17",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "136.178.0.0/16",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "138.115.0.0/16",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "139.169.0.0/16",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "139.88.0.0/16",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "143.232.0.0/16",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "146.154.0.0/16",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "146.165.0.0/16",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "148.114.0.0/16",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "156.68.0.0/16",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "158.154.0.0/16",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "163.205.0.0/16",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "163.206.0.0/16",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.100.14.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.100.9.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.107.191.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.112.10.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.112.11.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.112.16.0/22",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.112.224.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.112.230.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.112.9.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.149.107.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.149.128.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.149.140.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.149.141.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.150.32.0/21",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.160.74.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.160.78.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.189.100.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.225.64.0/19",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.225.88.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.48.14.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.52.198.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.52.206.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.52.207.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.52.211.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.52.212.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.52.213.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.52.214.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.52.215.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.52.216.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.52.217.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.52.78.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.52.80.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.52.81.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.52.82.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.52.83.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.52.84.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.52.85.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.52.86.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.52.87.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.52.88.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.52.89.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.52.90.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.52.91.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.52.92.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.52.94.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.52.95.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.52.98.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.55.90.0/23",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.58.19.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.58.21.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.58.36.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.67.109.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.67.110.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.67.115.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.67.186.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.68.192.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.68.194.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.68.196.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.68.197.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.70.120.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.70.122.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.70.123.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.70.124.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.70.125.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.70.126.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.76.235.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.77.26.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.77.27.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.77.28.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.77.29.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.77.30.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.77.31.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.77.32.0/21",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.77.40.0/23",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.77.42.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.77.43.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.77.44.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.77.45.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.77.80.0/20",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.88.31.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.88.32.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.88.33.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.88.36.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.88.37.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.88.40.0/23",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.88.43.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.88.44.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.88.46.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.88.48.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.88.49.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.92.197.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.92.198.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "192.92.199.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "194.85.23.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "198.119.2.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "198.120.0.0/14",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "198.182.28.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "198.182.30.0/23",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "198.27.34.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "198.27.37.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "198.27.39.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "198.27.40.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "198.27.41.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "198.27.42.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "198.27.43.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "198.27.44.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "198.27.45.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "198.27.46.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "198.27.47.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    },
+    {
+      "prefix": "198.27.49.0/24",
+      "transitions": [],
+      "baseline_route": [
+        11537,
+        297,
+        270
+      ],
+      "withdrawal_timestamp": null,
+      "absence_duration_secs": null,
+      "first_returned_path": null,
+      "event_window_final_path": null,
+      "analysis_final_path": null
+    }
+  ]
+}
