@@ -17,7 +17,7 @@ use rusqlite::Connection;
 pub const DEMO_EXPECTED_EVENTS: &[&str] = &[
     "INC0299001", // UVA event
     "INC0301970", // MAN LAN related event
-    "INC0302574", // I2PX visibility audit
+    "INC0302574", // visibility audit event
 ];
 
 pub fn demo_init(db_path: &Path, root: &Path, force: bool) -> Result<DemoReport, String> {
