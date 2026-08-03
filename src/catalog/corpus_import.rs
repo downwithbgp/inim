@@ -1,5 +1,5 @@
 //! Deterministic import of the tracked reviewed GRNOC corpus
-//! (case-studies/<slug>/corpus/).
+//! (`case-studies/<slug>/corpus/`).
 //!
 //! The corpus directory holds immutable public snapshots, the reviewed
 //! relationship graph, and (via the pilot ticket-reviews file) the
@@ -225,7 +225,7 @@ pub fn import_corpus(conn: &Connection, corpus_dir: &Path) -> Result<CorpusImpor
 }
 
 /// Import the reviewed per-ticket interpretations (ticket-reviews.json
-/// format, as tracked under case-studies/<slug>/pilot/).
+/// format, as tracked under `case-studies/<slug>/pilot/`).
 pub fn import_reviews(conn: &Connection, reviews_path: &Path) -> Result<usize, String> {
     let content = std::fs::read_to_string(reviews_path)
         .map_err(|e| format!("cannot read reviews file: {e}"))?;
