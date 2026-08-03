@@ -128,3 +128,31 @@ jobs:
             exit 1
           fi
           echo "package contents clean"
+
+  # Offline end-to-end queued-analysis smoke (Part 59): build a fresh
+  # catalog, queue the synthetic fixture plan, run the worker once in
+  # offline mode against the tracked MRT fixture, verify the completed
+  # run, then serve the job + workbench pages. No RouteViews, RIPE RIS,
+  # GRNOC, or any other network access. No GitHub write token.
+  queued-analysis-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Toolchain
+        uses: dtolnay/rust-toolchain@stable
+      - name: Rust cache
+        uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
+      - name: Build
+        run: cargo build --locked
+      - name: Offline queued-analysis smoke
+        env:
+          RUST_BACKTRACE: 0
+        run: |
+          cargo test --locked --test queued_analysis_e2e_test
+          cargo test --locked --test job_workflow_tests direct_execution_and_queued_execution_are_semantically_identical
