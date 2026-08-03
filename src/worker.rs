@@ -778,6 +778,10 @@ fn publish(
                     if let crate::outcome::AnalysisOutcome::Incomplete { .. } = outcome {
                         eprintln!("worker: warning: job completed but run outcome is incomplete");
                     }
+                    // The event directory was renamed into the final
+                    // run location; remove the now-empty staging
+                    // parent after verified publication.
+                    cleanup_staging(event_out.parent().unwrap_or(&config.root), false);
                     true
                 }
                 Err(e) => {

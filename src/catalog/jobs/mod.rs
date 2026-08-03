@@ -492,6 +492,7 @@ mod tests {
     }
 }
 
+pub mod cleanup;
 pub mod plan;
 pub mod publish;
 pub mod service;
