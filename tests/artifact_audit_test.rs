@@ -122,7 +122,7 @@ fn generated_artifacts_use_current_schema_versions() {
                 .unwrap_or_else(|| {
                     panic!("{p}: missing schema_version");
                 });
-            if name == "report.json" {
+            if *name == "report.json" {
                 // report schema v2 is the supported HISTORICAL schema
                 // (immutable reviewed artifacts); v3 is current. The
                 // import path accepts both (2..=3).
