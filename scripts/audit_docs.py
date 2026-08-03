@@ -255,6 +255,69 @@ def check_session_narrative() -> list[str]:
     return problems
 
 
+
+def check_job_workflow_docs() -> list[str]:
+    """Stable job-workflow documentation properties (ADR-004)."""
+    problems = []
+    readme = (ROOT / "README.md").read_text(errors="replace")
+    if "analysis-job" not in readme:
+        problems.append("README.md: analysis-job commands not documented")
+    if "worker" not in readme:
+        problems.append("README.md: `inim worker` not documented")
+    if "--enable-writes" not in readme:
+        problems.append("README.md: --enable-writes must be described (disabled by default)")
+    glossary = (ROOT / "docs/GLOSSARY.md").read_text(errors="replace")
+    for term in ["Analysis job", "Worker lease", "Plan revision", "Staging artifact"]:
+        if term not in glossary:
+            problems.append(f"docs/GLOSSARY.md: missing glossary term {term!r}")
+    for name in NORMATIVE_DOCS:
+        f = ROOT / name
+        if not f.exists():
+            continue
+        for i, line in enumerate(f.read_text(errors="replace").splitlines(), 1):
+            low = line.lower()
+            if ("web" in low or "http" in low or "request" in low) and (
+                "executes analysis" in low or "runs analysis" in low
+            ):
+                if "never" in low or "not" in low or "doesn't" in low:
+                    continue
+                problems.append(f"{name}:{i}: implies the web request executes analysis: {line.strip()}")
+            if "job" in low and "outcome" in low and "verdict" in low:
+                if "is not" in low or "never" in low or "distinct" in low:
+                    continue
+                problems.append(f"{name}:{i}: calls a job outcome a verdict: {line.strip()}")
+    return problems
+
+
+def check_action_pins() -> list[str]:
+    """GitHub Action pins must be full SHAs with a trailing reviewed
+    release comment (policy in .github/workflows/ci.yml)."""
+    problems = []
+    for wf in sorted((ROOT / ".github/workflows").glob("*.yml")):
+        for i, line in enumerate(wf.read_text(errors="replace").splitlines(), 1):
+            m = re.search(r"uses:\s*([^\s]+)", line)
+            if not m:
+                continue
+            spec = m.group(1)
+            if spec.startswith("dtolnay/rust-toolchain"):
+                continue  # documented exception: the selector IS the interface
+            if "@" not in spec:
+                problems.append(f"{wf.relative_to(ROOT)}:{i}: action without version pin: {spec}")
+                continue
+            ref = spec.split("@", 1)[1]
+            if not re.fullmatch(r"[0-9a-f]{40}", ref):
+                problems.append(
+                    f"{wf.relative_to(ROOT)}:{i}: action pin {spec} is not a full 40-char SHA"
+                )
+                continue
+            comment = line.split("#", 1)[-1].strip() if "#" in line else ""
+            if not re.fullmatch(r"v?[0-9][0-9a-z.\-]*", comment):
+                problems.append(
+                    f"{wf.relative_to(ROOT)}:{i}: pinned action {spec} lacks a reviewed release comment"
+                )
+    return problems
+
+
 def check_inventory_and_render() -> list[str]:
     problems = []
     tracked = git_ls_files()
@@ -290,6 +353,7 @@ def main() -> int:
         subprocess.check_call(["cargo", "build", "-q"], cwd=ROOT)
     problems: list[str] = []
     problems += check_links()
+    problems += check_action_pins()
     problems += check_absolute_paths()
     problems += check_terminology()
     problems += check_cli_examples(binary)
@@ -297,6 +361,7 @@ def main() -> int:
     problems += check_case_study_index()
     problems += check_session_narrative()
     problems += check_inventory_and_render()
+    problems += check_job_workflow_docs()
     if problems:
         print("documentation drift audit FAILED:", file=sys.stderr)
         for p in problems:
