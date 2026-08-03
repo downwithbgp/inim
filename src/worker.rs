@@ -374,6 +374,13 @@ pub fn run_worker(config: &WorkerConfig) -> i32 {
             }
         },
     };
+    let scope = match crate::catalog::scope::ProjectScope::load(&config.root) {
+        Ok(s) => s,
+        Err(e) => {
+            eprintln!("worker: invalid project-scope policy: {e}");
+            return 1;
+        }
+    };
     let conn = Arc::new(Mutex::new(conn));
     register_heartbeat(&conn, &worker_id, config);
     eprintln!(
@@ -399,7 +406,7 @@ pub fn run_worker(config: &WorkerConfig) -> i32 {
         };
         match claimed {
             Ok(Some(claim)) => {
-                last_success = execute_one(&conn, config, &worker_id, claim);
+                last_success = execute_one(&conn, config, &worker_id, claim, &scope);
                 processed += 1;
                 if config.once {
                     break;
@@ -455,6 +462,7 @@ fn execute_one(
     config: &WorkerConfig,
     worker_id: &str,
     claim: JobClaim,
+    scope: &crate::catalog::scope::ProjectScope,
 ) -> bool {
     let job = &claim.job;
     let job_id = job.id.clone();
@@ -466,6 +474,31 @@ fn execute_one(
         "worker: claimed job {job_id} (plan revision {})",
         job.plan_revision_id
     );
+
+    // Project scope is rechecked AFTER claim and BEFORE any source
+    // access: a job whose event or target became excluded while queued
+    // is cancelled under the documented policy — never run, never
+    // treated as an analytical failure, zero network calls.
+    {
+        let conn = conn.lock().unwrap();
+        match crate::catalog::jobs::plan::plan_scope_exclusion(&conn, job.plan_revision_id, scope) {
+            Ok(Some(_reason)) => {
+                eprintln!(
+                    "worker: job {job_id} is outside the configured project scope; cancelling before execution"
+                );
+                match service::cancel_scope_excluded(&conn, &job_id) {
+                    Ok(()) => {}
+                    Err(e) => eprintln!("worker: scope cancel failed for {job_id}: {e}"),
+                }
+                return true;
+            }
+            Ok(None) => {}
+            Err(e) => {
+                eprintln!("worker: scope recheck failed for job {job_id}: {e}");
+                return false;
+            }
+        }
+    }
 
     // Materialize the immutable plan inputs from the catalog.
     let materialized = match materialize_inputs(conn, job) {
@@ -1158,11 +1191,18 @@ mod sink_tests {
         .unwrap();
         let plan = crate::catalog::import::build_plan_record(&conn, mid, &manifest, true).unwrap();
         let pid = crate::catalog::store::insert_plan(&conn, &plan).unwrap();
-        let id =
-            match jobs::queue(&conn, pid, crate::catalog::jobs::RequestSource::Cli, "h").unwrap() {
-                jobs::QueueOutcome::Created(id) => id,
-                _ => unreachable!(),
-            };
+        let id = match jobs::queue(
+            &conn,
+            pid,
+            crate::catalog::jobs::RequestSource::Cli,
+            "h",
+            &crate::catalog::scope::ProjectScope::default(),
+        )
+        .unwrap()
+        {
+            jobs::QueueOutcome::Created(id) => id,
+            _ => unreachable!(),
+        };
         drop(conn);
         let conn = crate::catalog::db::open_catalog(&dir.path().join("c.sqlite")).unwrap();
         let conn = Arc::new(Mutex::new(conn));

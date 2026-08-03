@@ -74,7 +74,7 @@ reference their source runs. See `docs/DATA_PROVENANCE.md` and
   is read-only: HTTP GET requests never perform analysis or acquire
   data.
 - A **CLI** for administration, import, planning, analysis, and audit.
-- **Five reviewed case studies** under `case-studies/`:
+- **Four reviewed case studies** under `case-studies/`:
   - `case-studies/manlan-2019` — single-target NORDUnet historical pilot across
     RouteViews and RIPE RIS observers (2019-08-21).
   - `case-studies/inc0299001` — UVA participant-unavailability event with
@@ -84,9 +84,6 @@ reference their source runs. See `docs/DATA_PROVENANCE.md` and
   - `case-studies/manlan-esnet-2019` — narrow-scope ESnet optical
     participant event (INC0040293) with a preserved scope-mismatched
     supporting BGP observation.
-  - `case-studies/inc0303298-noaa` — fresh NOAA I2 participant event
-    (INC0303298) with a no-route-state-change result across 284
-    qualifying observer-prefix streams.
 - Text and JSON reports, run comparison, and a screenshot harness for
   visual review.
 

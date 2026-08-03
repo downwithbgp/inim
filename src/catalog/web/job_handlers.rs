@@ -140,8 +140,11 @@ pub async fn queue_plan(
             Ok(p) => p,
             Err(e) => return (StatusCode::BAD_REQUEST, e).into_response(),
         };
-    let plan_hash = match crate::catalog::jobs::plan::validate_plan_for_queue(&db, plan_revision_id)
-    {
+    let plan_hash = match crate::catalog::jobs::plan::validate_plan_for_queue(
+        &db,
+        plan_revision_id,
+        &state.scope,
+    ) {
         Ok(h) => h,
         Err(e) => return (StatusCode::BAD_REQUEST, e).into_response(),
     };
@@ -150,6 +153,7 @@ pub async fn queue_plan(
         plan_revision_id,
         crate::catalog::jobs::RequestSource::LocalWeb,
         &plan_hash,
+        &state.scope,
     );
     let _ = manifest_payload;
     match outcome {
@@ -215,6 +219,7 @@ pub async fn job_retry(
         &job_id,
         crate::catalog::jobs::RequestSource::LocalWeb,
         &plan_hash,
+        &state.scope,
     ) {
         Ok(new_id) => Redirect::to(&format!("/analysis-jobs/{new_id}")).into_response(),
         Err(e) => (StatusCode::BAD_REQUEST, e).into_response(),
@@ -225,7 +230,7 @@ pub async fn job_retry(
 
 pub async fn jobs_index(State(state): State<SharedState>) -> Response {
     let db = state.db.lock().unwrap();
-    match super::view::load_jobs_index(&db, state.writes_enabled) {
+    match super::view::load_jobs_index(&db, state.writes_enabled, &state.scope) {
         Ok(mut view) => {
             view.csrf_token = state.csrf_token.clone();
             super::handlers::render_view(view)
@@ -322,8 +327,11 @@ pub async fn api_queue_plan(
         return *resp;
     }
     let db = state.db.lock().unwrap();
-    let plan_hash = match crate::catalog::jobs::plan::validate_plan_for_queue(&db, plan_revision_id)
-    {
+    let plan_hash = match crate::catalog::jobs::plan::validate_plan_for_queue(
+        &db,
+        plan_revision_id,
+        &state.scope,
+    ) {
         Ok(h) => h,
         Err(e) => return super::handlers::json_error(StatusCode::BAD_REQUEST, &e),
     };
@@ -332,6 +340,7 @@ pub async fn api_queue_plan(
         plan_revision_id,
         crate::catalog::jobs::RequestSource::LocalWeb,
         &plan_hash,
+        &state.scope,
     ) {
         Ok(crate::catalog::jobs::service::QueueOutcome::Created(job_id)) => {
             axum::Json(serde_json::json!({
@@ -393,6 +402,7 @@ pub async fn api_job_retry(
         &job_id,
         crate::catalog::jobs::RequestSource::LocalWeb,
         &plan_hash,
+        &state.scope,
     ) {
         Ok(new_id) => axum::Json(serde_json::json!({
             "api_version": 1,

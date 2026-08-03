@@ -29,6 +29,7 @@ pub mod origin_inventory;
 pub mod phase_summary;
 pub mod relationships;
 pub mod review;
+pub mod scope;
 pub mod session_audit;
 pub mod source_extract;
 pub mod status;

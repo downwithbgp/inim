@@ -312,22 +312,6 @@
   "current": true
  },
  {
-  "path": "case-studies/inc0303298-noaa/README.md",
-  "category": "Reviewed case-study interpretation",
-  "audience": "maintainers",
-  "authoritative": "reviewed manifest/case-study metadata",
-  "generated": false,
-  "current": true
- },
- {
-  "path": "case-studies/inc0303298-noaa/finding-chronology-audit.json",
-  "category": "Immutable or generated evidence",
-  "audience": "maintainers",
-  "authoritative": "canonical run artifacts (derived)",
-  "generated": true,
-  "current": true
- },
- {
   "path": "case-studies/manlan-2019/README.md",
   "category": "Reviewed case-study interpretation",
   "audience": "network analysts",
@@ -1824,14 +1808,6 @@
   "current": true
  },
  {
-  "path": "manifests/INC0303298.json",
-  "category": "Reviewed case-study interpretation",
-  "audience": "maintainers",
-  "authoritative": "reviewed manifest/case-study metadata",
-  "generated": false,
-  "current": true
- },
- {
   "path": "scripts/audit-docs.sh",
   "category": "Script or developer tool",
   "audience": "maintainers",
@@ -3040,14 +3016,6 @@
   "current": true
  },
  {
-  "path": "tests/fixtures/grnoc/INC0303298.json",
-  "category": "Test fixture",
-  "audience": "maintainers",
-  "authoritative": "immutable public source snapshot",
-  "generated": false,
-  "current": true
- },
- {
   "path": "tests/fixtures/grnoc/viewer/CHG0099999.json",
   "category": "Test fixture",
   "audience": "maintainers",
@@ -3184,94 +3152,6 @@
   "current": true
  },
  {
-  "path": "case-studies/inc0303298-noaa/out/INC0303298/archive_manifest.json",
-  "category": "Immutable or generated evidence",
-  "audience": "maintainers",
-  "authoritative": "canonical run artifacts",
-  "generated": true,
-  "current": true
- },
- {
-  "path": "case-studies/inc0303298-noaa/out/INC0303298/execution_metadata.json",
-  "category": "Immutable or generated evidence",
-  "audience": "maintainers",
-  "authoritative": "canonical run artifacts",
-  "generated": true,
-  "current": true
- },
- {
-  "path": "case-studies/inc0303298-noaa/out/INC0303298/lifecycle.json",
-  "category": "Immutable or generated evidence",
-  "audience": "maintainers",
-  "authoritative": "canonical run artifacts",
-  "generated": true,
-  "current": true
- },
- {
-  "path": "case-studies/inc0303298-noaa/out/INC0303298/limitations.json",
-  "category": "Immutable or generated evidence",
-  "audience": "maintainers",
-  "authoritative": "canonical run artifacts",
-  "generated": true,
-  "current": true
- },
- {
-  "path": "case-studies/inc0303298-noaa/out/INC0303298/performance.json",
-  "category": "Immutable or generated evidence",
-  "audience": "maintainers",
-  "authoritative": "canonical run artifacts",
-  "generated": true,
-  "current": true
- },
- {
-  "path": "case-studies/inc0303298-noaa/out/INC0303298/report.json",
-  "category": "Immutable or generated evidence",
-  "audience": "maintainers",
-  "authoritative": "canonical run artifacts",
-  "generated": true,
-  "current": true
- },
- {
-  "path": "case-studies/inc0303298-noaa/out/INC0303298/semantic_waves.json",
-  "category": "Immutable or generated evidence",
-  "audience": "maintainers",
-  "authoritative": "canonical run artifacts",
-  "generated": true,
-  "current": true
- },
- {
-  "path": "case-studies/inc0303298-noaa/out/INC0303298/transitions.json",
-  "category": "Immutable or generated evidence",
-  "audience": "maintainers",
-  "authoritative": "canonical run artifacts",
-  "generated": true,
-  "current": true
- },
- {
-  "path": "case-studies/inc0303298-noaa/out/INC0303298/withdrawal_audit.json",
-  "category": "Immutable or generated evidence",
-  "audience": "maintainers",
-  "authoritative": "canonical run artifacts",
-  "generated": true,
-  "current": true
- },
- {
-  "path": "case-studies/inc0303298-noaa/out/INC0303298/evidence_appendix.jsonl",
-  "category": "Immutable or generated evidence",
-  "audience": "maintainers",
-  "authoritative": "canonical run artifacts",
-  "generated": true,
-  "current": true
- },
- {
-  "path": "case-studies/inc0303298-noaa/out/INC0303298/report.txt",
-  "category": "Immutable or generated evidence",
-  "audience": "maintainers",
-  "authoritative": "canonical run artifacts",
-  "generated": true,
-  "current": true
- },
- {
   "path": "case-studies/manlan-esnet-2019/assessment-audit.json",
   "category": "Immutable or generated evidence",
   "audience": "maintainers",
@@ -3286,5 +3166,53 @@
   "authoritative": "the command it wraps + its inputs",
   "generated": false,
   "current": true
+ },
+ {
+  "path": "config/project-scope.toml",
+  "category": "Configuration",
+  "audience": "maintainers",
+  "authoritative": "reviewed operator configuration",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "docs/audits/2026-08-project-scope-noaa-removal.md",
+  "category": "Historical decision record",
+  "audience": "maintainers",
+  "authoritative": "dated audit evidence",
+  "generated": false,
+  "current": false
+ },
+ {
+  "path": "src/catalog/scope.rs",
+  "category": "Production source",
+  "audience": "maintainers",
+  "authoritative": "implementation (behavioral authority)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "tests/project_scope_enforcement_test.rs",
+  "category": "Test source",
+  "audience": "maintainers",
+  "authoritative": "implementation behavior + fixtures",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "tests/project_scope_policy_test.rs",
+  "category": "Test source",
+  "audience": "maintainers",
+  "authoritative": "current reviewed policy (integration)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "docs/audits/2026-08-non-noaa-ip-event-candidates.md",
+  "category": "Historical decision record",
+  "audience": "maintainers",
+  "authoritative": "dated audit evidence",
+  "generated": false,
+  "current": false
  }
 ]

@@ -159,3 +159,24 @@ jobs:
           cargo test --locked --test grnoc_reconciliation_test
           cargo test --locked --lib catalog::jobs::cleanup
           cargo test --locked --lib catalog::jobs::stage_skip_tests
+      - name: Project-scope smoke (offline)
+        env:
+          RUST_BACKTRACE: 0
+        run: |
+          ./target/debug/inim project-scope show --root . > /tmp/scope.txt
+          grep -q "schema v1" /tmp/scope.txt
+          cargo test --locked --test project_scope_policy_test
+          cargo test --locked --test project_scope_enforcement_test
+          ./target/debug/inim demo init --db /tmp/ci-demo.sqlite --root . --force
+          ./target/debug/inim demo verify --db /tmp/ci-demo.sqlite --root . | grep -q "demo verify: ok"
+          python3 - <<'PY'
+          import json, sqlite3
+          c = sqlite3.connect('/tmp/ci-demo.sqlite')
+          n = c.execute("SELECT COUNT(*) FROM catalog_events WHERE external_id='INC0303298'").fetchone()[0]
+          assert n == 0, "demo must not contain the excluded event"
+          PY
+          if cargo package --list | grep -E 'inc0303298|INC0303298'; then
+            echo "excluded case material packaged" >&2
+            exit 1
+          fi
+          echo "project-scope smoke ok"

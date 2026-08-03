@@ -346,6 +346,72 @@ def check_inventory_and_render() -> list[str]:
     return problems
 
 
+def check_project_scope_docs() -> list[str]:
+    """Project-scope documentation drift guards (Session 49)."""
+    problems = []
+    config = ROOT / "config/project-scope.toml"
+    if not config.exists():
+        problems.append("config/project-scope.toml missing (project-scope policy required)")
+        return problems
+    text = config.read_text(errors="replace")
+    if "schema_version = 1" not in text:
+        problems.append("config/project-scope.toml must declare schema_version = 1")
+    glossary = (ROOT / "docs/GLOSSARY.md").read_text(errors="replace")
+    for term in ["Project scope", "Project-scope exclusion"]:
+        if term.lower() not in glossary.lower():
+            problems.append(f"docs/GLOSSARY.md: missing glossary term {term!r}")
+    if "analytical applicability" not in glossary.lower():
+        problems.append("docs/GLOSSARY.md: must define analytical applicability")
+    design = (ROOT / "docs/DESIGN.md").read_text(errors="replace")
+    if "scope" not in design.lower() or "applicability" not in design.lower():
+        problems.append("docs/DESIGN.md: must distinguish project scope from analytical applicability")
+    # The excluded name may appear ONLY in the allowlisted reference
+    # points: the policy config, the dated removal audit, and the
+    # current-policy integration test. Audit-file cross-references by
+    # filename are allowed (they link to the dated audit).
+    allowlisted = [
+        "config/project-scope.toml",
+        "docs/audits/2026-08-project-scope-noaa-removal.md",
+        "tests/project_scope_policy_test.rs",
+        # The enforcement suite asserts the ABSENCE of excluded material
+        # (negative assertions), which requires naming it.
+        "tests/project_scope_enforcement_test.rs",
+        # The candidates audit must name the excluded record to record
+        # why it is absent from the shortlist.
+        "docs/audits/2026-08-non-noaa-ip-event-candidates.md",
+        # CI asserts the packaged absence of excluded material.
+        ".github/workflows/ci.yml",
+        "scripts/audit_docs.py",  # this guard itself names the tokens
+    ]
+    # Dated-audit cross-reference filenames are links, not entity
+    # mentions; a line containing only such a link is allowed.
+    audit_links = [
+        "2026-08-project-scope-noaa-removal.md",
+        "2026-08-non-noaa-ip-event-candidates.md",
+    ]
+    import subprocess
+    hits = subprocess.run(
+        ["git", "grep", "-inE", "NOAA|INC0303298"],
+        capture_output=True, text=True,
+    ).stdout.splitlines()
+    for hit in hits:
+        hit = hit.strip()
+        if not hit:
+            continue
+        path = hit.split(":", 1)[0]
+        if path in allowlisted:
+            continue
+        line = hit.split(":", 2)[2] if hit.count(":") >= 2 else ""
+        if any(link in line for link in audit_links) and "NOAA" not in line.replace(
+            *("'", " "), 1
+        ).split("noaa", 1)[0].upper().split(" ")[0]:
+            # The line mentions the audit FILENAME only (no standalone
+            # entity mention).
+            continue
+        problems.append(f"excluded name appears outside the allowlist: {hit}")
+    return problems
+
+
 def main() -> int:
     binary = str(ROOT / "target/debug/inim")
     if not Path(binary).exists():
@@ -362,6 +428,7 @@ def main() -> int:
     problems += check_session_narrative()
     problems += check_inventory_and_render()
     problems += check_job_workflow_docs()
+    problems += check_project_scope_docs()
     if problems:
         print("documentation drift audit FAILED:", file=sys.stderr)
         for p in problems:

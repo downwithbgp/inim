@@ -507,7 +507,19 @@ pub fn queue(
     plan_revision_id: i64,
     requested_by: RequestSource,
     plan_hash: &str,
+    scope: &crate::catalog::scope::ProjectScope,
 ) -> Result<QueueOutcome, String> {
+    // Project scope is re-checked before the queue transaction: an
+    // excluded plan can never be queued, regardless of the caller.
+    if let Some(_reason) =
+        crate::catalog::jobs::plan::plan_scope_exclusion(conn, plan_revision_id, scope)?
+    {
+        return Err(format!(
+            "{}: {}",
+            crate::catalog::jobs::plan::SCOPE_EXCLUDED_CODE,
+            crate::catalog::jobs::plan::SCOPE_EXCLUDED_MESSAGE
+        ));
+    }
     let tx = conn
         .unchecked_transaction()
         .map_err(|e| format!("cannot begin queue transaction: {e}"))?;
@@ -812,6 +824,40 @@ pub fn mark_stale_leases(conn: &Connection, now: &str) -> Result<Vec<String>, St
     Ok(ids)
 }
 
+/// Cancel a job that has NOT yet started executing because it is
+/// outside the configured project scope. Distinct from analytical
+/// failure: the job was valid when queued but is now intentionally
+/// excluded. Never run, zero network, zero archive acquisition.
+/// Handles both Queued and freshly Claimed (pre-execution) jobs.
+pub fn cancel_scope_excluded(conn: &Connection, job_id: &str) -> Result<(), String> {
+    let job = get(conn, job_id)?;
+    let message = "Job is outside the configured project scope; cancelled before execution";
+    match job.state {
+        JobState::Queued => transition(
+            conn,
+            job_id,
+            JobState::Queued,
+            JobState::Cancelled,
+            Some(error_code::EXCLUDED_BY_PROJECT_SCOPE),
+            message,
+        ),
+        JobState::Claimed => transition(
+            conn,
+            job_id,
+            JobState::Claimed,
+            JobState::Cancelled,
+            Some(error_code::EXCLUDED_BY_PROJECT_SCOPE),
+            message,
+        ),
+        // Anything past Claimed has already begun execution; the
+        // cooperative cancel path applies there.
+        _ => Err(format!(
+            "job {job_id} cannot be scope-cancelled in state {}",
+            job.state.as_str()
+        )),
+    }
+}
+
 /// Request cancellation.
 ///
 /// - A Queued job transitions directly to Cancelled.
@@ -918,8 +964,18 @@ pub fn retry(
     job_id: &str,
     requested_by: RequestSource,
     plan_hash: &str,
+    scope: &crate::catalog::scope::ProjectScope,
 ) -> Result<String, String> {
     let original = get(conn, job_id)?;
+    if let Some(_reason) =
+        crate::catalog::jobs::plan::plan_scope_exclusion(conn, original.plan_revision_id, scope)?
+    {
+        return Err(format!(
+            "{}: {}",
+            crate::catalog::jobs::plan::SCOPE_EXCLUDED_CODE,
+            crate::catalog::jobs::plan::SCOPE_EXCLUDED_MESSAGE
+        ));
+    }
     if !original.state.is_retryable() {
         return Err(format!(
             "job {job_id} cannot be retried in state {}",
@@ -1251,7 +1307,14 @@ mod tests {
     fn blocked_plan_cannot_be_queued() {
         let conn = test_conn();
         let plan = seed_plan_with_status(&conn, "Blocked", "2026-08-01T00:00:00Z");
-        let err = queue(&conn, plan, RequestSource::Cli, "h").unwrap_err();
+        let err = queue(
+            &conn,
+            plan,
+            RequestSource::Cli,
+            "h",
+            &crate::catalog::scope::ProjectScope::default(),
+        )
+        .unwrap_err();
         assert!(err.contains("not Ready"), "{err}");
         assert!(err.starts_with("invalid_plan"), "{err}");
     }
@@ -1260,7 +1323,14 @@ mod tests {
     fn ready_plan_can_be_queued() {
         let conn = test_conn();
         let plan = seed_ready_plan(&conn);
-        let out = queue(&conn, plan, RequestSource::Cli, "hash-1").unwrap();
+        let out = queue(
+            &conn,
+            plan,
+            RequestSource::Cli,
+            "hash-1",
+            &crate::catalog::scope::ProjectScope::default(),
+        )
+        .unwrap();
         let id = match out {
             QueueOutcome::Created(id) => id,
             other => panic!("expected Created, got {other:?}"),
@@ -1283,8 +1353,22 @@ mod tests {
     fn duplicate_submit_returns_existing_active_job() {
         let conn = test_conn();
         let plan = seed_ready_plan(&conn);
-        let first = queue(&conn, plan, RequestSource::Cli, "hash-1").unwrap();
-        let second = queue(&conn, plan, RequestSource::LocalWeb, "hash-1").unwrap();
+        let first = queue(
+            &conn,
+            plan,
+            RequestSource::Cli,
+            "hash-1",
+            &crate::catalog::scope::ProjectScope::default(),
+        )
+        .unwrap();
+        let second = queue(
+            &conn,
+            plan,
+            RequestSource::LocalWeb,
+            "hash-1",
+            &crate::catalog::scope::ProjectScope::default(),
+        )
+        .unwrap();
         match (first, second) {
             (QueueOutcome::Created(a), QueueOutcome::Duplicate(b)) => assert_eq!(a, b),
             other => panic!("expected Created then Duplicate, got {other:?}"),
@@ -1304,7 +1388,15 @@ mod tests {
     fn completed_job_does_not_block_explicit_new_run() {
         let mut conn = test_conn();
         let plan = seed_ready_plan(&conn);
-        let first = match queue(&conn, plan, RequestSource::Cli, "hash-1").unwrap() {
+        let first = match queue(
+            &conn,
+            plan,
+            RequestSource::Cli,
+            "hash-1",
+            &crate::catalog::scope::ProjectScope::default(),
+        )
+        .unwrap()
+        {
             QueueOutcome::Created(id) => id,
             _ => unreachable!(),
         };
@@ -1318,7 +1410,14 @@ mod tests {
         assert_eq!(done.state, JobState::Completed);
         assert_eq!(done.completed_run_id, Some(run_id));
         // A deliberate rerun creates a NEW job (idempotency only covers active jobs).
-        let rerun = queue(&conn, plan, RequestSource::Cli, "hash-1").unwrap();
+        let rerun = queue(
+            &conn,
+            plan,
+            RequestSource::Cli,
+            "hash-1",
+            &crate::catalog::scope::ProjectScope::default(),
+        )
+        .unwrap();
         match rerun {
             QueueOutcome::Created(new_id) => assert_ne!(new_id, first),
             other => panic!("expected Created for rerun, got {other:?}"),
@@ -1329,7 +1428,15 @@ mod tests {
     fn queued_job_can_be_claimed() {
         let mut conn = test_conn();
         let plan = seed_ready_plan(&conn);
-        let id = match queue(&conn, plan, RequestSource::Cli, "h").unwrap() {
+        let id = match queue(
+            &conn,
+            plan,
+            RequestSource::Cli,
+            "h",
+            &crate::catalog::scope::ProjectScope::default(),
+        )
+        .unwrap()
+        {
             QueueOutcome::Created(id) => id,
             _ => unreachable!(),
         };
@@ -1348,7 +1455,15 @@ mod tests {
     fn two_workers_cannot_claim_same_job() {
         let mut conn = test_conn();
         let plan = seed_ready_plan(&conn);
-        let id = match queue(&conn, plan, RequestSource::Cli, "h").unwrap() {
+        let id = match queue(
+            &conn,
+            plan,
+            RequestSource::Cli,
+            "h",
+            &crate::catalog::scope::ProjectScope::default(),
+        )
+        .unwrap()
+        {
             QueueOutcome::Created(id) => id,
             _ => unreachable!(),
         };
@@ -1366,11 +1481,27 @@ mod tests {
         let mut conn = test_conn();
         let plan_a = seed_ready_plan(&conn);
         let plan_b = seed_plan_with_status(&conn, "Ready", "2026-08-01T00:00:00Z");
-        let id_a = match queue(&conn, plan_a, RequestSource::Cli, "ha").unwrap() {
+        let id_a = match queue(
+            &conn,
+            plan_a,
+            RequestSource::Cli,
+            "ha",
+            &crate::catalog::scope::ProjectScope::default(),
+        )
+        .unwrap()
+        {
             QueueOutcome::Created(id) => id,
             _ => unreachable!(),
         };
-        let id_b = match queue(&conn, plan_b, RequestSource::Cli, "hb").unwrap() {
+        let id_b = match queue(
+            &conn,
+            plan_b,
+            RequestSource::Cli,
+            "hb",
+            &crate::catalog::scope::ProjectScope::default(),
+        )
+        .unwrap()
+        {
             QueueOutcome::Created(id) => id,
             _ => unreachable!(),
         };
@@ -1397,7 +1528,15 @@ mod tests {
     fn failed_job_is_immutable_and_can_be_retried() {
         let mut conn = test_conn();
         let plan = seed_ready_plan(&conn);
-        let id = match queue(&conn, plan, RequestSource::Cli, "h").unwrap() {
+        let id = match queue(
+            &conn,
+            plan,
+            RequestSource::Cli,
+            "h",
+            &crate::catalog::scope::ProjectScope::default(),
+        )
+        .unwrap()
+        {
             QueueOutcome::Created(id) => id,
             _ => unreachable!(),
         };
@@ -1421,7 +1560,14 @@ mod tests {
         assert!(transition(&conn, &id, JobState::Failed, JobState::Queued, None, "x").is_err());
         assert!(fail(&conn, &id, JobState::Failed, "x", "y").is_err());
         // Retry creates a new job with linkage.
-        let new_id = retry(&conn, &id, RequestSource::Cli, "h").unwrap();
+        let new_id = retry(
+            &conn,
+            &id,
+            RequestSource::Cli,
+            "h",
+            &crate::catalog::scope::ProjectScope::default(),
+        )
+        .unwrap();
         assert_ne!(new_id, id);
         let retried = get(&conn, &new_id).unwrap();
         assert_eq!(retried.state, JobState::Queued);
@@ -1441,7 +1587,15 @@ mod tests {
         let conn = test_conn();
         let plan = seed_ready_plan(&conn);
         // Queued job cancels immediately.
-        let id = match queue(&conn, plan, RequestSource::Cli, "h").unwrap() {
+        let id = match queue(
+            &conn,
+            plan,
+            RequestSource::Cli,
+            "h",
+            &crate::catalog::scope::ProjectScope::default(),
+        )
+        .unwrap()
+        {
             QueueOutcome::Created(id) => id,
             _ => unreachable!(),
         };
@@ -1451,7 +1605,14 @@ mod tests {
         assert_eq!(job.state, JobState::Cancelled);
         assert!(transition(&conn, &id, JobState::Cancelled, JobState::Queued, None, "x").is_err());
         // Retry works.
-        let new_id = retry(&conn, &id, RequestSource::LocalWeb, "h").unwrap();
+        let new_id = retry(
+            &conn,
+            &id,
+            RequestSource::LocalWeb,
+            "h",
+            &crate::catalog::scope::ProjectScope::default(),
+        )
+        .unwrap();
         assert_eq!(
             get(&conn, &new_id).unwrap().original_job_id.as_deref(),
             Some(id.as_str())
@@ -1462,7 +1623,15 @@ mod tests {
     fn executing_job_enters_cancel_requested() {
         let mut conn = test_conn();
         let plan = seed_ready_plan(&conn);
-        let id = match queue(&conn, plan, RequestSource::Cli, "h").unwrap() {
+        let id = match queue(
+            &conn,
+            plan,
+            RequestSource::Cli,
+            "h",
+            &crate::catalog::scope::ProjectScope::default(),
+        )
+        .unwrap()
+        {
             QueueOutcome::Created(id) => id,
             _ => unreachable!(),
         };
@@ -1484,7 +1653,15 @@ mod tests {
     fn completed_job_cannot_be_cancelled() {
         let mut conn = test_conn();
         let plan = seed_ready_plan(&conn);
-        let id = match queue(&conn, plan, RequestSource::Cli, "h").unwrap() {
+        let id = match queue(
+            &conn,
+            plan,
+            RequestSource::Cli,
+            "h",
+            &crate::catalog::scope::ProjectScope::default(),
+        )
+        .unwrap()
+        {
             QueueOutcome::Created(id) => id,
             _ => unreachable!(),
         };
@@ -1499,7 +1676,15 @@ mod tests {
     fn illegal_state_transition_is_rejected() {
         let conn = test_conn();
         let plan = seed_ready_plan(&conn);
-        let id = match queue(&conn, plan, RequestSource::Cli, "h").unwrap() {
+        let id = match queue(
+            &conn,
+            plan,
+            RequestSource::Cli,
+            "h",
+            &crate::catalog::scope::ProjectScope::default(),
+        )
+        .unwrap()
+        {
             QueueOutcome::Created(id) => id,
             _ => unreachable!(),
         };
@@ -1531,7 +1716,15 @@ mod tests {
     fn lease_renewal_extends_expiry() {
         let mut conn = test_conn();
         let plan = seed_ready_plan(&conn);
-        let id = match queue(&conn, plan, RequestSource::Cli, "h").unwrap() {
+        let id = match queue(
+            &conn,
+            plan,
+            RequestSource::Cli,
+            "h",
+            &crate::catalog::scope::ProjectScope::default(),
+        )
+        .unwrap()
+        {
             QueueOutcome::Created(id) => id,
             _ => unreachable!(),
         };
@@ -1553,7 +1746,15 @@ mod tests {
     fn unexpired_lease_cannot_be_stolen() {
         let mut conn = test_conn();
         let plan = seed_ready_plan(&conn);
-        let id = match queue(&conn, plan, RequestSource::Cli, "h").unwrap() {
+        let id = match queue(
+            &conn,
+            plan,
+            RequestSource::Cli,
+            "h",
+            &crate::catalog::scope::ProjectScope::default(),
+        )
+        .unwrap()
+        {
             QueueOutcome::Created(id) => id,
             _ => unreachable!(),
         };
@@ -1568,7 +1769,15 @@ mod tests {
     fn expired_lease_is_detected_and_not_auto_resumed() {
         let mut conn = test_conn();
         let plan = seed_ready_plan(&conn);
-        let id = match queue(&conn, plan, RequestSource::Cli, "h").unwrap() {
+        let id = match queue(
+            &conn,
+            plan,
+            RequestSource::Cli,
+            "h",
+            &crate::catalog::scope::ProjectScope::default(),
+        )
+        .unwrap()
+        {
             QueueOutcome::Created(id) => id,
             _ => unreachable!(),
         };
@@ -1594,7 +1803,15 @@ mod tests {
     fn retry_after_stale_job_creates_new_attempt() {
         let mut conn = test_conn();
         let plan = seed_ready_plan(&conn);
-        let id = match queue(&conn, plan, RequestSource::Cli, "h").unwrap() {
+        let id = match queue(
+            &conn,
+            plan,
+            RequestSource::Cli,
+            "h",
+            &crate::catalog::scope::ProjectScope::default(),
+        )
+        .unwrap()
+        {
             QueueOutcome::Created(id) => id,
             _ => unreachable!(),
         };
@@ -1605,7 +1822,14 @@ mod tests {
         )
         .unwrap();
         mark_stale_leases(&conn, "2026-08-02T00:00:00Z").unwrap();
-        let new_id = retry(&conn, &id, RequestSource::Cli, "h").unwrap();
+        let new_id = retry(
+            &conn,
+            &id,
+            RequestSource::Cli,
+            "h",
+            &crate::catalog::scope::ProjectScope::default(),
+        )
+        .unwrap();
         let retried = get(&conn, &new_id).unwrap();
         assert_eq!(retried.attempt, 2);
         assert_eq!(retried.original_job_id.as_deref(), Some(id.as_str()));
@@ -1615,7 +1839,15 @@ mod tests {
     fn event_sequence_is_monotonic_and_duplicates_rejected() {
         let mut conn = test_conn();
         let plan = seed_ready_plan(&conn);
-        let id = match queue(&conn, plan, RequestSource::Cli, "h").unwrap() {
+        let id = match queue(
+            &conn,
+            plan,
+            RequestSource::Cli,
+            "h",
+            &crate::catalog::scope::ProjectScope::default(),
+        )
+        .unwrap()
+        {
             QueueOutcome::Created(id) => id,
             _ => unreachable!(),
         };
@@ -1638,7 +1870,15 @@ mod tests {
     fn state_and_event_commit_atomically() {
         let conn = test_conn();
         let plan = seed_ready_plan(&conn);
-        let id = match queue(&conn, plan, RequestSource::Cli, "h").unwrap() {
+        let id = match queue(
+            &conn,
+            plan,
+            RequestSource::Cli,
+            "h",
+            &crate::catalog::scope::ProjectScope::default(),
+        )
+        .unwrap()
+        {
             QueueOutcome::Created(id) => id,
             _ => unreachable!(),
         };
@@ -1661,7 +1901,15 @@ mod tests {
     fn event_log_is_append_only() {
         let mut conn = test_conn();
         let plan = seed_ready_plan(&conn);
-        let id = match queue(&conn, plan, RequestSource::Cli, "h").unwrap() {
+        let id = match queue(
+            &conn,
+            plan,
+            RequestSource::Cli,
+            "h",
+            &crate::catalog::scope::ProjectScope::default(),
+        )
+        .unwrap()
+        {
             QueueOutcome::Created(id) => id,
             _ => unreachable!(),
         };
@@ -1680,7 +1928,15 @@ mod tests {
     fn structured_detail_is_bounded() {
         let conn = test_conn();
         let plan = seed_ready_plan(&conn);
-        let id = match queue(&conn, plan, RequestSource::Cli, "h").unwrap() {
+        let id = match queue(
+            &conn,
+            plan,
+            RequestSource::Cli,
+            "h",
+            &crate::catalog::scope::ProjectScope::default(),
+        )
+        .unwrap()
+        {
             QueueOutcome::Created(id) => id,
             _ => unreachable!(),
         };
@@ -1706,7 +1962,15 @@ mod tests {
     fn job_event_contains_no_absolute_path() {
         let conn = test_conn();
         let plan = seed_ready_plan(&conn);
-        let id = match queue(&conn, plan, RequestSource::Cli, "h").unwrap() {
+        let id = match queue(
+            &conn,
+            plan,
+            RequestSource::Cli,
+            "h",
+            &crate::catalog::scope::ProjectScope::default(),
+        )
+        .unwrap()
+        {
             QueueOutcome::Created(id) => id,
             _ => unreachable!(),
         };
@@ -1761,11 +2025,27 @@ mod tests {
         // Queuing twice for different hashes creates two jobs (distinct
         // plan hashes are distinct identities), each with exactly one
         // initial event.
-        let a = match queue(&conn, plan, RequestSource::Cli, "hash-a").unwrap() {
+        let a = match queue(
+            &conn,
+            plan,
+            RequestSource::Cli,
+            "hash-a",
+            &crate::catalog::scope::ProjectScope::default(),
+        )
+        .unwrap()
+        {
             QueueOutcome::Created(id) => id,
             _ => unreachable!(),
         };
-        let b = match queue(&conn, plan, RequestSource::Cli, "hash-b").unwrap() {
+        let b = match queue(
+            &conn,
+            plan,
+            RequestSource::Cli,
+            "hash-b",
+            &crate::catalog::scope::ProjectScope::default(),
+        )
+        .unwrap()
+        {
             QueueOutcome::Created(id) => id,
             _ => unreachable!(),
         };
@@ -1780,7 +2060,15 @@ mod tests {
         let path = dir.path().join("catalog.sqlite");
         let mut conn = db::open_catalog(&path).unwrap();
         let plan = seed_ready_plan(&conn);
-        let id = match queue(&conn, plan, RequestSource::Cli, "h").unwrap() {
+        let id = match queue(
+            &conn,
+            plan,
+            RequestSource::Cli,
+            "h",
+            &crate::catalog::scope::ProjectScope::default(),
+        )
+        .unwrap()
+        {
             QueueOutcome::Created(id) => id,
             _ => unreachable!(),
         };
@@ -1799,7 +2087,15 @@ mod tests {
     fn retry_rejects_incompatible_plan() {
         let mut conn = test_conn();
         let plan = seed_ready_plan(&conn);
-        let id = match queue(&conn, plan, RequestSource::Cli, "h").unwrap() {
+        let id = match queue(
+            &conn,
+            plan,
+            RequestSource::Cli,
+            "h",
+            &crate::catalog::scope::ProjectScope::default(),
+        )
+        .unwrap()
+        {
             QueueOutcome::Created(id) => id,
             _ => unreachable!(),
         };
@@ -1811,7 +2107,14 @@ mod tests {
             params![plan],
         )
         .unwrap();
-        let err = retry(&conn, &id, RequestSource::Cli, "h").unwrap_err();
+        let err = retry(
+            &conn,
+            &id,
+            RequestSource::Cli,
+            "h",
+            &crate::catalog::scope::ProjectScope::default(),
+        )
+        .unwrap_err();
         assert!(err.contains("no longer Ready"), "{err}");
     }
 
@@ -1819,7 +2122,15 @@ mod tests {
     fn retry_uses_new_job_id_and_preserves_plan_revision() {
         let mut conn = test_conn();
         let plan = seed_ready_plan(&conn);
-        let id = match queue(&conn, plan, RequestSource::Cli, "h").unwrap() {
+        let id = match queue(
+            &conn,
+            plan,
+            RequestSource::Cli,
+            "h",
+            &crate::catalog::scope::ProjectScope::default(),
+        )
+        .unwrap()
+        {
             QueueOutcome::Created(id) => id,
             _ => unreachable!(),
         };
@@ -1832,7 +2143,14 @@ mod tests {
             "bad sha",
         )
         .unwrap();
-        let new_id = retry(&conn, &id, RequestSource::Cli, "h2").unwrap();
+        let new_id = retry(
+            &conn,
+            &id,
+            RequestSource::Cli,
+            "h2",
+            &crate::catalog::scope::ProjectScope::default(),
+        )
+        .unwrap();
         assert_ne!(new_id, id);
         let retried = get(&conn, &new_id).unwrap();
         assert_eq!(retried.plan_revision_id, plan);
@@ -1849,9 +2167,30 @@ mod tests {
         let plan_a = seed_ready_plan(&conn);
         let plan_b = seed_plan_with_status(&conn, "Ready", "2026-08-02T00:00:00Z");
         let plan_c = seed_plan_with_status(&conn, "Ready", "2026-08-03T00:00:00Z");
-        queue(&conn, plan_a, RequestSource::Cli, "h").unwrap();
-        queue(&conn, plan_b, RequestSource::Cli, "h").unwrap();
-        queue(&conn, plan_c, RequestSource::Cli, "h").unwrap();
+        queue(
+            &conn,
+            plan_a,
+            RequestSource::Cli,
+            "h",
+            &crate::catalog::scope::ProjectScope::default(),
+        )
+        .unwrap();
+        queue(
+            &conn,
+            plan_b,
+            RequestSource::Cli,
+            "h",
+            &crate::catalog::scope::ProjectScope::default(),
+        )
+        .unwrap();
+        queue(
+            &conn,
+            plan_c,
+            RequestSource::Cli,
+            "h",
+            &crate::catalog::scope::ProjectScope::default(),
+        )
+        .unwrap();
         // Claim one job. Random job ids make the picker order-
         // independent here, so derive the remaining two from the list.
         let claimed = claim_next(&mut conn, "w", 90).unwrap().unwrap().job.id;
@@ -1931,7 +2270,15 @@ mod race_tests {
         let plan_rec =
             crate::catalog::import::build_plan_record(&conn, mid, &manifest, true).unwrap();
         let plan = crate::catalog::store::insert_plan(&conn, &plan_rec).unwrap();
-        let id = match queue(&conn, plan, RequestSource::Cli, "h").unwrap() {
+        let id = match queue(
+            &conn,
+            plan,
+            RequestSource::Cli,
+            "h",
+            &crate::catalog::scope::ProjectScope::default(),
+        )
+        .unwrap()
+        {
             QueueOutcome::Created(id) => id,
             _ => unreachable!(),
         };

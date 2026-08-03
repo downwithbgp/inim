@@ -1,0 +1,21 @@
+# Project-scope policy (reviewed, tracked).
+#
+# Project scope is a project-owner decision: excluded entities and source
+# records are intentionally not part of the active project corpus. This is
+# distinct from analytical applicability (see docs/DOMAIN.md). Exclusions
+# are matched by exact normalized identifiers only; no fuzzy matching.
+schema_version = 1
+
+[[excluded_entities]]
+stable_key = "noaa"
+reviewed_name = "NOAA"
+reviewed_asns = [270]
+aliases = []
+reason_code = "project_owner_exclusion"
+review_date = "2026-08-03"
+source = "project-owner decision"
+
+[[excluded_source_records]]
+source_family = "grnoc-public-task-viewer"
+external_id = "INC0303298"
+reason_code = "project_owner_exclusion"

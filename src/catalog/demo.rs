@@ -19,7 +19,6 @@ pub const DEMO_EXPECTED_EVENTS: &[&str] = &[
     "INC0301970", // MAN LAN related event
     "INC0302574", // visibility audit event
     "INC0040293", // MAN LAN optical participant event (supporting observation)
-    "INC0303298", // NOAA I2 participant event (fresh IP-layer analysis)
 ];
 
 pub fn demo_init(db_path: &Path, root: &Path, force: bool) -> Result<DemoReport, String> {
@@ -81,7 +80,6 @@ fn write_demo_manifest(db_path: &Path, report: &DemoReport) -> Result<(), String
             "/events/INC0302574/workbench",
             "/events/INC0299001/workbench",
             "/events/INC0040293/workbench",
-            "/events/INC0303298/workbench",
             "/case-studies/manlan-2019/workbench",
         ],
     });
@@ -109,6 +107,22 @@ fn manifest_counts(conn: &Connection) -> (i64, i64, i64) {
 /// absolute paths, and that artifact references resolve.
 pub fn demo_verify(db_path: &Path, root: &Path) -> Result<DemoReport, String> {
     let conn = crate::catalog::db::open_catalog(db_path)?;
+    // Project-scope policy applies to demo catalogs: an excluded event
+    // must never be present in a freshly initialized demo. The import
+    // skips excluded manifests; this check is the verify-side gate.
+    let scope = crate::catalog::scope::ProjectScope::load(root)?;
+    for rec in scope.source_records() {
+        // The source-record exclusion matches by exact external ID
+        // wherever the event lives (manifest-imported events are stored
+        // under local-repository), so the verify gate uses the same
+        // ID-based lookup.
+        if crate::catalog::db::get_event_by_external_any(&conn, &rec.external_id)?.is_some() {
+            return Err(format!(
+                "demo catalog contains an excluded source record {} / {}; rebuild the demo with the current policy",
+                rec.source_family, rec.external_id
+            ));
+        }
+    }
     let mut report = DemoReport::default();
     for expected in DEMO_EXPECTED_EVENTS {
         let found = crate::catalog::db::get_event_by_external(&conn, "local-repository", expected)?
@@ -305,7 +319,6 @@ fn resolve_artifact(root: &Path, rel: &str) -> std::path::PathBuf {
         root.join("case-studies/manlan-esnet-2019/out").join(rel),
         root.join("case-studies/inc0302574/out").join(rel),
         root.join("case-studies/inc0299001/out").join(rel),
-        root.join("case-studies/inc0303298-noaa/out").join(rel),
     ];
     candidates
         .into_iter()

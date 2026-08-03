@@ -121,6 +121,25 @@ pub fn get_event(
 }
 
 /// Fetch one event by source identity.
+/// Look up an event by external id across every source kind (used by
+/// scope checks that do not know the source family in advance).
+pub fn get_event_by_external_any(
+    conn: &Connection,
+    external_id: &str,
+) -> Result<Option<super::domain::CatalogEvent>, String> {
+    conn.query_row(
+        "SELECT id, source_kind, external_id, first_seen, last_seen FROM catalog_events
+         WHERE external_id = ?1 ORDER BY id LIMIT 1",
+        rusqlite::params![external_id],
+        row_to_event,
+    )
+    .map(Some)
+    .or_else(|e| match e {
+        rusqlite::Error::QueryReturnedNoRows => Ok(None),
+        other => Err(format!("catalog query failed: {other}")),
+    })
+}
+
 pub fn get_event_by_external(
     conn: &Connection,
     source_kind: &str,

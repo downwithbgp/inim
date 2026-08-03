@@ -24,6 +24,9 @@ pub struct ImportSummary {
     pub artifacts: usize,
     pub streams: usize,
     pub waves: usize,
+    /// Manifests skipped explicitly because their event is outside the
+    /// configured project scope (never imported, never silently ignored).
+    pub scope_skipped: usize,
 }
 
 /// Import all canonical manifests under `root/manifests/` and artifacts
@@ -33,6 +36,19 @@ pub fn import_repository(
     root: &Path,
     software_version: &str,
     git_revision: Option<&str>,
+) -> Result<ImportSummary, String> {
+    // Project-scope policy is applied at the import boundary: excluded
+    // source records are skipped EXPLICITLY (counted), never imported.
+    let scope = crate::catalog::scope::ProjectScope::load(root)?;
+    import_repository_scoped(conn, root, software_version, git_revision, &scope)
+}
+
+pub(crate) fn import_repository_scoped(
+    conn: &Connection,
+    root: &Path,
+    software_version: &str,
+    git_revision: Option<&str>,
+    scope: &crate::catalog::scope::ProjectScope,
 ) -> Result<ImportSummary, String> {
     let manifests_dir = root.join("manifests");
     let out_dir = root.join("out");
@@ -76,9 +92,19 @@ pub fn import_repository(
         // Pick the first output root that holds this event's run
         // directory; fall back to the conventional root (import_one
         // skips manifests whose run output is absent).
-        let event_id = crate::manifest::Manifest::load(manifest_path)
-            .map_err(|e| format!("cannot load manifest {}: {e}", manifest_path.display()))?
-            .event_id;
+        let manifest = crate::manifest::Manifest::load(manifest_path)
+            .map_err(|e| format!("cannot load manifest {}: {e}", manifest_path.display()))?;
+        let event_id = manifest.event_id.clone();
+        // Project scope at the import boundary: excluded source records
+        // and excluded reviewed targets are skipped EXPLICITLY.
+        let excluded = scope.excluded_source_record("grnoc-public-task-viewer", &event_id)
+            || scope.excluded_source_record("local-repository", &event_id)
+            || scope.excluded_entity_name(&manifest.target.label)
+            || scope.any_asn_excluded(&manifest.target.origin_asns);
+        if excluded {
+            summary.scope_skipped += 1;
+            continue;
+        }
         let out_dir = out_roots
             .iter()
             .find(|root| root.join(&event_id).is_dir())
@@ -794,12 +820,11 @@ mod tests {
         }
         let (_dir, conn) = open_temp_db();
         let summary = import_repository(&conn, Path::new("."), "0.1.0", Some("test-git")).unwrap();
-        // INC0302574 + INC0299001 + INC0040293 + INC0303298 completed;
-        // INC0301970 blocked.
-        assert_eq!(summary.events, 5);
-        assert_eq!(summary.manifests, 5);
-        assert_eq!(summary.plans, 5);
-        assert_eq!(summary.runs, 4);
+        // INC0302574 + INC0299001 + INC0040293 completed; INC0301970 blocked.
+        assert_eq!(summary.events, 4);
+        assert_eq!(summary.manifests, 4);
+        assert_eq!(summary.plans, 4);
+        assert_eq!(summary.runs, 3);
         assert!(summary.artifacts > 0);
         // INC0301970: no run, no outcome.
         let e = db::get_event_by_external(&conn, "local-repository", "INC0301970")

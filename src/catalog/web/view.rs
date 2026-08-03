@@ -403,8 +403,14 @@ fn lifecycle_of(snapshot: &EventSnapshot) -> String {
         .unwrap_or_else(|| "Closed".to_string())
 }
 
-pub fn load_dashboard(conn: &rusqlite::Connection) -> Result<DashboardView, String> {
-    let statuses = status::derive_all_statuses(conn)?;
+pub fn load_dashboard(
+    conn: &rusqlite::Connection,
+    scope: &crate::catalog::scope::ProjectScope,
+) -> Result<DashboardView, String> {
+    let statuses = status::derive_all_statuses(conn)?
+        .into_iter()
+        .filter(|(e, _)| !event_scope_excluded(conn, scope, e).unwrap_or(false))
+        .collect::<Vec<_>>();
     let total = statuses.len();
     let open = statuses
         .iter()
@@ -480,9 +486,13 @@ pub fn load_dashboard(conn: &rusqlite::Connection) -> Result<DashboardView, Stri
 pub fn load_event_list(
     conn: &rusqlite::Connection,
     filters: &EventListFilters,
+    scope: &crate::catalog::scope::ProjectScope,
 ) -> Result<EventListView, String> {
     let mut rows = Vec::new();
-    for (event, st) in status::derive_all_statuses(conn)? {
+    for (event, st) in status::derive_all_statuses(conn)?
+        .into_iter()
+        .filter(|(e, _)| !event_scope_excluded(conn, scope, e).unwrap_or(false))
+    {
         let snapshots = db::list_snapshots(conn, event.id)?;
         let latest = snapshots.first();
         let lifecycle = latest
@@ -566,6 +576,58 @@ pub fn load_event_list(
             q: filters.q.clone(),
         },
     })
+}
+
+/// Whether a catalog event is outside the configured project scope.
+///
+/// Checks, in matching precedence order: exact excluded source record,
+/// exact reviewed entity name (from the latest snapshot title and the
+/// reviewed manifest target label), and reviewed ASN (from the
+/// reviewed manifest target). Never fuzzy.
+pub fn event_scope_excluded(
+    conn: &rusqlite::Connection,
+    scope: &crate::catalog::scope::ProjectScope,
+    event: &crate::catalog::domain::CatalogEvent,
+) -> Result<bool, String> {
+    if scope.excluded_source_record(&event.source_kind, &event.external_id) {
+        return Ok(true);
+    }
+    if let Some(snapshot) = db::list_snapshots(conn, event.id)?.first() {
+        let normalized: serde_json::Value =
+            serde_json::from_str(&snapshot.normalized_json).unwrap_or_default();
+        if let Some(title) = normalized.get("title").and_then(|v| v.as_str()) {
+            if scope.excluded_entity_name(title) {
+                return Ok(true);
+            }
+        }
+    }
+    for manifest in db::list_manifest_revisions(conn, event.id)? {
+        let payload: serde_json::Value =
+            serde_json::from_str(&manifest.payload).unwrap_or_default();
+        if let Some(label) = payload
+            .get("target")
+            .and_then(|t| t.get("label"))
+            .and_then(|v| v.as_str())
+        {
+            if scope.excluded_entity_name(label) {
+                return Ok(true);
+            }
+        }
+        if let Some(asns) = payload
+            .get("target")
+            .and_then(|t| t.get("origin_asns"))
+            .and_then(|v| v.as_array())
+        {
+            let asns: Vec<u32> = asns
+                .iter()
+                .filter_map(|v| v.as_u64().map(|n| n as u32))
+                .collect();
+            if scope.any_asn_excluded(&asns) {
+                return Ok(true);
+            }
+        }
+    }
+    Ok(false)
 }
 
 fn latest_expectation(
@@ -913,6 +975,10 @@ pub fn load_run(
     let Some(event) = event else {
         return Ok(None);
     };
+    // Runs of excluded events are not active project results.
+    if event_scope_excluded(conn, &state.scope, &event).unwrap_or(false) {
+        return Ok(None);
+    }
 
     // Report model: read the run's report.json artifact (relative path).
     let artifacts = db::list_artifacts(conn, run_id)?;
@@ -1102,9 +1168,13 @@ pub fn load_event_list_json(
     conn: &rusqlite::Connection,
     page: usize,
     per_page: usize,
+    scope: &crate::catalog::scope::ProjectScope,
 ) -> Result<serde_json::Value, String> {
     let mut all = Vec::new();
-    for (event, st) in status::derive_all_statuses(conn)? {
+    for (event, st) in status::derive_all_statuses(conn)?
+        .into_iter()
+        .filter(|(e, _)| !event_scope_excluded(conn, scope, e).unwrap_or(false))
+    {
         let (result, assessment) = latest_result(conn, event.id)?;
         all.push(serde_json::json!({
             "event_id": event.external_id,
@@ -1246,8 +1316,11 @@ pub fn load_streams_json(
     })))
 }
 
-pub fn load_catalog_status_json(conn: &rusqlite::Connection) -> Result<serde_json::Value, String> {
-    let dashboard = load_dashboard(conn)?;
+pub fn load_catalog_status_json(
+    conn: &rusqlite::Connection,
+    scope: &crate::catalog::scope::ProjectScope,
+) -> Result<serde_json::Value, String> {
+    let dashboard = load_dashboard(conn, scope)?;
     Ok(serde_json::json!({
         "schema_version": 1,
         "catalog": {
@@ -2890,9 +2963,13 @@ fn event_external(conn: &rusqlite::Connection, event_id: i64) -> String {
 pub fn load_analysis_queue(
     conn: &rusqlite::Connection,
     filters: &QueueFilters,
+    scope: &crate::catalog::scope::ProjectScope,
 ) -> Result<AnalysisQueueView, String> {
     use crate::catalog::analyzability::derive_all_analyzability;
-    let events = crate::catalog::db::list_events(conn)?;
+    let events = crate::catalog::db::list_events(conn)?
+        .into_iter()
+        .filter(|e| !event_scope_excluded(conn, scope, e).unwrap_or(false))
+        .collect::<Vec<_>>();
     let readiness: std::collections::HashMap<i64, (String, String)> =
         derive_all_analyzability(conn)?
             .into_iter()

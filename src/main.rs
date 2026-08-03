@@ -286,6 +286,33 @@ enum Commands {
     /// Build or verify a deterministic offline demo catalog.
     #[command(subcommand)]
     Demo(DemoCommands),
+    /// Read-only project-scope administration.
+    ///
+    /// The tracked policy file (config/project-scope.toml) is the
+    /// reviewed authority. These commands never modify the policy and
+    /// never delete catalog records.
+    #[command(subcommand)]
+    ProjectScope(ProjectScopeCommands),
+}
+
+/// Project-scope administration subcommands (read-only).
+#[derive(Subcommand)]
+enum ProjectScopeCommands {
+    /// Show the reviewed project-scope policy (read-only).
+    Show {
+        /// Repository root containing config/project-scope.toml.
+        #[arg(long, value_name = "DIR", default_value = ".")]
+        root: PathBuf,
+    },
+    /// Audit the catalog against the policy (read-only; never deletes).
+    Audit {
+        /// Catalog database path.
+        #[arg(long, value_name = "PATH")]
+        db: PathBuf,
+        /// Repository root containing config/project-scope.toml.
+        #[arg(long, value_name = "DIR", default_value = ".")]
+        root: PathBuf,
+    },
 }
 
 /// Analysis-plan inspection subcommands.
@@ -844,6 +871,7 @@ fn run(cli: &Cli) -> i32 {
             *keep_failed_workdir,
         ),
         Commands::Demo(command) => cmd_demo(&mut std::io::stdout(), command),
+        Commands::ProjectScope(command) => cmd_project_scope(&mut std::io::stdout(), command),
         Commands::Serve {
             db,
             root,
@@ -1259,10 +1287,17 @@ fn cmd_analyze(
     if preflight_only {
         // Stage A: the preflight JSON was already printed by the runner
         // on success; do not emit an analysis outcome or write outputs.
-        // A failed preflight must still be reported.
+        // The "preflight-only stage" stop is the NORMAL preflight
+        // completion (no updates acquired, by design); only other
+        // failures are reported.
         if let inim::outcome::AnalysisOutcome::Incomplete { failure } = &outcome {
-            let _ = writeln!(stderr, "error: preflight failed: {failure}");
-            return EXIT_ANALYSIS_INCOMPLETE;
+            // The preflight-mode stop is the pipeline's structured
+            // marker, matched exactly — a real failure that merely
+            // mentions the stage name must still be reported.
+            if failure != "preflight-only stage (no updates acquired, by design)" {
+                let _ = writeln!(stderr, "error: preflight failed: {failure}");
+                return EXIT_ANALYSIS_INCOMPLETE;
+            }
         }
         return EXIT_SUCCESS;
     }
@@ -2152,6 +2187,7 @@ mod tests {
             Commands::AnalysisJob(_) => unreachable!("analysis-job not expected"),
             Commands::Worker { .. } => unreachable!("worker not expected"),
             Commands::Demo(_) => unreachable!("demo not expected"),
+            Commands::ProjectScope(_) => unreachable!("project-scope not expected"),
         }
     }
 
@@ -2179,6 +2215,7 @@ mod tests {
             Commands::AnalysisJob(_) => unreachable!("analysis-job not expected"),
             Commands::Worker { .. } => unreachable!("worker not expected"),
             Commands::Demo(_) => unreachable!("demo not expected"),
+            Commands::ProjectScope(_) => unreachable!("project-scope not expected"),
         }
     }
 
@@ -2202,6 +2239,7 @@ mod tests {
             Commands::AnalysisJob(_) => unreachable!("analysis-job not expected"),
             Commands::Worker { .. } => unreachable!("worker not expected"),
             Commands::Demo(_) => unreachable!("demo not expected"),
+            Commands::ProjectScope(_) => unreachable!("project-scope not expected"),
         }
     }
 
@@ -2233,6 +2271,7 @@ mod tests {
             Commands::AnalysisJob(_) => unreachable!("analysis-job not expected"),
             Commands::Worker { .. } => unreachable!("worker not expected"),
             Commands::Demo(_) => unreachable!("demo not expected"),
+            Commands::ProjectScope(_) => unreachable!("project-scope not expected"),
         }
     }
 
@@ -2594,6 +2633,13 @@ fn cmd_grnoc_sync_live(
     // budget is never doubled across phases.
     let source_kind = "grnoc-public-task-viewer";
     let now = chrono::Utc::now().to_rfc3339();
+    let client_scope = match inim::catalog::scope::ProjectScope::load(std::path::Path::new(".")) {
+        Ok(s) => s,
+        Err(e) => {
+            let _ = writeln!(stdout, "error: {e}");
+            return EXIT_INVALID_INPUT;
+        }
+    };
     let mut client = match GrnocViewerClient::new(policy.clone()) {
         Ok(c) => c,
         Err(e) => {
@@ -2628,6 +2674,18 @@ fn cmd_grnoc_sync_live(
                         for rec in &records {
                             let number = rec.number.clone();
                             let title = rec.short_description.clone();
+                            // Project scope: exact excluded source
+                            // records are reported but never seeded and
+                            // never fetched.
+                            if client_scope
+                                .excluded_source_record("grnoc-public-task-viewer", &number)
+                            {
+                                let _ = writeln!(
+                                    stdout,
+                                    "     {number}  {title}  [excluded by project scope]"
+                                );
+                                continue;
+                            }
                             let _ = writeln!(stdout, "     {number}  {title}");
                             if let Err(e) = inim::catalog::discovery::record_analyst_seed(
                                 &conn,
@@ -2734,7 +2792,14 @@ fn cmd_grnoc_sync_live(
 
     let started_at = chrono::Utc::now().to_rfc3339();
     let wall_start = std::time::Instant::now();
-    match sync_frontier(&conn, &mut client, source_kind, &frontier, &started_at) {
+    match sync_frontier(
+        &conn,
+        &mut client,
+        source_kind,
+        &frontier,
+        &started_at,
+        &client_scope,
+    ) {
         Ok(summary) => {
             let elapsed = wall_start.elapsed();
             let rate = if elapsed.as_secs_f64() > 0.0 {
@@ -3821,17 +3886,25 @@ fn cmd_analysis_job(stdout: &mut dyn Write, command: &AnalysisJobCommands) -> i3
                     return EXIT_INVALID_INPUT;
                 }
             };
-            let plan_hash = match inim::catalog::jobs::plan::validate_plan_for_queue(&conn, *plan) {
-                Ok(h) => h,
+            let scope = match inim::catalog::scope::ProjectScope::load(std::path::Path::new(".")) {
+                Ok(s) => s,
                 Err(e) => {
-                    let _ = writeln!(stdout, "queue rejected: {e}");
-                    if e.starts_with("invalid_plan") {
-                        return EXIT_ANALYSIS_BLOCKED;
-                    }
+                    let _ = writeln!(stdout, "error: {e}");
                     return EXIT_INVALID_INPUT;
                 }
             };
-            match jobs::queue(&conn, *plan, RequestSource::Cli, &plan_hash) {
+            let plan_hash =
+                match inim::catalog::jobs::plan::validate_plan_for_queue(&conn, *plan, &scope) {
+                    Ok(h) => h,
+                    Err(e) => {
+                        let _ = writeln!(stdout, "queue rejected: {e}");
+                        if e.starts_with("invalid_plan") {
+                            return EXIT_ANALYSIS_BLOCKED;
+                        }
+                        return EXIT_INVALID_INPUT;
+                    }
+                };
+            match jobs::queue(&conn, *plan, RequestSource::Cli, &plan_hash, &scope) {
                 Ok(jobs::QueueOutcome::Created(job_id)) => {
                     let _ = writeln!(stdout, "queued job {job_id} (plan revision {plan})");
                     let _ = writeln!(
@@ -3998,6 +4071,13 @@ fn cmd_analysis_job(stdout: &mut dyn Write, command: &AnalysisJobCommands) -> i3
                     return EXIT_INVALID_INPUT;
                 }
             };
+            let scope = match inim::catalog::scope::ProjectScope::load(std::path::Path::new(".")) {
+                Ok(s) => s,
+                Err(e) => {
+                    let _ = writeln!(stdout, "error: {e}");
+                    return EXIT_INVALID_INPUT;
+                }
+            };
             let plan_hash = match jobs::get(&conn, job) {
                 Ok(j) => j.plan_hash,
                 Err(e) => {
@@ -4005,7 +4085,7 @@ fn cmd_analysis_job(stdout: &mut dyn Write, command: &AnalysisJobCommands) -> i3
                     return EXIT_INVALID_INPUT;
                 }
             };
-            match jobs::retry(&conn, job, RequestSource::Cli, &plan_hash) {
+            match jobs::retry(&conn, job, RequestSource::Cli, &plan_hash, &scope) {
                 Ok(new_id) => {
                     let _ = writeln!(stdout, "retry created: {new_id} (attempt of {job})");
                     EXIT_SUCCESS
@@ -4195,5 +4275,164 @@ fn cmd_demo(stdout: &mut dyn Write, command: &DemoCommands) -> i32 {
                 EXIT_INVALID_INPUT
             }
         },
+    }
+}
+
+// ── Project-scope CLI (read-only) ──────────────────────────────────
+
+fn cmd_project_scope(stdout: &mut dyn Write, command: &ProjectScopeCommands) -> i32 {
+    use inim::catalog::scope::ProjectScope;
+    match command {
+        ProjectScopeCommands::Show { root } => {
+            let scope = match ProjectScope::load(root) {
+                Ok(s) => s,
+                Err(e) => {
+                    let _ = writeln!(stdout, "error: {e}");
+                    return EXIT_INVALID_INPUT;
+                }
+            };
+            let _ = writeln!(
+                stdout,
+                "project-scope policy (schema v{})",
+                scope.schema_version()
+            );
+            let _ = writeln!(stdout, "  excluded entities: {}", scope.entities().len());
+            for e in scope.entities() {
+                let _ = writeln!(
+                    stdout,
+                    "    {} ({}; asns {:?}; reason {})",
+                    e.reviewed_name, e.stable_key, e.reviewed_asns, e.reason_code
+                );
+            }
+            let _ = writeln!(
+                stdout,
+                "  excluded source records: {}",
+                scope.source_records().len()
+            );
+            for r in scope.source_records() {
+                let _ = writeln!(
+                    stdout,
+                    "    {} / {} (reason {})",
+                    r.source_family, r.external_id, r.reason_code
+                );
+            }
+            let _ = writeln!(
+                stdout,
+                "read-only: the tracked file is the reviewed authority; no catalog access"
+            );
+            EXIT_SUCCESS
+        }
+        ProjectScopeCommands::Audit { db, root } => {
+            let scope = match ProjectScope::load(root) {
+                Ok(s) => s,
+                Err(e) => {
+                    let _ = writeln!(stdout, "error: {e}");
+                    return EXIT_INVALID_INPUT;
+                }
+            };
+            let conn = match inim::catalog::db::open_catalog(db) {
+                Ok(c) => c,
+                Err(e) => {
+                    let _ = writeln!(stdout, "error: {e}");
+                    return EXIT_INVALID_INPUT;
+                }
+            };
+            // Read-only counts derived GENERICALLY from the policy
+            // entries. Nothing is deleted; completed jobs/runs stay
+            // immutable. Excluded events are counted per exact source
+            // record; plans/jobs/runs/artifacts are counted through the
+            // event join.
+            let mut excluded_events = 0i64;
+            for rec in scope.source_records() {
+                let n: i64 = conn
+                    .query_row(
+                        "SELECT COUNT(*) FROM catalog_events WHERE external_id = ?1",
+                        rusqlite::params![rec.external_id],
+                        |r| r.get(0),
+                    )
+                    .unwrap_or(0);
+                excluded_events += n;
+            }
+            let mut excluded_plans = 0i64;
+            let mut excluded_jobs = 0i64;
+            let mut excluded_runs = 0i64;
+            let mut excluded_artifacts = 0i64;
+            for rec in scope.source_records() {
+                let scope_plans: i64 = conn
+                    .query_row(
+                        "SELECT COUNT(*) FROM analysis_plans p
+                         JOIN manifest_revisions m ON m.id = p.manifest_revision_id
+                         JOIN catalog_events e ON e.id = m.event_id
+                         WHERE e.external_id = ?1",
+                        rusqlite::params![rec.external_id],
+                        |r| r.get(0),
+                    )
+                    .unwrap_or(0);
+                let scope_jobs: i64 = conn
+                    .query_row(
+                        "SELECT COUNT(*) FROM analysis_jobs j
+                         JOIN analysis_plans p ON p.id = j.plan_revision_id
+                         JOIN manifest_revisions m ON m.id = p.manifest_revision_id
+                         JOIN catalog_events e ON e.id = m.event_id
+                         WHERE e.external_id = ?1",
+                        rusqlite::params![rec.external_id],
+                        |r| r.get(0),
+                    )
+                    .unwrap_or(0);
+                let scope_runs: i64 = conn
+                    .query_row(
+                        "SELECT COUNT(*) FROM analysis_runs r
+                         JOIN analysis_plans p ON p.id = r.plan_id
+                         JOIN manifest_revisions m ON m.id = p.manifest_revision_id
+                         JOIN catalog_events e ON e.id = m.event_id
+                         WHERE e.external_id = ?1",
+                        rusqlite::params![rec.external_id],
+                        |r| r.get(0),
+                    )
+                    .unwrap_or(0);
+                let scope_artifacts: i64 = conn
+                    .query_row(
+                        "SELECT COUNT(*) FROM analysis_artifacts a
+                         JOIN analysis_runs r ON r.id = a.run_id
+                         JOIN analysis_plans p ON p.id = r.plan_id
+                         JOIN manifest_revisions m ON m.id = p.manifest_revision_id
+                         JOIN catalog_events e ON e.id = m.event_id
+                         WHERE e.external_id = ?1",
+                        rusqlite::params![rec.external_id],
+                        |r| r.get(0),
+                    )
+                    .unwrap_or(0);
+                excluded_plans += scope_plans;
+                excluded_jobs += scope_jobs;
+                excluded_runs += scope_runs;
+                excluded_artifacts += scope_artifacts;
+            }
+            let _ = writeln!(stdout, "project-scope audit (read-only; nothing deleted)");
+            let _ = writeln!(
+                stdout,
+                "  policy schema:              v{}",
+                scope.schema_version()
+            );
+            let _ = writeln!(
+                stdout,
+                "  excluded source records:    {}",
+                scope.source_records().len()
+            );
+            let _ = writeln!(
+                stdout,
+                "  excluded entities:          {}",
+                scope.entities().len()
+            );
+            let _ = writeln!(stdout, "  excluded events in catalog: {excluded_events}");
+            let _ = writeln!(stdout, "  excluded plans in catalog:  {excluded_plans}");
+            let _ = writeln!(stdout, "  excluded jobs in catalog:   {excluded_jobs}");
+            let _ = writeln!(stdout, "  excluded runs in catalog:   {excluded_runs}");
+            let _ = writeln!(stdout, "  excluded artifacts:         {excluded_artifacts}");
+            let _ = writeln!(
+                stdout,
+                "  behavior: excluded items are hidden from default web/API/candidate views; queued jobs whose event is excluded are cancelled by the worker before source access"
+            );
+            EXIT_SUCCESS
+        }
     }
 }

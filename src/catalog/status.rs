@@ -184,6 +184,9 @@ pub fn derive_status(conn: &rusqlite::Connection, event_id: i64) -> Result<Catal
 }
 
 /// Compute statuses for every event.
+///
+/// When a project-scope policy is supplied, excluded events are omitted
+/// from the result (they are not active project items).
 pub fn derive_all_statuses(
     conn: &rusqlite::Connection,
 ) -> Result<Vec<(super::domain::CatalogEvent, CatalogStatus)>, String> {

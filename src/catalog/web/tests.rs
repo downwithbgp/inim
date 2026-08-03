@@ -146,15 +146,15 @@ async fn dashboard_counts_match_database() {
     assert_eq!(status, StatusCode::OK);
     assert!(body.contains("Catalog health"));
     assert!(body.contains("Total catalog events"));
-    assert!(body.contains(">4<"), "four imported events");
+    assert!(body.contains(">3<"), "three imported events");
     // Completed analyses: the count row and the latest-completed line.
     let completed_row = body
         .lines()
         .find(|l| l.contains("Completed analyses"))
         .unwrap_or("");
     assert!(
-        completed_row.contains(">4<"),
-        "four completed analyses: {completed_row}"
+        completed_row.contains(">3<"),
+        "three completed analyses: {completed_row}"
     );
     assert!(body.contains(">1<"), "one blocked event");
     // No severity score anywhere.
@@ -539,6 +539,7 @@ async fn web_requests_do_not_start_analysis() {
         software_version: "0.1.0".into(),
         writes_enabled: false,
         csrf_token: String::new(),
+        scope: crate::catalog::scope::ProjectScope::default(),
     });
     let app = build_app(state);
     for uri in [
@@ -595,7 +596,7 @@ async fn api_event_list_is_paginated() {
     let value: serde_json::Value = serde_json::from_str(&body).unwrap();
     assert_eq!(value["api_version"], 1);
     assert_eq!(value["data"]["per_page"], 2);
-    assert_eq!(value["data"]["total"], 5);
+    assert_eq!(value["data"]["total"], 4);
     assert_eq!(value["data"]["events"].as_array().unwrap().len(), 2);
     let (_, body2) = get(&app, "/api/v1/events?per_page=2&page=1").await;
     let value2: serde_json::Value = serde_json::from_str(&body2).unwrap();
@@ -693,10 +694,9 @@ async fn api_catalog_status_counts_match_database() {
     assert_eq!(status, StatusCode::OK);
     let value: serde_json::Value = serde_json::from_str(&body).unwrap();
     let c = &value["data"]["catalog"];
-    // The repo now carries five reviewed manifests (INC0040293 and
-    // INC0303298 added).
-    assert_eq!(c["total_events"], 5);
-    assert_eq!(c["complete"], 4);
+    // The repo carries four reviewed manifests.
+    assert_eq!(c["total_events"], 4);
+    assert_eq!(c["complete"], 3);
     assert_eq!(c["blocked"], 1);
 }
 
@@ -5196,6 +5196,7 @@ async fn queued_revision_cannot_be_edited() {
         plan_id,
         crate::catalog::jobs::RequestSource::Cli,
         &hash,
+        &crate::catalog::scope::ProjectScope::default(),
     )
     .unwrap();
     drop(conn);
@@ -5232,6 +5233,7 @@ async fn active_job_page_may_refresh_and_completed_does_not() {
         plan_id,
         crate::catalog::jobs::RequestSource::Cli,
         &hash,
+        &crate::catalog::scope::ProjectScope::default(),
     )
     .unwrap()
     {
@@ -5278,6 +5280,7 @@ async fn failed_job_shows_retry_control_when_writes_enabled() {
         plan_id,
         crate::catalog::jobs::RequestSource::Cli,
         &hash,
+        &crate::catalog::scope::ProjectScope::default(),
     )
     .unwrap()
     {
@@ -5326,6 +5329,7 @@ async fn event_workflow_integration_states() {
         plan_id,
         crate::catalog::jobs::RequestSource::Cli,
         &hash,
+        &crate::catalog::scope::ProjectScope::default(),
     )
     .unwrap()
     {
@@ -5371,6 +5375,7 @@ async fn api_job_state_matches_html() {
         plan_id,
         crate::catalog::jobs::RequestSource::Cli,
         &hash,
+        &crate::catalog::scope::ProjectScope::default(),
     )
     .unwrap()
     {
@@ -5429,6 +5434,7 @@ async fn api_completed_job_links_run() {
         plan_id,
         crate::catalog::jobs::RequestSource::Cli,
         &hash,
+        &crate::catalog::scope::ProjectScope::default(),
     )
     .unwrap()
     {

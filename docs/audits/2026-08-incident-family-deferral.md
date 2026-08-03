@@ -22,11 +22,11 @@ incident-family UI work until a genuinely IP-layer fresh event exists.
 ## Decision
 
 Defer the incident-family workbench (original Session 48 Parts 9-30) until
-the fresh IP-layer event decision is complete. After the fresh event
-(INC0303298, NOAA — executed 2026-08-03), reassess whether to:
+a relevant non-excluded IP-layer event decision is complete. The Session 48
+fresh event is outside project scope (see
+`docs/audits/2026-08-project-scope-noaa-removal.md`). Reassess whether to:
 
-1. add the fresh event to an incident family (the NOAA event is not part
-   of the MAN LAN family; it would need its own reviewed grouping), or
+1. add a future non-excluded fresh event to an incident family, or
 2. broaden to a different operator/network, or
 3. begin external NOC evaluation.
 
