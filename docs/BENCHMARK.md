@@ -173,7 +173,7 @@ No parser code was changed for these measurements; queue overhead is
 dominated by process startup for the CLI (the web POST path is
 in-process).
 
-## GRNOC corpus + operational workflow — 2026-08-02 (Session 47)
+## GRNOC corpus + operational workflow — 2026-08-02
 
 Dated measurement with the corpus-enriched demo (release build).
 

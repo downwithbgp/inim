@@ -463,7 +463,7 @@ mod tests {
 
     #[test]
     fn path_traversal_is_rejected() {
-        let (dir, conn) = setup();
+        let (dir, _conn) = setup();
         assert!(!containment_ok(dir.path(), "../escape"));
         assert!(!containment_ok(dir.path(), "/abs/path"));
         assert!(!containment_ok(dir.path(), "data/jobs/../x"));

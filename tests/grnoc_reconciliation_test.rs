@@ -404,7 +404,7 @@ fn unresolved_identity_and_no_visibility_are_distinct() {
     let (_, st) = statuses.iter().find(|(e, _)| e.id == eid).unwrap();
     let reason = match st {
         inim::catalog::status::CatalogStatus::NeedsReview => "never been reviewed",
-        other => return, // status model may vary; the distinction below still applies
+        _other => return, // status model may vary; the distinction below still applies
     };
     assert_eq!(reason, "never been reviewed");
     // Visibility blockers are a different kind entirely (analyzability

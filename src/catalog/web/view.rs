@@ -2805,32 +2805,30 @@ pub fn load_analysis_queue(
             .get(&e.id)
             .cloned()
             .unwrap_or_else(|| (String::new(), String::new()));
-        let (reviewed_role, applicability) = {
+        let reviewed_role = {
             let mut stmt = conn
                 .prepare(
-                    "SELECT reviewed_roles_json, analysis_applicability FROM ticket_reviews
+                    "SELECT reviewed_roles_json FROM ticket_reviews
                      WHERE catalog_event_id = ?1 ORDER BY id DESC LIMIT 1",
                 )
                 .map_err(|e| format!("catalog read failed: {e}"))?;
             let mut rows = stmt
-                .query_map([e.id], |r| {
-                    Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?))
-                })
+                .query_map([e.id], |r| r.get::<_, String>(0))
                 .map_err(|e| format!("catalog read failed: {e}"))?;
             match rows.next() {
-                Some(Ok((roles, appl))) => {
+                Some(Ok(roles)) => {
                     let roles: serde_json::Value = serde_json::from_str(&roles).unwrap_or_default();
-                    let joined: Vec<String> = roles
+                    roles
                         .as_array()
                         .map(|a| {
                             a.iter()
                                 .filter_map(|v| v.as_str().map(|x| x.to_string()))
-                                .collect()
+                                .collect::<Vec<_>>()
+                                .join(", ")
                         })
-                        .unwrap_or_default();
-                    (joined.join(", "), appl)
+                        .unwrap_or_default()
                 }
-                _ => (String::new(), String::new()),
+                _ => String::new(),
             }
         };
         // Route-selection status: the reviewed plan's predicate, or a
@@ -2869,9 +2867,6 @@ pub fn load_analysis_queue(
                 _ => "no plan".to_string(),
             }
         };
-        let next_action =
-            crate::catalog::analyzability::next_analyst_action(&readiness, &applicability)
-                .to_string();
         let expectation = latest_expectation(conn, e.id)?.unwrap_or_default();
         let case_studies = {
             let mut stmt = conn
