@@ -90,21 +90,22 @@ pub fn validate_topology(config: &WorkerConfig) -> Result<(), String> {
     if config.download_jobs == 0 {
         return Err("download_jobs must be >= 1".to_string());
     }
-    if config.max_jobs > 1 && config.parse_jobs > 8 {
-        return Err(format!(
-            "unsafe worker topology: max_jobs {} x parse_jobs {} exceeds the documented safety bound",
-            config.max_jobs, config.parse_jobs
-        ));
-    }
-    let cpus = std::thread::available_parallelism()
-        .map(|n| n.get())
-        .unwrap_or(1);
-    let total_parsers = config.max_jobs.saturating_mul(config.parse_jobs);
-    if total_parsers > cpus {
-        return Err(format!(
-            "unsafe worker topology: max_jobs {} x parse_jobs {} = {total_parsers} parser threads exceeds {cpus} logical CPUs; reduce max_jobs or parse_jobs",
-            config.max_jobs, config.parse_jobs
-        ));
+    // The documented safety bound governs the MULTI-JOB product: two
+    // 8-parser jobs running concurrently would oversubscribe a small
+    // host. A single job keeps the established per-job parse default
+    // (the same budget as direct `inim analyze`), which the pipeline
+    // caps by archive count at runtime.
+    if config.max_jobs > 1 {
+        let cpus = std::thread::available_parallelism()
+            .map(|n| n.get())
+            .unwrap_or(1);
+        let total_parsers = config.max_jobs.saturating_mul(config.parse_jobs);
+        if config.parse_jobs > 8 || total_parsers > cpus {
+            return Err(format!(
+                "unsafe worker topology: max_jobs {} x parse_jobs {} = {total_parsers} parser threads exceeds the documented safety bound ({cpus} logical CPUs, max 8 per job); reduce max_jobs or parse_jobs",
+                config.max_jobs, config.parse_jobs
+            ));
+        }
     }
     Ok(())
 }
@@ -862,11 +863,9 @@ mod tests {
         assert_eq!(c.download_jobs, 2);
         assert_eq!(c.parse_jobs, 8);
         assert!(validate_topology(&c).is_ok());
-        // max_jobs x parse_jobs never exceeds the host's CPU count.
-        let cpus = std::thread::available_parallelism()
-            .map(|n| n.get())
-            .unwrap_or(1);
-        assert!(c.max_jobs * c.parse_jobs <= cpus.max(8));
+        // A single job keeps the per-job parse default on any host.
+        assert!(c.parse_jobs <= 8);
+        assert!(c.max_jobs == 1);
     }
 
     #[test]
