@@ -156,3 +156,6 @@ jobs:
         run: |
           cargo test --locked --test queued_analysis_e2e_test
           cargo test --locked --test job_workflow_tests direct_execution_and_queued_execution_are_semantically_identical
+          cargo test --locked --test grnoc_reconciliation_test
+          cargo test --locked --lib catalog::jobs::cleanup
+          cargo test --locked --lib catalog::jobs::stage_skip_tests

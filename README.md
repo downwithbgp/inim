@@ -66,7 +66,10 @@ reference their source runs. See `docs/DATA_PROVENANCE.md` and
   preflight, route reconstruction, lifecycle classification, findings,
   and reports.
 - A **local event catalog** (SQLite + filesystem evidence store) with
-  immutable source snapshots and reviewed revisions.
+  immutable source snapshots and reviewed revisions, including a
+  bounded reviewed GRNOC corpus (ten MAN LAN tickets with immutable
+  snapshots, relationships, and reviewed roles) imported into the
+  offline demo.
 - A **server-rendered web workbench** — the primary human interface. It
   is read-only: HTTP GET requests never perform analysis or acquire
   data.

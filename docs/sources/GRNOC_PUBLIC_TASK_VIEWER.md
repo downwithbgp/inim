@@ -195,6 +195,13 @@ suite.
 
 ## Reviewed corpus state
 
+- The ten acquired MAN LAN tickets are tracked as immutable snapshots
+  under `case-studies/manlan-2019/corpus/snapshots/` (with a manifest,
+  the reviewed relationship graph, and per-ticket reviews) and are
+  imported deterministically into the offline demo. Session 46's
+  "no GRNOC corpus events in the catalog" referred to the main catalog
+  and demo, which never imported the corpus; see
+  `docs/audits/2026-08-grnoc-catalog-reconciliation.md`.
 - The ten acquired MAN LAN tickets are now **reviewed operational data**
   (reviewed case-study roles, entity labels, linked maintenance
   identifiers, analysis applicability, per-field provenance citing

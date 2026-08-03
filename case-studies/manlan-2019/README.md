@@ -109,3 +109,12 @@ contributor names in the primary UI.
 deterministic demo catalog (loopback only) to `tmp/ui-review/` (gitignored,
 excluded from the package). Screenshots are for EXTERNAL computer-vision
 review — visual quality is not self-certified here.
+
+## Corpus
+
+`corpus/` holds the ten reviewed MAN LAN public tickets as immutable
+snapshots (manifest + relationships; redistribution documented in
+`docs/sources/GRNOC_PUBLIC_TASK_VIEWER.md`). The demo imports them as
+discovered events with reviewed roles; they never create Ready plans
+or jobs automatically. INC0040293 has its own narrow analysis case
+study (`case-studies/manlan-esnet-2019/`).

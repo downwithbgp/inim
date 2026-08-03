@@ -643,3 +643,14 @@ validates them, and publishes completed runs atomically under
 `data/runs/<job-id>/`. Job state is execution state and is distinct
 from plan status and analysis outcome. See `docs/OPERATIONS.md` and
 `docs/ADRs/DURABLE-ANALYSIS-JOBS.md`.
+
+## Reviewed corpus import
+
+The offline demo and any catalog can import a bounded reviewed corpus
+(`case-studies/manlan-2019/corpus/`) deterministically: events with
+immutable snapshots, the reviewed relationship graph, and per-ticket
+reviewed roles — never Ready plans and never jobs. A corpus ticket
+that already has a reviewed analysis plan is represented once by its
+reviewed analysis event (its corpus row is skipped and relationship
+edges resolve cross-source). Source snapshots are public records with
+documented redistribution; raw MRT never enters the corpus.

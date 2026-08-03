@@ -172,3 +172,20 @@ concurrent server-read/worker-write test).
 No parser code was changed for these measurements; queue overhead is
 dominated by process startup for the CLI (the web POST path is
 in-process).
+
+## GRNOC corpus + operational workflow — 2026-08-02 (Session 47)
+
+Dated measurement with the corpus-enriched demo (release build).
+
+| Measurement | Result |
+|---|---|
+| Demo initialization (corpus + case study + runs) | 0.6 s |
+| Demo database size | 0.4 MiB |
+| Analysis-queue page loader (median, 20 runs) | 8.0 ms |
+| Job list loader (median, 20 runs) | 0.05 ms |
+| Cleanup scan, 10 synthetic terminal jobs | 15 ms |
+| Cleanup scan, 100 synthetic terminal jobs | 34 ms |
+
+Cleanup enumeration is linear in the job count and only walks the
+eligible staging directories (no recursive hashing of cache trees).
+Local-alpha targets remain: median GET < 100 ms, reviewed max < 250 ms.
