@@ -464,12 +464,19 @@ pub fn complete(conn: &Connection, job_id: &str, run_id: i64) -> Result<(), Stri
         ));
     }
     let occurred = now_utc();
-    tx.execute(
-        "UPDATE analysis_jobs SET state = 'Completed', completed_run_id = ?1,
-                finished_at = ?2, stage = NULL WHERE id = ?3",
-        params![run_id, occurred, job_id],
-    )
-    .map_err(|e| format!("cannot complete job: {e}"))?;
+    let updated = tx
+        .execute(
+            "UPDATE analysis_jobs SET state = 'Completed', completed_run_id = ?1,
+                    finished_at = ?2, stage = NULL
+             WHERE id = ?3 AND state = 'PublishingRun'",
+            params![run_id, occurred, job_id],
+        )
+        .map_err(|e| format!("cannot complete job: {e}"))?;
+    if updated == 0 {
+        return Err(format!(
+            "job {job_id} is not in PublishingRun; refusing completion (concurrent state change)"
+        ));
+    }
     let ev = JobEvent {
         job_id: job_id.to_string(),
         sequence: next_sequence(&tx, job_id)?,
@@ -723,11 +730,24 @@ pub fn renew_lease(
     let now = now_utc();
     let expires = chrono::Utc::now() + chrono::Duration::seconds(lease_secs);
     let expires_at = expires.to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
-    tx.execute(
-        "UPDATE analysis_jobs SET heartbeat_at = ?1, lease_expires_at = ?2 WHERE id = ?3",
-        params![now, expires_at, job_id],
-    )
-    .map_err(|e| format!("cannot renew lease: {e}"))?;
+    // CAS-style: the UPDATE re-asserts the conditions the read relied
+    // on (same worker, active executing state) so a concurrent
+    // completion or steal cannot be overwritten.
+    let updated = tx
+        .execute(
+            "UPDATE analysis_jobs SET heartbeat_at = ?1, lease_expires_at = ?2
+             WHERE id = ?3 AND worker_id = ?4 AND state IN (
+                'Claimed','DiscoveringArchives','AcquiringArchives','ParsingBaseline',
+                'FreezingCohort','ParsingUpdates','ReconstructingRoutes','DerivingEvidence',
+                'RenderingArtifacts','ValidatingArtifacts','PublishingRun')",
+            params![now, expires_at, job_id, worker_id],
+        )
+        .map_err(|e| format!("cannot renew lease: {e}"))?;
+    if updated == 0 {
+        return Err(format!(
+            "job {job_id} lease no longer renewable (state or worker changed); refusing renewal"
+        ));
+    }
     tx.commit()
         .map_err(|e| format!("cannot commit lease renewal: {e}"))
 }
@@ -759,7 +779,11 @@ pub fn mark_stale_leases(conn: &Connection, now: &str) -> Result<Vec<String>, St
         tx.execute(
             "UPDATE analysis_jobs SET state = 'Failed', finished_at = ?1,
                     error_code = ?2, error_summary = ?3
-             WHERE id = ?4",
+             WHERE id = ?4 AND state IN (
+                'Claimed','DiscoveringArchives','AcquiringArchives','ParsingBaseline',
+                'FreezingCohort','ParsingUpdates','ReconstructingRoutes','DerivingEvidence',
+                'RenderingArtifacts','ValidatingArtifacts','PublishingRun')
+               AND lease_expires_at IS NOT NULL AND lease_expires_at < ?1",
             params![
                 now,
                 error_code::WORKER_LEASE_EXPIRED,
@@ -833,11 +857,24 @@ pub fn request_cancel(conn: &Connection, job_id: &str) -> Result<CancelOutcome, 
         ));
     }
     let occurred = now_utc();
-    tx.execute(
-        "UPDATE analysis_jobs SET state = 'CancelRequested', cancel_requested_at = ?1 WHERE id = ?2",
-        params![occurred, job_id],
-    )
-    .map_err(|e| format!("cannot request cancel: {e}"))?;
+    // CAS-style: only a still-cancellable job may enter
+    // CancelRequested; a job that completed concurrently is left
+    // untouched and the request is rejected.
+    let updated = tx
+        .execute(
+            "UPDATE analysis_jobs SET state = 'CancelRequested', cancel_requested_at = ?1
+             WHERE id = ?2 AND state IN (
+                'Claimed','DiscoveringArchives','AcquiringArchives','ParsingBaseline',
+                'FreezingCohort','ParsingUpdates','ReconstructingRoutes','DerivingEvidence',
+                'RenderingArtifacts','ValidatingArtifacts')",
+            params![occurred, job_id],
+        )
+        .map_err(|e| format!("cannot request cancel: {e}"))?;
+    if updated == 0 {
+        return Err(format!(
+            "job {job_id} is no longer cancellable (state changed); refusing cancellation"
+        ));
+    }
     let ev = JobEvent {
         job_id: job_id.to_string(),
         sequence: next_sequence(&tx, job_id)?,
@@ -1836,5 +1873,130 @@ mod tests {
         assert_eq!(counts.cancelled, 1);
         assert_eq!(counts.completed, 0);
         let _ = (plan_a, plan_b, plan_c);
+    }
+}
+
+// ── CAS race regression tests ───────────────────────────────────────
+
+#[cfg(test)]
+mod race_tests {
+    use super::*;
+    use crate::catalog::db;
+
+    fn setup_job() -> (tempfile::TempDir, Connection, String) {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("catalog.sqlite");
+        let conn = db::open_catalog(&path).unwrap();
+        conn.execute(
+            "INSERT INTO catalog_events (source_kind, external_id, first_seen, last_seen)
+             VALUES ('local-repository', 'RACE-EVT', '2026-08-01T00:00:00Z', '2026-08-01T00:00:00Z')",
+            [],
+        )
+        .unwrap();
+        let eid = conn.last_insert_rowid();
+        conn.execute(
+            "INSERT INTO event_snapshots (event_id, fetched_at, source_url, content_sha256, raw_payload, normalized_json, parser_version)
+             VALUES (?1, '2026-08-01T00:00:00Z', 'file:///x', 's', '{}', '{}', 't')",
+            [eid],
+        )
+        .unwrap();
+        let sid = conn.last_insert_rowid();
+        let payload = serde_json::json!({
+            "event_id": "RACE-EVT", "revision": 1, "schema_version": 2, "open": false,
+            "event_window_utc": {"start": "2026-08-01T00:00:00Z", "end": "2026-08-02T00:00:00Z"},
+            "ticket_window_local": {"start": "", "end": "", "timezone": "UTC"},
+            "target": {"label": "Race event", "origin_asns": [64500],
+                "transit_predicate": {"predicate": {"ContainsAny": [64501]}, "status": "Reviewed",
+                    "provenance": {"statement": "r", "reviewed_by": "local-review", "date": "2026-08-01"}}},
+            "collectors": ["route-views2"], "source_family": "RouteViews"
+        })
+        .to_string();
+        conn.execute(
+            "INSERT INTO manifest_revisions (event_id, snapshot_id, manifest_schema, payload, sha256, review_status)
+             VALUES (?1, ?2, 2, ?3, ?4, 'Reviewed')",
+            rusqlite::params![eid, sid, payload, "race-msha"],
+        )
+        .unwrap();
+        let mid = conn.last_insert_rowid();
+        let manifest: crate::manifest::Manifest = serde_json::from_str(
+            &conn
+                .query_row(
+                    "SELECT payload FROM manifest_revisions WHERE id = ?1",
+                    [mid],
+                    |r| r.get::<_, String>(0),
+                )
+                .unwrap(),
+        )
+        .unwrap();
+        let plan_rec =
+            crate::catalog::import::build_plan_record(&conn, mid, &manifest, true).unwrap();
+        let plan = crate::catalog::store::insert_plan(&conn, &plan_rec).unwrap();
+        let id = match queue(&conn, plan, RequestSource::Cli, "h").unwrap() {
+            QueueOutcome::Created(id) => id,
+            _ => unreachable!(),
+        };
+        (dir, conn, id)
+    }
+
+    #[test]
+    fn cancel_cannot_overwrite_completed_job() {
+        let (dir, conn, id) = setup_job();
+        // Simulate the interleaving: the job reaches PublishingRun and
+        // completes BEFORE the cancel UPDATE runs. The CAS WHERE clause
+        // must reject the cancellation.
+        conn.execute(
+            "UPDATE analysis_jobs SET state = 'PublishingRun' WHERE id = ?1",
+            [&id],
+        )
+        .unwrap();
+        let err = request_cancel(&conn, &id).unwrap_err();
+        assert!(
+            err.contains("cannot be cancelled") || err.contains("no longer cancellable"),
+            "{err}"
+        );
+        // The job stays exactly as the concurrent completion left it.
+        assert_eq!(get(&conn, &id).unwrap().state, JobState::PublishingRun);
+        drop(dir);
+    }
+
+    #[test]
+    fn stale_scan_cannot_overwrite_renewed_lease() {
+        let (dir, mut conn, id) = setup_job();
+        claim_next(&mut conn, "w", 90).unwrap();
+        conn.execute(
+            "UPDATE analysis_jobs SET lease_expires_at = '2020-01-01T00:00:00Z' WHERE id = ?1",
+            [&id],
+        )
+        .unwrap();
+        // The worker renews (extends the lease) before the stale scan's
+        // UPDATE runs: the scan must not fail the job.
+        renew_lease(&conn, &id, "w", 90).unwrap();
+        let now = chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Secs, true);
+        let expired = mark_stale_leases(&conn, &now).unwrap();
+        assert!(
+            !expired.contains(&id),
+            "renewed lease must not be expired: {expired:?}"
+        );
+        assert_eq!(get(&conn, &id).unwrap().state, JobState::Claimed);
+        drop(dir);
+    }
+
+    #[test]
+    fn completion_cannot_overwrite_cancelled_job() {
+        let (dir, mut conn, id) = setup_job();
+        claim_next(&mut conn, "w", 90).unwrap();
+        // Cancellation lands first: the job is Cancelled. A late
+        // complete() (publication never began) must be rejected.
+        request_cancel(&conn, &id).unwrap();
+        assert_eq!(get(&conn, &id).unwrap().state, JobState::CancelRequested);
+        observe_cancel(&conn, &id).unwrap();
+        assert_eq!(get(&conn, &id).unwrap().state, JobState::Cancelled);
+        let err = complete(&conn, &id, 99).unwrap_err();
+        assert!(
+            err.contains("not in PublishingRun") || err.contains("refusing completion"),
+            "{err}"
+        );
+        assert_eq!(get(&conn, &id).unwrap().state, JobState::Cancelled);
+        drop(dir);
     }
 }
