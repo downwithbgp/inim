@@ -1419,33 +1419,44 @@ async fn manlan_app() -> Option<(tempfile::TempDir, axum::Router)> {
             )
             .unwrap();
         }
-        // Link the imported pilot runs by their event identity (the
-        // pilot manifest event ids), never by run-id thresholds: run
-        // ids depend on repository import order.
-        let pilot_run_ids: Vec<i64> = conn
-            .prepare(
-                "SELECT r.id FROM analysis_runs r
-                 JOIN analysis_plans p ON p.id = r.plan_id
-                 JOIN manifest_revisions m ON m.id = p.manifest_revision_id
-                 JOIN catalog_events e ON e.id = m.event_id
-                 WHERE e.external_id LIKE 'MANLAN-2019-NORDUNET-PILOT%'
-                 ORDER BY r.id",
-            )
-            .unwrap()
-            .query_map([], |r| r.get::<_, i64>(0))
-            .unwrap()
-            .filter_map(|r| r.ok())
-            .collect();
-        for run_id in pilot_run_ids {
-            let w: String = conn
+        // Link the imported pilot runs by their imported identity:
+        // collect the run id created by each import_one call (never
+        // by run-id thresholds or incident literals in src/).
+        let mut pilot_run_ids = Vec::new();
+        for collector in ["RRC00", "RRC06", "RRC15", "RV2"] {
+            let suffix = format!("-NORDUNET-PILOT-RE-{collector}.json");
+            let manifests_dir =
+                std::fs::read_dir("case-studies/manlan-2019/pilot/manifests").unwrap();
+            let manifest = manifests_dir
+                .filter_map(|e| e.ok().map(|e| e.path()))
+                .find(|p| {
+                    p.file_name()
+                        .and_then(|n| n.to_str())
+                        .map(|n| n.ends_with(&suffix))
+                        .unwrap_or(false)
+                })
+                .expect("pilot manifest present");
+            let event_id = {
+                let v: serde_json::Value =
+                    serde_json::from_str(&std::fs::read_to_string(&manifest).unwrap()).unwrap();
+                v["event_id"].as_str().unwrap_or("").to_string()
+            };
+            let run_id: Option<i64> = conn
                 .query_row(
-                    "SELECT COALESCE(window_start_utc, '') FROM analysis_plans p WHERE p.id =
-                       (SELECT plan_id FROM analysis_runs WHERE id = ?1)",
-                    [run_id],
+                    "SELECT r.id FROM analysis_runs r
+                     JOIN analysis_plans p ON p.id = r.plan_id
+                     JOIN manifest_revisions m ON m.id = p.manifest_revision_id
+                     JOIN catalog_events e ON e.id = m.event_id
+                     WHERE e.external_id = ?1 ORDER BY r.id DESC LIMIT 1",
+                    [&event_id],
                     |r| r.get(0),
                 )
-                .unwrap_or_default();
-            eprintln!("DEBUG LINKED RUN id={run_id} window={w}");
+                .ok();
+            if let Some(run_id) = run_id {
+                pilot_run_ids.push(run_id);
+            }
+        }
+        for run_id in pilot_run_ids {
             crate::catalog::store::insert_case_study_analysis_link(
                 &conn,
                 &crate::catalog::domain::CaseStudyAnalysisLink {
