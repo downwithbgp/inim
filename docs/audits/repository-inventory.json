@@ -1488,6 +1488,14 @@
   "current": true
  },
  {
+  "path": "docs/audits/2026-08-fresh-event-candidates.md",
+  "category": "Normative current documentation",
+  "audience": "maintainers",
+  "authoritative": "dated audit evidence",
+  "generated": false,
+  "current": true
+ },
+ {
   "path": "docs/audits/2026-08-repository-truth-audit.md",
   "category": "Normative current documentation",
   "audience": "maintainers",
