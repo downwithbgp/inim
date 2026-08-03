@@ -2358,6 +2358,12 @@ pub struct QueueRowView {
     pub title: String,
     pub task_type: String,
     pub lifecycle: String,
+    /// Reviewed per-ticket role (ticket_reviews), e.g. PrimaryIncident.
+    pub reviewed_role: String,
+    /// Reviewed analysis applicability (ticket_reviews).
+    pub applicability: String,
+    /// Route-selection status: reviewed plane / predicate or none.
+    pub selection_status: String,
     pub start: String,
     pub readiness: String,
     pub reason: String,
@@ -2799,6 +2805,73 @@ pub fn load_analysis_queue(
             .get(&e.id)
             .cloned()
             .unwrap_or_else(|| (String::new(), String::new()));
+        let (reviewed_role, applicability) = {
+            let mut stmt = conn
+                .prepare(
+                    "SELECT reviewed_roles_json, analysis_applicability FROM ticket_reviews
+                     WHERE catalog_event_id = ?1 ORDER BY id DESC LIMIT 1",
+                )
+                .map_err(|e| format!("catalog read failed: {e}"))?;
+            let mut rows = stmt
+                .query_map([e.id], |r| {
+                    Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?))
+                })
+                .map_err(|e| format!("catalog read failed: {e}"))?;
+            match rows.next() {
+                Some(Ok((roles, appl))) => {
+                    let roles: serde_json::Value = serde_json::from_str(&roles).unwrap_or_default();
+                    let joined: Vec<String> = roles
+                        .as_array()
+                        .map(|a| {
+                            a.iter()
+                                .filter_map(|v| v.as_str().map(|x| x.to_string()))
+                                .collect()
+                        })
+                        .unwrap_or_default();
+                    (joined.join(", "), appl)
+                }
+                _ => (String::new(), String::new()),
+            }
+        };
+        // Route-selection status: the reviewed plan's predicate, or a
+        // reviewed-requirement statement when absent.
+        let selection_status = {
+            let mut stmt = conn
+                .prepare(
+                    "SELECT p.payload FROM analysis_plans p
+                     JOIN manifest_revisions m ON m.id = p.manifest_revision_id
+                     WHERE m.event_id = ?1 ORDER BY p.id DESC LIMIT 1",
+                )
+                .map_err(|e| format!("catalog read failed: {e}"))?;
+            let mut rows = stmt
+                .query_map([e.id], |r| r.get::<_, String>(0))
+                .map_err(|e| format!("catalog read failed: {e}"))?;
+            match rows.next() {
+                Some(Ok(payload)) => {
+                    let v: serde_json::Value = serde_json::from_str(&payload).unwrap_or_default();
+                    let status = v
+                        .get("transit_predicate_status")
+                        .and_then(|x| x.as_str())
+                        .unwrap_or("");
+                    let origin = v
+                        .get("origin_asns")
+                        .and_then(|x| x.as_array())
+                        .map(|a| a.len())
+                        .unwrap_or(0);
+                    if status == "Reviewed" && origin > 0 {
+                        "reviewed plane + origin".to_string()
+                    } else if origin > 0 {
+                        "origin reviewed; predicate pending".to_string()
+                    } else {
+                        "no reviewed mapping".to_string()
+                    }
+                }
+                _ => "no plan".to_string(),
+            }
+        };
+        let next_action =
+            crate::catalog::analyzability::next_analyst_action(&readiness, &applicability)
+                .to_string();
         let expectation = latest_expectation(conn, e.id)?.unwrap_or_default();
         let case_studies = {
             let mut stmt = conn
@@ -2888,6 +2961,10 @@ pub fn load_analysis_queue(
                 .to_string();
         rows.push(QueueRowView {
             external_id: e.external_id.clone(),
+            reviewed_role: reviewed_role.clone(),
+            applicability: applicability.to_string(),
+            next_action: next_action.clone(),
+            selection_status: selection_status.clone(),
             title,
             task_type,
             lifecycle,
@@ -2899,7 +2976,6 @@ pub fn load_analysis_queue(
             reviewed_roles,
             archive_plan_status,
             runs,
-            next_action,
         });
     }
     rows.sort_by(|a, b| {
