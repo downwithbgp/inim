@@ -205,7 +205,7 @@ pub(crate) fn import_one(
     summary.manifests += 1;
 
     // ── Plan ───────────────────────────────────────────────────────
-    let plan = build_plan_record(conn, manifest_revision_id, &manifest, manifest_path)?;
+    let plan = build_plan_record(conn, manifest_revision_id, &manifest, true)?;
     let plan_id = store::insert_plan(conn, &plan)?;
     summary.plans += 1;
 
@@ -346,20 +346,34 @@ pub(crate) fn import_one(
     Ok(())
 }
 
-fn build_plan_record(
+pub fn build_plan_record(
     _conn: &Connection,
     manifest_revision_id: i64,
     manifest: &crate::manifest::Manifest,
-    _manifest_path: &Path,
+    origin_mapping_reviewed: bool,
 ) -> Result<AnalysisPlanRecord, String> {
     // Plan payload is deterministic: reviewed manifest identity + status.
-    let status = if manifest.target.transit_predicate.is_ready() {
-        "Ready"
-    } else {
+    // Origin mapping review is explicit: free-form ASN entry marks the
+    // plan NeedsReview and it cannot be queued until reviewed.
+    let needs_review = !origin_mapping_reviewed && !manifest.target.origin_asns.is_empty();
+    let status = if needs_review
+        || manifest.target.origin_asns.is_empty()
+        || !manifest.target.transit_predicate.is_ready()
+    {
         "Blocked"
+    } else {
+        "Ready"
     };
     let block_reason = if status == "Blocked" {
-        Some("MissingReviewedTransitPredicate".to_string())
+        Some(
+            if !origin_mapping_reviewed && !manifest.target.origin_asns.is_empty() {
+                "OriginMappingNeedsReview".to_string()
+            } else if manifest.target.origin_asns.is_empty() {
+                "MissingReviewedEntityMapping".to_string()
+            } else {
+                "MissingReviewedTransitPredicate".to_string()
+            },
+        )
     } else {
         None
     };

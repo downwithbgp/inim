@@ -552,6 +552,17 @@ fn run_inner_impl(
             "No selected {} observer had a pre-event route matching the reviewed path predicate.",
             family.label()
         );
+        // A valid no-baseline analysis still publishes a complete
+        // (minimal) artifact set: the run carries the exact reason, and
+        // the job completes. No route findings and no empty timeline
+        // scaffolding are produced (Part 47).
+        write_insufficient_visibility_artifacts(
+            out_dir,
+            &manifest.event_id,
+            &visibility_msg,
+            &limitations,
+            &collected_ribs,
+        )?;
         // A preflight probe must still emit its JSON: zero retained
         // collectors is a valid (negative) preflight result, not a
         // missing one.
@@ -835,6 +846,108 @@ fn run_inner_impl(
         Some(&lifecycles),
     );
     timings.push(("assess".to_string(), t_assess.elapsed().as_secs_f64()));
+
+    /// Write the minimal artifact set for a no-qualifying-baseline run.
+    ///
+    /// Produces report.json (schema-valid, InsufficientVisibility),
+    /// report.txt, limitations.json, archive_manifest.json (the acquired
+    /// baseline archives), and empty transitions/waves. No findings and no
+    /// timeline scaffolding are invented.
+    fn write_insufficient_visibility_artifacts(
+        out_dir: &Path,
+        event_id: &str,
+        reason: &str,
+        limitations: &[String],
+        collected_ribs: &[crate::discover::CachedArchive],
+    ) -> Result<(), String> {
+        let now = chrono::Utc::now().to_rfc3339_opts(chrono::SecondsFormat::Nanos, true);
+        let archives: Vec<serde_json::Value> = collected_ribs
+            .iter()
+            .map(|r| {
+                serde_json::json!({
+                    "url": r.url,
+                    "local_basename": std::path::Path::new(&r.local_path)
+                        .file_name()
+                        .map(|n| n.to_string_lossy())
+                        .unwrap_or_default(),
+                    "sha256": r.sha256,
+                    "collector": r.collector_id,
+                    "data_type": r.data_type,
+                })
+            })
+            .collect();
+        let report = serde_json::json!({
+            "schema_version": crate::schema::REPORT_SCHEMA_VERSION,
+            "event_id": event_id,
+            "result": {
+                "verdict": "insufficient_visibility",
+                "verdict_label": "InsufficientVisibility",
+            },
+            "assessment": {
+                "provisional": false,
+                "statement": reason,
+                "verdict": "insufficient_visibility",
+            },
+            "outcome": {
+                "status": "insufficient_visibility",
+                "assessment": {
+                    "event_id": event_id,
+                    "generated_at": now,
+                    "verdict": "insufficient_visibility",
+                    "evidence": [],
+                    "waves": [],
+                },
+            },
+            "limitations": limitations,
+            "transitions": [],
+            "waves": [],
+            "observed_event_signature": serde_json::json!({"observer_scope": "none"}),
+            "observable_mechanism_hints": [],
+        });
+        std::fs::write(
+            out_dir.join("report.json"),
+            serde_json::to_string_pretty(&report).map_err(|e| format!("report json: {e}"))?,
+        )
+        .map_err(|e| format!("cannot write report.json: {e}"))?;
+        std::fs::write(
+            out_dir.join("report.txt"),
+            format!(
+                "Analysis — {event_id}
+
+InsufficientVisibility
+{reason}
+
+No qualifying baseline observer streams; no route findings were produced.
+"
+            ),
+        )
+        .map_err(|e| format!("cannot write report.txt: {e}"))?;
+        std::fs::write(
+            out_dir.join("limitations.json"),
+            serde_json::to_string_pretty(&serde_json::json!({"limitations": limitations}))
+                .map_err(|e| format!("limitations json: {e}"))?,
+        )
+        .map_err(|e| format!("cannot write limitations.json: {e}"))?;
+        std::fs::write(
+            out_dir.join("archive_manifest.json"),
+            serde_json::to_string_pretty(&serde_json::json!({"archives": archives}))
+                .map_err(|e| format!("archive manifest json: {e}"))?,
+        )
+        .map_err(|e| format!("cannot write archive_manifest.json: {e}"))?;
+        std::fs::write(
+            out_dir.join("transitions.json"),
+            "[]
+",
+        )
+        .map_err(|e| format!("cannot write transitions.json: {e}"))?;
+        std::fs::write(
+            out_dir.join("semantic_waves.json"),
+            "[]
+",
+        )
+        .map_err(|e| format!("cannot write semantic_waves.json: {e}"))?;
+        Ok(())
+    }
 
     // ── Write outputs ──────────────────────────────────────────────
     check_cancel(cancel)?;

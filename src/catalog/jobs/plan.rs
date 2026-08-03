@@ -176,7 +176,12 @@ pub fn validate_plan_for_queue(conn: &Connection, plan_revision_id: i64) -> Resu
             manifest.source_family
         ));
     }
-    if manifest.event_window_utc.end.is_empty() && !manifest.open {
+    if manifest.event_window_utc.end.is_empty() {
+        if manifest.open {
+            return Err(
+                "invalid_plan: open event requires an explicit analysis cutoff".to_string(),
+            );
+        }
         return Err("invalid_plan: event end unavailable".to_string());
     }
     canonical_plan_hash(&payload)
