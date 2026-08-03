@@ -32,10 +32,13 @@ fn demo_grnoc_event_count_is_explicit() {
     // INC0040293 has a reviewed analysis plan (manifests/), so the
     // corpus import represents it once via the reviewed event; the
     // remaining nine corpus tickets are imported as discovered events.
+    // Ten reviewed applicability records: nine corpus tickets plus the
+    // corrected INC0040293 record (optical relationship, not directly
+    // observable in public BGP) attached to its manifest event.
     assert_eq!(report.grnoc_events, 9, "{report:?}");
     assert_eq!(report.grnoc_snapshots, 9);
     assert_eq!(report.grnoc_relationships, 36);
-    assert_eq!(report.grnoc_reviews, 9);
+    assert_eq!(report.grnoc_reviews, 10);
     assert!(report.is_ok(), "{report:?}");
 }
 
@@ -346,15 +349,22 @@ async fn blocked_candidate_has_exact_next_action() {
         .iter()
         .find(|r| r.external_id == "INC0040291" || r.external_id == "INC0040289");
     if let Some(b) = blocked {
-        assert!(
-            b.next_action == "Review entity mapping"
-                || b.next_action == "Review transit predicate"
-                || b.next_action == "Review analysis window",
-            "unexpected next action {} for {}",
-            b.next_action,
-            b.external_id
-        );
-        assert!(b.selection_status.contains("predicate") || b.selection_status == "no plan");
+        if b.external_id == "INC0040291" {
+            // Corrected reviewed applicability: optical participant
+            // relationship, not directly observable in public BGP.
+            assert_eq!(b.next_action, "Review non-public-BGP evidence");
+            assert_eq!(b.readiness, "NotDirectlyObservableInPublicBgp");
+        } else {
+            assert!(
+                b.next_action == "Review entity mapping"
+                    || b.next_action == "Review transit predicate"
+                    || b.next_action == "Review analysis window",
+                "unexpected next action {} for {}",
+                b.next_action,
+                b.external_id
+            );
+            assert!(b.selection_status.contains("predicate") || b.selection_status == "no plan");
+        }
     }
     drop(conn);
 }

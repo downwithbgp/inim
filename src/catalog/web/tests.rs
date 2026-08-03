@@ -412,6 +412,12 @@ async fn analysis_page_matches_report_result() {
     )
     .unwrap();
     let label = report["result"]["verdict_label"].as_str().unwrap();
+    eprintln!(
+        "DEBUG run_id={run_id} body_has_NoObservable={} body_has_Unknown={} body_head={:?}",
+        body.contains("NoObservableBgpImpact"),
+        body.contains("Unknown"),
+        body.chars().take(120).collect::<String>()
+    );
     assert!(
         body.contains(label),
         "web page shows the report verdict label"

@@ -35,7 +35,7 @@ pub const COHORT_IDENTITY_SCHEMA_VERSION: u32 = 1;
 /// adds machine-readable `result`, `assessment`, and `archive_coverage`
 /// fields alongside the existing signature (text rendering changed
 /// without weakening the JSON).
-pub const REPORT_SCHEMA_VERSION: u32 = 2;
+pub const REPORT_SCHEMA_VERSION: u32 = 3;
 
 /// Evidence appendix schema.
 pub const EVIDENCE_APPENDIX_SCHEMA_VERSION: u32 = 1;

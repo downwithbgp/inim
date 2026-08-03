@@ -745,6 +745,16 @@ enum SyncSource {
         /// Live mode: expand the frontier from fetched public descriptions.
         #[arg(long)]
         expand_references: bool,
+        /// Live mode: bounded scoped search (repeatable). Searches the
+        /// documented viewer search mechanism with a non-empty reviewed
+        /// query; incident search requires --domain. Never issues
+        /// empty or unscoped queries.
+        #[arg(long, value_name = "QUERY")]
+        search: Vec<String>,
+        /// Domain id (sys_id) from `get_domains` used to scope incident
+        /// searches (unscoped incident search returns 403).
+        #[arg(long, value_name = "ID")]
+        domain: Option<String>,
         /// Request budget for this sync (default 100; never unbounded).
         #[arg(long, value_name = "N")]
         max_requests: Option<usize>,
@@ -1716,6 +1726,8 @@ fn cmd_catalog(stdout: &mut dyn Write, command: &CatalogCommands) -> i32 {
                 seed,
                 case_study,
                 expand_references,
+                search,
+                domain,
                 max_requests,
                 requests_per_second,
                 allow_higher_rate,
@@ -1773,6 +1785,8 @@ fn cmd_catalog(stdout: &mut dyn Write, command: &CatalogCommands) -> i32 {
                         seed,
                         case_study,
                         *expand_references,
+                        search,
+                        domain.as_deref(),
                         *max_requests,
                         *requests_per_second,
                         *allow_higher_rate,
@@ -2484,6 +2498,8 @@ fn cmd_grnoc_sync_live(
     seeds: &[String],
     case_studies: &[String],
     expand_references: bool,
+    searches: &[String],
+    domain: Option<&str>,
     max_requests: Option<usize>,
     requests_per_second: Option<f64>,
     allow_higher_rate: bool,
@@ -2524,9 +2540,75 @@ fn cmd_grnoc_sync_live(
         return EXIT_INVALID_INPUT;
     }
 
-    // ── Discovery frontier ─────────────────────────────────────────
+    // ── Bounded scoped search (Part E) ────────────────────────────
+    // The viewer's search mechanism is used only with non-empty
+    // reviewed queries; incident search requires a domain (unscoped
+    // incident search returns 403). Every query is recorded below as
+    // a discovery-source line, and results are recorded as frontier
+    // events with exact provenance.
     let source_kind = "grnoc-public-task-viewer";
     let now = chrono::Utc::now().to_rfc3339();
+    if !searches.is_empty() {
+        if dry_run {
+            for q in searches {
+                let _ = writeln!(stdout, "dry-run: would search {q:?} (domain {domain:?})");
+            }
+        } else {
+            let mut client = match GrnocViewerClient::new(policy.clone()) {
+                Ok(c) => c,
+                Err(e) => {
+                    let _ = writeln!(stdout, "error: {e}");
+                    return EXIT_INVALID_INPUT;
+                }
+            };
+            for q in searches {
+                if client.budget_remaining() == 0 {
+                    let _ = writeln!(stdout, "stop: request budget exhausted");
+                    break;
+                }
+                let endpoint = if domain.is_some() {
+                    "/api/get_incidents"
+                } else {
+                    "/api/get_change_requests"
+                };
+                let _ = writeln!(
+                    stdout,
+                    "search {q:?} via {endpoint} (domain {domain:?}, remaining budget {})",
+                    client.budget_remaining()
+                );
+                match client.search(endpoint, q, domain, 20) {
+                    Ok(records) => {
+                        let _ = writeln!(stdout, "  -> {} records", records.len());
+                        for rec in &records {
+                            let number = rec.number.clone();
+                            let title = rec.short_description.clone();
+                            let _ = writeln!(stdout, "     {number}  {title}");
+                            if let Err(e) = inim::catalog::discovery::record_analyst_seed(
+                                &conn,
+                                source_kind,
+                                &number,
+                                &now,
+                            ) {
+                                let _ = writeln!(stdout, "error: {e}");
+                                return EXIT_INVALID_INPUT;
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        let _ = writeln!(stdout, "  search failed: {e}");
+                        let _ = writeln!(
+                            stdout,
+                            "note: search stopped (403/429/budget); continuing with the frontier"
+                        );
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    // ── Discovery frontier ─────────────────────────────────────────
+
     for seed in seeds {
         if let Err(e) =
             inim::catalog::discovery::record_analyst_seed(&conn, source_kind, seed, &now)
@@ -3411,6 +3493,8 @@ mod session33_cli_tests {
                 seed,
                 case_study,
                 expand_references,
+                search,
+                domain,
                 max_requests,
                 requests_per_second,
                 allow_higher_rate,
@@ -3446,6 +3530,8 @@ mod session33_cli_tests {
             &["INC0040257".to_string()],
             &[],
             false,
+            &[],
+            None,
             None,
             Some(6.0),
             false,
@@ -3464,6 +3550,8 @@ mod session33_cli_tests {
             &["INC0040257".to_string()],
             &[],
             false,
+            &[],
+            None,
             None,
             Some(6.0),
             true,

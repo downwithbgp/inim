@@ -103,6 +103,103 @@ impl Verdict {
         }
     }
 
+    /// The observed route-state result, independent of any expectation.
+    ///
+    /// This is the ONLY presentation used for the route-state observation.
+    pub fn observed_result_kind(&self) -> ObservedResultKind {
+        match self {
+            Verdict::ExpectedRedundantImpact
+            | Verdict::ExpectedLossOfReachability
+            | Verdict::ExpectedParticipantUnavailability
+            | Verdict::ExpectedAlternateRouting
+            | Verdict::PartialImpact
+            | Verdict::PolicyChangeObserved
+            | Verdict::ProvisionalImpactObserved
+            | Verdict::UnexpectedWithdrawals
+            | Verdict::RedundancyFailureObserved
+            | Verdict::UnexpectedBlastRadius => ObservedResultKind::RouteStateChangesObserved,
+            Verdict::UnexpectedContinuedInternet2Path
+            | Verdict::ProvisionalNoImpactSoFar
+            | Verdict::LessImpactThanExpected
+            | Verdict::NoObservableBgpImpact => ObservedResultKind::NoRouteStateChangeObserved,
+            Verdict::InsufficientVisibility => ObservedResultKind::InsufficientQualifyingVisibility,
+            Verdict::Indeterminate => ObservedResultKind::AnalysisIncomplete,
+        }
+    }
+
+    /// The assessment of the observation against the reviewed ticket
+    /// expectation. Distinct from `observed_result_kind()`: the two must
+    /// never be merged into one label.
+    pub fn expectation_assessment_kind(&self) -> ExpectationAssessmentKind {
+        match self {
+            Verdict::ExpectedRedundantImpact
+            | Verdict::ExpectedLossOfReachability
+            | Verdict::ExpectedParticipantUnavailability
+            | Verdict::ExpectedAlternateRouting
+            | Verdict::NoObservableBgpImpact
+            | Verdict::ProvisionalImpactObserved
+            | Verdict::ProvisionalNoImpactSoFar => {
+                ExpectationAssessmentKind::ConsistentWithReviewedExpectation
+            }
+            Verdict::PartialImpact => {
+                ExpectationAssessmentKind::PartiallyConsistentWithReviewedExpectation
+            }
+            Verdict::PolicyChangeObserved
+            | Verdict::UnexpectedContinuedInternet2Path
+            | Verdict::LessImpactThanExpected => {
+                ExpectationAssessmentKind::LessExternallyVisibleChangeThanReviewedExpectation
+            }
+            Verdict::UnexpectedWithdrawals
+            | Verdict::RedundancyFailureObserved
+            | Verdict::UnexpectedBlastRadius => {
+                ExpectationAssessmentKind::MoreExternallyVisibleChangeThanReviewedExpectation
+            }
+            Verdict::InsufficientVisibility | Verdict::Indeterminate => {
+                ExpectationAssessmentKind::NotAssessableFromSelectedPublicObservers
+            }
+        }
+    }
+
+    /// Resolve a stored verdict string (machine enum name or a frozen
+    /// deprecated human label) back to the machine verdict, for
+    /// presentation of historical runs. Legacy labels are frozen artifact
+    /// vocabulary and never change.
+    pub fn from_stored(stored: &str) -> Option<Verdict> {
+        if let Ok(v) = serde_json::from_str::<Verdict>(&format!("\"{stored}\"")) {
+            return Some(v);
+        }
+        Self::from_deprecated_label(stored)
+    }
+
+    /// Frozen legacy presentation labels (retained for artifact
+    /// compatibility only). Current presentation must use
+    /// `observed_result_kind()` and `expectation_assessment_kind()`.
+    pub fn from_deprecated_label(label: &str) -> Option<Verdict> {
+        Some(match label {
+            "Expected redundant-attachment impact observed" => Verdict::ExpectedRedundantImpact,
+            "Expected loss of reachability observed" => Verdict::ExpectedLossOfReachability,
+            "Expected participant unavailability observed" => {
+                Verdict::ExpectedParticipantUnavailability
+            }
+            "Expected alternate routing observed" => Verdict::ExpectedAlternateRouting,
+            "Partial routing impact observed" => Verdict::PartialImpact,
+            "Unexpected continued reviewed-transit path" => {
+                Verdict::UnexpectedContinuedInternet2Path
+            }
+            "Policy-shape change observed" => Verdict::PolicyChangeObserved,
+            "Routing impact observed so far" => Verdict::ProvisionalImpactObserved,
+            "No route-state change observed so far" => Verdict::ProvisionalNoImpactSoFar,
+            "Unexpected withdrawals observed" => Verdict::UnexpectedWithdrawals,
+            "Redundancy failure observed" => Verdict::RedundancyFailureObserved,
+            "Unexpected blast radius observed" => Verdict::UnexpectedBlastRadius,
+            "Less impact than expected" => Verdict::LessImpactThanExpected,
+            "No route-state change observed" => Verdict::NoObservableBgpImpact,
+            "Insufficient visibility" => Verdict::InsufficientVisibility,
+            "Indeterminate" => Verdict::Indeterminate,
+            _ => return None,
+        })
+    }
+
     /// Whether this verdict is provisional for an open event.
     pub fn is_provisional(&self) -> bool {
         matches!(
@@ -165,6 +262,109 @@ pub struct Evidence {
     pub source_records: Vec<String>,
 }
 
+/// Observed route-state result — independent of any ticket expectation.
+///
+/// These are the ONLY labels allowed to describe what public BGP showed.
+/// They never contain expectation language ("expected", "unexpected") and
+/// never claim traffic or service impact.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ObservedResultKind {
+    /// At least one route-state transition was observed at a selected observer.
+    RouteStateChangesObserved,
+    /// No route-state transition was observed at the selected observers.
+    NoRouteStateChangeObserved,
+    /// The selected observers did not provide qualifying baseline visibility.
+    InsufficientQualifyingVisibility,
+    /// The analysis did not complete (source or parser failure).
+    AnalysisIncomplete,
+}
+
+impl ObservedResultKind {
+    pub fn human_label(&self) -> &'static str {
+        match self {
+            ObservedResultKind::RouteStateChangesObserved => "Route-state changes observed",
+            ObservedResultKind::NoRouteStateChangeObserved => "No route-state change observed",
+            ObservedResultKind::InsufficientQualifyingVisibility => {
+                "Insufficient qualifying visibility"
+            }
+            ObservedResultKind::AnalysisIncomplete => "Analysis incomplete",
+        }
+    }
+
+    /// The scope statement that must accompany every observed result.
+    pub fn scope_statement(&self) -> &'static str {
+        "Observation is limited to externally exported BGP route state at the selected public-BGP observer sessions; it does not measure traffic, circuit, or service state."
+    }
+}
+
+/// The assessment of the observed result against the reviewed ticket
+/// expectation.
+///
+/// These labels reference the reviewed expectation and never contain
+/// route-transition counts.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ExpectationAssessmentKind {
+    ConsistentWithReviewedExpectation,
+    PartiallyConsistentWithReviewedExpectation,
+    LessExternallyVisibleChangeThanReviewedExpectation,
+    MoreExternallyVisibleChangeThanReviewedExpectation,
+    NotAssessableFromSelectedPublicObservers,
+    NoReviewedExpectationExists,
+    ProvisionalAssessment,
+}
+
+impl ExpectationAssessmentKind {
+    /// Parse a machine kind name (report.json "kind" field).
+    pub fn from_label(kind: &str) -> Option<ExpectationAssessmentKind> {
+        Some(match kind {
+            "ConsistentWithReviewedExpectation" => {
+                ExpectationAssessmentKind::ConsistentWithReviewedExpectation
+            }
+            "PartiallyConsistentWithReviewedExpectation" => {
+                ExpectationAssessmentKind::PartiallyConsistentWithReviewedExpectation
+            }
+            "LessExternallyVisibleChangeThanReviewedExpectation" => {
+                ExpectationAssessmentKind::LessExternallyVisibleChangeThanReviewedExpectation
+            }
+            "MoreExternallyVisibleChangeThanReviewedExpectation" => {
+                ExpectationAssessmentKind::MoreExternallyVisibleChangeThanReviewedExpectation
+            }
+            "NotAssessableFromSelectedPublicObservers" => {
+                ExpectationAssessmentKind::NotAssessableFromSelectedPublicObservers
+            }
+            "NoReviewedExpectationExists" => ExpectationAssessmentKind::NoReviewedExpectationExists,
+            "ProvisionalAssessment" => ExpectationAssessmentKind::ProvisionalAssessment,
+            _ => return None,
+        })
+    }
+
+    pub fn human_label(&self) -> &'static str {
+        match self {
+            ExpectationAssessmentKind::ConsistentWithReviewedExpectation => {
+                "Consistent with the reviewed expectation"
+            }
+            ExpectationAssessmentKind::PartiallyConsistentWithReviewedExpectation => {
+                "Partially consistent with the reviewed expectation"
+            }
+            ExpectationAssessmentKind::LessExternallyVisibleChangeThanReviewedExpectation => {
+                "Less externally visible change than the reviewed expectation"
+            }
+            ExpectationAssessmentKind::MoreExternallyVisibleChangeThanReviewedExpectation => {
+                "More externally visible change than the reviewed expectation"
+            }
+            ExpectationAssessmentKind::NotAssessableFromSelectedPublicObservers => {
+                "Not assessable from the selected public observers"
+            }
+            ExpectationAssessmentKind::NoReviewedExpectationExists => {
+                "No reviewed expectation exists"
+            }
+            ExpectationAssessmentKind::ProvisionalAssessment => {
+                "Provisional assessment (open event)"
+            }
+        }
+    }
+}
+
 /// A complete assessment of an operational event.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct EventAssessment {
@@ -224,6 +424,281 @@ mod tests {
         assert_eq!(assessment.event_id.0, "CHG0107955");
         assert_eq!(assessment.expectation.kind, ExpectationKind::Redundant);
         assert_eq!(assessment.verdict, Verdict::ExpectedRedundantImpact);
+    }
+
+    // ── Semantic-layer separation (observed vs expectation) ────────
+
+    #[test]
+    fn observed_result_contains_no_expectation_language() {
+        let forbidden = ["expected", "unexpected", "impact"];
+        for kind in [
+            ObservedResultKind::RouteStateChangesObserved,
+            ObservedResultKind::NoRouteStateChangeObserved,
+            ObservedResultKind::InsufficientQualifyingVisibility,
+            ObservedResultKind::AnalysisIncomplete,
+        ] {
+            let label = kind.human_label().to_lowercase();
+            for word in forbidden {
+                assert!(
+                    !label.contains(word),
+                    "observed-result label {:?} contains expectation word {word:?}",
+                    kind.human_label()
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn expectation_assessment_contains_no_route_transition_count() {
+        for kind in [
+            ExpectationAssessmentKind::ConsistentWithReviewedExpectation,
+            ExpectationAssessmentKind::PartiallyConsistentWithReviewedExpectation,
+            ExpectationAssessmentKind::LessExternallyVisibleChangeThanReviewedExpectation,
+            ExpectationAssessmentKind::MoreExternallyVisibleChangeThanReviewedExpectation,
+            ExpectationAssessmentKind::NotAssessableFromSelectedPublicObservers,
+            ExpectationAssessmentKind::NoReviewedExpectationExists,
+            ExpectationAssessmentKind::ProvisionalAssessment,
+        ] {
+            let label = kind.human_label().to_lowercase();
+            assert!(
+                !label.chars().any(|c| c.is_ascii_digit()),
+                "expectation-assessment label contains a route-transition count: {:?}",
+                kind.human_label()
+            );
+            assert!(
+                !label.contains("stream") && !label.contains("transition"),
+                "expectation-assessment label contains route-state counts: {:?}",
+                kind.human_label()
+            );
+        }
+    }
+
+    #[test]
+    fn no_change_does_not_claim_no_service_impact() {
+        // The no-change label and its scope statement must not claim
+        // traffic or service state.
+        let label = ObservedResultKind::NoRouteStateChangeObserved
+            .human_label()
+            .to_lowercase();
+        for word in ["service", "traffic", "impact"] {
+            assert!(!label.contains(word), "no-change label claims {word}");
+        }
+        let scope = ObservedResultKind::NoRouteStateChangeObserved
+            .scope_statement()
+            .to_lowercase();
+        assert!(
+            scope.contains("does not measure traffic") || scope.contains("not traffic"),
+            "no-change scope must state the traffic limit"
+        );
+    }
+
+    #[test]
+    fn continued_transit_does_not_claim_operator_action_failed() {
+        let label = ExpectationAssessmentKind::LessExternallyVisibleChangeThanReviewedExpectation
+            .human_label()
+            .to_lowercase();
+        for word in ["failed", "wrong", "success", "operator"] {
+            assert!(
+                !label.contains(word),
+                "expectation label claims operator outcome: {word}"
+            );
+        }
+    }
+
+    #[test]
+    fn public_bgp_scope_is_stated() {
+        let scope = ObservedResultKind::NoRouteStateChangeObserved.scope_statement();
+        assert!(scope.contains("public-BGP"), "{scope}");
+        assert!(scope.contains("selected"), "{scope}");
+        assert!(scope.contains("does not measure"), "{scope}");
+    }
+
+    #[test]
+    fn result_and_assessment_serialize_separately() {
+        // The two presentation layers serialize as distinct machine kinds.
+        let v = Verdict::UnexpectedContinuedInternet2Path;
+        let observed = serde_json::to_string(&v.observed_result_kind()).unwrap();
+        let expected = serde_json::to_string(&v.expectation_assessment_kind()).unwrap();
+        assert_ne!(observed, expected);
+        assert_eq!(observed, "\"NoRouteStateChangeObserved\"");
+        assert_eq!(
+            expected,
+            "\"LessExternallyVisibleChangeThanReviewedExpectation\""
+        );
+    }
+
+    #[test]
+    fn human_labels_are_observer_scoped() {
+        for kind in [
+            ObservedResultKind::RouteStateChangesObserved,
+            ObservedResultKind::NoRouteStateChangeObserved,
+            ObservedResultKind::InsufficientQualifyingVisibility,
+            ObservedResultKind::AnalysisIncomplete,
+        ] {
+            assert!(
+                kind.scope_statement().contains("observer"),
+                "scope statement not observer-scoped for {kind:?}"
+            );
+        }
+    }
+
+    #[test]
+    fn human_labels_do_not_claim_traffic() {
+        for kind in [
+            ObservedResultKind::RouteStateChangesObserved,
+            ObservedResultKind::NoRouteStateChangeObserved,
+            ObservedResultKind::InsufficientQualifyingVisibility,
+            ObservedResultKind::AnalysisIncomplete,
+        ] {
+            assert!(
+                !kind.scope_statement().to_lowercase().contains("traffic is"),
+                "{kind:?} scope claims traffic"
+            );
+        }
+    }
+
+    #[test]
+    fn expectation_labels_reference_reviewed_expectation() {
+        for kind in [
+            ExpectationAssessmentKind::ConsistentWithReviewedExpectation,
+            ExpectationAssessmentKind::PartiallyConsistentWithReviewedExpectation,
+            ExpectationAssessmentKind::LessExternallyVisibleChangeThanReviewedExpectation,
+            ExpectationAssessmentKind::MoreExternallyVisibleChangeThanReviewedExpectation,
+        ] {
+            assert!(
+                kind.human_label().contains("reviewed expectation"),
+                "{kind:?} does not reference the reviewed expectation"
+            );
+        }
+    }
+
+    #[test]
+    fn insufficient_visibility_is_not_no_change() {
+        assert_ne!(
+            ObservedResultKind::InsufficientQualifyingVisibility.human_label(),
+            ObservedResultKind::NoRouteStateChangeObserved.human_label()
+        );
+    }
+
+    #[test]
+    fn analysis_incomplete_is_not_insufficient_visibility() {
+        assert_ne!(
+            ObservedResultKind::AnalysisIncomplete.human_label(),
+            ObservedResultKind::InsufficientQualifyingVisibility.human_label()
+        );
+    }
+
+    #[test]
+    fn deprecated_labels_round_trip() {
+        // Frozen legacy labels must resolve back to the machine verdict.
+        assert_eq!(
+            Verdict::from_stored("Unexpected continued reviewed-transit path"),
+            Some(Verdict::UnexpectedContinuedInternet2Path)
+        );
+        assert_eq!(
+            Verdict::from_stored("No route-state change observed"),
+            Some(Verdict::NoObservableBgpImpact)
+        );
+        assert_eq!(
+            Verdict::from_stored("UnexpectedContinuedInternet2Path"),
+            Some(Verdict::UnexpectedContinuedInternet2Path)
+        );
+        assert_eq!(Verdict::from_stored("NoSuchLabel"), None);
+    }
+
+    #[test]
+    fn mapping_is_total_and_separated() {
+        // Every verdict maps to exactly one observed result and one
+        // expectation assessment; the two never share a label.
+        use ExpectationAssessmentKind as E;
+        use ObservedResultKind as O;
+        let cases = [
+            (
+                Verdict::ExpectedRedundantImpact,
+                O::RouteStateChangesObserved,
+                E::ConsistentWithReviewedExpectation,
+            ),
+            (
+                Verdict::ExpectedLossOfReachability,
+                O::RouteStateChangesObserved,
+                E::ConsistentWithReviewedExpectation,
+            ),
+            (
+                Verdict::ExpectedParticipantUnavailability,
+                O::RouteStateChangesObserved,
+                E::ConsistentWithReviewedExpectation,
+            ),
+            (
+                Verdict::ExpectedAlternateRouting,
+                O::RouteStateChangesObserved,
+                E::ConsistentWithReviewedExpectation,
+            ),
+            (
+                Verdict::PartialImpact,
+                O::RouteStateChangesObserved,
+                E::PartiallyConsistentWithReviewedExpectation,
+            ),
+            (
+                Verdict::UnexpectedContinuedInternet2Path,
+                O::NoRouteStateChangeObserved,
+                E::LessExternallyVisibleChangeThanReviewedExpectation,
+            ),
+            (
+                Verdict::PolicyChangeObserved,
+                O::RouteStateChangesObserved,
+                E::LessExternallyVisibleChangeThanReviewedExpectation,
+            ),
+            (
+                Verdict::ProvisionalImpactObserved,
+                O::RouteStateChangesObserved,
+                E::ConsistentWithReviewedExpectation,
+            ),
+            (
+                Verdict::ProvisionalNoImpactSoFar,
+                O::NoRouteStateChangeObserved,
+                E::ConsistentWithReviewedExpectation,
+            ),
+            (
+                Verdict::UnexpectedWithdrawals,
+                O::RouteStateChangesObserved,
+                E::MoreExternallyVisibleChangeThanReviewedExpectation,
+            ),
+            (
+                Verdict::RedundancyFailureObserved,
+                O::RouteStateChangesObserved,
+                E::MoreExternallyVisibleChangeThanReviewedExpectation,
+            ),
+            (
+                Verdict::UnexpectedBlastRadius,
+                O::RouteStateChangesObserved,
+                E::MoreExternallyVisibleChangeThanReviewedExpectation,
+            ),
+            (
+                Verdict::LessImpactThanExpected,
+                O::NoRouteStateChangeObserved,
+                E::LessExternallyVisibleChangeThanReviewedExpectation,
+            ),
+            (
+                Verdict::NoObservableBgpImpact,
+                O::NoRouteStateChangeObserved,
+                E::ConsistentWithReviewedExpectation,
+            ),
+            (
+                Verdict::InsufficientVisibility,
+                O::InsufficientQualifyingVisibility,
+                E::NotAssessableFromSelectedPublicObservers,
+            ),
+            (
+                Verdict::Indeterminate,
+                O::AnalysisIncomplete,
+                E::NotAssessableFromSelectedPublicObservers,
+            ),
+        ];
+        for (v, o, e) in cases {
+            assert_eq!(v.observed_result_kind(), o, "{v:?}");
+            assert_eq!(v.expectation_assessment_kind(), e, "{v:?}");
+            assert_ne!(o.human_label(), e.human_label(), "{v:?}");
+        }
     }
 
     #[test]

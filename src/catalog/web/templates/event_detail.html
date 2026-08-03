@@ -19,7 +19,11 @@
   <tr><th>Event window</th><td>{{ start }} → {{ end }}</td></tr>
   <tr><th>Expectation</th><td>{{ expectation }}</td></tr>
   <tr><th>Latest result</th><td>{{ latest_result }}</td></tr>
+  {% if supporting_only %}
+  <tr><th>Assessment</th><td class="muted">No public-BGP expectation assessment: the reviewed relationship is not directly observable in public BGP. The BGP run below is a contemporaneous supporting observation with scope mismatch.</td></tr>
+  {% else %}
   <tr><th>Assessment</th><td>{{ assessment }}</td></tr>
+  {% endif %}
 </table>
 {% if !stale_reason.is_empty() %}
 <p class="error">{{ stale_reason }}</p>
@@ -35,7 +39,7 @@
   <td><a href="/analyses/{{ r.id }}">{{ r.id }}</a></td>
   <td>{{ r.status }}</td>
   <td>{{ r.started_at }}</td>
-  <td>{{ r.verdict }}</td>
+  <td>{% if supporting_only %}{{ r.verdict }}<br><span class="muted">supporting observation; scope mismatch — does not assess the named relationship</span>{% else %}{{ r.verdict }}{% endif %}</td>
   <td>{{ r.assessment }}</td>
 </tr>
 {% else %}

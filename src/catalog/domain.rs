@@ -561,9 +561,24 @@ pub mod reviewed_role {
 }
 
 /// Analysis applicability of a ticket to public-BGP analysis (reviewed).
+///
+/// The RELATIONSHIP named by the ticket decides applicability, not the
+/// mere existence of an ASN for the named organization: an optical
+/// participant interface, Layer-2 circuit, exchange fabric, alarm, or
+/// telemetry condition is not directly observable in public BGP even
+/// when the organization owns an ASN.
 pub mod applicability {
     pub const POTENTIALLY_VISIBLE: &str = "PotentiallyVisibleInPublicBgp";
     pub const NOT_APPLICABLE: &str = "NotApplicableToPublicBgp";
+    /// The reviewed relationship exists but is not directly observable
+    /// in public BGP (e.g. optical participant interface, Layer-2
+    /// circuit, exchange fabric, alarm/telemetry). A contemporaneous
+    /// BGP run may be retained as supporting context but never becomes
+    /// primary evidence for the named relationship.
+    pub const NOT_DIRECTLY_OBSERVABLE: &str = "NotDirectlyObservableInPublicBgp";
+    /// No reviewed origin attribution exists (test equipment, exchange
+    /// fabric, entities without a public origin ASN).
+    pub const NOT_ORIGIN_ATTRIBUTABLE: &str = "NotOriginAttributable";
     pub const TARGET_NOT_YET_MAPPED: &str = "ApplicableTargetNotYetMapped";
 }
 

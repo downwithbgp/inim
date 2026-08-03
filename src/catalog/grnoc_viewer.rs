@@ -116,6 +116,85 @@ impl GrnocViewerClient {
         self.client.bytes_transferred()
     }
 
+    /// Fetch the public network/domain list (`get_domains`).
+    ///
+    /// Returns raw JSON records (name, sys_id, criteria) as parsed
+    /// values; the viewer's schema is undocumented, so consumers must
+    /// tolerate missing fields. One request.
+    pub fn fetch_domains(&mut self) -> Result<Vec<serde_json::Value>, GrnocViewerError> {
+        let url = format!("{}/api/get_domains", self.base_url);
+        let outcome = self
+            .client
+            .fetch_post(&url, "{}", None, None)
+            .map_err(map_client_error)?;
+        match outcome {
+            FetchOutcome::Ok(body) => {
+                let value: serde_json::Value = serde_json::from_str(&body.body)
+                    .map_err(|e| GrnocViewerError::Parse(e.to_string()))?;
+                Ok(value
+                    .get("result")
+                    .and_then(|r| r.as_array())
+                    .cloned()
+                    .unwrap_or_default())
+            }
+            _ => Err(GrnocViewerError::UnexpectedStatus(0)),
+        }
+    }
+
+    /// Bounded scoped search through the viewer's public search
+    /// mechanism (documented in
+    /// `docs/sources/GRNOC_PUBLIC_TASK_VIEWER.md`).
+    ///
+    /// The SPA sends `{"query", "domain_id", "active", "limit",
+    /// "offset"}`. Incident search REQUIRES a reviewed `domain_id`
+    /// (unscoped incident search returns 403); change-request search
+    /// works without one. `query` must be a non-empty reviewed query
+    /// string — empty or unscoped broad queries are never issued.
+    /// Only the first page (`limit`) is fetched; pagination is left to
+    /// reviewed follow-ups.
+    pub fn search(
+        &mut self,
+        endpoint: &str,
+        query: &str,
+        domain_id: Option<&str>,
+        limit: usize,
+    ) -> Result<Vec<crate::sources::grnoc::ViewerRecord>, GrnocViewerError> {
+        debug_assert!(
+            endpoint == "/api/get_incidents" || endpoint == "/api/get_change_requests",
+            "search endpoint must be one of the documented record endpoints"
+        );
+        if query.trim().is_empty() {
+            return Err(GrnocViewerError::Stop(StopReason::Forbidden));
+        }
+        let mut body = serde_json::json!({
+            "query": query,
+            "active": true,
+            "limit": limit,
+            "offset": 0,
+        });
+        if let Some(domain) = domain_id {
+            body["domain_id"] = serde_json::Value::String(domain.to_string());
+        }
+        let url = format!("{}{}", self.base_url, endpoint);
+        let outcome = self
+            .client
+            .fetch_post(&url, &body.to_string(), None, None)
+            .map_err(map_client_error)?;
+        match outcome {
+            FetchOutcome::Ok(body) => {
+                let response = crate::sources::grnoc::ViewerResponse::parse_json(&body.body)
+                    .map_err(GrnocViewerError::Parse)?;
+                Ok(response.result)
+            }
+            FetchOutcome::Forbidden => Err(GrnocViewerError::Stop(StopReason::Forbidden)),
+            FetchOutcome::Unauthorized => {
+                Err(GrnocViewerError::Stop(StopReason::AuthenticationRequired))
+            }
+            FetchOutcome::NotFound => Ok(vec![]),
+            FetchOutcome::NotModified => Ok(vec![]),
+        }
+    }
+
     /// Endpoint for a ticket number; `None` for unsupported families.
     fn endpoint_for(number: &str) -> Option<&'static str> {
         let lower = number.to_ascii_lowercase();
@@ -139,12 +218,7 @@ impl GrnocViewerClient {
         let outcome = self
             .client
             .fetch_post(&url, &body, None, None)
-            .map_err(|e| match e {
-                ClientError::Stop(s) => GrnocViewerError::Stop(s),
-                ClientError::TooManyRetries(d) => GrnocViewerError::Transport(d),
-                ClientError::UnexpectedStatus(s) => GrnocViewerError::UnexpectedStatus(s),
-                ClientError::Transport(d) => GrnocViewerError::Transport(d),
-            })?;
+            .map_err(map_client_error)?;
         let retries = self.client.last_retries() as i64;
         match outcome {
             FetchOutcome::Ok(body) => {
@@ -277,6 +351,15 @@ pub struct CorpusSyncSummary {
 /// Fetched (found) or Unresolved (not found / unsupported). A stop
 /// reason terminates the run cleanly; remaining IDs stay Pending and are
 /// resumed by a later run.
+fn map_client_error(e: ClientError) -> GrnocViewerError {
+    match e {
+        ClientError::Stop(s) => GrnocViewerError::Stop(s),
+        ClientError::TooManyRetries(d) => GrnocViewerError::Transport(d),
+        ClientError::UnexpectedStatus(s) => GrnocViewerError::UnexpectedStatus(s),
+        ClientError::Transport(d) => GrnocViewerError::Transport(d),
+    }
+}
+
 pub fn sync_frontier(
     conn: &rusqlite::Connection,
     client: &mut GrnocViewerClient,

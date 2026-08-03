@@ -222,17 +222,23 @@ pub(crate) fn import_one(
                 .get("schema_version")
                 .and_then(|v| v.as_u64())
                 .unwrap_or(0) as u32;
-            if report_schema != crate::schema::REPORT_SCHEMA_VERSION {
+            // Historical immutable reports (v2) remain importable; the
+            // schema is additive and the presentation layer maps stored
+            // verdicts through the source-neutral vocabulary.
+            if !(2..=crate::schema::REPORT_SCHEMA_VERSION).contains(&report_schema) {
                 return Err(format!(
-                    "import rejected for {event_id_str}: report schema v{report_schema} is not current v{}",
+                    "import rejected for {event_id_str}: report schema v{report_schema} is not a supported historical schema (v2..=v{})",
                     crate::schema::REPORT_SCHEMA_VERSION
                 ));
             }
 
+            // Store the MACHINE verdict name when present (stable
+            // identity across label vocabulary changes); fall back to
+            // the frozen legacy human label for very old artifacts.
             let verdict = report
                 .get("result")
-                .and_then(|r| r.get("verdict_label"))
-                .or_else(|| report.get("result").and_then(|r| r.get("verdict")))
+                .and_then(|r| r.get("verdict"))
+                .or_else(|| report.get("result").and_then(|r| r.get("verdict_label")))
                 .and_then(|v| v.as_str())
                 .map(|s| s.to_string());
             let assessment = report
