@@ -184,3 +184,13 @@ alone.
   2019 baseline" from "no AS2603 visibility": both facts are reported
   separately (`rrc11-audit-2019.json`), and the direct pilot decision
   records the exact blocking reason.
+
+## Job observability
+
+The job page shows factual progress with explicit units (archives
+parsed, streams frozen) and never invents percentages from an unknown
+denominator. Worker presence is freshness-based; a worker that is
+absent is not unhealthy. Cancellation is cooperative and checked at
+stage and archive boundaries, never per BGP element. A completed
+analysis with InsufficientVisibility is a valid completed job, not a
+worker failure.

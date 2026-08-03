@@ -24,7 +24,7 @@ This audit verifies that every tracked file is classified, that every current st
 
 ## Summary
 
-Tracked files: **359** · inventory entries: **359**
+Tracked files: **362** · inventory entries: **362**
 
 | Category | Files |
 |---|---|
@@ -34,18 +34,19 @@ Tracked files: **359** · inventory entries: **359**
 | Configuration | 22 |
 | Reviewed case-study interpretation | 22 |
 | Script or developer tool | 21 |
-| Normative current documentation | 17 |
+| Normative current documentation | 19 |
 | Template or stylesheet | 16 |
 | Test fixture | 11 |
 | Test source | 6 |
+| GitHub/community metadata | 3 |
 | Packaging or release metadata | 3 |
-| GitHub/community metadata | 2 |
 | License or third-party notice | 2 |
 
 ## Inventory
 
 | Path | Category | Audience | Authoritative source | Generated | Current | Review result | Changes required | Final status |
 |---|---|---|---|---|---|---|---|---|
+| `.github/ISSUE_TEMPLATE/noc-alpha-feedback.md` | GitHub/community metadata | contributors | reviewed protocol | no | current | reviewed in this audit | none | reviewed in this audit |
 | `.github/dependabot.yml` | GitHub/community metadata | contributors | GitHub Dependabot configuration + action review policy | no | current | reviewed in this audit | none | reviewed in this audit |
 | `.github/workflows/ci.yml` | GitHub/community metadata | contributors | GitHub Actions upstream releases | no | current | reviewed in this audit | none | reviewed in this audit |
 | `.gitignore` | Configuration | maintainers | reviewed operator configuration | no | current | reviewed in this audit | none | reviewed in this audit |
@@ -231,9 +232,11 @@ Tracked files: **359** · inventory entries: **359**
 | `docs/TASKS.md` | Historical decision record | maintainers | decision context at time of writing | no | historical | status and applicability reviewed in this audit | none | reviewed in this audit |
 | `docs/UX.md` | Normative current documentation | contributors and operators | implementation + canonical evidence (see docs/README authority map) | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
 | `docs/audits/2026-08-clean-clone.md` | Normative current documentation | maintainers | dated audit evidence | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
+| `docs/audits/2026-08-fresh-event-candidates.md` | Normative current documentation | maintainers | dated audit evidence | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
 | `docs/audits/2026-08-repository-truth-audit.md` | Normative current documentation | maintainers | repository-inventory.json + git state (rendered, reviewed content) | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
 | `docs/audits/external-links-2026-08.md` | Normative current documentation | maintainers | dated curl checks of documented external URLs | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
 | `docs/audits/repository-inventory.json` | Configuration | maintainers | reviewed classification of tracked files | no | current | reviewed in this audit | none | reviewed in this audit |
+| `docs/evaluation/NOC-ALPHA-EVALUATION.md` | Normative current documentation | evaluators | reviewed protocol | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
 | `docs/session-10-baseline.md` | Historical decision record | maintainers | decision context at time of writing | no | historical | status and applicability reviewed in this audit | none | reviewed in this audit |
 | `docs/sources/GRNOC_BULK_ACCESS_REQUEST.md` | Normative current documentation | contributors and operators | implementation + canonical evidence (see docs/README authority map) | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
 | `docs/sources/GRNOC_PUBLIC_TASK_VIEWER.md` | Normative current documentation | contributors and operators | implementation + canonical evidence (see docs/README authority map) | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |

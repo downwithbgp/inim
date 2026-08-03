@@ -111,3 +111,10 @@ cargo clippy --all-targets --all-features -- -D warnings
 - The GRNOC bulk-access request draft
   (`docs/sources/GRNOC_BULK_ACCESS_REQUEST.md`) must NOT be sent
   without user approval.
+
+## Job workflow verification before release
+
+Run the offline queued-analysis smoke (`cargo test --locked --test
+queued_analysis_e2e_test`) and the packaged-source demo check
+(`cargo package`, extract, `inim demo init`) in addition to the gates
+below.

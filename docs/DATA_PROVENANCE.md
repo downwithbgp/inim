@@ -375,3 +375,13 @@ all raw archives already local.
   populated by `inim catalog session-metadata-backfill` (UVA's four
   peers from the cached 2026-07-14 RouteViews RIB: AS2152, AS11537,
   AS293, AS7660).
+
+## Queued-run provenance
+
+A queued run's provenance chain is: plan revision (immutable row) +
+canonical plan hash + job id + worker id + archive manifest (SHA-256
+per archive). `execution_metadata.json` in the published run records
+the plan hash, job id, attempt, worker id, wall time, and stage
+durations — volatile values that never enter semantic evidence or cache
+identity. The job event log records every mutation with a source marker
+(`cli` / `local-web`).

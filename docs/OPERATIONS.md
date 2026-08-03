@@ -93,3 +93,41 @@ terminal 2: inim worker --db data/inim.sqlite --root .
 The server is read-only without `--enable-writes`. Write mode is
 unauthenticated and loopback-only by default; see
 `docs/ADRs/DURABLE-ANALYSIS-JOBS.md` for the security model.
+
+## Retention and cleanup
+
+Job history is deliberately retained: completed job records are run
+provenance, failed job records are diagnostics. Nothing is deleted
+automatically in this session.
+
+- Completed staging directories are removed after verified publication.
+- Failed/cancelled staging directories are removed unless the worker
+  runs with `--keep-failed-workdir` (a developer flag, never a web
+  control); the failure/cancellation summary stays in the job event
+  log.
+- Orphan final artifact directories and catalog runs with missing
+  artifacts are reported by `inim analysis-job audit` (dry-run only) —
+  never deleted automatically, because evidence may be valuable.
+- Caches are never touched by job cleanup; retries reuse caches through
+  their existing identity.
+
+## Audit trail of web mutations
+
+Every job mutation (queue, cancellation request, retry) appends to the
+job event log with a source marker (`local-web` or `cli`), prior and
+resulting state, and a bounded structured detail. Plan edits create a
+new manifest revision whose `reviewed_at` / `reviewer` fields carry the
+provenance. The CSRF token is never stored and never logged.
+
+## Planning queue vs execution queue
+
+- **Analysis queue** (`/analysis-queue`) is the planning queue: one row
+  per event, with readiness (Needs review / Ready / Blocked) and the
+  next analyst action. Unresolved candidates and running analyses are
+  never merged into one status enum.
+- **Analysis jobs** (`/analysis-jobs`) is the execution queue: durable
+  job rows with execution state, stage, factual progress, worker
+  freshness, and result links.
+
+Plan status, job status, and run status remain distinct concepts in
+code, in the UI, and in the glossary.

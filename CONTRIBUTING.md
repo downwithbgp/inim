@@ -65,3 +65,12 @@ The repository is public at https://github.com/downwithbgp/inim.
 
 See `RELEASING.md` for the release-readiness checklist (gates, license
 audit, packaging, verification).
+
+## Job workflow development
+
+The job service (`src/catalog/jobs/service.rs`) owns all business
+rules; web handlers, CLI commands, and the worker call it — never
+duplicate rules in command handlers. The worker is the only component
+that performs source access. Tests must stay offline: the e2e fixture
+(`tests/queued_analysis_e2e_test.rs`) runs the real worker against a
+tracked MRT fixture in `--offline` mode.

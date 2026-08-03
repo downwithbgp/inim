@@ -381,3 +381,15 @@ complete.
 - **Timeline** — lanes are observer sessions; operator anchors and BGP
   evidence have distinct kinds; timestamps are exact observations, never
   interpolated; unresolved end states are explicit.
+
+## Job model
+
+An analysis job is durable execution state for one exact immutable plan
+revision: queue → claim (with a renewable lease) → execution stages →
+Completed / Cancelled / Failed. Terminal jobs are immutable; retry
+creates a new attempt linked via `original_job_id`. The canonical plan
+hash (execution-relevant fields only, no timestamps) is the identity
+used for queue idempotency and run provenance. Staged artifact roots
+are catalog-root-relative paths, never absolute. See
+`docs/GLOSSARY.md` (Analysis job, Worker lease, Plan revision, Staging
+artifact).
