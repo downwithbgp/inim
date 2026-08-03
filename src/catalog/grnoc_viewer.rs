@@ -147,12 +147,12 @@ impl GrnocViewerClient {
             FetchOutcome::Unauthorized => {
                 Err(GrnocViewerError::Stop(StopReason::AuthenticationRequired))
             }
-            FetchOutcome::NotFound => {
-                Err(GrnocViewerError::Transport("domains endpoint not found".to_string()))
-            }
-            FetchOutcome::NotModified => {
-                Err(GrnocViewerError::Transport("domains endpoint 304 unexpected".to_string()))
-            }
+            FetchOutcome::NotFound => Err(GrnocViewerError::Transport(
+                "domains endpoint not found".to_string(),
+            )),
+            FetchOutcome::NotModified => Err(GrnocViewerError::Transport(
+                "domains endpoint 304 unexpected".to_string(),
+            )),
         }
     }
 
