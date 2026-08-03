@@ -1432,6 +1432,14 @@
   "current": true
  },
  {
+  "path": "case-studies/manlan-esnet-2019/out/INC0040293/evidence_appendix.jsonl",
+  "category": "Immutable or generated evidence",
+  "audience": "analysts",
+  "authoritative": "canonical run artifacts",
+  "generated": true,
+  "current": true
+ },
+ {
   "path": "case-studies/manlan-esnet-2019/out/INC0040293/execution_metadata.json",
   "category": "Immutable or generated evidence",
   "audience": "analysts",
@@ -1465,6 +1473,14 @@
  },
  {
   "path": "case-studies/manlan-esnet-2019/out/INC0040293/report.json",
+  "category": "Immutable or generated evidence",
+  "audience": "analysts",
+  "authoritative": "canonical run artifacts",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-esnet-2019/out/INC0040293/report.txt",
   "category": "Immutable or generated evidence",
   "audience": "analysts",
   "authoritative": "canonical run artifacts",
@@ -2180,6 +2196,14 @@
   "category": "Production source",
   "audience": "maintainers",
   "authoritative": "implementation (behavioral authority)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/catalog/jobs/cleanup.rs",
+  "category": "Production source",
+  "audience": "developers",
+  "authoritative": "implementation",
   "generated": false,
   "current": true
  },

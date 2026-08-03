@@ -131,3 +131,26 @@ provenance. The CSRF token is never stored and never logged.
 
 Plan status, job status, and run status remain distinct concepts in
 code, in the UI, and in the glossary.
+
+## Demo corpus boundary (2026-08)
+
+`inim demo init` builds a deterministic, offline, bounded catalog from
+tracked reviewed material only. The contract, encoded in the generated
+`demo-manifest.json` (written next to the database, timestamp-free):
+
+| Included | Count | Source |
+|---|---|---|
+| Reviewed manifest events | 4 | `manifests/*.json` (INC0299001, INC0301970, INC0302574, INC0040293) |
+| GRNOC corpus events | 9 | `case-studies/manlan-2019/corpus/` snapshots (INC0040293 is represented by its reviewed analysis event; its corpus row is skipped to avoid a duplicate) |
+| Imported snapshots | 13 | manifest + corpus snapshots |
+| Completed runs | 3 | reviewed out/ evidence incl. the fresh ESnet run |
+| Plans | 4 | reviewed manifest plans (no automatic plans for corpus tickets) |
+| Jobs | 0 | demo never queues |
+| Relationships | 36 | corpus relationships (2 TASK references retained unresolved) |
+| Reviews | 9 | `pilot/ticket-reviews.json` (corpus tickets only) |
+| Workbenches | 4 URLs | expected_workbench_urls in the manifest |
+
+Excluded from the crate/demo: raw MRT archives, derived caches,
+runtime SQLite databases, worker staging, screenshots. The corpus
+snapshots ARE packaged (public records, redistribution documented);
+case-study review material in Git is packaged with it.
