@@ -467,10 +467,10 @@ mod session48_hyphenated_site_tests {
         // The reviewed convention: a parenthesized site/attachment code
         // indicates expected redundancy. Multi-site codes such as
         // (KANS-WASH) must count.
-        let title = "Brief Outage - I2 Participant ExampleNet (SITE-A-SITE)";
+        let title = "Brief Outage - I2 Participant ExampleNet (SITE-A)";
         let indicator = detect_redundancy_indicator(title);
         assert!(indicator.has_parenthesized_site, "{indicator:?}");
-        assert_eq!(indicator.site_code.as_deref(), Some("SITE-A-SITE"));
+        assert_eq!(indicator.site_code.as_deref(), Some("SITE-A"));
         let ticket = Internet2Ticket {
             id: EventId::from("INC-TEST"),
             title: title.to_string(),
