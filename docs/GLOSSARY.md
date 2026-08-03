@@ -164,3 +164,20 @@ unless quoted from historical material or source documents:
 The one automated check on these terms (documentation drift guard)
 applies to current normative documents and generated outputs, never to
 quoted source text or historical ADRs.
+
+## Project scope
+
+**Project scope** — the reviewed, tracked decision of which entities and
+source records are Included in the active project corpus
+(`config/project-scope.toml`). A **Project-scope exclusion** means inim
+intentionally does not include the entity or source event; it is NOT an
+analytical conclusion (the event is not marked invalid, unobservable, or
+failed). Project scope is distinct from **analytical applicability**
+(whether public BGP can observe the named relationship): an analytically
+valid IP-layer event may still be excluded by project policy, and an
+optical event may remain in the source corpus for incident context.
+Matching is exact and normalized (external source ID, reviewed entity
+name, reviewed ASN, exact alias); no fuzzy matching. Excluded items are
+omitted from default web, API, candidate, demo, and case-study views;
+the worker rechecks scope before any source access; immutable runtime
+records are never deleted automatically.

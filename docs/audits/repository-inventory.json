@@ -3166,5 +3166,45 @@
   "authoritative": "the command it wraps + its inputs",
   "generated": false,
   "current": true
+ },
+ {
+  "path": "config/project-scope.toml",
+  "category": "Configuration",
+  "audience": "maintainers",
+  "authoritative": "reviewed operator configuration",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "docs/audits/2026-08-project-scope-noaa-removal.md",
+  "category": "Historical decision record",
+  "audience": "maintainers",
+  "authoritative": "dated audit evidence",
+  "generated": false,
+  "current": false
+ },
+ {
+  "path": "src/catalog/scope.rs",
+  "category": "Production source",
+  "audience": "maintainers",
+  "authoritative": "implementation (behavioral authority)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "tests/project_scope_enforcement_test.rs",
+  "category": "Test source",
+  "audience": "maintainers",
+  "authoritative": "implementation behavior + fixtures",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "tests/project_scope_policy_test.rs",
+  "category": "Test source",
+  "audience": "maintainers",
+  "authoritative": "current reviewed policy (integration)",
+  "generated": false,
+  "current": true
  }
 ]

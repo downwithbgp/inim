@@ -24,20 +24,20 @@ This audit verifies that every tracked file is classified, that every current st
 
 ## Summary
 
-Tracked files: **396** · inventory entries: **396**
+Tracked files: **401** · inventory entries: **401**
 
 | Category | Files |
 |---|---|
 | Immutable or generated evidence | 138 |
-| Production source | 101 |
+| Production source | 102 |
 | Reviewed case-study interpretation | 26 |
-| Historical decision record | 25 |
-| Configuration | 22 |
+| Historical decision record | 26 |
+| Configuration | 23 |
 | Script or developer tool | 22 |
 | Normative current documentation | 21 |
 | Template or stylesheet | 16 |
 | Test fixture | 11 |
-| Test source | 6 |
+| Test source | 8 |
 | GitHub/community metadata | 3 |
 | Packaging or release metadata | 3 |
 | License or third-party notice | 2 |
@@ -236,6 +236,7 @@ Tracked files: **396** · inventory entries: **396**
 | `case-studies/manlan-esnet-2019/out/INC0040293/semantic_waves.json` | Immutable or generated evidence | analysts | canonical run artifacts | yes | current | schema/container reviewed; contents canonical, not hand-edited | none | reviewed in this audit |
 | `case-studies/manlan-esnet-2019/out/INC0040293/transitions.json` | Immutable or generated evidence | analysts | canonical run artifacts | yes | current | schema/container reviewed; contents canonical, not hand-edited | none | reviewed in this audit |
 | `case-studies/manlan-esnet-2019/out/INC0040293/withdrawal_audit.json` | Immutable or generated evidence | analysts | canonical run artifacts | yes | current | schema/container reviewed; contents canonical, not hand-edited | none | reviewed in this audit |
+| `config/project-scope.toml` | Configuration | maintainers | reviewed operator configuration | no | current | reviewed in this audit | none | reviewed in this audit |
 | `deny.toml` | Configuration | maintainers | reviewed operator configuration | no | current | reviewed in this audit | none | reviewed in this audit |
 | `docs/ADRs/CASE-STUDY-LAYER.md` | Historical decision record | maintainers | decision context at time of writing | no | historical | status and applicability reviewed in this audit | none | reviewed in this audit |
 | `docs/ADRs/DURABLE-ANALYSIS-JOBS.md` | Historical decision record | maintainers | decided architecture; see ADR index | no | historical | status and applicability reviewed in this audit | none | reviewed in this audit |
@@ -262,6 +263,7 @@ Tracked files: **396** · inventory entries: **396**
 | `docs/audits/2026-08-grnoc-catalog-reconciliation.md` | Normative current documentation | maintainers | dated audit evidence | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
 | `docs/audits/2026-08-incident-family-deferral.md` | Historical decision record | maintainers | dated audit evidence | no | historical | status and applicability reviewed in this audit | none | reviewed in this audit |
 | `docs/audits/2026-08-manlan-ticket-readiness.md` | Normative current documentation | maintainers | dated audit evidence | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
+| `docs/audits/2026-08-project-scope-noaa-removal.md` | Historical decision record | maintainers | dated audit evidence | no | historical | status and applicability reviewed in this audit | none | reviewed in this audit |
 | `docs/audits/2026-08-repository-truth-audit.md` | Normative current documentation | maintainers | repository-inventory.json + git state (rendered, reviewed content) | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
 | `docs/audits/external-links-2026-08.md` | Normative current documentation | maintainers | dated curl checks of documented external URLs | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
 | `docs/audits/repository-inventory.json` | Configuration | maintainers | reviewed classification of tracked files | no | current | reviewed in this audit | none | reviewed in this audit |
@@ -339,6 +341,7 @@ Tracked files: **396** · inventory entries: **396**
 | `src/catalog/phase_summary.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed in this audit |
 | `src/catalog/relationships.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed in this audit |
 | `src/catalog/review.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed in this audit |
+| `src/catalog/scope.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed in this audit |
 | `src/catalog/session_audit.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed in this audit |
 | `src/catalog/source_extract.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed in this audit |
 | `src/catalog/status.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed in this audit |
@@ -438,6 +441,8 @@ Tracked files: **396** · inventory entries: **396**
 | `tests/i2px_audit_test.rs` | Test source | maintainers | implementation behavior + fixtures | no | current | reviewed in this audit | none | reviewed in this audit |
 | `tests/job_migration_test.rs` | Production source | developers | implementation | no | current | implementation comments audited in this audit | none | reviewed in this audit |
 | `tests/job_workflow_tests.rs` | Production source | developers | implementation | no | current | implementation comments audited in this audit | none | reviewed in this audit |
+| `tests/project_scope_enforcement_test.rs` | Test source | maintainers | implementation behavior + fixtures | no | current | reviewed in this audit | none | reviewed in this audit |
+| `tests/project_scope_policy_test.rs` | Test source | maintainers | current reviewed policy (integration) | no | current | reviewed in this audit | none | reviewed in this audit |
 | `tests/queued_analysis_e2e_test.rs` | Production source | developers | implementation | no | current | implementation comments audited in this audit | none | reviewed in this audit |
 | `tests/release_test.rs` | Test source | maintainers | implementation behavior + fixtures | no | current | reviewed in this audit | none | reviewed in this audit |
 | `tests/rrc11_audit_test.rs` | Test source | maintainers | implementation behavior + fixtures | no | current | reviewed in this audit | none | reviewed in this audit |

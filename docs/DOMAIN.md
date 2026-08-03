@@ -300,6 +300,21 @@ complete.
   UnknownReference) and derived overlap kinds (TemporalOverlap,
   EntityOverlap).
 
+## Project scope
+
+Project scope is a reviewed project-owner decision, stored in
+`config/project-scope.toml` (schema v1) and loaded once per process by
+the web app, CLI, worker, and demo. It is ORTHOGONAL to the analytical
+applicability vocabulary: an exclusion never marks an event
+not-observable, failed, or invalid. Matching keys, in precedence order:
+exact external source ID, exact reviewed entity name, exact reviewed
+ASN, exact alias — all exact and normalized. Excluded plans cannot be
+queued or retried (`project_scope_excluded`); the worker rechecks scope
+after claim and cancels pre-execution jobs (`excluded_by_project_scope`);
+imports skip excluded manifests explicitly; demo verify fails when an
+excluded event is present; immutable runtime records are hidden from
+default views and reported by the read-only `project-scope audit`.
+
 ## Candidate grouping
 
 - **Confidence categories**: ExplicitlyLinked (source-asserted),
