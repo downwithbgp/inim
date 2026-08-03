@@ -122,6 +122,16 @@ fn generated_artifacts_use_current_schema_versions() {
                 .unwrap_or_else(|| {
                     panic!("{p}: missing schema_version");
                 });
+            if name == "report.json" {
+                // report schema v2 is the supported HISTORICAL schema
+                // (immutable reviewed artifacts); v3 is current. The
+                // import path accepts both (2..=3).
+                assert!(
+                    v == 2 || v == 3,
+                    "{p}: report.json must be schema v2 (historical) or v3 (current), got v{v}"
+                );
+                continue;
+            }
             assert_eq!(
                 v as u32, *version,
                 "{p}: {name} must be schema v{version} (current), not an archived schema"

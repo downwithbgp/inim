@@ -794,11 +794,12 @@ mod tests {
         }
         let (_dir, conn) = open_temp_db();
         let summary = import_repository(&conn, Path::new("."), "0.1.0", Some("test-git")).unwrap();
-        // INC0302574 + INC0299001 + INC0040293 completed; INC0301970 blocked.
-        assert_eq!(summary.events, 4);
-        assert_eq!(summary.manifests, 4);
-        assert_eq!(summary.plans, 4);
-        assert_eq!(summary.runs, 3);
+        // INC0302574 + INC0299001 + INC0040293 + INC0303298 completed;
+        // INC0301970 blocked.
+        assert_eq!(summary.events, 5);
+        assert_eq!(summary.manifests, 5);
+        assert_eq!(summary.plans, 5);
+        assert_eq!(summary.runs, 4);
         assert!(summary.artifacts > 0);
         // INC0301970: no run, no outcome.
         let e = db::get_event_by_external(&conn, "local-repository", "INC0301970")
