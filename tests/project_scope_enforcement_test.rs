@@ -37,6 +37,7 @@ fn scope_config_text(event_id: &str, asn: u32) -> String {
 /// A temp catalog with one synthetic excluded event (event + snapshot +
 /// manifest revision + Ready plan), plus a scope config that excludes it.
 struct ExclusionFixture {
+    #[allow(dead_code)] // keeps the temp tree alive for the fixture lifetime
     dir: tempfile::TempDir,
     root: std::path::PathBuf,
     db: std::path::PathBuf,
@@ -63,7 +64,11 @@ fn build_exclusion_fixture() -> ExclusionFixture {
     )
     .unwrap();
     let eid = conn
-        .query_row("SELECT id FROM catalog_events WHERE external_id = ?1", [EXCLUDED_EVENT], |r| r.get(0))
+        .query_row(
+            "SELECT id FROM catalog_events WHERE external_id = ?1",
+            [EXCLUDED_EVENT],
+            |r| r.get(0),
+        )
         .unwrap();
     let snapshot = inim::catalog::domain::EventSnapshot {
         id: 0,
@@ -72,7 +77,8 @@ fn build_exclusion_fixture() -> ExclusionFixture {
         source_url: "file:///x".to_string(),
         content_sha256: "s".to_string(),
         raw_payload: "{}".to_string(),
-        normalized_json: serde_json::json!({"id": EXCLUDED_EVENT, "title": "Synthetic Excluded Org"}).to_string(),
+        normalized_json:
+            serde_json::json!({"id": EXCLUDED_EVENT, "title": "Synthetic Excluded Org"}).to_string(),
         parser_version: "t".to_string(),
     };
     let sid = inim::catalog::store::insert_snapshot(&conn, eid, &snapshot).unwrap();
@@ -130,9 +136,8 @@ fn excluded_event_cannot_be_ready_or_queued() {
     let event = db::get_event_by_external(&conn, EXCLUDED_FAMILY, EXCLUDED_EVENT)
         .unwrap()
         .unwrap();
-    assert_eq!(
-        inim::catalog::web::view::event_scope_excluded(&conn, &scope, &event).unwrap(),
-        true
+    assert!(
+        inim::catalog::web::view::event_scope_excluded(&conn, &scope, &event).unwrap()
     );
 
     // Queueing is refused with the stable scope code and language.
@@ -147,8 +152,14 @@ fn excluded_event_cannot_be_ready_or_queued() {
         err.contains("outside the configured project scope"),
         "queue error must use project-scope language: {err}"
     );
-    let err2 = service::queue(&conn, fx.plan_id, inim::catalog::jobs::RequestSource::Cli, &hash, &scope)
-        .unwrap_err();
+    let err2 = service::queue(
+        &conn,
+        fx.plan_id,
+        inim::catalog::jobs::RequestSource::Cli,
+        &hash,
+        &scope,
+    )
+    .unwrap_err();
     assert!(err2.starts_with(plan::SCOPE_EXCLUDED_CODE), "{err2}");
     // The refused queue never created a job.
     let jobs: i64 = conn
@@ -200,7 +211,10 @@ fn excluded_import_is_skipped_explicitly() {
     let db = root.join("catalog.sqlite");
     let conn = db::open_catalog(&db).unwrap();
     let summary = inim::catalog::import::import_repository(&conn, &root, "0.1.0", None).unwrap();
-    assert_eq!(summary.scope_skipped, 1, "excluded manifest must be skipped explicitly");
+    assert_eq!(
+        summary.scope_skipped, 1,
+        "excluded manifest must be skipped explicitly"
+    );
     let events: i64 = conn
         .query_row("SELECT COUNT(*) FROM catalog_events", [], |r| r.get(0))
         .unwrap();
@@ -228,8 +242,14 @@ fn excluded_job_cannot_be_retried() {
         _ => unreachable!(),
     };
     // Retry with the EXCLUDING policy is refused.
-    let err = service::retry(&conn, &job_id, inim::catalog::jobs::RequestSource::Cli, &hash, &scope)
-        .unwrap_err();
+    let err = service::retry(
+        &conn,
+        &job_id,
+        inim::catalog::jobs::RequestSource::Cli,
+        &hash,
+        &scope,
+    )
+    .unwrap_err();
     assert!(err.starts_with(plan::SCOPE_EXCLUDED_CODE), "{err}");
 }
 
@@ -266,7 +286,10 @@ fn existing_excluded_run_remains_immutable_and_hidden() {
     // The event is hidden from the default dashboard (the status
     // derivation itself stays scope-free; the dashboard filters).
     let dash = inim::catalog::web::view::load_dashboard(&conn, &scope).unwrap();
-    assert_eq!(dash.total_events, 0, "excluded event omitted from the dashboard");
+    assert_eq!(
+        dash.total_events, 0,
+        "excluded event omitted from the dashboard"
+    );
     drop(conn);
 }
 
@@ -298,7 +321,7 @@ fn excluded_run_is_hidden_from_default_api_list() {
 #[test]
 fn project_scope_status_is_included_or_excluded() {
     let scope = ProjectScope::default();
-    assert_eq!(scope.excluded_source_record(EXCLUDED_FAMILY, "INC-OTHER"), false);
+    assert!(!scope.excluded_source_record(EXCLUDED_FAMILY, "INC-OTHER"));
     assert_eq!(ProjectScopeStatus::Included.as_str(), "Included");
     assert_eq!(ProjectScopeStatus::Excluded.as_str(), "Excluded");
 }
@@ -318,7 +341,11 @@ fn project_scope_audit_is_read_only() {
         ])
         .output()
         .unwrap();
-    assert!(out.status.success(), "{}", String::from_utf8_lossy(&out.stderr));
+    assert!(
+        out.status.success(),
+        "{}",
+        String::from_utf8_lossy(&out.stderr)
+    );
     let text = String::from_utf8_lossy(&out.stdout);
     assert!(text.contains("read-only"), "{text}");
     assert!(text.contains("excluded events in catalog: 1"), "{text}");
@@ -418,7 +445,7 @@ fn package_boundary_excludes_no_case_artifact() {
 }
 
 #[test]
-fn noaa_removal_does_not_restore_old_esnet_assessment() {
+fn exclusion_removal_does_not_restore_old_esnet_assessment() {
     // The Session 48 optical correction stays intact: INC0040293 keeps
     // its reviewed applicability and the scope engine never labels it
     // with the old conflated verdict.

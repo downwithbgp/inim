@@ -373,6 +373,14 @@ def check_project_scope_docs() -> list[str]:
         "config/project-scope.toml",
         "docs/audits/2026-08-project-scope-noaa-removal.md",
         "tests/project_scope_policy_test.rs",
+        # The enforcement suite asserts the ABSENCE of excluded material
+        # (negative assertions), which requires naming it.
+        "tests/project_scope_enforcement_test.rs",
+        # The candidates audit must name the excluded record to record
+        # why it is absent from the shortlist.
+        "docs/audits/2026-08-non-noaa-ip-event-candidates.md",
+        # CI asserts the packaged absence of excluded material.
+        ".github/workflows/ci.yml",
         "scripts/audit_docs.py",  # this guard itself names the tokens
     ]
     # Dated-audit cross-reference filenames are links, not entity

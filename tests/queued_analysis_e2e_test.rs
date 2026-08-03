@@ -449,7 +449,10 @@ fn scope_change_cancels_queued_job_before_source_access() {
     .unwrap();
 
     let code = inim::worker::run_worker(&worker_config(&fx.root, &fx.db, true));
-    assert_eq!(code, 0, "scope-cancel is a clean terminal state, not a worker failure");
+    assert_eq!(
+        code, 0,
+        "scope-cancel is a clean terminal state, not a worker failure"
+    );
 
     let conn = db::open_catalog(&fx.db).unwrap();
     let job = service::get(&conn, &job_id).unwrap();
