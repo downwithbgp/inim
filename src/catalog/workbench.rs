@@ -6753,6 +6753,11 @@ fn run_meta(
                     .join(&rel);
             }
             if !full.is_file() {
+                full = catalog_root
+                    .join("case-studies/manlan-esnet-2019/out")
+                    .join(&rel);
+            }
+            if !full.is_file() {
                 full = catalog_root.join("case-studies/inc0302574/out").join(&rel);
             }
             if !full.is_file() {

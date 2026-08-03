@@ -528,8 +528,12 @@ pub fn import_case_study(
         // fabricate a source snapshot for missing historical tickets.
         let event_id: Option<i64> = tx
             .query_row(
-                "SELECT id FROM catalog_events WHERE external_id = ?1
-                 ORDER BY source_kind LIMIT 1",
+                "SELECT e.id FROM catalog_events e
+                 WHERE e.external_id = ?1
+                 ORDER BY (SELECT COUNT(*) FROM analysis_plans p
+                           JOIN manifest_revisions m ON m.event_id = e.id
+                           AND p.manifest_revision_id = m.id) DESC,
+                          e.source_kind LIMIT 1",
                 [&e.external_identifier],
                 |r| r.get(0),
             )

@@ -114,5 +114,12 @@ authentication; write mode must never be exposed to untrusted networks.
 
 ## Follow-ups (dated)
 
-None yet. If a second worker is adopted, this ADR's claim semantics
-already cover it; only the stale-lease review policy would be revisited.
+2026-08-02: Stage progression may skip non-applicable stages (declared
+forward edges only, never regression); the event log explains omitted
+stages (`stage_omitted`). Staging cleanup is dry-run by default with an
+explicit `--apply` (`inim analysis-job cleanup`); the worker removes
+the empty staging parent after verified publication. A reviewed GRNOC
+corpus can be imported deterministically into the demo (events +
+snapshots + relationships + reviews only). If a second worker is
+adopted, this ADR's claim semantics already cover it; only the
+stale-lease review policy would be revisited.

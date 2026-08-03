@@ -181,6 +181,7 @@ fn run_directories_have_complete_artifact_sets() {
                     "evidence_appendix.jsonl",
                     "transitions.json",
                     "performance.json",
+                    "execution_metadata.json",
                     "relationship-audit.json",
                     "stderr.log",
                     "stdout.json",

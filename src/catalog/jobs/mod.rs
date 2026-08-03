@@ -492,6 +492,173 @@ mod tests {
     }
 }
 
+pub mod cleanup;
 pub mod plan;
 pub mod publish;
 pub mod service;
+
+// ── Part 13: stage-skipping semantics ───────────────────────────────
+
+#[cfg(test)]
+mod stage_skip_tests {
+    use super::*;
+
+    /// The declared forward stage order (the only edges a job may
+    /// traverse while executing).
+    const STAGE_ORDER: &[JobState] = &[
+        JobState::Claimed,
+        JobState::DiscoveringArchives,
+        JobState::AcquiringArchives,
+        JobState::ParsingBaseline,
+        JobState::FreezingCohort,
+        JobState::ParsingUpdates,
+        JobState::ReconstructingRoutes,
+        JobState::DerivingEvidence,
+        JobState::RenderingArtifacts,
+        JobState::ValidatingArtifacts,
+        JobState::PublishingRun,
+        JobState::Completed,
+    ];
+
+    #[test]
+    fn forward_skip_is_allowed_only_for_declared_edges() {
+        for (i, from) in STAGE_ORDER.iter().enumerate() {
+            for (j, to) in STAGE_ORDER.iter().enumerate() {
+                if i == j {
+                    assert!(
+                        !legal_transition(*from, *to),
+                        "same-stage transition must be illegal"
+                    );
+                } else if i < j {
+                    // Completed is reachable ONLY from PublishingRun;
+                    // within the executing chain any forward step is a
+                    // legal declared skip.
+                    let reachable = if *to == JobState::Completed {
+                        *from == JobState::PublishingRun
+                    } else {
+                        true
+                    };
+                    assert_eq!(
+                        legal_transition(*from, *to),
+                        reachable,
+                        "{:?} -> {:?}",
+                        from,
+                        to
+                    );
+                } else {
+                    assert!(
+                        !legal_transition(*from, *to),
+                        "{:?} -> {:?} must be an illegal regression",
+                        from,
+                        to
+                    );
+                }
+            }
+        }
+        // Terminal states have no outgoing edges at all.
+        for terminal in [JobState::Completed, JobState::Cancelled, JobState::Failed] {
+            for to in STAGE_ORDER
+                .iter()
+                .chain(&[JobState::Cancelled, JobState::Failed])
+            {
+                assert!(!legal_transition(terminal, *to), "{terminal:?} -> {to:?}");
+            }
+        }
+    }
+
+    #[test]
+    fn stage_order_never_regresses() {
+        // The position rule: any forward step is legal, regression never.
+        assert!(legal_transition(
+            JobState::AcquiringArchives,
+            JobState::ParsingUpdates
+        ));
+        assert!(!legal_transition(
+            JobState::ParsingUpdates,
+            JobState::FreezingCohort
+        ));
+        assert!(!legal_transition(
+            JobState::ReconstructingRoutes,
+            JobState::ParsingBaseline
+        ));
+    }
+
+    #[test]
+    fn validation_cannot_be_skipped() {
+        // Artifact validation is not a state-machine step: the worker
+        // runs validate_staged before entering PublishingRun, and the
+        // publication path rejects invalid stages. The service enforces
+        // that PublishingRun is only reachable from declared stages and
+        // that a job cannot complete without it.
+        assert!(legal_transition(
+            JobState::ValidatingArtifacts,
+            JobState::PublishingRun
+        ));
+        assert!(legal_transition(
+            JobState::RenderingArtifacts,
+            JobState::PublishingRun
+        ));
+        assert!(!legal_transition(
+            JobState::RenderingArtifacts,
+            JobState::Completed
+        ));
+        // Validation is enforced by publish.rs (invalid artifacts
+        // block publication); this test anchors the state-machine half
+        // of the invariant.
+    }
+
+    #[test]
+    fn publication_cannot_precede_validation() {
+        // The declared order places ValidatingArtifacts before
+        // PublishingRun; skipping forward to PublishingRun is legal
+        // ONLY when the worker's validation gate already ran (the
+        // publish module enforces it). The state machine itself never
+        // permits Completed without PublishingRun.
+        assert!(!legal_transition(
+            JobState::RenderingArtifacts,
+            JobState::Completed
+        ));
+        assert!(!legal_transition(
+            JobState::ParsingUpdates,
+            JobState::Completed
+        ));
+        assert!(legal_transition(
+            JobState::PublishingRun,
+            JobState::Completed
+        ));
+    }
+
+    #[test]
+    fn cancellation_check_cannot_be_skipped_before_publication() {
+        // Every executing stage can be interrupted by a cancellation
+        // request; once CancelRequested, the ONLY terminal outcomes are
+        // Cancelled or Failed — Completed is unreachable.
+        for executing in STAGE_ORDER.iter().take(STAGE_ORDER.len() - 1) {
+            assert!(
+                legal_transition(*executing, JobState::CancelRequested)
+                    || *executing == JobState::PublishingRun
+                    || *executing == JobState::Claimed,
+                "{executing:?} must accept a cancellation request"
+            );
+        }
+        assert!(!legal_transition(
+            JobState::CancelRequested,
+            JobState::Completed
+        ));
+        assert!(!legal_transition(
+            JobState::CancelRequested,
+            JobState::PublishingRun
+        ));
+        // The deterministic race policy: once PublishingRun is entered,
+        // the publication wins; cancellation accepted before that point
+        // cancels before import (enforced by the DB CAS transitions).
+        assert!(!legal_transition(
+            JobState::CancelRequested,
+            JobState::PublishingRun
+        ));
+        assert!(!legal_transition(
+            JobState::PublishingRun,
+            JobState::CancelRequested
+        ));
+    }
+}

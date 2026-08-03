@@ -362,6 +362,27 @@ enum AnalysisJobCommands {
         #[arg(long, value_name = "DIR", default_value = ".")]
         root: PathBuf,
     },
+    /// Clean terminal-job staging directories (DRY-RUN by default).
+    ///
+    /// Deletes only Failed/Cancelled/unreferenced job staging older
+    /// than --older-than, with path containment and a terminal-state
+    /// re-check. Never deletes runs, referenced artifacts, caches, or
+    /// tracked evidence. Pass --apply to actually delete; the default
+    /// only reports.
+    Cleanup {
+        /// Catalog database path.
+        #[arg(long, value_name = "PATH")]
+        db: PathBuf,
+        /// Catalog root directory.
+        #[arg(long, value_name = "DIR", default_value = ".")]
+        root: PathBuf,
+        /// Minimum age of eligible staging (e.g. 7d, 48h, 90m).
+        #[arg(long, value_name = "AGE", default_value = "7d")]
+        older_than: String,
+        /// Actually delete eligible directories (default is dry-run).
+        #[arg(long)]
+        apply: bool,
+    },
 }
 
 /// Demo catalog subcommands (offline, deterministic).
@@ -3859,6 +3880,51 @@ fn cmd_analysis_job(stdout: &mut dyn Write, command: &AnalysisJobCommands) -> i3
                 }
                 Err(e) => {
                     let _ = writeln!(stdout, "retry failed: {e}");
+                    EXIT_INVALID_INPUT
+                }
+            }
+        }
+        AnalysisJobCommands::Cleanup {
+            db,
+            root,
+            older_than,
+            apply,
+        } => {
+            let conn = match inim::catalog::db::open_catalog(db) {
+                Ok(c) => c,
+                Err(e) => {
+                    let _ = writeln!(stdout, "error: {e}");
+                    return EXIT_INVALID_INPUT;
+                }
+            };
+            let threshold = match inim::catalog::jobs::cleanup::parse_older_than(older_than) {
+                Ok(d) => d,
+                Err(e) => {
+                    let _ = writeln!(stdout, "error: {e}");
+                    return EXIT_INVALID_INPUT;
+                }
+            };
+            match inim::catalog::jobs::cleanup::cleanup(&conn, root, threshold, *apply) {
+                Ok(report) => {
+                    let _ = write!(stdout, "{}", inim::catalog::jobs::cleanup::render(&report));
+                    if *apply {
+                        let _ = writeln!(
+                            stdout,
+                            "cleanup applied: {} deleted, {} refused",
+                            report.deleted.len(),
+                            report.refused.len()
+                        );
+                    } else {
+                        let _ = writeln!(
+                            stdout,
+                            "dry-run: {} eligible; pass --apply to delete",
+                            report.proposals.len()
+                        );
+                    }
+                    EXIT_SUCCESS
+                }
+                Err(e) => {
+                    let _ = writeln!(stdout, "cleanup failed: {e}");
                     EXIT_INVALID_INPUT
                 }
             }

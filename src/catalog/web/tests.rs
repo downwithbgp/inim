@@ -580,11 +580,11 @@ async fn api_event_list_is_paginated() {
     let value: serde_json::Value = serde_json::from_str(&body).unwrap();
     assert_eq!(value["api_version"], 1);
     assert_eq!(value["data"]["per_page"], 2);
-    assert_eq!(value["data"]["total"], 3);
+    assert_eq!(value["data"]["total"], 4);
     assert_eq!(value["data"]["events"].as_array().unwrap().len(), 2);
     let (_, body2) = get(&app, "/api/v1/events?per_page=2&page=1").await;
     let value2: serde_json::Value = serde_json::from_str(&body2).unwrap();
-    assert_eq!(value2["data"]["events"].as_array().unwrap().len(), 1);
+    assert_eq!(value2["data"]["events"].as_array().unwrap().len(), 2);
 }
 
 #[tokio::test]
@@ -678,8 +678,9 @@ async fn api_catalog_status_counts_match_database() {
     assert_eq!(status, StatusCode::OK);
     let value: serde_json::Value = serde_json::from_str(&body).unwrap();
     let c = &value["data"]["catalog"];
-    assert_eq!(c["total_events"], 3);
-    assert_eq!(c["complete"], 2);
+    // The repo now carries four reviewed manifests (INC0040293 added).
+    assert_eq!(c["total_events"], 4);
+    assert_eq!(c["complete"], 3);
     assert_eq!(c["blocked"], 1);
 }
 
@@ -1418,16 +1419,43 @@ async fn manlan_app() -> Option<(tempfile::TempDir, axum::Router)> {
             )
             .unwrap();
         }
-        // Link the imported pilot runs (they are the runs whose plans
-        // were just created; ids are assigned in import order).
-        let pilot_run_ids: Vec<i64> = conn
-            .prepare("SELECT id FROM analysis_runs ORDER BY id")
-            .unwrap()
-            .query_map([], |r| r.get::<_, i64>(0))
-            .unwrap()
-            .filter_map(|r| r.ok())
-            .filter(|id| *id > 2)
-            .collect();
+        // Link the imported pilot runs by their imported identity:
+        // collect the run id created by each import_one call (never
+        // by run-id thresholds or incident literals in src/).
+        let mut pilot_run_ids = Vec::new();
+        for collector in ["RRC00", "RRC06", "RRC15", "RV2"] {
+            let suffix = format!("-NORDUNET-PILOT-RE-{collector}.json");
+            let manifests_dir =
+                std::fs::read_dir("case-studies/manlan-2019/pilot/manifests").unwrap();
+            let manifest = manifests_dir
+                .filter_map(|e| e.ok().map(|e| e.path()))
+                .find(|p| {
+                    p.file_name()
+                        .and_then(|n| n.to_str())
+                        .map(|n| n.ends_with(&suffix))
+                        .unwrap_or(false)
+                })
+                .expect("pilot manifest present");
+            let event_id = {
+                let v: serde_json::Value =
+                    serde_json::from_str(&std::fs::read_to_string(&manifest).unwrap()).unwrap();
+                v["event_id"].as_str().unwrap_or("").to_string()
+            };
+            let run_id: Option<i64> = conn
+                .query_row(
+                    "SELECT r.id FROM analysis_runs r
+                     JOIN analysis_plans p ON p.id = r.plan_id
+                     JOIN manifest_revisions m ON m.id = p.manifest_revision_id
+                     JOIN catalog_events e ON e.id = m.event_id
+                     WHERE e.external_id = ?1 ORDER BY r.id DESC LIMIT 1",
+                    [&event_id],
+                    |r| r.get(0),
+                )
+                .ok();
+            if let Some(run_id) = run_id {
+                pilot_run_ids.push(run_id);
+            }
+        }
         for run_id in pilot_run_ids {
             crate::catalog::store::insert_case_study_analysis_link(
                 &conn,

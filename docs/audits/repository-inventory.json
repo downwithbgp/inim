@@ -328,6 +328,102 @@
   "current": true
  },
  {
+  "path": "case-studies/manlan-2019/corpus/manifest.json",
+  "category": "Reviewed case-study interpretation",
+  "audience": "analysts",
+  "authoritative": "tracked immutable corpus metadata",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/corpus/relationships.json",
+  "category": "Reviewed case-study interpretation",
+  "audience": "analysts",
+  "authoritative": "reviewed relationship graph",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/corpus/snapshots/CHG0038258.json",
+  "category": "Immutable or generated evidence",
+  "audience": "analysts",
+  "authoritative": "immutable public source snapshots",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/corpus/snapshots/CHG0038386.json",
+  "category": "Immutable or generated evidence",
+  "audience": "analysts",
+  "authoritative": "immutable public source snapshots",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/corpus/snapshots/INC0040257.json",
+  "category": "Immutable or generated evidence",
+  "audience": "analysts",
+  "authoritative": "immutable public source snapshots",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/corpus/snapshots/INC0040258.json",
+  "category": "Immutable or generated evidence",
+  "audience": "analysts",
+  "authoritative": "immutable public source snapshots",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/corpus/snapshots/INC0040272.json",
+  "category": "Immutable or generated evidence",
+  "audience": "analysts",
+  "authoritative": "immutable public source snapshots",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/corpus/snapshots/INC0040289.json",
+  "category": "Immutable or generated evidence",
+  "audience": "analysts",
+  "authoritative": "immutable public source snapshots",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/corpus/snapshots/INC0040290.json",
+  "category": "Immutable or generated evidence",
+  "audience": "analysts",
+  "authoritative": "immutable public source snapshots",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/corpus/snapshots/INC0040291.json",
+  "category": "Immutable or generated evidence",
+  "audience": "analysts",
+  "authoritative": "immutable public source snapshots",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/corpus/snapshots/INC0040293.json",
+  "category": "Immutable or generated evidence",
+  "audience": "analysts",
+  "authoritative": "immutable public source snapshots",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-2019/corpus/snapshots/INC0040318.json",
+  "category": "Immutable or generated evidence",
+  "audience": "analysts",
+  "authoritative": "immutable public source snapshots",
+  "generated": true,
+  "current": true
+ },
+ {
   "path": "case-studies/manlan-2019/pilot/PILOT-SELECTION.md",
   "category": "Reviewed case-study interpretation",
   "audience": "network analysts",
@@ -1320,6 +1416,102 @@
   "current": true
  },
  {
+  "path": "case-studies/manlan-esnet-2019/README.md",
+  "category": "Reviewed case-study interpretation",
+  "audience": "analysts",
+  "authoritative": "reviewed case-study claims",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-esnet-2019/out/INC0040293/archive_manifest.json",
+  "category": "Immutable or generated evidence",
+  "audience": "analysts",
+  "authoritative": "canonical run artifacts",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-esnet-2019/out/INC0040293/evidence_appendix.jsonl",
+  "category": "Immutable or generated evidence",
+  "audience": "analysts",
+  "authoritative": "canonical run artifacts",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-esnet-2019/out/INC0040293/execution_metadata.json",
+  "category": "Immutable or generated evidence",
+  "audience": "analysts",
+  "authoritative": "canonical run artifacts",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-esnet-2019/out/INC0040293/lifecycle.json",
+  "category": "Immutable or generated evidence",
+  "audience": "analysts",
+  "authoritative": "canonical run artifacts",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-esnet-2019/out/INC0040293/limitations.json",
+  "category": "Immutable or generated evidence",
+  "audience": "analysts",
+  "authoritative": "canonical run artifacts",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-esnet-2019/out/INC0040293/performance.json",
+  "category": "Immutable or generated evidence",
+  "audience": "analysts",
+  "authoritative": "canonical run artifacts",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-esnet-2019/out/INC0040293/report.json",
+  "category": "Immutable or generated evidence",
+  "audience": "analysts",
+  "authoritative": "canonical run artifacts",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-esnet-2019/out/INC0040293/report.txt",
+  "category": "Immutable or generated evidence",
+  "audience": "analysts",
+  "authoritative": "canonical run artifacts",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-esnet-2019/out/INC0040293/semantic_waves.json",
+  "category": "Immutable or generated evidence",
+  "audience": "analysts",
+  "authoritative": "canonical run artifacts",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-esnet-2019/out/INC0040293/transitions.json",
+  "category": "Immutable or generated evidence",
+  "audience": "analysts",
+  "authoritative": "canonical run artifacts",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/manlan-esnet-2019/out/INC0040293/withdrawal_audit.json",
+  "category": "Immutable or generated evidence",
+  "audience": "analysts",
+  "authoritative": "canonical run artifacts",
+  "generated": true,
+  "current": true
+ },
+ {
   "path": "deny.toml",
   "category": "Configuration",
   "audience": "maintainers",
@@ -1496,6 +1688,22 @@
   "current": true
  },
  {
+  "path": "docs/audits/2026-08-grnoc-catalog-reconciliation.md",
+  "category": "Normative current documentation",
+  "audience": "maintainers",
+  "authoritative": "dated audit evidence",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "docs/audits/2026-08-manlan-ticket-readiness.md",
+  "category": "Normative current documentation",
+  "audience": "maintainers",
+  "authoritative": "dated audit evidence",
+  "generated": false,
+  "current": true
+ },
+ {
   "path": "docs/audits/2026-08-repository-truth-audit.md",
   "category": "Normative current documentation",
   "audience": "maintainers",
@@ -1548,6 +1756,14 @@
   "category": "Normative current documentation",
   "audience": "contributors and operators",
   "authoritative": "implementation + canonical evidence (see docs/README authority map)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "manifests/INC0040293.json",
+  "category": "Reviewed case-study interpretation",
+  "audience": "analysts",
+  "authoritative": "reviewed manifest",
   "generated": false,
   "current": true
  },
@@ -1904,6 +2120,14 @@
   "current": true
  },
  {
+  "path": "src/catalog/corpus_import.rs",
+  "category": "Production source",
+  "audience": "developers",
+  "authoritative": "implementation",
+  "generated": false,
+  "current": true
+ },
+ {
   "path": "src/catalog/db.rs",
   "category": "Production source",
   "audience": "maintainers",
@@ -1972,6 +2196,14 @@
   "category": "Production source",
   "audience": "maintainers",
   "authoritative": "implementation (behavioral authority)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/catalog/jobs/cleanup.rs",
+  "category": "Production source",
+  "audience": "developers",
+  "authoritative": "implementation",
   "generated": false,
   "current": true
  },
@@ -2836,6 +3068,14 @@
   "category": "Test fixture",
   "audience": "maintainers",
   "authoritative": "upstream source or synthetic generator",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "tests/grnoc_reconciliation_test.rs",
+  "category": "Production source",
+  "audience": "developers",
+  "authoritative": "implementation",
   "generated": false,
   "current": true
  },

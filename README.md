@@ -66,18 +66,23 @@ reference their source runs. See `docs/DATA_PROVENANCE.md` and
   preflight, route reconstruction, lifecycle classification, findings,
   and reports.
 - A **local event catalog** (SQLite + filesystem evidence store) with
-  immutable source snapshots and reviewed revisions.
+  immutable source snapshots and reviewed revisions, including a
+  bounded reviewed GRNOC corpus (ten MAN LAN tickets with immutable
+  snapshots, relationships, and reviewed roles) imported into the
+  offline demo.
 - A **server-rendered web workbench** — the primary human interface. It
   is read-only: HTTP GET requests never perform analysis or acquire
   data.
 - A **CLI** for administration, import, planning, analysis, and audit.
-- **Three reviewed case studies** under `case-studies/`:
+- **Four reviewed case studies** under `case-studies/`:
   - `case-studies/manlan-2019` — single-target NORDUnet historical pilot across
     RouteViews and RIPE RIS observers (2019-08-21).
   - `case-studies/inc0299001` — UVA participant-unavailability event with
     partial routing impact.
   - `case-studies/inc0302574` — RIPE-via-NYIIX I2PX visibility audit with an
     unassessable named relationship.
+  - `case-studies/manlan-esnet-2019` — narrow-scope ESnet participant event
+    (INC0040293) with a stable reviewed-plane result.
 - Text and JSON reports, run comparison, and a screenshot harness for
   visual review.
 

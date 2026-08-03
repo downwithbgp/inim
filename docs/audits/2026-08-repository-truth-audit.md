@@ -24,17 +24,17 @@ This audit verifies that every tracked file is classified, that every current st
 
 ## Summary
 
-Tracked files: **362** · inventory entries: **362**
+Tracked files: **392** · inventory entries: **392**
 
 | Category | Files |
 |---|---|
-| Immutable or generated evidence | 116 |
-| Production source | 98 |
+| Immutable or generated evidence | 137 |
+| Production source | 101 |
+| Reviewed case-study interpretation | 26 |
 | Historical decision record | 23 |
 | Configuration | 22 |
-| Reviewed case-study interpretation | 22 |
+| Normative current documentation | 21 |
 | Script or developer tool | 21 |
-| Normative current documentation | 19 |
 | Template or stylesheet | 16 |
 | Test fixture | 11 |
 | Test source | 6 |
@@ -87,6 +87,18 @@ Tracked files: **362** · inventory entries: **362**
 | `case-studies/inc0302574/out/INC0302574/withdrawal_audit.json` | Immutable or generated evidence | network analysts | MRT/RIB/UPDATE archives + generator run (immutable) | yes | current | schema/container reviewed; contents canonical, not hand-edited | none | reviewed in this audit |
 | `case-studies/manlan-2019/README.md` | Reviewed case-study interpretation | network analysts | canonical evidence + operator sources (reviewed) | no | current | claims re-checked against canonical evidence in this audit | none | reviewed in this audit |
 | `case-studies/manlan-2019/case-study.json` | Reviewed case-study interpretation | network analysts | canonical evidence + operator sources (reviewed) | no | current | claims re-checked against canonical evidence in this audit | none | reviewed in this audit |
+| `case-studies/manlan-2019/corpus/manifest.json` | Reviewed case-study interpretation | analysts | tracked immutable corpus metadata | no | current | claims re-checked against canonical evidence in this audit | none | reviewed in this audit |
+| `case-studies/manlan-2019/corpus/relationships.json` | Reviewed case-study interpretation | analysts | reviewed relationship graph | no | current | claims re-checked against canonical evidence in this audit | none | reviewed in this audit |
+| `case-studies/manlan-2019/corpus/snapshots/CHG0038258.json` | Immutable or generated evidence | analysts | immutable public source snapshots | yes | current | schema/container reviewed; contents canonical, not hand-edited | none | reviewed in this audit |
+| `case-studies/manlan-2019/corpus/snapshots/CHG0038386.json` | Immutable or generated evidence | analysts | immutable public source snapshots | yes | current | schema/container reviewed; contents canonical, not hand-edited | none | reviewed in this audit |
+| `case-studies/manlan-2019/corpus/snapshots/INC0040257.json` | Immutable or generated evidence | analysts | immutable public source snapshots | yes | current | schema/container reviewed; contents canonical, not hand-edited | none | reviewed in this audit |
+| `case-studies/manlan-2019/corpus/snapshots/INC0040258.json` | Immutable or generated evidence | analysts | immutable public source snapshots | yes | current | schema/container reviewed; contents canonical, not hand-edited | none | reviewed in this audit |
+| `case-studies/manlan-2019/corpus/snapshots/INC0040272.json` | Immutable or generated evidence | analysts | immutable public source snapshots | yes | current | schema/container reviewed; contents canonical, not hand-edited | none | reviewed in this audit |
+| `case-studies/manlan-2019/corpus/snapshots/INC0040289.json` | Immutable or generated evidence | analysts | immutable public source snapshots | yes | current | schema/container reviewed; contents canonical, not hand-edited | none | reviewed in this audit |
+| `case-studies/manlan-2019/corpus/snapshots/INC0040290.json` | Immutable or generated evidence | analysts | immutable public source snapshots | yes | current | schema/container reviewed; contents canonical, not hand-edited | none | reviewed in this audit |
+| `case-studies/manlan-2019/corpus/snapshots/INC0040291.json` | Immutable or generated evidence | analysts | immutable public source snapshots | yes | current | schema/container reviewed; contents canonical, not hand-edited | none | reviewed in this audit |
+| `case-studies/manlan-2019/corpus/snapshots/INC0040293.json` | Immutable or generated evidence | analysts | immutable public source snapshots | yes | current | schema/container reviewed; contents canonical, not hand-edited | none | reviewed in this audit |
+| `case-studies/manlan-2019/corpus/snapshots/INC0040318.json` | Immutable or generated evidence | analysts | immutable public source snapshots | yes | current | schema/container reviewed; contents canonical, not hand-edited | none | reviewed in this audit |
 | `case-studies/manlan-2019/pilot/PILOT-SELECTION.md` | Reviewed case-study interpretation | network analysts | canonical evidence + operator sources (reviewed) | no | current | claims re-checked against canonical evidence in this audit | none | reviewed in this audit |
 | `case-studies/manlan-2019/pilot/absence-audit.json` | Immutable or generated evidence | network analysts | MRT/RIB/UPDATE archives + generator run (immutable) | yes | current | schema/container reviewed; contents canonical, not hand-edited | none | reviewed in this audit |
 | `case-studies/manlan-2019/pilot/asn-identities.json` | Reviewed case-study interpretation | network analysts | canonical evidence + operator sources (reviewed) | no | current | claims re-checked against canonical evidence in this audit | none | reviewed in this audit |
@@ -211,6 +223,18 @@ Tracked files: **362** · inventory entries: **362**
 | `case-studies/manlan-2019/pilot/session-audit-2019.md` | Reviewed case-study interpretation | network analysts | canonical evidence + operator sources (reviewed) | no | current | claims re-checked against canonical evidence in this audit | none | reviewed in this audit |
 | `case-studies/manlan-2019/pilot/ticket-reviews.json` | Reviewed case-study interpretation | network analysts | canonical evidence + operator sources (reviewed) | no | current | claims re-checked against canonical evidence in this audit | none | reviewed in this audit |
 | `case-studies/manlan-2019/target-research.json` | Reviewed case-study interpretation | network analysts | canonical evidence + operator sources (reviewed) | no | current | claims re-checked against canonical evidence in this audit | none | reviewed in this audit |
+| `case-studies/manlan-esnet-2019/README.md` | Reviewed case-study interpretation | analysts | reviewed case-study claims | no | current | claims re-checked against canonical evidence in this audit | none | reviewed in this audit |
+| `case-studies/manlan-esnet-2019/out/INC0040293/archive_manifest.json` | Immutable or generated evidence | analysts | canonical run artifacts | yes | current | schema/container reviewed; contents canonical, not hand-edited | none | reviewed in this audit |
+| `case-studies/manlan-esnet-2019/out/INC0040293/evidence_appendix.jsonl` | Immutable or generated evidence | analysts | canonical run artifacts | yes | current | schema/container reviewed; contents canonical, not hand-edited | none | reviewed in this audit |
+| `case-studies/manlan-esnet-2019/out/INC0040293/execution_metadata.json` | Immutable or generated evidence | analysts | canonical run artifacts | yes | current | schema/container reviewed; contents canonical, not hand-edited | none | reviewed in this audit |
+| `case-studies/manlan-esnet-2019/out/INC0040293/lifecycle.json` | Immutable or generated evidence | analysts | canonical run artifacts | yes | current | schema/container reviewed; contents canonical, not hand-edited | none | reviewed in this audit |
+| `case-studies/manlan-esnet-2019/out/INC0040293/limitations.json` | Immutable or generated evidence | analysts | canonical run artifacts | yes | current | schema/container reviewed; contents canonical, not hand-edited | none | reviewed in this audit |
+| `case-studies/manlan-esnet-2019/out/INC0040293/performance.json` | Immutable or generated evidence | analysts | canonical run artifacts | yes | current | schema/container reviewed; contents canonical, not hand-edited | none | reviewed in this audit |
+| `case-studies/manlan-esnet-2019/out/INC0040293/report.json` | Immutable or generated evidence | analysts | canonical run artifacts | yes | current | schema/container reviewed; contents canonical, not hand-edited | none | reviewed in this audit |
+| `case-studies/manlan-esnet-2019/out/INC0040293/report.txt` | Immutable or generated evidence | analysts | canonical run artifacts | yes | current | schema/container reviewed; contents canonical, not hand-edited | none | reviewed in this audit |
+| `case-studies/manlan-esnet-2019/out/INC0040293/semantic_waves.json` | Immutable or generated evidence | analysts | canonical run artifacts | yes | current | schema/container reviewed; contents canonical, not hand-edited | none | reviewed in this audit |
+| `case-studies/manlan-esnet-2019/out/INC0040293/transitions.json` | Immutable or generated evidence | analysts | canonical run artifacts | yes | current | schema/container reviewed; contents canonical, not hand-edited | none | reviewed in this audit |
+| `case-studies/manlan-esnet-2019/out/INC0040293/withdrawal_audit.json` | Immutable or generated evidence | analysts | canonical run artifacts | yes | current | schema/container reviewed; contents canonical, not hand-edited | none | reviewed in this audit |
 | `deny.toml` | Configuration | maintainers | reviewed operator configuration | no | current | reviewed in this audit | none | reviewed in this audit |
 | `docs/ADRs/CASE-STUDY-LAYER.md` | Historical decision record | maintainers | decision context at time of writing | no | historical | status and applicability reviewed in this audit | none | reviewed in this audit |
 | `docs/ADRs/DURABLE-ANALYSIS-JOBS.md` | Historical decision record | maintainers | decided architecture; see ADR index | no | historical | status and applicability reviewed in this audit | none | reviewed in this audit |
@@ -233,6 +257,8 @@ Tracked files: **362** · inventory entries: **362**
 | `docs/UX.md` | Normative current documentation | contributors and operators | implementation + canonical evidence (see docs/README authority map) | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
 | `docs/audits/2026-08-clean-clone.md` | Normative current documentation | maintainers | dated audit evidence | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
 | `docs/audits/2026-08-fresh-event-candidates.md` | Normative current documentation | maintainers | dated audit evidence | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
+| `docs/audits/2026-08-grnoc-catalog-reconciliation.md` | Normative current documentation | maintainers | dated audit evidence | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
+| `docs/audits/2026-08-manlan-ticket-readiness.md` | Normative current documentation | maintainers | dated audit evidence | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
 | `docs/audits/2026-08-repository-truth-audit.md` | Normative current documentation | maintainers | repository-inventory.json + git state (rendered, reviewed content) | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
 | `docs/audits/external-links-2026-08.md` | Normative current documentation | maintainers | dated curl checks of documented external URLs | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
 | `docs/audits/repository-inventory.json` | Configuration | maintainers | reviewed classification of tracked files | no | current | reviewed in this audit | none | reviewed in this audit |
@@ -240,6 +266,7 @@ Tracked files: **362** · inventory entries: **362**
 | `docs/session-10-baseline.md` | Historical decision record | maintainers | decision context at time of writing | no | historical | status and applicability reviewed in this audit | none | reviewed in this audit |
 | `docs/sources/GRNOC_BULK_ACCESS_REQUEST.md` | Normative current documentation | contributors and operators | implementation + canonical evidence (see docs/README authority map) | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
 | `docs/sources/GRNOC_PUBLIC_TASK_VIEWER.md` | Normative current documentation | contributors and operators | implementation + canonical evidence (see docs/README authority map) | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
+| `manifests/INC0040293.json` | Reviewed case-study interpretation | analysts | reviewed manifest | no | current | claims re-checked against canonical evidence in this audit | none | reviewed in this audit |
 | `manifests/INC0299001.json` | Configuration | maintainers | reviewed operator configuration | no | current | reviewed in this audit | none | reviewed in this audit |
 | `manifests/INC0301970.json` | Configuration | maintainers | reviewed operator configuration | no | current | reviewed in this audit | none | reviewed in this audit |
 | `manifests/INC0302574.json` | Configuration | maintainers | reviewed operator configuration | no | current | reviewed in this audit | none | reviewed in this audit |
@@ -284,6 +311,7 @@ Tracked files: **362** · inventory entries: **362**
 | `src/catalog/batch.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed in this audit |
 | `src/catalog/case_study_compare.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed in this audit |
 | `src/catalog/case_study_import.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed in this audit |
+| `src/catalog/corpus_import.rs` | Production source | developers | implementation | no | current | implementation comments audited in this audit | none | reviewed in this audit |
 | `src/catalog/db.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed in this audit |
 | `src/catalog/demo.rs` | Production source | developers | implementation | no | current | implementation comments audited in this audit | none | reviewed in this audit |
 | `src/catalog/discovery.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed in this audit |
@@ -293,6 +321,7 @@ Tracked files: **362** · inventory entries: **362**
 | `src/catalog/grnoc_viewer.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed in this audit |
 | `src/catalog/grouping.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed in this audit |
 | `src/catalog/import.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed in this audit |
+| `src/catalog/jobs/cleanup.rs` | Production source | developers | implementation | no | current | implementation comments audited in this audit | none | reviewed in this audit |
 | `src/catalog/jobs/mod.rs` | Production source | developers | implementation | no | current | implementation comments audited in this audit | none | reviewed in this audit |
 | `src/catalog/jobs/plan.rs` | Production source | developers | implementation | no | current | implementation comments audited in this audit | none | reviewed in this audit |
 | `src/catalog/jobs/publish.rs` | Production source | developers | implementation | no | current | implementation comments audited in this audit | none | reviewed in this audit |
@@ -401,6 +430,7 @@ Tracked files: **362** · inventory entries: **362**
 | `tests/fixtures/internet2/INC0302574.json` | Test fixture | maintainers | upstream source or synthetic generator | no | current | provenance reviewed in this audit | none | reviewed in this audit |
 | `tests/fixtures/mrt/update-example.gz` | Test fixture | maintainers | upstream source or synthetic generator | no | current | provenance reviewed in this audit | none | reviewed in this audit |
 | `tests/fixtures/ris/updates.20190821.1600.gz` | Test fixture | maintainers | upstream source or synthetic generator | no | current | provenance reviewed in this audit | none | reviewed in this audit |
+| `tests/grnoc_reconciliation_test.rs` | Production source | developers | implementation | no | current | implementation comments audited in this audit | none | reviewed in this audit |
 | `tests/i2px_audit_test.rs` | Test source | maintainers | implementation behavior + fixtures | no | current | reviewed in this audit | none | reviewed in this audit |
 | `tests/job_migration_test.rs` | Production source | developers | implementation | no | current | implementation comments audited in this audit | none | reviewed in this audit |
 | `tests/job_workflow_tests.rs` | Production source | developers | implementation | no | current | implementation comments audited in this audit | none | reviewed in this audit |

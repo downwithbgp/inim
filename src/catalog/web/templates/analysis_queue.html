@@ -22,18 +22,19 @@
 
 <div class="panel">
 <table>
-  <tr><th>Event</th><th>Title</th><th>Type</th><th>Reviewed role</th><th>Lifecycle</th><th>Start</th><th>Readiness</th><th>Plan</th><th>Runs</th><th>Next analyst action</th><th>Case studies</th></tr>
+  <tr><th>Event</th><th>Title</th><th>Type</th><th>Reviewed role</th><th>Applicability</th><th>Lifecycle</th><th>Start</th><th>Readiness</th><th>Target / selection</th><th>Exact blocker</th><th>Next action</th><th>Case studies</th></tr>
 {% for r in rows %}
   <tr>
     <td><a href="/events/{{ r.external_id }}">{{ r.external_id }}</a></td>
     <td>{{ r.title }}</td>
     <td>{{ r.task_type }}</td>
     <td>{% if r.reviewed_roles != "" %}{{ r.reviewed_roles }}{% else %}<span class="muted">not reviewed</span>{% endif %}</td>
+    <td>{% if r.applicability != "" %}{{ r.applicability }}{% else %}<span class="muted">unreviewed</span>{% endif %}</td>
     <td>{{ r.lifecycle }}</td>
     <td>{{ r.start }}</td>
     <td>{{ r.readiness }}</td>
-    <td>{{ r.archive_plan_status }}</td>
-    <td>{{ r.runs }}</td>
+    <td>{{ r.selection_status }}</td>
+    <td>{% if r.reason != "" %}{{ r.reason }}{% else %}<span class="muted">—</span>{% endif %}</td>
     <td><strong>{{ r.next_action }}</strong></td>
     <td>{{ r.case_studies }}</td>
   </tr>

@@ -9,6 +9,7 @@ pub mod archive_plan;
 pub mod batch;
 pub mod case_study_compare;
 pub mod case_study_import;
+pub mod corpus_import;
 pub mod db;
 pub mod demo;
 pub mod discovery;

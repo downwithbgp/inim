@@ -1,0 +1,655 @@
+{
+  "event_id": "INC0040293",
+  "ribs": [
+    {
+      "url": "file://./cache/route-views2/rib/rib.20190821.0200.bz2",
+      "local_path": "./cache/route-views2/rib/rib.20190821.0200.bz2",
+      "collector_id": "route-views2",
+      "data_type": "rib",
+      "size_bytes": 128513106,
+      "sha256": "c88146555b35d4b297fd0500796fbc7a3b5ebbc238f100a05e0e7184a541dc38"
+    }
+  ],
+  "updates": [
+    {
+      "url": "file://./cache/route-views2/updates/updates.20190821.0130.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20190821.0130.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 1225913,
+      "sha256": "cef0a2b5c1e8707646da1e6d00b1d6876827019ab71b3048dc14f1179970c9c9"
+    },
+    {
+      "url": "file://./cache/route-views2/updates/updates.20190821.0145.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20190821.0145.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 1329022,
+      "sha256": "818f4747bd5174e60016511808e156320722abd359dce44721fb7df608f9b9cb"
+    },
+    {
+      "url": "file://./cache/route-views2/updates/updates.20190821.0200.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20190821.0200.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 1429976,
+      "sha256": "a6b13f6c46bdd5485d283031457ca7f3811692499eb1bb580faeaec6a072c224"
+    },
+    {
+      "url": "file://./cache/route-views2/updates/updates.20190821.0215.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20190821.0215.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 2180191,
+      "sha256": "9c1bc26b7f538cde6c46c7ddeabff4be3505238500527c64da8d773a74b249b0"
+    },
+    {
+      "url": "file://./cache/route-views2/updates/updates.20190821.0230.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20190821.0230.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 1391819,
+      "sha256": "4fb1e45add4478636261b567111af69d8e0ca31ab5777d90cda495d8a6d53621"
+    },
+    {
+      "url": "file://./cache/route-views2/updates/updates.20190821.0245.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20190821.0245.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 1346681,
+      "sha256": "846a7b8d8f7b95c109ecccb0f244b7d1b600ee92e34e761d3266f6651a65e8c3"
+    },
+    {
+      "url": "file://./cache/route-views2/updates/updates.20190821.0300.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20190821.0300.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 1260510,
+      "sha256": "b0623ddd0d552ce6f960d368013c3f4cfd7416a669d70032d30ef6ad1e3825ca"
+    },
+    {
+      "url": "file://./cache/route-views2/updates/updates.20190821.0315.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20190821.0315.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 1402220,
+      "sha256": "698955640a3c05c407e98527d8d23cd0a19a9c78a22f70a515328c63f0db993b"
+    },
+    {
+      "url": "file://./cache/route-views2/updates/updates.20190821.0330.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20190821.0330.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 1416964,
+      "sha256": "0f1aaf0794f99b5ad76c407035ff90fa57a41fb4dc252c6110f514f006faee08"
+    },
+    {
+      "url": "file://./cache/route-views2/updates/updates.20190821.0345.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20190821.0345.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 1301153,
+      "sha256": "6a0cb8e6a4ebbff891a41dc2970330ed9bcdb3e84ffb384febfe434c702be8ad"
+    },
+    {
+      "url": "file://./cache/route-views2/updates/updates.20190821.0400.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20190821.0400.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 1638089,
+      "sha256": "7f980d8257673a1294eece9e80abe1a17a3eb3f5ccc0470d7c3f543995df0af7"
+    },
+    {
+      "url": "file://./cache/route-views2/updates/updates.20190821.0415.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20190821.0415.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 1457423,
+      "sha256": "0978e22b128866b6b4c4147008298895a6b7f67bc0db5bc33f048a30651567bf"
+    },
+    {
+      "url": "file://./cache/route-views2/updates/updates.20190821.0430.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20190821.0430.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 3873653,
+      "sha256": "5f634d5c9aa99b801470532e12b59db09856272bd9fb28a5c0c5646946d3a20f"
+    },
+    {
+      "url": "file://./cache/route-views2/updates/updates.20190821.0445.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20190821.0445.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 6515319,
+      "sha256": "c5ca30127f50dba0c57e4751ca9c649a2b2a60cd136f3712a3b696149ecb7dae"
+    },
+    {
+      "url": "file://./cache/route-views2/updates/updates.20190821.0500.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20190821.0500.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 4102368,
+      "sha256": "bbe5cbf73ea793c7880ed93ad59c8c07782ee0ec07251b1c6e5f92689aef07fd"
+    },
+    {
+      "url": "file://./cache/route-views2/updates/updates.20190821.0515.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20190821.0515.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 1590596,
+      "sha256": "76d8907990295147850b415068657ac430c3a6af3d3c69eab9663981b224388b"
+    },
+    {
+      "url": "file://./cache/route-views2/updates/updates.20190821.0530.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20190821.0530.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 1619072,
+      "sha256": "1ed904612aec02bfc7698ff99a0984c5e63b1ef911abe8582c8e9642e824cc86"
+    },
+    {
+      "url": "file://./cache/route-views2/updates/updates.20190821.0545.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20190821.0545.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 1334103,
+      "sha256": "109963e466b83338453b03cb2fe0c5c23ee931d152c082adedbc4a6f72fca0ae"
+    },
+    {
+      "url": "file://./cache/route-views2/updates/updates.20190821.0600.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20190821.0600.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 1486301,
+      "sha256": "5cc69dbc0c06eb889624ba3da70085aa03e3caf611151cad6e6a12fa9fb7d8f5"
+    },
+    {
+      "url": "file://./cache/route-views2/updates/updates.20190821.0615.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20190821.0615.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 1998172,
+      "sha256": "abc584b394e097dd27b61e5b15302a7f8557680cf677d139f2a978aba62171ff"
+    },
+    {
+      "url": "file://./cache/route-views2/updates/updates.20190821.0630.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20190821.0630.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 2901066,
+      "sha256": "3a6e191571d0dee8675f39f818ea4513ec341db866100bb0067e9dd3934277b8"
+    },
+    {
+      "url": "file://./cache/route-views2/updates/updates.20190821.0645.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20190821.0645.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 2354605,
+      "sha256": "69b902ef226b15556d48d23f5660ded3dd40a38b05980bc9e83a98d3c17608dd"
+    },
+    {
+      "url": "file://./cache/route-views2/updates/updates.20190821.0700.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20190821.0700.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 1922828,
+      "sha256": "102b9d2e268cffedb7df5d0f88a4de01a40afebd5ca324c796178f009b1679aa"
+    },
+    {
+      "url": "file://./cache/route-views2/updates/updates.20190821.0715.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20190821.0715.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 2129410,
+      "sha256": "aff5bc093e6fae4e3108b863d5caf09e4509822335512ddcc29fd411f417db0b"
+    },
+    {
+      "url": "file://./cache/route-views2/updates/updates.20190821.0730.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20190821.0730.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 1684792,
+      "sha256": "56300f879b47862fa591592df87c51105a0a29556ec96eceba9705ebd5eab903"
+    },
+    {
+      "url": "file://./cache/route-views2/updates/updates.20190821.0745.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20190821.0745.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 1403894,
+      "sha256": "a21f66a47e371e079afd2a99288e30c2db5b421cd7ad1e5da5aa7e87910cffe0"
+    },
+    {
+      "url": "file://./cache/route-views2/updates/updates.20190821.0800.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20190821.0800.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 2059266,
+      "sha256": "b0e81c4d48d220920626f17c030122ff2379a55d96503196ecf7712258833119"
+    },
+    {
+      "url": "file://./cache/route-views2/updates/updates.20190821.0815.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20190821.0815.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 2244741,
+      "sha256": "d23bd079dc289fe091d210d69598fb9e0d8f8c8352fe47304da9a045e474313c"
+    },
+    {
+      "url": "file://./cache/route-views2/updates/updates.20190821.0830.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20190821.0830.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 1773239,
+      "sha256": "bc0f2831839769d3768e68efd7b5f36009c557b61ffc666531b311dec7bd24a8"
+    },
+    {
+      "url": "file://./cache/route-views2/updates/updates.20190821.0845.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20190821.0845.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 1483084,
+      "sha256": "26ef459e4b8fdf80c732c01b7d1906485ced2be998176042cc5f807481d28a4f"
+    },
+    {
+      "url": "file://./cache/route-views2/updates/updates.20190821.0900.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20190821.0900.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 1570951,
+      "sha256": "1000b35d9e5bb3119335436c79b4a24353db7dd8510aec6d1db62216031ef151"
+    },
+    {
+      "url": "file://./cache/route-views2/updates/updates.20190821.0915.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20190821.0915.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 1754061,
+      "sha256": "3014a7ca8f81ad195cf0dc3e899c1f6a6fd62c53a4e702a2cc6af4e2b19a35ea"
+    },
+    {
+      "url": "file://./cache/route-views2/updates/updates.20190821.0930.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20190821.0930.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 1752465,
+      "sha256": "e04f3b5eeab72ca0136b61fc8525e5d550f62514dc5e0bf1537123dacae8eb32"
+    },
+    {
+      "url": "file://./cache/route-views2/updates/updates.20190821.0945.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20190821.0945.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 1620208,
+      "sha256": "9fe5c2cf2ebb57430813bd7c0620999c6270219caf2b5a09396287d0877f8902"
+    },
+    {
+      "url": "file://./cache/route-views2/updates/updates.20190821.1000.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20190821.1000.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 1493699,
+      "sha256": "8d5aa90d000b3963a435430ecb0e84304e70d743eb87eb04187389eec3aed605"
+    },
+    {
+      "url": "file://./cache/route-views2/updates/updates.20190821.1015.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20190821.1015.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 2043363,
+      "sha256": "b91f50e9cf94e7eb89f6f467f0a913f7182cee4a2b59dfcc32fb270525c6b9be"
+    },
+    {
+      "url": "file://./cache/route-views2/updates/updates.20190821.1030.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20190821.1030.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 1554725,
+      "sha256": "652d37685ebb2d0748c43281b91241307316f8d65bd5aa514aa8c35c72e20990"
+    },
+    {
+      "url": "file://./cache/route-views2/updates/updates.20190821.1045.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20190821.1045.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 1661270,
+      "sha256": "aaf77f11a141d65a1bf0bff92c27fb7a97ef4382773c49be0d97144f88b5f7bd"
+    },
+    {
+      "url": "file://./cache/route-views2/updates/updates.20190821.1100.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20190821.1100.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 1500561,
+      "sha256": "0a1723d381fbc912d85ee4e147479babf2092c79990ca971cef721d35b8318a0"
+    },
+    {
+      "url": "file://./cache/route-views2/updates/updates.20190821.1115.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20190821.1115.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 1652186,
+      "sha256": "4dd365f1a1606f280185d8b14c5cda4e37e5ebf0c2b958d8160532191ee22afe"
+    },
+    {
+      "url": "file://./cache/route-views2/updates/updates.20190821.1130.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20190821.1130.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 1569447,
+      "sha256": "3be5a7cfb6e7965109a7d84373dfd480f1f30e99007fbb2b447cee7fb07c26f7"
+    },
+    {
+      "url": "file://./cache/route-views2/updates/updates.20190821.1145.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20190821.1145.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 1546841,
+      "sha256": "1cdc6c43214dbfc6fd0fa33fb7dd5d777a2b49c920fc01a6da73cd15ec4fdd84"
+    },
+    {
+      "url": "file://./cache/route-views2/updates/updates.20190821.1200.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20190821.1200.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 5528641,
+      "sha256": "620403f3399d99bdce488354f36f8e8ebbbff38814d513355886e6e5509e9900"
+    },
+    {
+      "url": "file://./cache/route-views2/updates/updates.20190821.1215.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20190821.1215.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 2050960,
+      "sha256": "130716d5ebefbcbbbb02777421a50631dfa2817257fdb9f53e46ec8b3ae73d91"
+    },
+    {
+      "url": "file://./cache/route-views2/updates/updates.20190821.1230.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20190821.1230.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 1603307,
+      "sha256": "ac33204e861040dddb51e27c477e9e082a287134ce343fd7c7878dce29f1e526"
+    },
+    {
+      "url": "file://./cache/route-views2/updates/updates.20190821.1245.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20190821.1245.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 1702658,
+      "sha256": "43280349838effecd584bbc4f2b66b873033de1cb0cb97ec8849998af1828831"
+    },
+    {
+      "url": "file://./cache/route-views2/updates/updates.20190821.1300.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20190821.1300.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 1589482,
+      "sha256": "b2a9a8e62eb79f265ab9bf1826a69b6425b6edf9c40efb41d9f7110862dac5e6"
+    },
+    {
+      "url": "file://./cache/route-views2/updates/updates.20190821.1315.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20190821.1315.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 1848744,
+      "sha256": "c0bbef8f3b41d107a6f2d4438ff5832a2385e078869e3d29826fa7cff19a52bc"
+    },
+    {
+      "url": "file://./cache/route-views2/updates/updates.20190821.1330.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20190821.1330.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 1567476,
+      "sha256": "20219fedea68413ad00e9d565738c44e25b2ede6a96d14b2681999e85cfe5adb"
+    },
+    {
+      "url": "file://./cache/route-views2/updates/updates.20190821.1345.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20190821.1345.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 1390804,
+      "sha256": "c26babf5c057a00d3c9af7753d102f7bd97bd5a63747d08b039b379859ce9776"
+    },
+    {
+      "url": "file://./cache/route-views2/updates/updates.20190821.1400.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20190821.1400.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 1931051,
+      "sha256": "12c737ff620ca1fdbc928840d5eb2740570112af0a4dca8c10017c5cb5f101d7"
+    },
+    {
+      "url": "file://./cache/route-views2/updates/updates.20190821.1415.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20190821.1415.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 2030044,
+      "sha256": "d741a29fae7a4db1ef938421102e5a4dfc60948f79d30cb0f6dba3a2a3d1ba8a"
+    },
+    {
+      "url": "file://./cache/route-views2/updates/updates.20190821.1430.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20190821.1430.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 1836762,
+      "sha256": "b1f71bfe36cf2aa158b0b64ba4ae748faeac03b1af19e3b26caec18422fcc703"
+    },
+    {
+      "url": "file://./cache/route-views2/updates/updates.20190821.1445.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20190821.1445.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 1653116,
+      "sha256": "5fea0401d32ae7493bd64820cd2ea723faae6b91cc8928def62af82bd0ad15ec"
+    },
+    {
+      "url": "file://./cache/route-views2/updates/updates.20190821.1500.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20190821.1500.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 2083289,
+      "sha256": "071820556cb05cb2de95aa68b2b5840e99ed788e479392f6e7f120864266ba41"
+    },
+    {
+      "url": "file://./cache/route-views2/updates/updates.20190821.1515.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20190821.1515.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 2681184,
+      "sha256": "678476373b44a2b4e43119cbcc352b4150631d6063618e4e3334c023c1ff908f"
+    },
+    {
+      "url": "file://./cache/route-views2/updates/updates.20190821.1530.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20190821.1530.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 3345832,
+      "sha256": "b19d0a0e30770effcfa02460227accfcdc961c4c9d49c09ff45611d04848bd88"
+    },
+    {
+      "url": "file://./cache/route-views2/updates/updates.20190821.1545.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20190821.1545.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 2004900,
+      "sha256": "1c8e0f1dd256589bf370653931a42427352e48457efe46522801da598afdb1b5"
+    },
+    {
+      "url": "file://./cache/route-views2/updates/updates.20190821.1600.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20190821.1600.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 2050549,
+      "sha256": "5b6e9f41acde1e66568b63e5ebf11688d403a6b53aaf39600e0d1f49bc56eea3"
+    },
+    {
+      "url": "file://./cache/route-views2/updates/updates.20190821.1615.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20190821.1615.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 1983573,
+      "sha256": "4cc0d996e3c31bae8c5df4a4bf4c91021e89bdc58de086f2faa6137ebcfb0a3e"
+    },
+    {
+      "url": "file://./cache/route-views2/updates/updates.20190821.1630.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20190821.1630.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 1633029,
+      "sha256": "789f3cd5273f35a41490b7276dc8e4ebc8a2434d3a89c54bfab32d2544d2f23f"
+    },
+    {
+      "url": "file://./cache/route-views2/updates/updates.20190821.1645.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20190821.1645.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 2025863,
+      "sha256": "4546b78f8fb9ced87b93867cbb5f76e4abc11f37e564001f73f593313b9fd182"
+    },
+    {
+      "url": "file://./cache/route-views2/updates/updates.20190821.1700.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20190821.1700.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 2516514,
+      "sha256": "a56a86cbce313bd04106babd94f9018a2c211d870fb07234efd320e89734786f"
+    },
+    {
+      "url": "file://./cache/route-views2/updates/updates.20190821.1715.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20190821.1715.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 1785283,
+      "sha256": "e981f5053f3497f8c1262d37812c42d0d443dee7e2b268ddc1a0f70ead9a1412"
+    },
+    {
+      "url": "file://./cache/route-views2/updates/updates.20190821.1730.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20190821.1730.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 1706880,
+      "sha256": "c454e2da98fc14c48803f28c93d1b9d99e780ceec04173b7992860c963f78170"
+    },
+    {
+      "url": "file://./cache/route-views2/updates/updates.20190821.1745.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20190821.1745.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 1618784,
+      "sha256": "59a1635aaff7e48ffc3a2407f1a1f62c3dbad309be42593a39a60942eeca7b6e"
+    },
+    {
+      "url": "file://./cache/route-views2/updates/updates.20190821.1800.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20190821.1800.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 1580631,
+      "sha256": "23ee18a06818745ac49853b1d1a6c2a21f2a81e69d23aabdf9149f13408811b5"
+    },
+    {
+      "url": "file://./cache/route-views2/updates/updates.20190821.1815.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20190821.1815.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 1419018,
+      "sha256": "75f7fdb087122012f0be4a2a129449cfa5c6145e97ca7183ac2c1fce2660a41e"
+    },
+    {
+      "url": "file://./cache/route-views2/updates/updates.20190821.1830.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20190821.1830.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 1464077,
+      "sha256": "ff8e879c80c49586c023eba05fdb278a885c1a30b219e409749a3c36578a1250"
+    },
+    {
+      "url": "file://./cache/route-views2/updates/updates.20190821.1845.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20190821.1845.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 1732895,
+      "sha256": "db028d77b278f1c0e613dff513c71b81314d8c7361021c0df68881576fa795e7"
+    },
+    {
+      "url": "file://./cache/route-views2/updates/updates.20190821.1900.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20190821.1900.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 1430356,
+      "sha256": "66d8645cd0e647325719f5446bb8f0624d3bcd778686071f45b831d6a7e04e93"
+    },
+    {
+      "url": "file://./cache/route-views2/updates/updates.20190821.1915.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20190821.1915.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 1653490,
+      "sha256": "18e555deb3db23203258febcafee6368a9b7aa5cd70b5f3fe42d86273ca11359"
+    },
+    {
+      "url": "file://./cache/route-views2/updates/updates.20190821.1930.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20190821.1930.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 1337687,
+      "sha256": "99fb7094aa7b378bf6814a592d48d64e119e4933fe3b880e79321dec8d905e76"
+    },
+    {
+      "url": "file://./cache/route-views2/updates/updates.20190821.1945.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20190821.1945.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 1797495,
+      "sha256": "eea29b558b74231fae3aca17dc050aaf869ca1314f2f3bc6f9d50b6d5807f92a"
+    },
+    {
+      "url": "file://./cache/route-views2/updates/updates.20190821.2000.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20190821.2000.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 1874797,
+      "sha256": "b818b46c5c51c013cf43eed6fb3df882e95425a48c66e362603cf8e1169110f3"
+    },
+    {
+      "url": "file://./cache/route-views2/updates/updates.20190821.2015.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20190821.2015.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 1445002,
+      "sha256": "a22b5819133e599c7f29f400225070a3a95724e65e517f2136f1a1ff3559f660"
+    },
+    {
+      "url": "file://./cache/route-views2/updates/updates.20190821.2030.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20190821.2030.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 1559166,
+      "sha256": "c8219e7945d9d7b395ef0ebfbe0b755fd4303fc27ab240387c9e46172bbb6b14"
+    },
+    {
+      "url": "file://./cache/route-views2/updates/updates.20190821.2045.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20190821.2045.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 1348255,
+      "sha256": "e0217dfffae3e5dd7eed201665619de6b4f18535b50b0bec411d79ec2b2d1854"
+    },
+    {
+      "url": "file://./cache/route-views2/updates/updates.20190821.2100.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20190821.2100.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 1919979,
+      "sha256": "059cfa119538a87d3c92869f48ce91a195984ae72efd8db628c661540b77c5da"
+    },
+    {
+      "url": "file://./cache/route-views2/updates/updates.20190821.2115.bz2",
+      "local_path": "./cache/route-views2/updates/updates.20190821.2115.bz2",
+      "collector_id": "route-views2",
+      "data_type": "updates",
+      "size_bytes": 2694420,
+      "sha256": "d925b69165d029e2067bac70f7698d3913b7c4cc3f911d9ec3fc00dc2645637a"
+    }
+  ]
+}

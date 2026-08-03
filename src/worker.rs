@@ -14,6 +14,9 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
+#[cfg(unix)]
+use std::os::unix::fs::PermissionsExt;
+
 use rusqlite::Connection;
 
 use crate::catalog::jobs::plan::{canonical_plan_hash, manifest_payload_for_plan};
@@ -187,12 +190,23 @@ impl crate::discover::ArchiveDiscovery for CacheScanDiscovery {
                     continue;
                 }
                 let size = path.metadata().map(|m| m.len()).unwrap_or(0);
+                // Archive coverage mirrors the live conventions:
+                // UPDATE files cover the next 15 minutes, RIB/bview
+                // files cover the full day. The pipeline uses ts_start
+                // for selection and ts_end only for gap validation;
+                // setting ts_end = ts_start would fabricate a gap
+                // between every consecutive 15-minute UPDATE archive.
+                let ts_end = if data_type == "updates" {
+                    ts + chrono::Duration::minutes(15)
+                } else {
+                    ts + chrono::Duration::hours(24)
+                };
                 items.push(crate::discover::ArchiveItem {
                     project: "local".to_string(),
                     collector_id: collector.to_string(),
                     data_type: data_type.to_string(),
                     ts_start: ts,
-                    ts_end: ts,
+                    ts_end,
                     url: format!("file://{}", path.display()),
                     size,
                 });
@@ -246,10 +260,42 @@ impl DbSink {
 impl ProgressSink for DbSink {
     fn emit(&self, ev: &ProgressEvent) {
         let desired = JobState::parse_state(ev.stage).ok();
+        let mut omitted_stage: Option<JobState> = None;
         if let Some(desired) = desired {
             self.transition_to(desired);
+            let after = *self.state.lock().unwrap();
+            // A stage emitted behind the current execution state is a
+            // non-applicable skip (the pipeline re-emitted a stage the
+            // job already passed): the event log states why instead of
+            // pretending it ran.
+            if after != desired {
+                omitted_stage = Some(desired);
+            }
         }
         let state = *self.state.lock().unwrap();
+        if let Some(skipped) = omitted_stage {
+            let conn = self.conn.lock().unwrap();
+            let _ = service::append_event(
+                &conn,
+                &crate::catalog::jobs::JobEvent {
+                    job_id: self.job_id.clone(),
+                    sequence: 0,
+                    occurred_at: String::new(),
+                    state,
+                    stage: Some(skipped.as_str().to_string()),
+                    message_code: Some("stage_omitted".to_string()),
+                    human_message: format!(
+                        "stage {} omitted: not applicable after {}",
+                        skipped.as_str(),
+                        state.as_str()
+                    ),
+                    progress_current: None,
+                    progress_total: None,
+                    progress_unit: None,
+                    structured_detail: None,
+                },
+            );
+        }
         let now = Instant::now();
         let mut last = self.last_emit.lock().unwrap();
         if now.duration_since(*last) < self.throttle && ev.current.is_none() {
@@ -571,10 +617,15 @@ fn materialize_inputs(
     };
     let snapshot_payload =
         snapshot_payload.ok_or_else(|| "invalid_plan: event snapshot missing".to_string())?;
+    // The pipeline consumes an event ticket input. Ticket-fixture-
+    // shaped snapshots pass through unchanged; any other catalog event
+    // (e.g. GRNOC viewer records) is translated generically from the
+    // snapshot's normalized model — never entity-specific.
+    let event_file_content = generic_ticket_input(&snapshot_payload, conn, job.plan_revision_id)?;
     let plan_hash = canonical_plan_hash(&manifest_payload)?;
     let event_path = dir.path().join(format!("{event_id}.json"));
     let manifest_path = dir.path().join(format!("{event_id}.manifest.json"));
-    std::fs::write(&event_path, snapshot_payload)
+    std::fs::write(&event_path, event_file_content)
         .map_err(|e| format!("cannot write event temp file: {e}"))?;
     std::fs::write(&manifest_path, manifest_payload)
         .map_err(|e| format!("cannot write manifest temp file: {e}"))?;
@@ -730,6 +781,10 @@ fn publish(
                     if let crate::outcome::AnalysisOutcome::Incomplete { .. } = outcome {
                         eprintln!("worker: warning: job completed but run outcome is incomplete");
                     }
+                    // The event directory was renamed into the final
+                    // run location; remove the now-empty staging
+                    // parent after verified publication.
+                    cleanup_staging(event_out.parent().unwrap_or(&config.root), false);
                     true
                 }
                 Err(e) => {
@@ -804,6 +859,70 @@ fn read_stage_durations(event_out: &Path) -> Vec<(String, f64)> {
     out
 }
 
+/// Translate a snapshot's payload into the pipeline's ticket input.
+///
+/// The raw payload is used verbatim when it already parses as a ticket
+/// fixture (legacy fixture-shaped snapshots keep their exact
+/// semantics, including timezone handling). Otherwise a generic ticket
+/// input is derived from the snapshot's NORMALIZED model (id, title,
+/// RFC3339 start/end, task type, description) — this covers any source
+/// kind, including GRNOC Public Task Viewer records, without any
+/// source-specific branch in the pipeline.
+fn generic_ticket_input(
+    raw_payload: &str,
+    conn: &Arc<Mutex<Connection>>,
+    plan_revision_id: i64,
+) -> Result<String, String> {
+    if crate::sources::internet2::ticket::parse_ticket_fixture(raw_payload).is_ok() {
+        return Ok(raw_payload.to_string());
+    }
+    let normalized: String = {
+        let conn = conn.lock().unwrap();
+        conn.query_row(
+            "SELECT s.normalized_json FROM event_snapshots s
+             JOIN manifest_revisions m ON m.snapshot_id = s.id
+             JOIN analysis_plans p ON p.manifest_revision_id = m.id
+             WHERE p.id = ?1",
+            rusqlite::params![plan_revision_id],
+            |r| r.get(0),
+        )
+        .map_err(|e| format!("cannot load normalized event: {e}"))?
+    };
+    let v: serde_json::Value = serde_json::from_str(&normalized)
+        .map_err(|e| format!("normalized event unreadable: {e}"))?;
+    let id = v
+        .get("id")
+        .and_then(|x| x.as_str())
+        .ok_or_else(|| "invalid_plan: normalized event missing id".to_string())?;
+    let title = v.get("title").and_then(|x| x.as_str()).unwrap_or(id);
+    let start = v
+        .get("start")
+        .and_then(|x| x.as_str())
+        .ok_or_else(|| "invalid_plan: normalized event missing start".to_string())?;
+    let end = v.get("end").and_then(|x| x.as_str()).unwrap_or("");
+    let task_type = v
+        .get("task_type")
+        .and_then(|x| x.as_str())
+        .unwrap_or("incident");
+    let description = v.get("description").and_then(|x| x.as_str()).unwrap_or("");
+    let fmt = |ts: &str| -> String {
+        chrono::DateTime::parse_from_rfc3339(ts)
+            .map(|t| t.format("%Y-%m-%d %H:%M:%S").to_string())
+            .unwrap_or_else(|_| ts.to_string())
+    };
+    // The ticket parser treats an absent timezone as UTC (backward
+    // compatible), so no timezone field is emitted.
+    serde_json::to_string(&serde_json::json!({
+        "id": id,
+        "title": title,
+        "start": fmt(start),
+        "end": fmt(end),
+        "type": task_type,
+        "description": description,
+    }))
+    .map_err(|e| format!("cannot build generic ticket input: {e}"))
+}
+
 /// Minimal unique temp directory (tempfile is a dev-dependency only).
 /// Removes itself on drop.
 struct TempDirGuard(PathBuf);
@@ -816,18 +935,37 @@ impl TempDirGuard {
 
 impl Drop for TempDirGuard {
     fn drop(&mut self) {
+        // Remove the unique directory AND its per-process base so the
+        // next worker run can create a fresh, unforgeable base.
         let _ = std::fs::remove_dir_all(&self.0);
+        if let Some(base) = self.0.parent() {
+            let _ = std::fs::remove_dir(base);
+        }
     }
 }
 
 fn unique_temp_dir() -> Result<TempDirGuard, String> {
-    let base = std::env::temp_dir().join(format!("inim-worker-{}", std::process::id()));
-    std::fs::create_dir_all(&base).map_err(|e| format!("cannot create temp dir: {e}"))?;
+    // The base is created with create_dir (fails if a local attacker
+    // pre-created it) and restricted to the owner; the unique
+    // subdirectory then cannot be predicted or planted. The name
+    // includes the thread id so parallel workers (e.g. tests) never
+    // collide on one base.
+    let thread_id = format!("{:?}", std::thread::current().id())
+        .replace(|c: char| !c.is_ascii_alphanumeric(), "");
+    let base = std::env::temp_dir().join(format!("inim-worker-{}-{thread_id}", std::process::id()));
+    if base.exists() {
+        return Err(format!(
+            "temp dir {} already exists; refusing to reuse a possibly planted directory",
+            base.display()
+        ));
+    }
+    std::fs::create_dir(&base).map_err(|e| format!("cannot create temp dir: {e}"))?;
+    let _ = std::fs::set_permissions(&base, std::fs::Permissions::from_mode(0o700));
     let unique = base.join(format!(
         "{}",
         chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0)
     ));
-    std::fs::create_dir_all(&unique).map_err(|e| format!("cannot create temp dir: {e}"))?;
+    std::fs::create_dir(&unique).map_err(|e| format!("cannot create temp dir: {e}"))?;
     Ok(TempDirGuard(unique))
 }
 
@@ -966,5 +1104,127 @@ mod tests {
         // Not hostname-derived: never contains a machine name.
         let host = std::env::var("HOSTNAME").unwrap_or_default();
         assert!(!a.contains(&host) || host.is_empty());
+    }
+}
+
+#[cfg(test)]
+mod sink_tests {
+    use super::*;
+    use crate::catalog::jobs::service as jobs;
+
+    fn sink_job() -> (tempfile::TempDir, String, DbSink) {
+        let dir = tempfile::tempdir().unwrap();
+        let conn = crate::catalog::db::open_catalog(&dir.path().join("c.sqlite")).unwrap();
+        conn.execute(
+            "INSERT INTO catalog_events (source_kind, external_id, first_seen, last_seen)
+             VALUES ('local-repository', 'SINK-EVT', '2026-08-01T00:00:00Z', '2026-08-01T00:00:00Z')",
+            [],
+        )
+        .unwrap();
+        let eid = conn.last_insert_rowid();
+        conn.execute(
+            "INSERT INTO event_snapshots (event_id, fetched_at, source_url, content_sha256, raw_payload, normalized_json, parser_version)
+             VALUES (?1, '2026-08-01T00:00:00Z', 'file:///x', 's', '{}', '{}', 't')",
+            [eid],
+        )
+        .unwrap();
+        let sid = conn.last_insert_rowid();
+        let payload = serde_json::json!({
+            "event_id": "SINK-EVT", "revision": 1, "schema_version": 2, "open": false,
+            "event_window_utc": {"start": "2026-08-01T00:00:00Z", "end": "2026-08-02T00:00:00Z"},
+            "ticket_window_local": {"start": "", "end": "", "timezone": "UTC"},
+            "target": {"label": "Sink event", "origin_asns": [64500],
+                "transit_predicate": {"predicate": {"ContainsAny": [64501]}, "status": "Reviewed",
+                    "provenance": {"statement": "r", "reviewed_by": "local-review", "date": "2026-08-01"}}},
+            "collectors": ["route-views2"], "source_family": "RouteViews"
+        })
+        .to_string();
+        conn.execute(
+            "INSERT INTO manifest_revisions (event_id, snapshot_id, manifest_schema, payload, sha256, review_status)
+             VALUES (?1, ?2, 2, ?3, ?4, 'Reviewed')",
+            rusqlite::params![eid, sid, payload, "sink-msha"],
+        )
+        .unwrap();
+        let mid = conn.last_insert_rowid();
+        let manifest: crate::manifest::Manifest = serde_json::from_str(
+            &conn
+                .query_row(
+                    "SELECT payload FROM manifest_revisions WHERE id = ?1",
+                    [mid],
+                    |r| r.get::<_, String>(0),
+                )
+                .unwrap(),
+        )
+        .unwrap();
+        let plan = crate::catalog::import::build_plan_record(&conn, mid, &manifest, true).unwrap();
+        let pid = crate::catalog::store::insert_plan(&conn, &plan).unwrap();
+        let id =
+            match jobs::queue(&conn, pid, crate::catalog::jobs::RequestSource::Cli, "h").unwrap() {
+                jobs::QueueOutcome::Created(id) => id,
+                _ => unreachable!(),
+            };
+        drop(conn);
+        let conn = crate::catalog::db::open_catalog(&dir.path().join("c.sqlite")).unwrap();
+        let conn = Arc::new(Mutex::new(conn));
+        let sink = DbSink::new(conn.clone(), id.clone(), Duration::from_secs(0));
+        (dir, id, sink)
+    }
+
+    #[test]
+    fn skipped_stage_is_not_logged_as_completed() {
+        let (dir, job_id, sink) = sink_job();
+        // Claim first, then emit stages with the pipeline's re-entrant
+        // DiscoveringArchives and skipped FreezingCohort.
+        {
+            let conn = sink.conn.lock().unwrap();
+            let mut c = conn;
+            jobs::claim_next(&mut c, "w", 90).unwrap();
+        }
+        for (stage, msg) in [
+            ("DiscoveringArchives", "discovering"),
+            ("AcquiringArchives", "acquiring"),
+            ("DiscoveringArchives", "updates discovery"), // re-entrant: behind
+            ("ParsingUpdates", "parsing"),
+            ("ReconstructingRoutes", "reconstructing"),
+        ] {
+            sink.emit(&ProgressEvent {
+                stage,
+                message: msg.to_string(),
+                current: None,
+                total: None,
+                unit: None,
+            });
+        }
+        let conn = sink.conn.lock().unwrap();
+        let job = jobs::get(&conn, &job_id).unwrap();
+        assert_eq!(job.state, JobState::ReconstructingRoutes);
+        // The re-entrant DiscoveringArchives was NOT recorded as a
+        // completed stage: no event carries it as the job state, and
+        // the omitted stage is explained.
+        let evs = jobs::events(&conn, &job_id, 100).unwrap();
+        // The re-entrant "updates discovery" emit was recorded under
+        // the ACTUAL state (AcquiringArchives), never as a completed
+        // DiscoveringArchives stage.
+        let reentrant = evs
+            .iter()
+            .find(|e| e.human_message == "updates discovery")
+            .expect("re-entrant emit event present");
+        // The re-entrant stage was recorded under the ACTUAL state,
+        // not as a completed DiscoveringArchives stage.
+        assert_eq!(reentrant.state, JobState::AcquiringArchives);
+        assert_eq!(
+            reentrant.stage.as_deref(),
+            Some("DiscoveringArchives"),
+            "the stage label is retained but the state reflects reality"
+        );
+        assert!(
+            evs.iter()
+                .any(|e| e.message_code.as_deref() == Some("stage_omitted")),
+            "the skip must be explained in the event log: {:?}",
+            evs.iter()
+                .map(|e| e.human_message.clone())
+                .collect::<Vec<_>>()
+        );
+        drop(dir);
     }
 }
