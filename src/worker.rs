@@ -257,10 +257,42 @@ impl DbSink {
 impl ProgressSink for DbSink {
     fn emit(&self, ev: &ProgressEvent) {
         let desired = JobState::parse_state(ev.stage).ok();
+        let mut omitted_stage: Option<JobState> = None;
         if let Some(desired) = desired {
             self.transition_to(desired);
+            let after = *self.state.lock().unwrap();
+            // A stage emitted behind the current execution state is a
+            // non-applicable skip (the pipeline re-emitted a stage the
+            // job already passed): the event log states why instead of
+            // pretending it ran.
+            if after != desired {
+                omitted_stage = Some(desired);
+            }
         }
         let state = *self.state.lock().unwrap();
+        if let Some(skipped) = omitted_stage {
+            let conn = self.conn.lock().unwrap();
+            let _ = service::append_event(
+                &conn,
+                &crate::catalog::jobs::JobEvent {
+                    job_id: self.job_id.clone(),
+                    sequence: 0,
+                    occurred_at: String::new(),
+                    state,
+                    stage: Some(skipped.as_str().to_string()),
+                    message_code: Some("stage_omitted".to_string()),
+                    human_message: format!(
+                        "stage {} omitted: not applicable after {}",
+                        skipped.as_str(),
+                        state.as_str()
+                    ),
+                    progress_current: None,
+                    progress_total: None,
+                    progress_unit: None,
+                    structured_detail: None,
+                },
+            );
+        }
         let now = Instant::now();
         let mut last = self.last_emit.lock().unwrap();
         if now.duration_since(*last) < self.throttle && ev.current.is_none() {
@@ -1046,5 +1078,127 @@ mod tests {
         // Not hostname-derived: never contains a machine name.
         let host = std::env::var("HOSTNAME").unwrap_or_default();
         assert!(!a.contains(&host) || host.is_empty());
+    }
+}
+
+#[cfg(test)]
+mod sink_tests {
+    use super::*;
+    use crate::catalog::jobs::service as jobs;
+
+    fn sink_job() -> (tempfile::TempDir, String, DbSink) {
+        let dir = tempfile::tempdir().unwrap();
+        let conn = crate::catalog::db::open_catalog(&dir.path().join("c.sqlite")).unwrap();
+        conn.execute(
+            "INSERT INTO catalog_events (source_kind, external_id, first_seen, last_seen)
+             VALUES ('local-repository', 'SINK-EVT', '2026-08-01T00:00:00Z', '2026-08-01T00:00:00Z')",
+            [],
+        )
+        .unwrap();
+        let eid = conn.last_insert_rowid();
+        conn.execute(
+            "INSERT INTO event_snapshots (event_id, fetched_at, source_url, content_sha256, raw_payload, normalized_json, parser_version)
+             VALUES (?1, '2026-08-01T00:00:00Z', 'file:///x', 's', '{}', '{}', 't')",
+            [eid],
+        )
+        .unwrap();
+        let sid = conn.last_insert_rowid();
+        let payload = serde_json::json!({
+            "event_id": "SINK-EVT", "revision": 1, "schema_version": 2, "open": false,
+            "event_window_utc": {"start": "2026-08-01T00:00:00Z", "end": "2026-08-02T00:00:00Z"},
+            "ticket_window_local": {"start": "", "end": "", "timezone": "UTC"},
+            "target": {"label": "Sink event", "origin_asns": [64500],
+                "transit_predicate": {"predicate": {"ContainsAny": [64501]}, "status": "Reviewed",
+                    "provenance": {"statement": "r", "reviewed_by": "local-review", "date": "2026-08-01"}}},
+            "collectors": ["route-views2"], "source_family": "RouteViews"
+        })
+        .to_string();
+        conn.execute(
+            "INSERT INTO manifest_revisions (event_id, snapshot_id, manifest_schema, payload, sha256, review_status)
+             VALUES (?1, ?2, 2, ?3, ?4, 'Reviewed')",
+            rusqlite::params![eid, sid, payload, "sink-msha"],
+        )
+        .unwrap();
+        let mid = conn.last_insert_rowid();
+        let manifest: crate::manifest::Manifest = serde_json::from_str(
+            &conn
+                .query_row(
+                    "SELECT payload FROM manifest_revisions WHERE id = ?1",
+                    [mid],
+                    |r| r.get::<_, String>(0),
+                )
+                .unwrap(),
+        )
+        .unwrap();
+        let plan = crate::catalog::import::build_plan_record(&conn, mid, &manifest, true).unwrap();
+        let pid = crate::catalog::store::insert_plan(&conn, &plan).unwrap();
+        let id =
+            match jobs::queue(&conn, pid, crate::catalog::jobs::RequestSource::Cli, "h").unwrap() {
+                jobs::QueueOutcome::Created(id) => id,
+                _ => unreachable!(),
+            };
+        drop(conn);
+        let conn = crate::catalog::db::open_catalog(&dir.path().join("c.sqlite")).unwrap();
+        let conn = Arc::new(Mutex::new(conn));
+        let sink = DbSink::new(conn.clone(), id.clone(), Duration::from_secs(0));
+        (dir, id, sink)
+    }
+
+    #[test]
+    fn skipped_stage_is_not_logged_as_completed() {
+        let (dir, job_id, sink) = sink_job();
+        // Claim first, then emit stages with the pipeline's re-entrant
+        // DiscoveringArchives and skipped FreezingCohort.
+        {
+            let conn = sink.conn.lock().unwrap();
+            let mut c = conn;
+            jobs::claim_next(&mut c, "w", 90).unwrap();
+        }
+        for (stage, msg) in [
+            ("DiscoveringArchives", "discovering"),
+            ("AcquiringArchives", "acquiring"),
+            ("DiscoveringArchives", "updates discovery"), // re-entrant: behind
+            ("ParsingUpdates", "parsing"),
+            ("ReconstructingRoutes", "reconstructing"),
+        ] {
+            sink.emit(&ProgressEvent {
+                stage,
+                message: msg.to_string(),
+                current: None,
+                total: None,
+                unit: None,
+            });
+        }
+        let conn = sink.conn.lock().unwrap();
+        let job = jobs::get(&conn, &job_id).unwrap();
+        assert_eq!(job.state, JobState::ReconstructingRoutes);
+        // The re-entrant DiscoveringArchives was NOT recorded as a
+        // completed stage: no event carries it as the job state, and
+        // the omitted stage is explained.
+        let evs = jobs::events(&conn, &job_id, 100).unwrap();
+        // The re-entrant "updates discovery" emit was recorded under
+        // the ACTUAL state (AcquiringArchives), never as a completed
+        // DiscoveringArchives stage.
+        let reentrant = evs
+            .iter()
+            .find(|e| e.human_message == "updates discovery")
+            .expect("re-entrant emit event present");
+        // The re-entrant stage was recorded under the ACTUAL state,
+        // not as a completed DiscoveringArchives stage.
+        assert_eq!(reentrant.state, JobState::AcquiringArchives);
+        assert_eq!(
+            reentrant.stage.as_deref(),
+            Some("DiscoveringArchives"),
+            "the stage label is retained but the state reflects reality"
+        );
+        assert!(
+            evs.iter()
+                .any(|e| e.message_code.as_deref() == Some("stage_omitted")),
+            "the skip must be explained in the event log: {:?}",
+            evs.iter()
+                .map(|e| e.human_message.clone())
+                .collect::<Vec<_>>()
+        );
+        drop(dir);
     }
 }
