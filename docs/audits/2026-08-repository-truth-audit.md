@@ -24,16 +24,16 @@ This audit verifies that every tracked file is classified, that every current st
 
 ## Summary
 
-Tracked files: **417** · inventory entries: **417**
+Tracked files: **431** · inventory entries: **431**
 
 | Category | Files |
 |---|---|
 | Immutable or generated evidence | 146 |
 | Production source | 102 |
+| Normative current documentation | 35 |
 | Historical decision record | 30 |
 | Reviewed case-study interpretation | 27 |
-| Configuration | 23 |
-| Normative current documentation | 22 |
+| Configuration | 24 |
 | Script or developer tool | 22 |
 | Template or stylesheet | 16 |
 | Test fixture | 11 |
@@ -280,11 +280,25 @@ Tracked files: **417** · inventory entries: **417**
 | `docs/audits/2026-08-smithville-source-refresh.md` | Historical decision record | maintainers | dated audit evidence | no | historical | status and applicability reviewed in this audit | none | reviewed in this audit |
 | `docs/audits/external-links-2026-08.md` | Normative current documentation | maintainers | dated curl checks of documented external URLs | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
 | `docs/audits/repository-inventory.json` | Configuration | maintainers | reviewed classification of tracked files | no | current | reviewed in this audit | none | reviewed in this audit |
+| `docs/evaluation/ALPHA-FREEZE.md` | Normative current documentation | contributors | reviewed protocol | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
+| `docs/evaluation/EVALUATION-DATA-HANDLING.md` | Normative current documentation | evaluators | reviewed protocol | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
+| `docs/evaluation/EXTERNAL-PILOT-CHECKLIST.md` | Normative current documentation | facilitators | reviewed protocol | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
+| `docs/evaluation/FEEDBACK-TRIAGE.md` | Normative current documentation | facilitators | reviewed protocol | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
 | `docs/evaluation/NOC-ALPHA-EVALUATION.md` | Normative current documentation | evaluators | reviewed protocol | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
+| `docs/evaluation/NOC-ALPHA-INVITATION.md` | Normative current documentation | project owner | reviewed protocol | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
+| `docs/evaluation/PILOT-REGISTRY.md` | Normative current documentation | facilitators | reviewed protocol | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
+| `docs/evaluation/POST-PILOT-DECISION-GATE.md` | Normative current documentation | project owner | reviewed protocol | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
 | `docs/evaluation/SECOND-NETWORK-ALPHA-HANDOFF.md` | Normative current documentation | evaluators | line-by-line reviewed in this audit | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
+| `docs/evaluation/evaluator/NOC-ALPHA-RESPONSE-SHEET.md` | Normative current documentation | evaluators | reviewed protocol | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
+| `docs/evaluation/evaluator/NOC-ALPHA-TASKS.md` | Normative current documentation | evaluators | reviewed protocol | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
+| `docs/evaluation/evaluator/TERMS.md` | Normative current documentation | evaluators | docs/GLOSSARY.md | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
+| `docs/evaluation/facilitator/NOC-ALPHA-FACILITATOR-GUIDE.md` | Normative current documentation | facilitators | reviewed protocol | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
+| `docs/evaluation/facilitator/POST-SESSION-DECISION.md` | Normative current documentation | facilitators | reviewed protocol | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
+| `docs/evaluation/facilitator/SESSION-NOTES-TEMPLATE.md` | Normative current documentation | facilitators | reviewed protocol | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
 | `docs/session-10-baseline.md` | Historical decision record | maintainers | decision context at time of writing | no | historical | status and applicability reviewed in this audit | none | reviewed in this audit |
 | `docs/sources/GRNOC_BULK_ACCESS_REQUEST.md` | Normative current documentation | contributors and operators | implementation + canonical evidence (see docs/README authority map) | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
 | `docs/sources/GRNOC_PUBLIC_TASK_VIEWER.md` | Normative current documentation | contributors and operators | implementation + canonical evidence (see docs/README authority map) | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
+| `evaluation/scenarios.toml` | Configuration | evaluators | reviewed evaluation protocol | no | current | reviewed in this audit | none | reviewed in this audit |
 | `manifests/INC0040293.json` | Reviewed case-study interpretation | analysts | reviewed manifest | no | current | claims re-checked against canonical evidence in this audit | none | reviewed in this audit |
 | `manifests/INC0299001.json` | Configuration | maintainers | reviewed operator configuration | no | current | reviewed in this audit | none | reviewed in this audit |
 | `manifests/INC0301970.json` | Configuration | maintainers | reviewed operator configuration | no | current | reviewed in this audit | none | reviewed in this audit |

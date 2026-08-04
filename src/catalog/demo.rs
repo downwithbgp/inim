@@ -21,6 +21,96 @@ pub const DEMO_EXPECTED_EVENTS: &[&str] = &[
     "INC0040293", // MAN LAN optical participant event (supporting observation)
 ];
 
+/// Reviewed NORDUnet pilot runs linked to the manlan-2019 case study in
+/// the demo (the R&E-plane runs of the reviewed cross-observer matrix:
+/// route-views2 direct, rrc00, rrc06, rrc15). Pilot linkage mirrors the
+/// reviewed pilot-result linkage; the I2PX peering-plane runs are not
+/// linked (their dirs hold preflight-only results).
+const DEMO_PILOT_LINKED_RUNS: &[&str] = &[
+    "MANLAN-2019-NORDUNET-PILOT-RE-RV2",
+    "MANLAN-2019-NORDUNET-PILOT-RE-RRC00",
+    "MANLAN-2019-NORDUNET-PILOT-RE-RRC06",
+    "MANLAN-2019-NORDUNET-PILOT-RE-RRC15",
+];
+
+/// Import completed NORDUnet pilot runs from the reviewed pilot tree
+/// into the demo catalog and link the reviewed R&E-plane runs to the
+/// manlan-2019 case study. Offline and deterministic: only reviewed
+/// tracked material is read, and nothing is executed.
+fn import_pilot_runs(conn: &Connection, root: &Path) -> Result<usize, String> {
+    let pilot_dir = root.join("case-studies/manlan-2019/pilot");
+    let manifests_dir = pilot_dir.join("manifests");
+    let out_dir = pilot_dir.join("out");
+    if !manifests_dir.is_dir() || !out_dir.is_dir() {
+        return Ok(0);
+    }
+    let mut manifest_paths: Vec<std::path::PathBuf> = std::fs::read_dir(&manifests_dir)
+        .map_err(|e| format!("cannot read {}: {e}", manifests_dir.display()))?
+        .filter_map(|e| e.ok().map(|e| e.path()))
+        .filter(|p| p.extension().map(|x| x == "json").unwrap_or(false))
+        .collect();
+    manifest_paths.sort();
+    let mut imported = 0usize;
+    for path in &manifest_paths {
+        let event_id = path.file_stem().and_then(|s| s.to_str()).unwrap_or("");
+        // Only completed runs (report.json present) are imported; the
+        // I2PX peering-plane dirs hold preflight-only results and are
+        // never imported as runs.
+        if !out_dir.join(event_id).join("report.json").is_file() {
+            continue;
+        }
+        let mut summary = crate::catalog::import::ImportSummary::default();
+        crate::catalog::import::import_one(
+            conn,
+            path,
+            &out_dir,
+            env!("CARGO_PKG_VERSION"),
+            None,
+            &mut summary,
+        )
+        .map_err(|e| format!("pilot run import failed ({event_id}): {e}"))?;
+        imported += 1;
+    }
+    // Link the reviewed R&E-plane runs to the case study.
+    let cs_id: Option<i64> = conn
+        .query_row(
+            "SELECT id FROM case_studies WHERE slug = 'manlan-2019'",
+            [],
+            |r| r.get(0),
+        )
+        .ok();
+    if let Some(cs_id) = cs_id {
+        for run_event in DEMO_PILOT_LINKED_RUNS {
+            let run_id: Option<i64> = conn
+                .query_row(
+                    "SELECT r.id FROM analysis_runs r
+                     JOIN analysis_plans p ON p.id = r.plan_id
+                     JOIN manifest_revisions m ON m.id = p.manifest_revision_id
+                     JOIN catalog_events e ON e.id = m.event_id
+                     WHERE e.external_id = ?1",
+                    [run_event],
+                    |r| r.get(0),
+                )
+                .ok();
+            if let Some(run_id) = run_id {
+                let _ = crate::catalog::store::insert_case_study_analysis_link(
+                    conn,
+                    &crate::catalog::domain::CaseStudyAnalysisLink {
+                        id: 0,
+                        case_study_id: cs_id,
+                        run_id,
+                        role: "PilotObservation".to_string(),
+                        reviewed_note: Some(
+                            "Reviewed R&E-plane pilot run (demo linkage).".to_string(),
+                        ),
+                    },
+                )?;
+            }
+        }
+    }
+    Ok(imported)
+}
+
 pub fn demo_init(db_path: &Path, root: &Path, force: bool) -> Result<DemoReport, String> {
     if db_path.exists() && !force {
         return Err(format!(
@@ -57,6 +147,12 @@ pub fn demo_init(db_path: &Path, root: &Path, force: bool) -> Result<DemoReport,
         crate::catalog::case_study_import::import_case_study(&conn, &cs_path)
             .map_err(|e| format!("demo case-study import failed (manlan-2019): {e}"))?;
     }
+    // Import the completed NORDUnet pilot runs (case-study evidence)
+    // and link the reviewed R&E-plane runs so the manlan-2019 workbench
+    // renders the route changes. Without this step the case-study
+    // workbench would show no observer findings.
+    let pilot_imported = import_pilot_runs(&conn, root)?;
+    let _ = pilot_imported;
     drop(conn);
     let report = demo_verify(db_path, root)?;
     write_demo_manifest(db_path, &report)?;
