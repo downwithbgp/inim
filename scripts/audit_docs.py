@@ -346,6 +346,38 @@ def check_inventory_and_render() -> list[str]:
     return problems
 
 
+def check_second_network_docs() -> list[str]:
+    """Second-network relationship-scope drift guards (Session 50)."""
+    problems = []
+    docs = ["docs/DESIGN.md", "docs/DOMAIN.md", "docs/UX.md", "docs/OBSERVABILITY.md",
+            "docs/DATA_PROVENANCE.md", "README.md"]
+    for name in docs:
+        f = ROOT / name
+        if not f.exists():
+            continue
+        text = f.read_text(errors="replace").lower()
+        for forbidden in ["globally single-homed", "single homed", "total internet outage"]:
+            if forbidden in text:
+                problems.append(f"{name}: claims {forbidden!r} without independent evidence")
+    glossary = (ROOT / "docs/GLOSSARY.md").read_text(errors="replace")
+    for term in ["Managed network", "Named managed relationship", "Attachment qualifier",
+                 "Direct relationship observation", "Indirect relationship observation",
+                 "Provisional analysis", "Snapshot cutoff"]:
+        if term.lower() not in glossary.lower():
+            problems.append(f"docs/GLOSSARY.md: missing glossary term {term!r}")
+    # Open-event documentation must carry an explicit cutoff.
+    for name in ["docs/UX.md", "docs/DESIGN.md"]:
+        f = ROOT / name
+        if not f.exists():
+            continue
+        text = f.read_text(errors="replace")
+        for line in text.splitlines():
+            low = line.lower()
+            if "open event" in low and "cutoff" not in low and "provisional" not in low:
+                problems.append(f"{name}: open-event text must reference cutoff/provisional: {line.strip()}")
+    return problems
+
+
 def check_project_scope_docs() -> list[str]:
     """Project-scope documentation drift guards (Session 49)."""
     problems = []
@@ -376,6 +408,9 @@ def check_project_scope_docs() -> list[str]:
         # The enforcement suite asserts the ABSENCE of excluded material
         # (negative assertions), which requires naming it.
         "tests/project_scope_enforcement_test.rs",
+        # Same: the second-network semantics suite asserts the NOAA
+        # exclusions remain in force.
+        "tests/second_network_semantics_test.rs",
         # The candidates audit must name the excluded record to record
         # why it is absent from the shortlist.
         "docs/audits/2026-08-non-noaa-ip-event-candidates.md",
@@ -429,6 +464,7 @@ def main() -> int:
     problems += check_inventory_and_render()
     problems += check_job_workflow_docs()
     problems += check_project_scope_docs()
+    problems += check_second_network_docs()
     if problems:
         print("documentation drift audit FAILED:", file=sys.stderr)
         for p in problems:

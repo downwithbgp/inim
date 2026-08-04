@@ -3214,5 +3214,53 @@
   "authoritative": "dated audit evidence",
   "generated": false,
   "current": false
+ },
+ {
+  "path": "docs/audits/2026-08-smithville-source-refresh.md",
+  "category": "Historical decision record",
+  "audience": "maintainers",
+  "authoritative": "dated audit evidence",
+  "generated": false,
+  "current": false
+ },
+ {
+  "path": "docs/audits/2026-08-second-network-neutrality.md",
+  "category": "Historical decision record",
+  "audience": "maintainers",
+  "authoritative": "dated audit evidence",
+  "generated": false,
+  "current": false
+ },
+ {
+  "path": "docs/audits/2026-08-evaluator-bootstrap.md",
+  "category": "Historical decision record",
+  "audience": "maintainers",
+  "authoritative": "dated audit evidence",
+  "generated": false,
+  "current": false
+ },
+ {
+  "path": "docs/evaluation/SECOND-NETWORK-ALPHA-HANDOFF.md",
+  "category": "Normative current documentation",
+  "audience": "evaluators",
+  "authoritative": "line-by-line reviewed in this audit",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "tests/second_network_semantics_test.rs",
+  "category": "Test source",
+  "audience": "maintainers",
+  "authoritative": "implementation behavior + fixtures",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "tests/smithville_rib_probe.rs",
+  "category": "Test source",
+  "audience": "maintainers",
+  "authoritative": "live research probe (network required; ignored in CI)",
+  "generated": false,
+  "current": true
  }
 ]

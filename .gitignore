@@ -11,3 +11,4 @@ __pycache__/
 data/
 tmp/
 /out/
+mrt_core_dump
