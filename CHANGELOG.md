@@ -26,6 +26,15 @@ introduce breaking changes.
 - Evidence-bearing reports: observed event signature, observable mechanism
   hints, limitations, evidence appendix, withdrawal audit, archive
   manifest.
+- Layer-2 fabric semantics + evidence-grounded AS-path diagrams
+  (2026-08): reviewed interconnection context on case studies
+  (fabric attachments with reviewed ASN labels; attachment is not BGP
+  adjacency and never enters analysis), server-rendered observed
+  AS-path diagrams (canonical lifecycle evidence, before/after state
+  comparison, absence blocks, prepend compaction, reviewed-unobserved
+  relationships dashed), MAN LAN presented as Layer-2 exchange fabric
+  with NORDUnet AS2603 as the analyzed target, and structured
+  interconnection/path facts in the case-study API.
 - Evaluator workbench corrections (2026-08): a shared artifact-path
   resolver (web run page and demo verifier agree on artifact
   availability; SHA-256/size verified against catalog metadata),
