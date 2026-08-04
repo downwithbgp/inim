@@ -506,6 +506,13 @@ async fn insufficient_visibility_not_no_change() {
         !text.contains("routing was stable") && !text.contains("no route-state change"),
         "insufficient visibility is not presented as no-change"
     );
+    // The page leads with the operator-readable explanation; the
+    // stored 'pre-event route' assessment statement is not the primary
+    // wording (it remains in the run artifact only).
+    assert!(
+        !body.contains("pre-event"),
+        "pre-event wording not presented on the event page"
+    );
 }
 
 // ── Snapshot / cutoff provenance (Part 9) ─────────────────────────

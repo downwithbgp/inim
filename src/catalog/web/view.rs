@@ -892,6 +892,18 @@ pub fn load_event_detail(
     .to_string();
     let expectation = latest_expectation(conn, event.id)?;
     let (result, assessment) = latest_result(conn, event.id)?;
+    // Operator-readable explanation leads for insufficient-visibility
+    // events when the case study carries a reviewed observation-
+    // coverage summary; the stored assessment statement remains in the
+    // run artifact.
+    let coverage = observation_coverage_for(catalog_root, external_id);
+    let assessment = if coverage.is_some() && result.as_deref().is_some_and(|r| r.contains("Insufficient")) {
+        Some(String::from(
+            "Target-origin routes were visible at selected public collectors, but no selected event baseline exposed the reviewed relationship and no direct observer session for the reviewed peer ASN was available.",
+        ))
+    } else {
+        assessment
+    };
     let applicability = reviewed_applicability(conn, event.id)?;
     let supporting_only = applicability.as_deref()
         == Some(crate::catalog::domain::applicability::NOT_DIRECTLY_OBSERVABLE);
@@ -924,7 +936,6 @@ pub fn load_event_detail(
             tracked_snapshot: s.source_url.ends_with(".source.json"),
         })
         .collect();
-    let coverage = observation_coverage_for(catalog_root, external_id);
     let manifest_views = db::list_manifest_revisions(conn, event.id)?
         .iter()
         .map(|m| ManifestView {
