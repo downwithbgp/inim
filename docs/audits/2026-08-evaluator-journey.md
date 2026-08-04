@@ -70,3 +70,26 @@ decision, no network access after build**, with the first task URL
 printed by the bootstrap. The remaining ambiguities (server stop,
 port conflict) are facilitator-level and are recorded in the
 facilitator guide and the external-pilot checklist.
+
+## Platform verification
+
+- **Linux (verified by execution)** — clean clone at commit `041fdf8`:
+  build 3 m 53 s, demo init 3.2 s, verify 0.012 s, server < 1 s, all
+  scenario URLs HTTP 200. The bootstrap uses only git, Rust/Cargo, and
+  standard POSIX tools; no `jq`, no cargo-deny, no user aliases.
+- **macOS (static review; not executed)** — no macOS host was
+  available. Both shell scripts pass `dash -n` (stricter than the
+  macOS system shell), contain no GNU-only constructs (`readlink`,
+  GNU `sed`/`grep`/`stat` flags), and the pack script falls back to
+  `shasum -a 256` when `sha256sum` is absent. Unverified steps:
+  actual macOS execution, Homebrew Rust paths, and the pack script's
+  `du -sk` output format.
+- **Packaged source (verified by execution)** — `cargo package`
+  (441 files) includes the evaluation documents, scenario manifest,
+  bootstrap and generator scripts, templates, migrations, demo
+  material, and project-scope policy; excludes runtime databases,
+  raw MRT, caches, screenshots, and captured run stderr logs. From a
+  clean `.crate` extraction with no git metadata: release build,
+  demo init/verify, answer-key generation, read-only serve, and all
+  scenario URLs work; the demo-manifest SHA-256 is identical to the
+  git checkout (determinism across build modes).
