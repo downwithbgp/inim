@@ -2,8 +2,8 @@
 
 Dated execution audit of the clean evaluator path: public repository
 clone to first evaluation task. Measured in a fresh temporary clone
-(`git clone --no-local /home/vadim/inim /tmp/inim-clean-51`) at commit
-`041fdf8` (session-51 branch; post-merge `main` state). No existing
+(`git clone` of the public repository at commit `041fdf8`,
+session-51 branch; the post-merge `main` state). No existing
 `target/`, demo database, runtime catalog, cache, `out/`, `data/`, or
 private environment variables were reused. No absolute temporary paths
 appear in this audit.
