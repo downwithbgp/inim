@@ -24,17 +24,17 @@ This audit verifies that every tracked file is classified, that every current st
 
 ## Summary
 
-Tracked files: **431** · inventory entries: **431**
+Tracked files: **436** · inventory entries: **436**
 
 | Category | Files |
 |---|---|
-| Immutable or generated evidence | 146 |
+| Immutable or generated evidence | 148 |
 | Production source | 102 |
 | Normative current documentation | 35 |
 | Historical decision record | 30 |
 | Reviewed case-study interpretation | 27 |
+| Script or developer tool | 25 |
 | Configuration | 24 |
-| Script or developer tool | 22 |
 | Template or stylesheet | 16 |
 | Test fixture | 11 |
 | Test source | 10 |
@@ -46,7 +46,7 @@ Tracked files: **431** · inventory entries: **431**
 
 | Path | Category | Audience | Authoritative source | Generated | Current | Review result | Changes required | Final status |
 |---|---|---|---|---|---|---|---|---|
-| `.github/ISSUE_TEMPLATE/noc-alpha-feedback.md` | GitHub/community metadata | contributors | reviewed protocol | no | current | reviewed in this audit | none | reviewed in this audit |
+| `.github/ISSUE_TEMPLATE/noc-alpha-feedback.yml` | GitHub/community metadata | contributors | reviewed protocol | no | current | reviewed in this audit | none | reviewed in this audit |
 | `.github/dependabot.yml` | GitHub/community metadata | contributors | GitHub Dependabot configuration + action review policy | no | current | reviewed in this audit | none | reviewed in this audit |
 | `.github/workflows/ci.yml` | GitHub/community metadata | contributors | GitHub Actions upstream releases | no | current | reviewed in this audit | none | reviewed in this audit |
 | `.gitignore` | Configuration | maintainers | reviewed operator configuration | no | current | reviewed in this audit | none | reviewed in this audit |
@@ -298,6 +298,8 @@ Tracked files: **431** · inventory entries: **431**
 | `docs/session-10-baseline.md` | Historical decision record | maintainers | decision context at time of writing | no | historical | status and applicability reviewed in this audit | none | reviewed in this audit |
 | `docs/sources/GRNOC_BULK_ACCESS_REQUEST.md` | Normative current documentation | contributors and operators | implementation + canonical evidence (see docs/README authority map) | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
 | `docs/sources/GRNOC_PUBLIC_TASK_VIEWER.md` | Normative current documentation | contributors and operators | implementation + canonical evidence (see docs/README authority map) | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
+| `evaluation/generated/answer-key.json` | Immutable or generated evidence | facilitators | reviewed tracked artifacts + generator | yes | current | schema/container reviewed; contents canonical, not hand-edited | none | reviewed in this audit |
+| `evaluation/generated/answer-key.md` | Immutable or generated evidence | facilitators | answer-key.json | yes | current | schema/container reviewed; contents canonical, not hand-edited | none | reviewed in this audit |
 | `evaluation/scenarios.toml` | Configuration | evaluators | reviewed evaluation protocol | no | current | reviewed in this audit | none | reviewed in this audit |
 | `manifests/INC0040293.json` | Reviewed case-study interpretation | analysts | reviewed manifest | no | current | claims re-checked against canonical evidence in this audit | none | reviewed in this audit |
 | `manifests/INC0299001.json` | Configuration | maintainers | reviewed operator configuration | no | current | reviewed in this audit | none | reviewed in this audit |
@@ -309,10 +311,13 @@ Tracked files: **431** · inventory entries: **431**
 | `scripts/audit_pilot_absence.py` | Script or developer tool | maintainers | the command it wraps + its inputs | no | current | comments and usage strings audited in this audit | none | reviewed in this audit |
 | `scripts/bench_parse_scaling.sh` | Script or developer tool | maintainers | the command it wraps + its inputs | no | current | comments and usage strings audited in this audit | none | reviewed in this audit |
 | `scripts/build-cross-observer-matrix.py` | Script or developer tool | maintainers | the command it wraps + its inputs | no | current | comments and usage strings audited in this audit | none | reviewed in this audit |
+| `scripts/build-evaluation-answer-key.py` | Script or developer tool | facilitators | reviewed tracked artifacts | no | current | comments and usage strings audited in this audit | none | reviewed in this audit |
+| `scripts/build-evaluation-pack.sh` | Script or developer tool | facilitators | reviewed tracked artifacts | no | current | comments and usage strings audited in this audit | none | reviewed in this audit |
 | `scripts/build-repo-audit.py` | Script or developer tool | maintainers | the command it wraps + its inputs | no | current | comments and usage strings audited in this audit | none | reviewed in this audit |
 | `scripts/build-rrc11-audit.py` | Script or developer tool | maintainers | the command it wraps + its inputs | no | current | comments and usage strings audited in this audit | none | reviewed in this audit |
 | `scripts/build-rrc11-i2px-decision.py` | Script or developer tool | maintainers | the command it wraps + its inputs | no | current | comments and usage strings audited in this audit | none | reviewed in this audit |
 | `scripts/compare_runs.py` | Script or developer tool | maintainers | the command it wraps + its inputs | no | current | comments and usage strings audited in this audit | none | reviewed in this audit |
+| `scripts/evaluator-bootstrap.sh` | Script or developer tool | evaluators | reviewed protocol | no | current | comments and usage strings audited in this audit | none | reviewed in this audit |
 | `scripts/pilot_rerun_equivalence.sh` | Script or developer tool | maintainers | the command it wraps + its inputs | no | current | comments and usage strings audited in this audit | none | reviewed in this audit |
 | `scripts/ris_collector_preflight.sh` | Script or developer tool | maintainers | the command it wraps + its inputs | no | current | comments and usage strings audited in this audit | none | reviewed in this audit |
 | `scripts/screenshot-review-session36.sh` | Script or developer tool | maintainers | the command it wraps + its inputs | no | current | comments and usage strings audited in this audit | none | reviewed in this audit |

@@ -1,6 +1,6 @@
 [
  {
-  "path": ".github/ISSUE_TEMPLATE/noc-alpha-feedback.md",
+  "path": ".github/ISSUE_TEMPLATE/noc-alpha-feedback.yml",
   "category": "GitHub/community metadata",
   "audience": "contributors",
   "authoritative": "reviewed protocol",
@@ -2016,6 +2016,22 @@
   "current": true
  },
  {
+  "path": "evaluation/generated/answer-key.json",
+  "category": "Immutable or generated evidence",
+  "audience": "facilitators",
+  "authoritative": "reviewed tracked artifacts + generator",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "evaluation/generated/answer-key.md",
+  "category": "Immutable or generated evidence",
+  "audience": "facilitators",
+  "authoritative": "answer-key.json",
+  "generated": true,
+  "current": true
+ },
+ {
   "path": "evaluation/scenarios.toml",
   "category": "Configuration",
   "audience": "evaluators",
@@ -2104,6 +2120,22 @@
   "current": true
  },
  {
+  "path": "scripts/build-evaluation-answer-key.py",
+  "category": "Script or developer tool",
+  "audience": "facilitators",
+  "authoritative": "reviewed tracked artifacts",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "scripts/build-evaluation-pack.sh",
+  "category": "Script or developer tool",
+  "audience": "facilitators",
+  "authoritative": "reviewed tracked artifacts",
+  "generated": false,
+  "current": true
+ },
+ {
   "path": "scripts/build-repo-audit.py",
   "category": "Script or developer tool",
   "audience": "maintainers",
@@ -2132,6 +2164,14 @@
   "category": "Script or developer tool",
   "audience": "maintainers",
   "authoritative": "the command it wraps + its inputs",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "scripts/evaluator-bootstrap.sh",
+  "category": "Script or developer tool",
+  "audience": "evaluators",
+  "authoritative": "reviewed protocol",
   "generated": false,
   "current": true
  },

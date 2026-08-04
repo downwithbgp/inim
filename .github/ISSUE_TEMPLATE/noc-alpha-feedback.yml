@@ -1,0 +1,97 @@
+name: NOC alpha feedback
+description: Feedback from a network engineer evaluating the public alpha (see docs/evaluation/evaluator/NOC-ALPHA-TASKS.md)
+title: "[NOC alpha] "
+labels: ["noc-alpha-feedback"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for evaluating the inim public alpha. This form is
+        optional and anonymous — no organization, name, or email is
+        required.
+
+        **Warning:** Do not include confidential network information,
+        credentials, private incident details, or customer data in this
+        issue. GitHub issues are public.
+  - type: input
+    id: version
+    attributes:
+      label: Repository commit or version
+      description: The commit SHA you evaluated (printed by the bootstrap), if known.
+    validations:
+      required: false
+  - type: input
+    id: scenario
+    attributes:
+      label: Task or scenario
+      description: e.g. "Task B2, NORDUnet scenario".
+    validations:
+      required: false
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected interpretation
+      description: What you expected the evidence to show.
+    validations:
+      required: false
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual interpretation
+      description: What the workbench led you to conclude.
+    validations:
+      required: false
+  - type: input
+    id: page
+    attributes:
+      label: Page used
+      description: The URL or page name where the confusion occurred.
+    validations:
+      required: false
+  - type: input
+    id: evidence
+    attributes:
+      label: Evidence link (if relevant)
+      description: Any evidence reference or artifact you used.
+    validations:
+      required: false
+  - type: input
+    id: terminology
+    attributes:
+      label: Unclear terminology
+      description: Exact term or phrase that was unclear or misleading.
+    validations:
+      required: false
+  - type: textarea
+    id: missing
+    attributes:
+      label: Missing information
+      description: What you needed but could not find.
+    validations:
+      required: false
+  - type: dropdown
+    id: assistance
+    attributes:
+      label: Facilitator assistance required
+      description: Did the facilitator have to help you complete the task?
+      options:
+        - "No"
+        - "Yes — terminology clarification"
+        - "Yes — navigation hint"
+        - "Yes — task clarification"
+    validations:
+      required: false
+  - type: textarea
+    id: screenshot
+    attributes:
+      label: Screenshot (optional)
+      description: Attach a screenshot if it helps. Remove any confidential data first.
+    validations:
+      required: false
+  - type: checkboxes
+    id: confirmation
+    attributes:
+      label: Privacy confirmation
+      options:
+        - label: I confirm I have removed all private operational details (no confidential network information, credentials, private incident details, or customer data).
+          required: true
