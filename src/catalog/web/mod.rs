@@ -10,6 +10,7 @@ pub mod api;
 pub mod handlers;
 pub mod job_handlers;
 pub mod jobs_view;
+pub mod path_diagram;
 pub mod server;
 pub mod session_context;
 #[cfg(test)]

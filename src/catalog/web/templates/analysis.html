@@ -87,6 +87,20 @@ decision recorded by the run, not a failure.</p>
 qualifying cohort and is not claimed here.</p>
 </div>
 
+{% if !iv.relationship_svg.is_empty() %}
+<div class="panel">
+<h2>Reviewed relationship vs observed evidence</h2>
+{{ iv.relationship_svg|safe }}
+<p class="muted">The dashed edge is the reviewed relationship sought
+({{ iv.predicate_text }}); it was not observed in the selected baselines.
+"Not observed in the selected public baselines" is not "the relationship
+does not exist".</p>
+{% if !iv.observed_paths_text.is_empty() %}
+<p>{{ iv.observed_paths_text }}</p>
+{% endif %}
+</div>
+{% endif %}
+
 {% if !iv.reviewed_notes.is_empty() %}
 <div class="panel">
 <h2>Reviewed determination (manifest analyst notes)</h2>

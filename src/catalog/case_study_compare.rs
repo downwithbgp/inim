@@ -675,6 +675,7 @@ mod tests {
             content_sha256: "abc".to_string(),
             created_utc: "2019-09-01T00:00:00Z".to_string(),
             updated_utc: "2019-09-01T00:00:00Z".to_string(),
+        interconnection_context: None,
         };
         let cs_id = store::insert_case_study(conn, &cs).unwrap();
         seed_phases(conn, cs_id);

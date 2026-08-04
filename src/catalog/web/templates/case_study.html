@@ -9,6 +9,51 @@
   <p>{{ what_happened }}</p>
 </div>
 
+{% if !incident_context.is_empty() %}
+<div class="panel">
+  <h3>Incident context</h3>
+  <p>{{ incident_context }}</p>
+  {% if interconnection.is_some() %}
+  {% let ic = interconnection.as_ref().unwrap() %}
+  <h4>Reviewed attachment context (Layer-2)</h4>
+  {{ ic.fabric_svg|safe }}
+  <p class="muted">Undirected grey lines are reviewed Layer-2 attachment
+  context. Attachment is not BGP adjacency: it does not prove a direct
+  BGP session, exported route visibility, a commercial relationship,
+  traffic flow, or active state during the event.</p>
+  <table>
+  <thead><tr><th>Attached network/connector</th><th>Reviewed ASN</th><th>Reviewed note</th></tr></thead>
+  <tbody>
+  {% for a in ic.attachments %}
+  <tr><td>{{ a.label }}</td><td>{{ a.asn_text }}</td><td class="muted">{{ a.note }}</td></tr>
+  {% endfor %}
+  </tbody>
+  </table>
+  <h4>Limitations</h4>
+  <ul class="flat">
+  {% for l in ic.limitations %}
+  <li>{{ l }}</li>
+  {% endfor %}
+  </ul>
+  <p class="muted">Provenance: {{ ic.provenance }}</p>
+  {% endif %}
+</div>
+{% endif %}
+
+{% if !completed_analysis.is_empty() %}
+<div class="panel">
+  <h3>Completed public-BGP analysis</h3>
+  <p>{{ completed_analysis }}</p>
+</div>
+{% endif %}
+
+{% if !scope_text.is_empty() %}
+<div class="panel">
+  <h3>Scope</h3>
+  <p>{{ scope_text }}</p>
+</div>
+{% endif %}
+
 <div class="panel">
   <h3>What public BGP showed</h3>
   {% if !route_story.is_empty() %}
@@ -112,7 +157,7 @@
 </table>
 {% endif %}
 
-<h3>Other operator-reported participants</h3>
+<h3>{{ participants_heading }}</h3>
 <p class="muted">Entities mentioned by the source record but not reviewed for
 analysis. No identity is inferred for them here.</p>
 <table>
@@ -162,7 +207,7 @@ An incident-wide plan would be drafted with <code>inim catalog case-study plan</
 <h3>Historical pilot</h3>
 {% if plan.is_some() && plan.as_ref().unwrap().pilot_status != "Not planned" %}
 {% let p = plan.as_ref().unwrap() %}
-<p class="muted">Historical pilot — {{ p.pilot_target }}. A single-target, single-collector, bounded-window pilot; it is not a complete MAN LAN incident verdict.</p>
+<p class="muted">Historical pilot — {{ p.pilot_target }}. A single-target, single-collector, bounded-window pilot; it is not a complete incident-wide verdict.</p>
 <table>
 <tbody>
   <tr><th>Status</th><td>{{ p.pilot_status }}</td></tr>
@@ -253,6 +298,48 @@ incident-wide public-BGP analysis has been reviewed.</p>
 {% endfor %}
 </tbody>
 </table>
+
+<h3>Representative observer route story</h3>
+{% if path_comparison.is_some() %}
+{% let pc = path_comparison.as_ref().unwrap() %}
+<p class="muted">{{ pc.disclaimer }}</p>
+{% if interconnection.is_some() %}
+{% let ic = interconnection.as_ref().unwrap() %}
+<p class="muted">The diagram shows what this public BGP observer received.
+{{ ic.label }} itself is the Layer-2 incident context and does not appear as an
+AS-path hop.</p>
+{% endif %}
+{{ pc.comparison_svg|safe }}
+<table>
+<thead><tr><th>State</th><th>Time (UTC)</th><th>Observed AS path</th><th>Observation</th></tr></thead>
+<tbody>
+{% for r in pc.text_rows %}
+<tr><td>{{ r.label }}</td><td>{{ r.timestamp }}</td>
+<td>{% if r.path_text == "No selected route visible at this observer" %}<span class="muted">{{ r.path_text }}</span>{% else %}<code>{{ r.path_text }}</code>{% endif %}</td>
+<td class="muted">{% if r.observation_kind.is_empty() %}not recorded{% else %}{{ r.observation_kind }}{% endif %}</td></tr>
+{% endfor %}
+</tbody>
+</table>
+<p class="muted">Observer: {{ pc.observer }} · prefix {{ pc.prefix }} ·
+<a href="{{ pc.run_href }}">full run evidence</a> (all affected prefixes,
+transitions, and observation references).</p>
+{% else %}
+<p class="muted">No observed-path comparison: no linked run exposes a
+changed-then-returned route story from canonical lifecycle evidence.</p>
+{% endif %}
+
+<div class="panel">
+  <h3>Diagram legend</h3>
+  <ul class="pd-legend">
+    <li><span class="pd-legend-swatch solid"></span> solid arrow — observed AS-path order</li>
+    <li><span class="pd-legend-swatch dashed"></span> dashed edge — reviewed relationship or predicate not observed in selected evidence</li>
+    <li><span class="pd-legend-swatch attach"></span> grey undirected line — reviewed Layer-2 attachment context</li>
+  </ul>
+  <p class="muted">Arrow direction shows observed AS-path order; it never labels
+  provider/customer/peer relationships. Node position and organization category
+  never imply a relationship class. The diagram shows what a public BGP observer
+  received; it is not a complete topology map.</p>
+</div>
 
 <h3>Public-BGP observer comparison</h3>
 {% if observer_comparison.rows.is_empty() %}

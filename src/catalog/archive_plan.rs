@@ -643,7 +643,7 @@ pub fn list_targets(conn: &Connection, case_study_id: i64) -> Result<Vec<CaseStu
 pub fn find_case_study(conn: &Connection, slug: &str) -> Option<CaseStudy> {
     conn.query_row(
         "SELECT id, slug, title, summary, start_utc, end_utc, status, content_sha256,
-                created_utc, updated_utc
+                created_utc, updated_utc, interconnection_context
          FROM case_studies WHERE slug = ?1",
         [slug],
         |r| {
@@ -658,6 +658,7 @@ pub fn find_case_study(conn: &Connection, slug: &str) -> Option<CaseStudy> {
                 content_sha256: r.get(7)?,
                 created_utc: r.get(8)?,
                 updated_utc: r.get(9)?,
+                interconnection_context: r.get(10)?,
             })
         },
     )
@@ -688,6 +689,7 @@ mod tests {
             content_sha256: "abc".to_string(),
             created_utc: "2019-09-01T00:00:00Z".to_string(),
             updated_utc: "2019-09-01T00:00:00Z".to_string(),
+        interconnection_context: None,
         }
     }
 

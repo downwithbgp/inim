@@ -51,6 +51,46 @@ pub struct CaseStudyDataFile {
     pub related_events: Vec<DataEventLink>,
     pub claims: Vec<DataClaim>,
     pub targets: Vec<DataTarget>,
+    /// Reviewed interconnection context (Layer-2 fabric, exchange,
+    /// shared medium). Reviewed interpretation; presentation-only;
+    /// never protocol evidence (attachment is not BGP adjacency).
+    #[serde(default)]
+    pub interconnection_context: Option<DataInterconnectionContext>,
+}
+
+/// Reviewed Layer-2 / interconnection context of an incident.
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct DataInterconnectionContext {
+    /// Context kind, currently `Layer2Fabric`.
+    pub kind: String,
+    /// Short label of the fabric / exchange.
+    pub label: String,
+    /// Reviewed attachments (physical / Layer-2 participation context).
+    #[serde(default)]
+    pub attachments: Vec<DataAttachment>,
+    /// Where this reviewed context comes from.
+    pub provenance: String,
+    /// Explicit limitations of the attachment evidence class.
+    #[serde(default)]
+    pub limitations: Vec<String>,
+}
+
+/// One reviewed attachment to a Layer-2 fabric.
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct DataAttachment {
+    /// Organization / network label as reviewed.
+    pub label: String,
+    /// Reviewed short context note.
+    #[serde(default)]
+    pub note: String,
+    /// Reviewed ASN label where established; `None` when the reviewed
+    /// record does not establish one (never guessed).
+    pub asn: Option<u32>,
+    /// ASN validity date when `asn` is present.
+    #[serde(default)]
+    pub asn_validity_date: Option<String>,
 }
 
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
@@ -479,6 +519,9 @@ pub fn import_case_study(
         content_sha256: content_sha.clone(),
         created_utc: now.clone(),
         updated_utc: now,
+        interconnection_context: data.interconnection_context.as_ref().map(|c| {
+            serde_json::to_string(c).expect("interconnection context is serializable")
+        }),
     };
     let case_study_id = store::insert_case_study(&tx, &cs)?;
 

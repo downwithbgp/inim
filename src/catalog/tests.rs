@@ -550,6 +550,7 @@ fn sample_case_study(slug: &str) -> CaseStudy {
         content_sha256: sha,
         created_utc: "2019-09-01T00:00:00Z".to_string(),
         updated_utc: "2019-09-01T00:00:00Z".to_string(),
+        interconnection_context: None,
     }
 }
 

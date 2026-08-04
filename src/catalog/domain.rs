@@ -355,6 +355,9 @@ pub struct CaseStudy {
     pub content_sha256: String,
     pub created_utc: String,
     pub updated_utc: String,
+    /// Reviewed interconnection context (Layer-2 fabric etc.), as a
+    /// JSON document. Reviewed interpretation, never protocol evidence.
+    pub interconnection_context: Option<String>,
 }
 
 /// Link between a case study and a related ticket.

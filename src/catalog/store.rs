@@ -312,8 +312,8 @@ pub fn insert_case_study(conn: &Connection, cs: &CaseStudy) -> Result<i64, Strin
     }
     conn.execute(
         "INSERT INTO case_studies
-           (slug, title, summary, start_utc, end_utc, status, content_sha256, created_utc, updated_utc)
-         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
+           (slug, title, summary, start_utc, end_utc, status, content_sha256, created_utc, updated_utc, interconnection_context)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
         params![
             cs.slug,
             cs.title,
@@ -323,7 +323,8 @@ pub fn insert_case_study(conn: &Connection, cs: &CaseStudy) -> Result<i64, Strin
             cs.status,
             cs.content_sha256,
             cs.created_utc,
-            cs.updated_utc
+            cs.updated_utc,
+            cs.interconnection_context,
         ],
     )
     .map_err(|e| format!("catalog write failed: {e}"))?;
