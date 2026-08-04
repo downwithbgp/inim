@@ -22,6 +22,7 @@ exclude = [
     "/tmp/",
     "/cache/",
     "run_stderr*.log",
+    "stderr.log",
     "/data/",
     "*.sqlite",
     "*.sqlite-wal",
