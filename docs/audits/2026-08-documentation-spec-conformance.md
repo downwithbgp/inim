@@ -177,9 +177,19 @@ unchanged except the docs job now exercises the extended script.
   project-scope audit 0 excluded
 - Packaged source: `cargo package` list verified (no runtime state, no
   excluded material outside allowlisted dated audits); extracted crate
-  links resolve; packaged runtime has no git requirement
-- Clean clone: see `docs/audits/2026-08-clean-clone.md` and the
-  clean-clone section of this audit (filled at the end of the run)
+  builds release and passes doc tests; `scripts/audit_docs.py` runs
+  cleanly from packaged source (git-dependent checks skip without
+  `.git`); demo init/verify from the packaged crate work; the answer
+  key generated from a packaged demo differs from the tracked answer
+  key only in the `demo_manifest` summary fields (116 vs 118 imported
+  artifacts because the crate excludes `stderr.log`; see
+  `docs/reference/ARTIFACTS.md` — Package boundary)
+- Clean clone: `https://github.com/downwithbgp/inim.git` branch
+  `session-52-documentation-spec-conformance` at `e2f38ae`, cold
+  registry — release build 3m41s, doc tests ok, `cargo doc` warnings
+  denied ok, `scripts/audit-docs.sh` ok, demo init/verify ok, answer
+  key byte-identical to tracked, evaluation pack built, project-scope
+  audit 0 excluded (see `docs/audits/2026-08-documentation-clean-clone.md`)
 
 ## Remaining documentation debt
 
