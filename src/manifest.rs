@@ -183,7 +183,12 @@ impl Manifest {
                 .map(|c| c.trim())
                 .filter(|c| !c.is_empty())
                 .ok_or_else(|| {
-                    "invalid event end: open event requires an explicit analysis cutoff".to_string()
+                    if self.open {
+                        "invalid event end: open event requires an explicit analysis cutoff"
+                            .to_string()
+                    } else {
+                        "invalid event end: event end unavailable".to_string()
+                    }
                 })?;
             chrono::DateTime::parse_from_rfc3339(cutoff)
                 .map_err(|e| format!("invalid event end: {e}"))?

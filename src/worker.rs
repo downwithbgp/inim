@@ -941,7 +941,10 @@ fn generic_ticket_input(
     // analysis cutoff (analysis_end_utc from the plan's manifest) is
     // the explicit analysis end. The result stays provisional.
     if end.trim().is_empty() {
-        let cutoff: Option<String> = conn
+        // An OPEN event needs the reviewed analysis cutoff; a missing
+        // cutoff or an unreadable manifest is a HARD error (never a
+        // silently empty end).
+        let payload: String = conn
             .lock()
             .unwrap()
             .query_row(
@@ -951,18 +954,21 @@ fn generic_ticket_input(
                 rusqlite::params![plan_revision_id],
                 |r| r.get::<_, String>(0),
             )
-            .ok()
-            .and_then(|payload| serde_json::from_str::<serde_json::Value>(&payload).ok())
-            .and_then(|v| {
-                v.get("analysis_end_utc")
-                    .and_then(|x| x.as_str())
-                    .map(|s| s.to_string())
-            });
-        if let Some(cutoff) = cutoff {
-            if !cutoff.trim().is_empty() {
-                end = cutoff;
-            }
-        }
+            .map_err(|e| {
+                format!("invalid_plan: cannot read manifest payload for open event: {e}")
+            })?;
+        let value: serde_json::Value = serde_json::from_str(&payload).map_err(|e| {
+            format!("invalid_plan: manifest payload unreadable for open event: {e}")
+        })?;
+        let cutoff = value
+            .get("analysis_end_utc")
+            .and_then(|x| x.as_str())
+            .map(|s| s.trim().to_string())
+            .filter(|c| !c.is_empty())
+            .ok_or_else(|| {
+                "invalid_plan: open event requires an explicit analysis cutoff".to_string()
+            })?;
+        end = cutoff;
     }
     let task_type = v
         .get("task_type")
@@ -1297,5 +1303,109 @@ mod sink_tests {
                 .collect::<Vec<_>>()
         );
         drop(dir);
+    }
+}
+
+#[cfg(test)]
+mod session50_open_event_tests {
+    use super::*;
+    use crate::catalog::db;
+    use crate::catalog::domain::{CatalogEvent, EventSnapshot, ManifestRevision};
+
+    fn seed_open_event() -> (tempfile::TempDir, rusqlite::Connection, i64) {
+        let dir = tempfile::tempdir().unwrap();
+        let conn = db::open_catalog(&dir.path().join("c.sqlite")).unwrap();
+        let eid = crate::catalog::store::upsert_event(
+            &conn,
+            "grnoc-public-task-viewer",
+            "INC-OPEN-1",
+            "2026-07-28T00:00:00Z",
+        )
+        .unwrap();
+        let snapshot = EventSnapshot {
+            id: 0,
+            event_id: eid,
+            fetched_at: "2026-08-04T00:01:37Z".to_string(),
+            source_url: "file:///x".to_string(),
+            content_sha256: "s".to_string(),
+            raw_payload: "{}".to_string(),
+            normalized_json: serde_json::json!({
+                "id": "INC-OPEN-1",
+                "title": "Outage - Example Managed Network Peer SampleNet",
+                "start": "2026-07-28T04:35:26Z",
+                "end": "",
+            })
+            .to_string(),
+            parser_version: "t".to_string(),
+        };
+        let sid = crate::catalog::store::insert_snapshot(&conn, eid, &snapshot).unwrap();
+        let manifest = ManifestRevision {
+            id: 0,
+            event_id: eid,
+            snapshot_id: sid,
+            manifest_schema: 2,
+            payload: serde_json::json!({
+                "event_id": "INC-OPEN-1",
+                "revision": 1,
+                "schema_version": 2,
+                "open": true,
+                "event_window_utc": {"start": "2026-07-28T04:35:26Z", "end": ""},
+                "ticket_window_local": {"start": "2026-07-28 04:35:26", "end": "", "timezone": "UTC"},
+                "analysis_end_utc": "2026-08-04T00:01:37Z",
+                "warmup_minutes": 60,
+                "cooldown_minutes": 60,
+                "target": {
+                    "label": "Generic",
+                    "origin_asns": [64500],
+                    "transit_predicate": {
+                        "predicate": {"ContainsAny": [64501]},
+                        "status": "Reviewed",
+                        "provenance": {"statement": "x", "reviewed_by": "t", "date": "2026-08-04"}
+                    }
+                },
+                "collectors": ["rrc00"],
+                "source_family": "RipeRis"
+            }).to_string(),
+            sha256: "m".to_string(),
+            review_status: "Reviewed".to_string(),
+            reviewed_at: Some("2026-08-04T00:00:00Z".to_string()),
+            reviewer: Some("t".to_string()),
+        };
+        let mid = crate::catalog::store::insert_manifest_revision(&conn, &manifest).unwrap();
+        let parsed: crate::manifest::Manifest = serde_json::from_str(&manifest.payload).unwrap();
+        let plan_rec =
+            crate::catalog::import::build_plan_record(&conn, mid, &parsed, true).unwrap();
+        let pid = crate::catalog::store::insert_plan(&conn, &plan_rec).unwrap();
+        (dir, conn, pid)
+    }
+
+    #[test]
+    fn worker_cutoff_fallback_uses_reviewed_cutoff() {
+        let (_dir, conn, pid) = seed_open_event();
+        let conn = Arc::new(Mutex::new(conn));
+        let fixture = generic_ticket_input("{}", &conn, pid).unwrap();
+        let value: serde_json::Value = serde_json::from_str(&fixture).unwrap();
+        assert_eq!(value["end"].as_str(), Some("2026-08-04 00:01:37"));
+        assert_eq!(value["start"].as_str(), Some("2026-07-28 04:35:26"));
+    }
+
+    #[test]
+    fn worker_missing_cutoff_fails_loudly() {
+        let (_dir, conn, pid) = seed_open_event();
+        let conn = Arc::new(Mutex::new(conn));
+        // Remove the cutoff from the manifest payload: the worker must
+        // fail loudly, not produce an empty end.
+        conn.lock()
+            .unwrap()
+            .execute(
+                "UPDATE manifest_revisions SET payload = json_set(payload, '$.analysis_end_utc', NULL) WHERE id = (SELECT manifest_revision_id FROM analysis_plans WHERE id = ?1)",
+                rusqlite::params![pid],
+            )
+            .unwrap();
+        let err = generic_ticket_input("{}", &conn, pid).unwrap_err();
+        assert!(
+            err.contains("explicit analysis cutoff"),
+            "missing cutoff must fail loudly: {err}"
+        );
     }
 }

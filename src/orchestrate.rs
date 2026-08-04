@@ -884,6 +884,11 @@ fn run_inner_impl(
                 "verdict_label": "InsufficientVisibility",
             },
             "assessment": {
+                // "provisional" here is the verdict-posture flag (this
+                // is not a provisional-impact verdict). The OPEN-EVENT
+                // provisionality (observed through the reviewed cutoff)
+                // is carried by the plan lifecycle, the job view, and
+                // the case-study README.
                 "provisional": false,
                 "statement": reason,
                 "verdict": "insufficient_visibility",

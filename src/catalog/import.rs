@@ -114,20 +114,14 @@ pub(crate) fn import_repository_scoped(
             .or_else(|| out_roots.iter().find(|root| root.join(&event_id).is_dir()))
             .cloned()
             .unwrap_or_else(|| out_roots[0].clone());
-        let r = import_one(
+        import_one(
             &tx,
             manifest_path,
             &out_dir,
             software_version,
             git_revision,
             &mut summary,
-        );
-        if let Err(e) = r {
-            if event_id == "INC0301970" {
-                eprintln!("IMPORT DEBUG INC0301970: {e}");
-            }
-            return Err(e);
-        }
+        )?;
     }
 
     tx.commit()
