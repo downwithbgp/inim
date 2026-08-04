@@ -152,7 +152,14 @@ pub fn demo_init(db_path: &Path, root: &Path, force: bool) -> Result<DemoReport,
     // renders the route changes. Without this step the case-study
     // workbench would show no observer findings.
     let pilot_imported = import_pilot_runs(&conn, root)?;
-    let _ = pilot_imported;
+    if pilot_imported == 0
+        && root.join("case-studies/manlan-2019/pilot/out").is_dir()
+    {
+        return Err(
+            "demo pilot import failed: no completed pilot runs imported from the reviewed pilot tree"
+                .to_string(),
+        );
+    }
     drop(conn);
     let report = demo_verify(db_path, root)?;
     write_demo_manifest(db_path, &report)?;

@@ -28,8 +28,8 @@ is authoritative and the contradiction is a P0 defect.
 - **analysis_final_state**: exact event-baseline path present at analysis end (18:30:00 UTC)
 - **rrc15_cooldown**:
   - count: 11
-  - first_change_utc: 2019-08-21T17:52:16Z
-  - note: 11 path replacements in the cooldown window; no restoration observed before analysis end
+  - first_change_utc: 2019-08-21T17:52:16+00:00
+  - note: path replacements in the cooldown window; no restoration observed before analysis end
   - reference: case-studies/manlan-2019/pilot/out/MANLAN-2019-NORDUNET-PILOT-RIS-RRC15/report.json
 - **reference**: `case-studies/manlan-2019/pilot/pilot-result.json`
 
@@ -76,7 +76,7 @@ is authoritative and the contradiction is a P0 defect.
 
 - **event_baseline_path**: 11537 40220 225 225 225 225 225 225 225
 - **pre_withdrawal_path**: 11537 40220 225
-- **prepend_count_change**: AS225 prepend reduced from 7 to 1 (07:24:47Z) while routes remained visible
+- **prepend_count_change**: AS225 prepend reduced from 7 to 1 while routes remained visible
 - **withdrawal_timestamp**: 2026-07-14T07:33:59.462019920Z
 - **return_timestamp**: 2026-07-14T07:33:59.516258955Z
 - **absence_duration_secs**: 0.054

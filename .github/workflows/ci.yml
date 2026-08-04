@@ -222,9 +222,11 @@ jobs:
           ./target/release/inim serve --db /tmp/eval-demo.sqlite --root . --bind 127.0.0.1:8099 &
           SERVER_PID=$!
           trap 'kill $SERVER_PID 2>/dev/null || true' EXIT
-          sleep 2
           python3 - <<'PY'
-          import subprocess, tomllib, urllib.request, urllib.error, hashlib, re, sqlite3
+          import subprocess, tomllib, urllib.request, urllib.error, urllib.parse
+          import hashlib, re, time
+
+          base = "http://127.0.0.1:8099"
 
           def get(url):
               try:
@@ -233,7 +235,18 @@ jobs:
               except urllib.error.HTTPError as e:
                   return e.code, e.read().decode("utf-8", "replace")
 
-          base = "http://127.0.0.1:8099"
+          # Wait for the server (retry loop; no fixed sleep race).
+          for _ in range(60):
+              try:
+                  status, _ = get(base + "/")
+                  if status == 200:
+                      break
+              except Exception:
+                  pass
+              time.sleep(0.5)
+          else:
+              raise SystemExit("server did not become ready")
+
           # All scenario URLs must return 200.
           with open("evaluation/scenarios.toml", "rb") as f:
               manifest = tomllib.load(f)

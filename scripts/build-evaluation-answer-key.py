@@ -93,28 +93,71 @@ def nordunet_section(root: Path) -> dict:
         root, "case-studies/manlan-2019/pilot/out",
         "MANLAN-2019-NORDUNET-PILOT-RE-RV2", "lifecycle.json",
     )
-    # Direct route-views2 run facts from the reviewed matrix.
-    direct = next(r for r in matrix["re_plane_runs"] if r["collector"] == "route-views2")
-    rrc00 = next(r for r in matrix["re_plane_runs"] if r["collector"] == "rrc00")
-    rrc06 = next(r for r in matrix["re_plane_runs"] if r["collector"] == "rrc06")
-    rrc15m = next(r for r in matrix["re_plane_runs"] if r["collector"] == "rrc15")
+    # Direct route-views2 run facts from the reviewed matrix. Missing
+    # collectors are a reviewed-artifact shape change: fail loudly.
+    def matrix_run(collector: str) -> dict:
+        for r in matrix["re_plane_runs"]:
+            if r["collector"] == collector:
+                return r
+        fail(f"cross-observer-matrix.json missing collector {collector}")
+
+    direct = matrix_run("route-views2")
+    rrc00 = matrix_run("rrc00")
+    rrc06 = matrix_run("rrc06")
+    rrc15m = matrix_run("rrc15")
     # Exact baseline-restoration range for the 11-prefix group: the
     # ReturnToBaseline transition timestamps of the temporarily absent
     # streams only (matches the workbench's "11-prefix group" claim;
     # the pilot result reports all 33 streams restored by 17:02:19Z).
     restorations = []
+    absences = []  # (withdrawal_ts, return_ts) for the absent streams
     for lc in rv2_lifecycle["lifecycles"]:
         if not lc.get("was_withdrawn", False):
             continue
+        first_return = None
         for t in lc.get("transitions", []):
             if t.get("kind") == "ReturnToBaseline" and t.get("timestamp"):
                 restorations.append(t["timestamp"])
+            if t.get("kind") == "Announcement" and t.get("timestamp") and first_return is None:
+                first_return = t["timestamp"]
+        withdrawal = lc.get("stream_withdrawal_time")
+        if withdrawal and first_return:
+            absences.append((withdrawal, first_return))
     restoration_range = (
         (min(restorations), max(restorations)) if restorations else (None, None)
     )
+    # Absence duration: earliest withdrawal to earliest return across
+    # the absent group (2 s in the reviewed pilot result).
+    absence_seconds = None
+    if absences:
+        def iso_ts(s: str) -> float:
+            return float(s.replace("Z", "")) if "T" in s else float(s)
+        w = min(a[0] for a in absences)
+        r = min(a[1] for a in absences)
+        try:
+            from datetime import datetime, timezone
+            fmt = "%Y-%m-%dT%H:%M:%S.%fZ" if "." in w else "%Y-%m-%dT%H:%M:%SZ"
+            wdt = datetime.strptime(w, fmt).replace(tzinfo=timezone.utc)
+            fmt2 = "%Y-%m-%dT%H:%M:%S.%fZ" if "." in r else "%Y-%m-%dT%H:%M:%SZ"
+            rdt = datetime.strptime(r, fmt2).replace(tzinfo=timezone.utc)
+            absence_seconds = round((rdt - wdt).total_seconds())
+        except ValueError:
+            absence_seconds = None
     # RRC15 cooldown transitions (11 path replacements after 17:30).
     transitions = rrc15.get("transitions", {})
     cooldown_count = transitions.get("cooldown", 0)
+    rrc15_transitions = checked_json(
+        root, "case-studies/manlan-2019/pilot/out",
+        "MANLAN-2019-NORDUNET-PILOT-RIS-RRC15", "transitions.json",
+    )
+    cooldown_first = None
+    for t in rrc15_transitions.get("transitions", []):
+        if t.get("phase") == "Cooldown" and t.get("occurred_utc"):
+            ts = t["occurred_utc"]
+            if cooldown_first is None or ts < cooldown_first:
+                cooldown_first = ts
+    if cooldown_first is None:
+        fail("RRC15 transitions: no Cooldown-phase transition found")
     return {
         "source_event": {
             "id": "MAN LAN 2019-08-21 (multi-ticket operator incident)",
@@ -194,7 +237,7 @@ def nordunet_section(root: Path) -> dict:
         "route_changes": {
             "first_direct_absence_utc": direct["evidence_interval_utc"].split("..")[0].strip(),
             "affected_prefix_count": direct["temporary_stream_absences"],
-            "absence_duration_seconds": 2,
+            "absence_duration_seconds": absence_seconds if absence_seconds is not None else "not derived",
             "returned_path": "11537 22388 24489 24489 24489 24489 24490 20965 2603 (still traverses AS11537)",
             "exact_baseline_restoration_range_utc": (
                 restoration_range[0] + " .. " + restoration_range[1]
@@ -204,8 +247,8 @@ def nordunet_section(root: Path) -> dict:
             "analysis_final_state": "exact event-baseline path present at analysis end (18:30:00 UTC)",
             "rrc15_cooldown": {
                 "count": cooldown_count,
-                "first_change_utc": "2019-08-21T17:52:16Z",
-                "note": "11 path replacements in the cooldown window; no restoration observed before analysis end",
+                "first_change_utc": cooldown_first,
+                "note": "path replacements in the cooldown window; no restoration observed before analysis end",
                 "reference": path_as_ref(
                     "case-studies/manlan-2019/pilot/out",
                     "MANLAN-2019-NORDUNET-PILOT-RIS-RRC15", "report.json",
@@ -271,6 +314,15 @@ def uva_section(root: Path) -> dict:
     if pre_withdrawal is None or return_ts is None:
         fail("UVA chronology audit: withdrawal/announcement transitions missing")
     absence_secs = round(p0["absence_duration_secs"], 3)
+    # Prepend-count change: count the target-ASN repetitions in the
+    # event-baseline path vs the pre-withdrawal path.
+    target_asn = manifest["target"]["origin_asns"][0]
+    baseline_count = sum(1 for a in p0["baseline_route"] if a == target_asn)
+    pre_count = sum(1 for a in pre_withdrawal if a == target_asn)
+    prepend_change = (
+        f"AS{target_asn} prepend reduced from {baseline_count} to {pre_count} "
+        f"while routes remained visible"
+    )
     return {
         "source_event": {
             "id": "INC0299001",
@@ -302,7 +354,7 @@ def uva_section(root: Path) -> dict:
         "route_changes": {
             "event_baseline_path": asn_path(p0["baseline_route"]),
             "pre_withdrawal_path": asn_path(pre_withdrawal),
-            "prepend_count_change": "AS225 prepend reduced from 7 to 1 (07:24:47Z) while routes remained visible",
+            "prepend_count_change": prepend_change,
             "withdrawal_timestamp": withdrawal,
             "return_timestamp": return_ts,
             "absence_duration_secs": absence_secs,

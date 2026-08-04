@@ -59,10 +59,10 @@ usage() {
 
 while [ "$#" -gt 0 ]; do
     case "$1" in
-        --db) DB=$2; shift 2 ;;
-        --port) PORT=$2; shift 2 ;;
-        --bind) BIND=$2; shift 2 ;;
-        --root) ROOT=$2; shift 2 ;;
+        --db) DB=${2:-}; shift 2 ;;
+        --port) PORT=${2:-}; shift 2 ;;
+        --bind) BIND=${2:-}; shift 2 ;;
+        --root) ROOT=${2:-}; shift 2 ;;
         --force) FORCE=1; shift ;;
         --start) START=1; shift ;;
         -h|--help) usage; exit 0 ;;
@@ -74,11 +74,21 @@ while [ "$#" -gt 0 ]; do
     esac
 done
 
+if [ -z "$DB" ] || [ -z "$PORT" ] || [ -z "$BIND" ]; then
+    printf 'error: --db, --port, and --bind require values\n' >&2
+    usage >&2
+    exit 2
+fi
+
 # Absolute-ize the database path so messages are unambiguous.
 case "$DB" in
     /*) DB_ABS=$DB ;;
     *) DB_ABS=$(CDPATH= cd -- "$(dirname -- "$DB")" && pwd)/$(basename -- "$DB") ;;
 esac
+if [ -d "$DB_ABS" ]; then
+    printf 'error: --db path is a directory, not a database file: %s\n' "$DB_ABS" >&2
+    exit 2
+fi
 
 echo "== inim NOC alpha evaluation bootstrap =="
 echo "project root: $ROOT"

@@ -66,6 +66,20 @@ case "$OUT" in
     *) OUT_ABS=$(CDPATH= cd -- "$(dirname -- "$OUT")" && pwd)/$(basename -- "$OUT") ;;
 esac
 
+# Safety guards: never allow the output to be a filesystem root, the
+# repository root, or anything inside the repository (the pack is a
+# generated distribution artifact that must stay outside Git).
+if [ "$OUT_ABS" = "/" ] || [ "$OUT_ABS" = "$ROOT" ]; then
+    printf 'error: refusing to use %s as the evaluation pack output\n' "$OUT_ABS" >&2
+    exit 2
+fi
+case "$OUT_ABS" in
+    "$ROOT"/*)
+        printf 'error: evaluation pack output must be outside the repository (%s)\n' "$ROOT" >&2
+        exit 2
+        ;;
+esac
+
 if [ -e "$OUT_ABS" ]; then
     if [ "$FORCE" -eq 0 ]; then
         printf 'error: output directory already exists: %s\n' "$OUT_ABS" >&2
