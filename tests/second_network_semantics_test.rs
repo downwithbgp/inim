@@ -353,3 +353,211 @@ fn project_scope_still_applies_to_second_network() {
     assert!(scope.excluded_source_record("grnoc-public-task-viewer", "INC0303298"));
     assert!(scope.excluded_asn(270));
 }
+
+// ── Open-event pipeline fixes (Session 50 execution) ───────────────
+
+#[test]
+fn open_event_cutoff_drives_pipeline_window() {
+    // Manifest::event_window() must fall back to the reviewed analysis
+    // cutoff for open events (empty declared end).
+    let dir = tempfile::tempdir().unwrap();
+    let p = dir.path().join("m.json");
+    std::fs::write(
+        &p,
+        serde_json::json!({
+            "event_id": "INC-GENERIC",
+            "revision": 1,
+            "schema_version": 2,
+            "open": true,
+            "event_window_utc": {"start": "2026-07-28T04:35:26Z", "end": ""},
+            "ticket_window_local": {"start": "2026-07-28 04:35:26", "end": "", "timezone": "UTC"},
+            "analysis_end_utc": "2026-08-04T00:01:37Z",
+            "warmup_minutes": 60,
+            "cooldown_minutes": 60,
+            "target": {
+                "label": "Generic",
+                "origin_asns": [64500],
+                "transit_predicate": {
+                    "predicate": {"ContainsAny": [64501]},
+                    "status": "Reviewed",
+                    "provenance": {"statement": "x", "reviewed_by": "t", "date": "2026-08-04"}
+                }
+            },
+            "collectors": ["rrc00"],
+            "source_family": "RipeRis"
+        })
+        .to_string(),
+    )
+    .unwrap();
+    let manifest = inim::manifest::Manifest::load(&p).unwrap();
+    let (start, end) = manifest.event_window().unwrap();
+    assert_eq!(start.to_rfc3339(), "2026-07-28T04:35:26+00:00");
+    assert_eq!(end.to_rfc3339(), "2026-08-04T00:01:37+00:00");
+}
+
+#[test]
+fn open_event_without_cutoff_is_a_hard_error() {
+    let dir = tempfile::tempdir().unwrap();
+    let p = dir.path().join("m.json");
+    std::fs::write(
+        &p,
+        serde_json::json!({
+            "event_id": "INC-GENERIC",
+            "revision": 1,
+            "schema_version": 2,
+            "open": true,
+            "event_window_utc": {"start": "2026-07-28T04:35:26Z", "end": ""},
+            "ticket_window_local": {"start": "2026-07-28 04:35:26", "end": "", "timezone": "UTC"},
+            "warmup_minutes": 60,
+            "cooldown_minutes": 60,
+            "target": {
+                "label": "Generic",
+                "origin_asns": [64500],
+                "transit_predicate": {
+                    "predicate": {"ContainsAny": [64501]},
+                    "status": "Reviewed",
+                    "provenance": {"statement": "x", "reviewed_by": "t", "date": "2026-08-04"}
+                }
+            },
+            "collectors": ["rrc00"],
+            "source_family": "RipeRis"
+        })
+        .to_string(),
+    )
+    .unwrap();
+    let manifest = inim::manifest::Manifest::load(&p).unwrap();
+    let err = manifest.event_window().unwrap_err();
+    assert!(err.contains("explicit analysis cutoff"), "{err}");
+}
+
+#[test]
+fn queue_validation_accepts_open_event_with_cutoff() {
+    // validate_plan_for_queue previously rejected ALL open events; with
+    // an explicit reviewed cutoff the plan is queueable.
+    let (_dir, conn) = {
+        let dir = tempfile::tempdir().unwrap();
+        let conn = inim::catalog::db::open_catalog(&dir.path().join("c.sqlite")).unwrap();
+        (dir, conn)
+    };
+    conn.execute(
+        "INSERT INTO catalog_events (source_kind, external_id, first_seen, last_seen)
+         VALUES ('grnoc-public-task-viewer', 'INC-GENERIC', '2026-07-28T00:00:00Z', '2026-08-04T00:00:00Z')",
+        [],
+    )
+    .unwrap();
+    let eid = conn
+        .query_row("SELECT id FROM catalog_events", [], |r| r.get::<_, i64>(0))
+        .unwrap();
+    let snapshot = inim::catalog::domain::EventSnapshot {
+        id: 0,
+        event_id: eid,
+        fetched_at: "2026-08-04T00:01:37Z".to_string(),
+        source_url: "file:///x".to_string(),
+        content_sha256: "s".to_string(),
+        raw_payload: "{}".to_string(),
+        normalized_json: serde_json::json!({"id": "INC-GENERIC", "title": "X", "start": "2026-07-28T04:35:26Z", "end": ""}).to_string(),
+        parser_version: "t".to_string(),
+    };
+    let sid = inim::catalog::store::insert_snapshot(&conn, eid, &snapshot).unwrap();
+    let manifest = inim::catalog::domain::ManifestRevision {
+        id: 0,
+        event_id: eid,
+        snapshot_id: sid,
+        manifest_schema: 2,
+        payload: serde_json::json!({
+            "event_id": "INC-GENERIC",
+            "revision": 1,
+            "schema_version": 2,
+            "open": true,
+            "event_window_utc": {"start": "2026-07-28T04:35:26Z", "end": ""},
+            "ticket_window_local": {"start": "2026-07-28 04:35:26", "end": "", "timezone": "UTC"},
+            "analysis_end_utc": "2026-08-04T00:01:37Z",
+            "warmup_minutes": 60,
+            "cooldown_minutes": 60,
+            "target": {
+                "label": "Generic",
+                "origin_asns": [64500],
+                "transit_predicate": {
+                    "predicate": {"ContainsAny": [64501]},
+                    "status": "Reviewed",
+                    "provenance": {"statement": "x", "reviewed_by": "t", "date": "2026-08-04"}
+                }
+            },
+            "collectors": ["rrc00"],
+            "source_family": "RipeRis"
+        }).to_string(),
+        sha256: "m".to_string(),
+        review_status: "Reviewed".to_string(),
+        reviewed_at: Some("2026-08-04T00:00:00Z".to_string()),
+        reviewer: Some("t".to_string()),
+    };
+    let mid = inim::catalog::store::insert_manifest_revision(&conn, &manifest).unwrap();
+    let parsed: inim::manifest::Manifest = serde_json::from_str(&manifest.payload).unwrap();
+    let plan_rec = inim::catalog::import::build_plan_record(&conn, mid, &parsed, true).unwrap();
+    let pid = inim::catalog::store::insert_plan(&conn, &plan_rec).unwrap();
+    let scope = ProjectScope::default();
+    let hash = inim::catalog::jobs::plan::validate_plan_for_queue(&conn, pid, &scope).unwrap();
+    assert_eq!(hash.len(), 64);
+}
+
+#[test]
+fn import_prefers_tracked_case_evidence_over_runtime_stub() {
+    // A runtime ./out/<event> containing only plan/limitation stubs must
+    // not shadow the tracked case-study out/ with the report.
+    let dir = tempfile::tempdir().unwrap();
+    let root = dir.path().to_path_buf();
+    std::fs::create_dir_all(root.join("manifests")).unwrap();
+    std::fs::create_dir_all(root.join("out/INC-GENERIC")).unwrap();
+    std::fs::create_dir_all(root.join("case-studies/cs-one/out/INC-GENERIC")).unwrap();
+    std::fs::write(root.join("out/INC-GENERIC/analysis_plan.txt"), "stub").unwrap();
+    std::fs::write(
+        root.join("case-studies/cs-one/out/INC-GENERIC/report.json"),
+        serde_json::json!({
+            "schema_version": 3,
+            "event_id": "INC-GENERIC",
+            "result": {"verdict": "insufficient_visibility", "verdict_label": "InsufficientVisibility"},
+            "assessment": {"statement": "no qualifying baseline", "verdict": "insufficient_visibility", "provisional": false},
+            "outcome": {"status": "insufficient_visibility", "assessment": {"event_id": "INC-GENERIC", "evidence": [], "generated_at": "2026-08-04T00:00:00Z", "verdict": "insufficient_visibility", "waves": []}},
+            "limitations": [],
+            "transitions": {"total": 0, "event_window": 0, "cooldown": 0},
+            "waves": [],
+            "observed_event_signature": {"observer_scope": {"collectors": ["rrc00"]}}
+        })
+        .to_string(),
+    )
+    .unwrap();
+    std::fs::write(
+        root.join("manifests/INC-GENERIC.json"),
+        serde_json::json!({
+            "event_id": "INC-GENERIC",
+            "revision": 1,
+            "schema_version": 2,
+            "open": false,
+            "event_window_utc": {"start": "2026-07-28T04:35:26Z", "end": "2026-07-28T05:35:26Z"},
+            "ticket_window_local": {"start": "2026-07-28 04:35:26", "end": "2026-07-28 05:35:26", "timezone": "UTC"},
+            "warmup_minutes": 0,
+            "cooldown_minutes": 0,
+            "target": {
+                "label": "Generic",
+                "origin_asns": [64500],
+                "transit_predicate": {
+                    "predicate": {"ContainsAny": [64501]},
+                    "status": "Reviewed",
+                    "provenance": {"statement": "x", "reviewed_by": "t", "date": "2026-08-04"}
+                }
+            },
+            "collectors": ["rrc00"],
+            "source_family": "RipeRis"
+        })
+        .to_string(),
+    )
+    .unwrap();
+    let db = root.join("c.sqlite");
+    let conn = inim::catalog::db::open_catalog(&db).unwrap();
+    let summary = inim::catalog::import::import_repository(&conn, &root, "0.1.0", None).unwrap();
+    assert_eq!(summary.runs, 1, "the tracked case-study run must be imported");
+    let n: i64 = conn
+        .query_row("SELECT COUNT(*) FROM analysis_runs", [], |r| r.get(0))
+        .unwrap();
+    assert_eq!(n, 1);
+}

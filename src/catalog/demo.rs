@@ -16,7 +16,7 @@ use rusqlite::Connection;
 /// verified separately — its pilot runs are not catalog analysis_runs.
 pub const DEMO_EXPECTED_EVENTS: &[&str] = &[
     "INC0299001", // UVA event
-    "INC0301970", // MAN LAN related event
+    "INC0301970", // Indiana GigaPOP peer event (second-network case; insufficient visibility)
     "INC0302574", // visibility audit event
     "INC0040293", // MAN LAN optical participant event (supporting observation)
 ];
@@ -80,6 +80,7 @@ fn write_demo_manifest(db_path: &Path, report: &DemoReport) -> Result<(), String
             "/events/INC0302574/workbench",
             "/events/INC0299001/workbench",
             "/events/INC0040293/workbench",
+            "/events/INC0301970/workbench",
             "/case-studies/manlan-2019/workbench",
         ],
     });
@@ -317,6 +318,7 @@ fn resolve_artifact(root: &Path, rel: &str) -> std::path::PathBuf {
         root.join("out").join(rel),
         root.join("case-studies/manlan-2019/pilot/out").join(rel),
         root.join("case-studies/manlan-esnet-2019/out").join(rel),
+        root.join("case-studies/indiana-gigapop-smithville-2026/out").join(rel),
         root.join("case-studies/inc0302574/out").join(rel),
         root.join("case-studies/inc0299001/out").join(rel),
     ];

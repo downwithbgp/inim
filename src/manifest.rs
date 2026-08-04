@@ -173,9 +173,26 @@ impl Manifest {
         let start = chrono::DateTime::parse_from_rfc3339(&self.event_window_utc.start)
             .map_err(|e| format!("invalid event start: {e}"))?
             .with_timezone(&chrono::Utc);
-        let end = chrono::DateTime::parse_from_rfc3339(&self.event_window_utc.end)
-            .map_err(|e| format!("invalid event end: {e}"))?
-            .with_timezone(&chrono::Utc);
+        // OPEN events carry an empty declared end; the reviewed
+        // analysis cutoff (analysis_end_utc) is the explicit analysis
+        // end. A missing cutoff for an open event is a hard error.
+        let end = if self.event_window_utc.end.trim().is_empty() {
+            let cutoff = self
+                .analysis_end_utc
+                .as_deref()
+                .map(|c| c.trim())
+                .filter(|c| !c.is_empty())
+                .ok_or_else(|| {
+                    "invalid event end: open event requires an explicit analysis cutoff".to_string()
+                })?;
+            chrono::DateTime::parse_from_rfc3339(cutoff)
+                .map_err(|e| format!("invalid event end: {e}"))?
+                .with_timezone(&chrono::Utc)
+        } else {
+            chrono::DateTime::parse_from_rfc3339(&self.event_window_utc.end)
+                .map_err(|e| format!("invalid event end: {e}"))?
+                .with_timezone(&chrono::Utc)
+        };
         Ok((start, end))
     }
 

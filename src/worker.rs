@@ -932,7 +932,36 @@ fn generic_ticket_input(
         .get("start")
         .and_then(|x| x.as_str())
         .ok_or_else(|| "invalid_plan: normalized event missing start".to_string())?;
-    let end = v.get("end").and_then(|x| x.as_str()).unwrap_or("");
+    let mut end = v.get("end").and_then(|x| x.as_str()).unwrap_or("").to_string();
+    // OPEN events: the normalized model has no end; the reviewed
+    // analysis cutoff (analysis_end_utc from the plan's manifest) is
+    // the explicit analysis end. The result stays provisional.
+    if end.trim().is_empty() {
+        let cutoff: Option<String> = conn
+            .lock()
+            .unwrap()
+            .query_row(
+                "SELECT m.payload FROM manifest_revisions m
+                 JOIN analysis_plans p ON p.manifest_revision_id = m.id
+                 WHERE p.id = ?1",
+                rusqlite::params![plan_revision_id],
+                |r| r.get::<_, String>(0),
+            )
+            .ok()
+            .and_then(|payload| {
+                serde_json::from_str::<serde_json::Value>(&payload).ok()
+            })
+            .and_then(|v| {
+                v.get("analysis_end_utc")
+                    .and_then(|x| x.as_str())
+                    .map(|s| s.to_string())
+            });
+        if let Some(cutoff) = cutoff {
+            if !cutoff.trim().is_empty() {
+                end = cutoff;
+            }
+        }
+    }
     let task_type = v
         .get("task_type")
         .and_then(|x| x.as_str())
@@ -949,7 +978,7 @@ fn generic_ticket_input(
         "id": id,
         "title": title,
         "start": fmt(start),
-        "end": fmt(end),
+        "end": fmt(&end),
         "type": task_type,
         "description": description,
     }))

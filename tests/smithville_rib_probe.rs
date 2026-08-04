@@ -118,6 +118,9 @@ fn probe_event_date_as11550_paths() {
                     peer_19782 += 1;
                 }
                 if origin_match || tail_match {
+                    if as_path.contains(&19782) {
+                        eprintln!("  !! AS11550-origin path contains IGP AS19782: {as_path:?}");
+                    }
                     total += 1;
                     prefixes.insert(e.prefix.to_string());
                     *paths.entry(as_path.clone()).or_insert(0) += 1;

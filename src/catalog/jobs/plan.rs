@@ -249,11 +249,22 @@ pub fn validate_plan_for_queue(
     }
     if manifest.event_window_utc.end.is_empty() {
         if manifest.open {
-            return Err(
-                "invalid_plan: open event requires an explicit analysis cutoff".to_string(),
-            );
+            // Open events are executable only with an explicit REVIEWED
+            // analysis cutoff; the plan records it and the result is
+            // provisional. A missing cutoff is a hard plan error.
+            let has_cutoff = manifest
+                .analysis_end_utc
+                .as_deref()
+                .map(|c| !c.trim().is_empty())
+                .unwrap_or(false);
+            if !has_cutoff {
+                return Err(
+                    "invalid_plan: open event requires an explicit analysis cutoff".to_string(),
+                );
+            }
+        } else {
+            return Err("invalid_plan: event end unavailable".to_string());
         }
-        return Err("invalid_plan: event end unavailable".to_string());
     }
     canonical_plan_hash(&payload)
 }

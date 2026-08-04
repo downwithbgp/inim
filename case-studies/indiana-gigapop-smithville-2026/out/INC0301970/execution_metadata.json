@@ -1,0 +1,18 @@
+{
+  "metadata_schema_version": 1,
+  "plan_hash": "e2582d4941c22ab193842a477d67093d6bf8acc7d41ce8f412fbc6acc792ab32",
+  "job_id": "13091cf2f880b49cd543c42522c2552d",
+  "attempt": 3,
+  "original_job_id": "398fc3e8cf4c8025cb0490112195476a",
+  "worker_id": "w-4d3e94d0548ccfee",
+  "requested_by": "cli",
+  "requested_at": "2026-08-04T02:40:32Z",
+  "started_at": "2026-08-04T02:40:32Z",
+  "finished_at": "2026-08-04T02:52:40Z",
+  "wall_secs": 728.025773122,
+  "stage_durations_secs": [],
+  "offline": false,
+  "cache_hits": null,
+  "bytes_downloaded": null,
+  "bytes_read_local": null
+}

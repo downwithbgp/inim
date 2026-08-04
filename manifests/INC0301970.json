@@ -1,45 +1,53 @@
 {
-  "event_id": "INC0301970",
-  "revision": 2,
-  "schema_version": 2,
-  "event_window_utc": {
-    "start": "2026-07-28T04:35:00Z",
-    "end": ""
-  },
-  "ticket_window_local": {
-    "start": "2026-07-28 00:35:00",
-    "end": "",
-    "timezone": "EDT",
-    "timezone_note": "Indiana is US Eastern time. EDT = UTC\u22124."
-  },
-  "open": true,
-  "analysis_end_utc": "2026-07-29T04:35:00Z",
-  "warmup_minutes": 60,
-  "cooldown_minutes": 60,
-  "target": {
-    "label": "Smithville via Indiana GigaPOP",
-    "origin_asns": [
-      11550
-    ],
-    "transit_predicate": {
-      "status": "Unresolved",
-      "predicate": null,
-      "provenance": null
-    },
-    "prefix_selection": "origin AS11550 AND baseline AS path contains <Indiana GigaPOP transit ASN \u2014 PENDING REVIEW>",
-    "prefix_selection_provenance": "Manual analyst mapping: AS11550 = Smithville (the peer named in the ticket). Indiana GigaPOP transit ASN set requires review \u2014 not yet confirmed."
-  },
-  "collectors": [
-    "route-views2",
-    "route-views6"
+ "event_id": "INC0301970",
+ "revision": 3,
+ "schema_version": 2,
+ "event_window_utc": {
+  "start": "2026-07-28T04:35:00Z",
+  "end": ""
+ },
+ "ticket_window_local": {
+  "start": "2026-07-28 00:35:00",
+  "end": "",
+  "timezone": "EDT",
+  "timezone_note": "Indiana is US Eastern time. EDT = UTC\u22124."
+ },
+ "open": true,
+ "analysis_end_utc": "2026-08-04T00:01:37Z",
+ "warmup_minutes": 60,
+ "cooldown_minutes": 60,
+ "target": {
+  "label": "Smithville via Indiana GigaPOP",
+  "origin_asns": [
+   11550
   ],
-  "collectors_provenance": "RouteViews peers with broad global visibility. Selected for coverage of AS11550 prefixes.",
-  "analyst_notes": [
-    "The ticket 'Outage - Indiana GigaPOP Peer Smithville' has no parenthesized site code and no end time \u2014 open event.",
-    "Indiana GigaPOP does NOT use the Internet2 parenthesized site-code convention.",
-    "Participant Smithville maps to AS11550 (pending verification).",
-    "Indiana GigaPOP transit ASN set requires review before real analysis can proceed.",
-    "Open event: no published end time. Analysis bounded to analysis_end_utc. Restoration pending \u2014 no final restoration verdict possible.",
-    "Schema v2 migration: legacy internet2_asn=0 shortcut removed; TransitPredicate remains Unresolved with no executable predicate. Planning blocks until a reviewed predicate exists."
-  ]
+  "transit_predicate": {
+   "status": "Reviewed",
+   "predicate": {
+    "Adjacent": [
+     19782,
+     11550
+    ]
+   },
+   "provenance": {
+    "statement": "The named Indiana GigaPOP\u2013Smithville peer relationship is represented as adjacency between the reviewed Indiana GigaPOP routing ASN AS19782 (INDIANAGIGAPOP, ARIN RDAP registration 2001-02-14, c/o Indiana University; routing POC 'I-Light and Indiana GigaPOP'; PeeringDB Indiana GigaPOP; reviewed 2026-08-04) and the reviewed peer ASN AS11550 (Smithville Digital LLC, ARIN RDAP registration 1998-09-30; PeeringDB Smithville Digital, LLC; reviewed 2026-08-04).",
+    "reviewed_by": "session-50-review",
+    "date": "2026-08-04"
+   }
+  },
+  "prefix_selection": "origin AS11550 AND baseline AS path contains Adjacent(19782, 11550)",
+  "prefix_selection_provenance": "Reviewed 2026-08-04: named peer relationship = adjacency between reviewed AS19782 and reviewed AS11550; the narrowest representation supported by the reviewed identities and the ticket."
+ },
+ "collectors": [
+  "route-views2",
+  "route-views6"
+ ],
+ "collectors_provenance": "route-views2/route-views6 (RouteViews) plus rrc00/rrc06/rrc11 (RIPE RIS) event-date baselines probed 2026-08-04.",
+ "analyst_notes": [
+  "The ticket 'Outage - Indiana GigaPOP Peer Smithville' has no parenthesized site code and no end time \u2014 open event.",
+  "Indiana GigaPOP uses the shared GRNOC naming convention; the reviewed profile maps the no-qualifier peer title to the complete-named-relationship expectation.",
+  "Exact source refresh 2026-08-04T00:01:37Z: state In Progress, no end; analysis bounded to analysis_end_utc (the reviewed snapshot cutoff). Result would be Provisional.",
+  "Event-date baseline preflight (2026-07-28): AS11550 announces 13 IPv4 prefixes via Cogent/Telia/BroadbandONE transit only; ZERO AS11550 paths traverse AS19782; ZERO direct AS19782 observer sessions at route-views2/rrc00/rrc06/rrc11; ZERO AS11550 on the IPv6-only collector (route-views6).",
+  "DETERMINATION (deliverable B): the named Indiana GigaPOP\u2013Smithville peer relationship is NOT assessable through the selected public collectors at the event date. No plan is Ready on this evidence; do not queue UPDATE acquisition without new evidence (see docs/audits/2026-08-smithville-source-refresh.md)."
+ ]
 }
