@@ -92,8 +92,12 @@ SESSION_RE = re.compile(r"Session \d+")
 
 
 def git_ls_files() -> set[str]:
-    out = subprocess.check_output(["git", "ls-files"], cwd=ROOT, text=True)
-    return set(out.splitlines())
+    try:
+        out = subprocess.check_output(["git", "ls-files"], cwd=ROOT, text=True)
+        return set(out.splitlines())
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        # Packaged source has no .git; git-dependent checks skip.
+        return set()
 
 
 def all_markdown() -> list[Path]:
@@ -619,6 +623,8 @@ def check_documentation_inventory() -> list[str]:
     file listed; every listed file tracked)."""
     problems = []
     tracked = git_ls_files()
+    if not tracked:
+        return problems  # packaged source: no git tree to compare against
     inv = (ROOT / "docs/audits/2026-08-documentation-inventory.md").read_text(errors="replace")
     sections = {
         "markdown": [f for f in tracked if f.endswith(".md") and not f.startswith("spec/")],

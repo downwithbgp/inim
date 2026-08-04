@@ -95,3 +95,14 @@ current `-RIS-*` naming and are retained as historical evidence.
 - Artifacts do **not** carry a generator field; generator identity
   (software version, parser identity) lives in the immutable
   `analysis_runs` row and the run's `stderr.log`.
+
+## Package boundary
+
+The crate package excludes `stderr.log` (and all runtime material).
+The two tracked run `stderr.log` files are therefore absent from a
+demo built from **packaged source**, so its `demo-manifest.json`
+reports 116 imported artifacts instead of 118 from the git tree, and
+an answer key generated from a packaged demo differs from the tracked
+answer key only in the `demo_manifest` summary fields (artifact count
+and the demo-manifest SHA-256) — never in scenario answers. The
+tracked answer key is generated from the git tree.
