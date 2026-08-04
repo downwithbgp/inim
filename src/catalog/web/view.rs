@@ -2662,9 +2662,9 @@ pub fn load_case_study(
         analyzed_targets = by_key.into_values().collect();
     }
     // The analyzed section uses the reviewed target-row label when one
-    // matches (e.g. "NORDUnet" from the case-study target record);
-    // otherwise the manifest label is used verbatim. Matching target
-    // rows leave the "mentioned" list below.
+    // matches (e.g. the reviewed label from the case-study target
+    // record); otherwise the manifest label is used verbatim. Matching
+    // target rows leave the "mentioned" list below.
     {
         let row_labels: Vec<(String, String)> = targets
             .iter()
@@ -2677,11 +2677,7 @@ pub fn load_case_study(
                     .split(',')
                     .map(|s| s.trim().to_string())
                     .filter(|s| s.starts_with("AS"))
-                    .any(|asn| {
-                        t.candidate_asns
-                            .split([',', ' '])
-                            .any(|c| c.trim() == asn)
-                    })
+                    .any(|asn| t.candidate_asns.split([',', ' ']).any(|c| c.trim() == asn))
                     || (!t.source_label.is_empty()
                         && a.label
                             .to_lowercase()

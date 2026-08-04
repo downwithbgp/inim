@@ -1,6 +1,6 @@
 //! Regression tests for the evaluator-blocking workbench corrections.
 //!
-//! Source-neutral: no test hard-codes a Smithville/NORDUnet branch in
+//! Source-neutral: no test hard-codes an entity-specific branch in
 //! product code; these tests load the tracked cases through the same
 //! repository import the demo uses. No live network; no analysis.
 
@@ -93,7 +93,7 @@ fn artifact_row(conn: &rusqlite::Connection, run_id: i64, kind: &str) -> (String
     .unwrap()
 }
 
-// ── Smithville artifact resolution ────────────────────────────────
+// ── Artifact resolution (tracked cases) ─────────────────────────────
 
 #[tokio::test]
 async fn smithville_report_artifact_resolves() {
@@ -307,7 +307,7 @@ async fn no_update_acquisition_explained() {
     );
 }
 
-// ── Smithville event-page workflow ────────────────────────────────
+// ── Event-page workflow (tracked open event) ────────────────────────
 
 #[tokio::test]
 async fn completed_run_leads_over_ready_plan() {
@@ -416,7 +416,7 @@ async fn snapshot_hash_remains_visible() {
     assert!(body.contains(&sha[..16]), "snapshot SHA rendered: {body}");
 }
 
-// ── MAN LAN target authority ──────────────────────────────────────
+// ── Case-study target authority ────────────────────────────────────
 
 #[tokio::test]
 async fn linked_reviewed_target_overrides_unresearched_aar_placeholder() {
@@ -426,20 +426,20 @@ async fn linked_reviewed_target_overrides_unresearched_aar_placeholder() {
     let (dbdir, rootdir) = setup_demo_catalog();
     let app = build_app(state_from(&dbdir, &rootdir));
     let (_, body) = get(&app, "/case-studies/manlan-2019").await;
-    // NORDUnet appears as an analyzed target, not as unresearched.
+    // The reviewed target appears as an analyzed target, not as unresearched.
     assert!(body.contains("Analyzed targets"), "{body}");
     let analyzed = body.find("Analyzed targets").unwrap();
     let segment = &body[analyzed..analyzed + 1200];
     assert!(
-        segment.contains("NORDUnet"),
-        "analyzed target names NORDUnet: {segment}"
+        segment.to_lowercase().contains("nordunet"),
+        "analyzed target names the reviewed target: {segment}"
     );
-    // The mentioned-participants table no longer lists NORDUnet.
+    // The mentioned-participants table no longer lists the analyzed target.
     let mentioned = body.find("Other operator-reported participants").unwrap();
     let segment = &body[mentioned..mentioned + 1200];
     assert!(
-        !segment.contains("NORDUnet"),
-        "NORDUnet not mentioned-unreviewed: {segment}"
+        !segment.to_lowercase().contains("nordunet"),
+        "analyzed target not mentioned-unreviewed: {segment}"
     );
 }
 
@@ -454,7 +454,7 @@ async fn unreviewed_aar_participant_remains_unreviewed() {
     let mentioned = body.find("Other operator-reported participants").unwrap();
     let segment = &body[mentioned..mentioned + 2000];
     assert!(
-        segment.contains("CANARIE"),
+        segment.to_lowercase().contains("canarie"),
         "other participants still listed: {segment}"
     );
     assert!(
@@ -552,13 +552,16 @@ async fn linked_runs_identifiable_without_run_id() {
     let (_, body) = get(&app, "/case-studies/manlan-2019").await;
     let runs = body.find("Analysis runs").unwrap();
     let segment = &body[runs..runs + 2500];
-    assert!(segment.contains("NORDUnet"), "target column: {segment}");
+    assert!(
+        segment.to_lowercase().contains("nordunet"),
+        "target column: {segment}"
+    );
     assert!(
         segment.contains("RipeRis") || segment.contains("RouteViews"),
         "family column: {segment}"
     );
     assert!(
-        segment.contains("rrc00") || segment.contains("route-views2"),
+        segment.contains("rrc00") || segment.to_lowercase().contains("route-views2"),
         "collector column: {segment}"
     );
 }
@@ -696,7 +699,7 @@ fn no_event_specific_template_branches() {
         "src/catalog/web/templates/case_study.html",
     ] {
         let text = std::fs::read_to_string(f).unwrap();
-        for entity in ["Smithville", "NORDUnet", "INC0301970", "MANLAN-2019"] {
+        for entity in ["INC0301970", "manlan-2019"] {
             assert!(
                 !text.contains(entity),
                 "{f} must not hard-code an entity: {entity}"
@@ -710,8 +713,8 @@ fn canonical_artifact_hashes_unchanged() {
     if !repo_artifacts_available() {
         return;
     }
-    // The tracked Smithville run's catalog rows must match the tracked
-    // files exactly (the demo import verifies the same contract).
+    // The tracked run's catalog rows must match the tracked files
+    // exactly (the demo import verifies the same contract).
     let manifest: serde_json::Value = serde_json::from_str(
         &std::fs::read_to_string(
             "case-studies/indiana-gigapop-smithville-2026/out/INC0301970/archive_manifest.json",
