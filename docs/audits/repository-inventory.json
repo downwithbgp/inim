@@ -3275,8 +3275,8 @@
   "path": "case-studies/indiana-gigapop-smithville-2026/INC0301970.source.json",
   "category": "Immutable or generated evidence",
   "audience": "maintainers",
-  "authoritative": "immutable public source snapshot",
-  "generated": false,
+  "authoritative": "immutable public source snapshot (fetched record)",
+  "generated": true,
   "current": true
  },
  {

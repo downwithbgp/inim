@@ -24,14 +24,14 @@ This audit verifies that every tracked file is classified, that every current st
 
 ## Summary
 
-Tracked files: **408** · inventory entries: **408**
+Tracked files: **417** · inventory entries: **417**
 
 | Category | Files |
 |---|---|
-| Immutable or generated evidence | 138 |
+| Immutable or generated evidence | 146 |
 | Production source | 102 |
 | Historical decision record | 30 |
-| Reviewed case-study interpretation | 26 |
+| Reviewed case-study interpretation | 27 |
 | Configuration | 23 |
 | Normative current documentation | 22 |
 | Script or developer tool | 22 |
@@ -85,6 +85,15 @@ Tracked files: **408** · inventory entries: **408**
 | `case-studies/inc0302574/out/INC0302574/stderr.log` | Immutable or generated evidence | network analysts | MRT/RIB/UPDATE archives + generator run (immutable) | yes | current | schema/container reviewed; contents canonical, not hand-edited | none | reviewed in this audit |
 | `case-studies/inc0302574/out/INC0302574/stdout.json` | Immutable or generated evidence | network analysts | MRT/RIB/UPDATE archives + generator run (immutable) | yes | current | schema/container reviewed; contents canonical, not hand-edited | none | reviewed in this audit |
 | `case-studies/inc0302574/out/INC0302574/withdrawal_audit.json` | Immutable or generated evidence | network analysts | MRT/RIB/UPDATE archives + generator run (immutable) | yes | current | schema/container reviewed; contents canonical, not hand-edited | none | reviewed in this audit |
+| `case-studies/indiana-gigapop-smithville-2026/INC0301970.source.json` | Immutable or generated evidence | maintainers | immutable public source snapshot (fetched record) | yes | current | schema/container reviewed; contents canonical, not hand-edited | none | reviewed in this audit |
+| `case-studies/indiana-gigapop-smithville-2026/README.md` | Reviewed case-study interpretation | maintainers | reviewed case-study metadata | no | current | claims re-checked against canonical evidence in this audit | none | reviewed in this audit |
+| `case-studies/indiana-gigapop-smithville-2026/out/INC0301970/archive_manifest.json` | Immutable or generated evidence | maintainers | canonical run artifacts | yes | current | schema/container reviewed; contents canonical, not hand-edited | none | reviewed in this audit |
+| `case-studies/indiana-gigapop-smithville-2026/out/INC0301970/execution_metadata.json` | Immutable or generated evidence | maintainers | canonical run artifacts | yes | current | schema/container reviewed; contents canonical, not hand-edited | none | reviewed in this audit |
+| `case-studies/indiana-gigapop-smithville-2026/out/INC0301970/limitations.json` | Immutable or generated evidence | maintainers | canonical run artifacts | yes | current | schema/container reviewed; contents canonical, not hand-edited | none | reviewed in this audit |
+| `case-studies/indiana-gigapop-smithville-2026/out/INC0301970/report.json` | Immutable or generated evidence | maintainers | canonical run artifacts | yes | current | schema/container reviewed; contents canonical, not hand-edited | none | reviewed in this audit |
+| `case-studies/indiana-gigapop-smithville-2026/out/INC0301970/report.txt` | Immutable or generated evidence | maintainers | canonical run artifacts | yes | current | schema/container reviewed; contents canonical, not hand-edited | none | reviewed in this audit |
+| `case-studies/indiana-gigapop-smithville-2026/out/INC0301970/semantic_waves.json` | Immutable or generated evidence | maintainers | canonical run artifacts | yes | current | schema/container reviewed; contents canonical, not hand-edited | none | reviewed in this audit |
+| `case-studies/indiana-gigapop-smithville-2026/out/INC0301970/transitions.json` | Immutable or generated evidence | maintainers | canonical run artifacts | yes | current | schema/container reviewed; contents canonical, not hand-edited | none | reviewed in this audit |
 | `case-studies/manlan-2019/README.md` | Reviewed case-study interpretation | network analysts | canonical evidence + operator sources (reviewed) | no | current | claims re-checked against canonical evidence in this audit | none | reviewed in this audit |
 | `case-studies/manlan-2019/case-study.json` | Reviewed case-study interpretation | network analysts | canonical evidence + operator sources (reviewed) | no | current | claims re-checked against canonical evidence in this audit | none | reviewed in this audit |
 | `case-studies/manlan-2019/corpus/manifest.json` | Reviewed case-study interpretation | analysts | tracked immutable corpus metadata | no | current | claims re-checked against canonical evidence in this audit | none | reviewed in this audit |

@@ -58,13 +58,18 @@ General:
 5. Identify what inim cannot conclude about a target's total
    connectivity (no global single-homing claim).
 
-Second-network (deferred until a tracked case exists):
+Second-network (live in the demo):
 
-- Identify the named Indiana GigaPOP–Smithville peer relationship and
-  why the selected public collectors cannot observe it (no direct
-  AS19782 session; no AS11550 path traverses AS19782; IPv6 absent).
-- Ask: what would you check next on internal network equipment to
-  observe the relationship?
+1. Identify the named managed-network relationship for the Smithville
+   case (Indiana GigaPOP peer; no attachment qualifier → the complete
+   named relationship was reported unavailable).
+2. Identify why the selected public collectors cannot observe the
+   relationship: no direct AS19782 observer session, no AS11550 path
+   traverses AS19782, no IPv6 origin visibility.
+3. Identify the event's lifecycle (open; provisional; explicit
+   snapshot cutoff) and what the workbench states about the future.
+4. Ask: what would you check next on internal network equipment to
+   observe the relationship?
 
 For every task record: what did you conclude, which page supported it,
 what was unclear, which statement seemed stronger than the evidence,
