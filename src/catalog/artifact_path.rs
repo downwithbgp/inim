@@ -98,11 +98,11 @@ mod tests {
         let d = tempfile::tempdir().unwrap();
         write(
             d.path(),
-            "case-studies/example-org/example-2020/pilot/out/EVENT/report.json",
+            "case-studies/example-org/pilot/out/EVENT/report.json",
             "{}",
         );
         let got = resolve_artifact(d.path(), "EVENT/report.json").unwrap();
-        assert!(got.ends_with("case-studies/example-org/example-2020/pilot/out/EVENT/report.json"));
+        assert!(got.ends_with("case-studies/example-org/pilot/out/EVENT/report.json"));
     }
 
     #[test]
