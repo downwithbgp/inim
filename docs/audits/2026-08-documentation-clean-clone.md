@@ -20,21 +20,23 @@ authority.
 
 | Step | Command | Result |
 |---|---|---|
-| Build (release) | `cargo build --release --locked` | pending |
-| Doc tests | `cargo test --doc --locked` | pending |
-| Doc build (warnings denied) | `RUSTDOCFLAGS="-D warnings" cargo doc --locked --no-deps --document-private-items` | pending |
-| Documentation drift audit | `scripts/audit-docs.sh` | pending |
-| Demo initialization | `./target/release/inim demo init --db ... --root . --force` | pending |
-| Demo verification | `./target/release/inim demo verify --db ... --root .` | pending |
-| Answer-key generation | `python3 scripts/build-evaluation-answer-key.py --db ... --root . --out ...` | pending |
-| Evaluation pack | `sh scripts/build-evaluation-pack.sh --output ... --db ... --root .` | pending |
-| Project-scope audit | `./target/release/inim project-scope audit --db ... --root .` | pending |
+| Build (release) | `cargo build --release --locked` | ok (3m41s cold, fresh registry) |
+| Doc tests | `cargo test --doc --locked` | ok |
+| Doc build (warnings denied) | `RUSTDOCFLAGS="-D warnings" cargo doc --locked --no-deps --document-private-items` | ok |
+| Documentation drift audit | `scripts/audit-docs.sh` | ok |
+| Demo initialization | `./target/release/inim demo init --db ... --root . --force` | ok (no source access) |
+| Demo verification | `./target/release/inim demo verify --db ... --root .` | ok |
+| Answer-key generation | `python3 scripts/build-evaluation-answer-key.py --db ... --root . --out ...` | ok; byte-identical to the tracked answer key |
+| Evaluation pack | `sh scripts/build-evaluation-pack.sh --output ... --db ... --root .` | ok (19 files, SHA256SUMS) |
+| Project-scope audit | `./target/release/inim project-scope audit --db ... --root .` | ok (0 excluded) |
 
 Results are filled from the recorded run. This is not an external
 evaluation; it is maintainer verification.
 
-## Ambiguities found and corrected
+## Result
 
-None identified at the time of writing; any ambiguity discovered during
-the run is recorded in the final conformance audit
-(`docs/audits/2026-08-documentation-spec-conformance.md`).
+All documented public paths work from the clean clone at branch commit
+`e2f38ae`. The answer key regenerates byte-identically from the
+clean-clone demo, confirming deterministic generation. No ambiguity
+required correction. This is not an external evaluation; the pilot
+registry remains at zero external sessions.
