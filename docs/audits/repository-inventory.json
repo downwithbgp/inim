@@ -3262,5 +3262,77 @@
   "authoritative": "live research probe (network required; ignored in CI)",
   "generated": false,
   "current": true
+ },
+ {
+  "path": "case-studies/indiana-gigapop-smithville-2026/README.md",
+  "category": "Reviewed case-study interpretation",
+  "audience": "maintainers",
+  "authoritative": "reviewed case-study metadata",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "case-studies/indiana-gigapop-smithville-2026/INC0301970.source.json",
+  "category": "Immutable or generated evidence",
+  "audience": "maintainers",
+  "authoritative": "immutable public source snapshot",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "case-studies/indiana-gigapop-smithville-2026/out/INC0301970/archive_manifest.json",
+  "category": "Immutable or generated evidence",
+  "audience": "maintainers",
+  "authoritative": "canonical run artifacts",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/indiana-gigapop-smithville-2026/out/INC0301970/execution_metadata.json",
+  "category": "Immutable or generated evidence",
+  "audience": "maintainers",
+  "authoritative": "canonical run artifacts",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/indiana-gigapop-smithville-2026/out/INC0301970/limitations.json",
+  "category": "Immutable or generated evidence",
+  "audience": "maintainers",
+  "authoritative": "canonical run artifacts",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/indiana-gigapop-smithville-2026/out/INC0301970/report.json",
+  "category": "Immutable or generated evidence",
+  "audience": "maintainers",
+  "authoritative": "canonical run artifacts",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/indiana-gigapop-smithville-2026/out/INC0301970/semantic_waves.json",
+  "category": "Immutable or generated evidence",
+  "audience": "maintainers",
+  "authoritative": "canonical run artifacts",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/indiana-gigapop-smithville-2026/out/INC0301970/transitions.json",
+  "category": "Immutable or generated evidence",
+  "audience": "maintainers",
+  "authoritative": "canonical run artifacts",
+  "generated": true,
+  "current": true
+ },
+ {
+  "path": "case-studies/indiana-gigapop-smithville-2026/out/INC0301970/report.txt",
+  "category": "Immutable or generated evidence",
+  "audience": "maintainers",
+  "authoritative": "canonical run artifacts",
+  "generated": true,
+  "current": true
  }
 ]
