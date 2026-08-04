@@ -8,6 +8,14 @@
   "current": true
  },
  {
+  "path": ".github/PULL_REQUEST_TEMPLATE.md",
+  "category": "GitHub/community metadata",
+  "audience": "contributors",
+  "authoritative": "reviewed protocol",
+  "generated": false,
+  "current": true
+ },
+ {
   "path": ".github/dependabot.yml",
   "category": "GitHub/community metadata",
   "audience": "contributors",

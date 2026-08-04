@@ -24,7 +24,7 @@ This audit verifies that every tracked file is classified, that every current st
 
 ## Summary
 
-Tracked files: **436** · inventory entries: **436**
+Tracked files: **437** · inventory entries: **437**
 
 | Category | Files |
 |---|---|
@@ -38,7 +38,7 @@ Tracked files: **436** · inventory entries: **436**
 | Template or stylesheet | 16 |
 | Test fixture | 11 |
 | Test source | 10 |
-| GitHub/community metadata | 3 |
+| GitHub/community metadata | 4 |
 | Packaging or release metadata | 3 |
 | License or third-party notice | 2 |
 
@@ -47,6 +47,7 @@ Tracked files: **436** · inventory entries: **436**
 | Path | Category | Audience | Authoritative source | Generated | Current | Review result | Changes required | Final status |
 |---|---|---|---|---|---|---|---|---|
 | `.github/ISSUE_TEMPLATE/noc-alpha-feedback.yml` | GitHub/community metadata | contributors | reviewed protocol | no | current | reviewed in this audit | none | reviewed in this audit |
+| `.github/PULL_REQUEST_TEMPLATE.md` | GitHub/community metadata | contributors | reviewed protocol | no | current | reviewed in this audit | none | reviewed in this audit |
 | `.github/dependabot.yml` | GitHub/community metadata | contributors | GitHub Dependabot configuration + action review policy | no | current | reviewed in this audit | none | reviewed in this audit |
 | `.github/workflows/ci.yml` | GitHub/community metadata | contributors | GitHub Actions upstream releases | no | current | reviewed in this audit | none | reviewed in this audit |
 | `.gitignore` | Configuration | maintainers | reviewed operator configuration | no | current | reviewed in this audit | none | reviewed in this audit |
