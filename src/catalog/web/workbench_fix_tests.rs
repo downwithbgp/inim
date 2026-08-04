@@ -382,8 +382,8 @@ async fn demo_import_path_not_presented_as_original_source() {
     let app = build_app(state_from(&dbdir, &rootdir));
     let (_, body) = get(&app, "/events/INC0301970").await;
     assert!(
-        body.contains("imported from tracked offline fixture"),
-        "fixture import provenance is disclosed: {body}"
+        body.contains("imported from tracked"),
+        "import provenance is disclosed: {body}"
     );
     // The fixture path is not the primary source identity.
     let primary = body.find("GRNOC Public Task Viewer");
@@ -451,7 +451,9 @@ async fn unreviewed_aar_participant_remains_unreviewed() {
     let (dbdir, rootdir) = setup_demo_catalog();
     let app = build_app(state_from(&dbdir, &rootdir));
     let (_, body) = get(&app, "/case-studies/manlan-2019").await;
-    let mentioned = body.find("operator-reported").unwrap();
+    let mentioned = body
+        .find("Other source-mentioned entities (AAR)")
+        .unwrap_or_else(|| body.find("operator-reported").unwrap());
     let segment = &body[mentioned..mentioned + 2000];
     assert!(
         segment.to_lowercase().contains("canarie"),

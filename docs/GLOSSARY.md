@@ -228,6 +228,23 @@ provisional run is never mutated.
   adjacency, exported route visibility, a commercial relationship,
   traffic flow, or active state during the event. Attachment is never
   rendered as a directional BGP edge.
+- **Source-mentioned entity** — an entity that appears in reviewed
+  source material (for example an after-action report) without its
+  role being established. A source mention is **not** proof of fabric
+  attachment; a reviewed ASN is not by itself proof of attachment; a
+  familiar organization name is not proof of entity class. Entities
+  whose role is not established are classified separately (for
+  example as unresolved mentions) and are not rendered as fabric
+  attachments.
+- **Test equipment** — network test/measurement hardware (for example
+  a traffic generator or analyzer) mentioned by sources. Test
+  equipment is not an autonomous system, not a BGP peer, not an AS
+  node, and not an attached network; it may be described in prose as
+  operational/test-equipment context only.
+- **Interconnect context** — an interconnection or external-fabric
+  reference (for example another exchange) that is not established as
+  a participant AS on the reviewed fabric. It is listed as context,
+  never as an attached network.
 - **Observed AS-path diagram** — a presentation of an observed AS path
   at one public observer, rendered from canonical route evidence. A
   solid arrow is observed AS-path order; arrow direction never labels

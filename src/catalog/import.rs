@@ -143,9 +143,54 @@ pub(crate) fn import_one(
         std::fs::read_to_string(manifest_path).map_err(|e| format!("cannot read manifest: {e}"))?;
     let manifest_sha = hex_sha256(&manifest_payload);
 
-    // ── Source snapshot: prefer the ticket fixture; else derive. ──
+    // ── Source snapshot: prefer the latest reviewed case-study
+    // snapshot (<case-study>/<EVENT>.source.json, with optional
+    // <EVENT>.source.json.meta.json carrying the reviewed fetch time
+    // and lifecycle-at-snapshot), then the tracked offline fixture,
+    // else derive from the manifest. ──
+    let case_study_snapshot = case_study_snapshot_for(out_dir, &event_id_str);
     let fixture_path = ticket_fixture_for(&event_id_str);
-    let (snapshot, snapshot_sha) = if let Some(fixture) = fixture_path {
+    let (snapshot, snapshot_sha) = if let Some((snapshot_path, meta)) = case_study_snapshot {
+        let raw = std::fs::read_to_string(&snapshot_path)
+            .map_err(|e| format!("cannot read snapshot {}: {e}", snapshot_path.display()))?;
+        let sha = hex_sha256(&raw);
+        let fetched_at = meta
+            .get("fetched_at_utc")
+            .and_then(|v| v.as_str())
+            .unwrap_or("2026-07-31T00:00:00Z")
+            .to_string();
+        // The tracked snapshot is the raw source record; the normalized
+        // event is derived from it (title + window), mirroring the
+        // fixture normalization.
+        let normalized = serde_json::json!({
+            "id": event_id_str,
+            "title": serde_json::from_str::<serde_json::Value>(&raw)
+                .ok()
+                .and_then(|v| {
+                    v.get("short_description")
+                        .or_else(|| v.get("title"))
+                        .and_then(|t| t.as_str())
+                        .map(|s| s.to_string())
+                })
+                .unwrap_or_else(|| manifest.target.label.clone()),
+            "source": "tracked-snapshot",
+            "start": manifest.event_window_utc.start,
+            "end": manifest.event_window_utc.end,
+        });
+        (
+            EventSnapshot {
+                id: 0,
+                event_id: 0,
+                fetched_at,
+                source_url: format!("file://{}", snapshot_path.display()),
+                content_sha256: sha.clone(),
+                raw_payload: raw,
+                normalized_json: normalized.to_string(),
+                parser_version: "tracked-snapshot-1".to_string(),
+            },
+            sha,
+        )
+    } else if let Some(fixture) = fixture_path {
         let raw = std::fs::read_to_string(&fixture)
             .map_err(|e| format!("cannot read fixture {}: {e}", fixture.display()))?;
         let sha = hex_sha256(&raw);
@@ -749,6 +794,33 @@ fn ticket_fixture_for(event_id: &str) -> Option<PathBuf> {
         }
     }
     None
+}
+
+/// The latest reviewed immutable source snapshot for an event:
+/// `<case-study>/<EVENT>.source.json` next to the run output root,
+/// with its optional `<EVENT>.source.json.meta.json` sidecar
+/// (reviewed fetch time, lifecycle at snapshot, cutoff provenance).
+/// Returns `None` when no tracked snapshot exists for the event.
+fn case_study_snapshot_for(
+    out_dir: &Path,
+    event_id: &str,
+) -> Option<(PathBuf, serde_json::Value)> {
+    let snapshot_path = out_dir.parent()?.join(format!("{event_id}.source.json"));
+    if !snapshot_path.is_file() {
+        return None;
+    }
+    let meta_path = out_dir
+        .parent()?
+        .join(format!("{event_id}.source.json.meta.json"));
+    let meta: serde_json::Value = if meta_path.is_file() {
+        std::fs::read_to_string(&meta_path)
+            .ok()
+            .and_then(|s| serde_json::from_str(&s).ok())
+            .unwrap_or_else(|| serde_json::json!({}))
+    } else {
+        serde_json::json!({})
+    };
+    Some((snapshot_path, meta))
 }
 
 pub(crate) fn artifact_kind(rel: &str) -> &'static str {

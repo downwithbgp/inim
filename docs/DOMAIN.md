@@ -427,6 +427,19 @@ the reviewed records establish them, their ASN labels with a validity
 date. It is stored as reviewed interpretation in the case-study layer
 (`interconnection_context`) and rendered as presentation.
 
+Entities mentioned by sources are classified with a **bounded entity
+taxonomy**: `AttachedNetwork` (reviewed evidence supports a Layer-2
+attachment), `TestEquipment` (measurement/test hardware — never a
+peer, an AS node, or an attached network), `InterconnectContext`
+(interconnection or external-fabric reference), `OperationalService`
+(service/facility context), and `UnresolvedMention` (role not
+sufficiently established). Only reviewed attached networks are fabric
+diagram participants; every other class is listed separately as
+context. Source mention is not proof of attachment; a reviewed ASN is
+not by itself proof of attachment; a Layer-2 attachment is not proof
+of BGP adjacency; a familiar organization name is not proof of entity
+class.
+
 The context is deliberately **not protocol evidence**: production
 analysis never uses fabric attachment metadata in route predicates,
 cohort selection, or findings. Layer-2 attachment is not BGP

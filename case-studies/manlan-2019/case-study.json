@@ -395,70 +395,85 @@
  "interconnection_context": {
   "kind": "Layer2Fabric",
   "label": "MAN LAN",
-  "provenance": "Reviewed 2026-08-04 (session-54 semantic correction): MAN LAN is a Layer-2 exchange/fabric operated by Internet2 for research-and-education interconnection (per the operator after-action report and the reviewed target research, case-studies/manlan-2019/target-research.json). Attachments and their reviewed ASN labels where established come only from the reviewed target research (historical_asns, validity date 2019-08-21); no ASN is guessed. Attachment describes reviewed physical/Layer-2 participation context; it does not prove BGP adjacency, exported route visibility, a commercial relationship, traffic flow, or active state during the event.",
+  "provenance": "Reviewed 2026-08-04 (session-54 semantic correction) and 2026-08-05 (session-55 entity taxonomy correction): MAN LAN is a Layer-2 exchange/fabric operated by Internet2 for research-and-education interconnection (per the operator after-action report and the reviewed target research, case-studies/manlan-2019/target-research.json). Reviewed attached networks and their ASN labels where established come only from the reviewed target research (historical_asns, validity date 2019-08-21) and the reviewed pilot selection; no ASN is guessed. Entities whose attachment is not established are classified separately (test equipment, interconnect context, service references, unresolved mentions) and are not fabric attachments. Attachment describes reviewed physical/Layer-2 participation context; it does not prove BGP adjacency, exported route visibility, a commercial relationship, traffic flow, or active state during the event.",
   "limitations": [
    "MAN LAN is a Layer-2 fabric: it has no ASN for the purposes of this case study, does not speak BGP, does not originate routes, and does not appear as an AS-path hop.",
    "Layer-2 attachment is not BGP adjacency: an attached network may or may not have exchanged routes directly with other attachments.",
+   "A source mention (AAR) is not proof of attachment; a reviewed ASN is not by itself proof of MAN LAN attachment; a familiar organization name is not proof of entity class.",
+   "Test equipment (Ixia) is not a peer, an AS node, or a network participant; it appears only as operational/test-equipment context.",
    "The reviewed ASN labels are 2019-08-21 historical identities; current registry metadata must not be used as 2019 truth.",
    "The NORDUnet pilot observes one attached network (AS2603) at selected public collectors; it is not a complete analysis of the fabric or of all connectors."
   ],
   "attachments": [
    {
     "label": "NORDUnet",
-    "note": "research/education network operator; analyzed target of the completed historical pilot",
+    "note": "research/education network operator; analyzed target of the completed historical pilot (AAR-documented MAN LAN interface actions; reviewed pilot selection)",
     "asn": 2603,
     "asn_validity_date": "2019-08-21"
    },
    {
     "label": "ESnet",
-    "note": "research/education network operator",
+    "note": "research/education network operator; AAR-documented MAN LAN interface actions (interface shut ~16:39, disabled 17:30, re-enabled 20:44)",
     "asn": 293,
     "asn_validity_date": "2019-08-21"
    },
    {
     "label": "GÉANT",
-    "note": "research/education network operator",
+    "note": "research/education network operator; AAR-documented MAN LAN interface state (still not up 13:13). Attachment identity AS21320 (2019 PeeringDB capture) is distinct from AS20965 observed in actual NORDUnet route paths (current-identity-only review); the differing ASNs are not treated as contradictory",
     "asn": 21320,
     "asn_validity_date": "2019-08-21"
    },
    {
     "label": "CANARIE",
-    "note": "research/education network operator",
+    "note": "research/education network operator; MAN LAN presence explicitly documented (2019 Wikipedia: external segments extend to Manhattan Landing; AAR-documented optic swap/dropped interface 12:03-12:34)",
     "asn": 6509,
     "asn_validity_date": "2019-08-21"
    },
    {
+    "label": "SINET",
+    "note": "research/education network operator; AAR-documented MAN LAN interface action (swapped with NORDUnet 15:48; BGP not re-establishing)",
+    "asn": 2907,
+    "asn_validity_date": "2019-08-21"
+   }
+  ],
+  "test_equipment": [
+   {
+    "label": "Ixia test equipment",
+    "note": "network test/measurement hardware (traffic generation and analysis); not an autonomous system, not a BGP peer, not a participant network, and not a reviewed fabric attachment. AAR documents an outage at 16:54. No reviewed ASN; no PeeringDB network entry.",
+    "asn": null
+   }
+  ],
+  "interconnect_context": [
+   {
+    "label": "WIX interconnect",
+    "note": "exchange fabric (Washington International Exchange; Internet2 + MAX partnership), not an origin network and not established as an attached network on MAN LAN. AAR documents a brief outage 13:26-13:27, resolved 14:40."
+   }
+  ],
+  "operational_services": [
+   {
+    "label": "NEAAR",
+    "note": "research/education connectivity consortium and circuit/connectivity service (NEA3R: Networks for European, American, African and Arctic Research); listed as a MAN LAN peer in Internet2's international peers table, but not established as an attached autonomous network. AAR documents VLAN no packets 13:04, up 13:32. No origin ASN."
+   }
+  ],
+  "unresolved_mentions": [
+   {
     "label": "TWAREN",
-    "note": "research/education network operator",
+    "note": "identity historically reviewed (AS7539, 2019-08-21) and AAR documents an interface not receiving light at 13:45, but the reviewed pilot selection flags MAN LAN attachment as less certain (2019 US presence primarily via PacificWave, West Coast). Not rendered as an attached network; the reviewed ASN is retained here as identity detail only.",
     "asn": 7539,
     "asn_validity_date": "2019-08-21"
    },
    {
-    "label": "SINET",
-    "note": "research/education network operator",
-    "asn": 2907,
-    "asn_validity_date": "2019-08-21"
-   },
-   {
-    "label": "Ixia",
-    "note": "connector/test context; no reviewed ASN label",
-    "asn": null
-   },
-   {
-    "label": "NEAAR",
-    "note": "ambiguous service identity; no reviewed ASN label",
-    "asn": null
-   },
-   {
     "label": "OMAN",
-    "note": "unresolved identity; no reviewed ASN label",
-    "asn": null
-   },
-   {
-    "label": "WIX interconnect",
-    "note": "interconnect context; no reviewed ASN label",
+    "note": "unresolved source mention: no reviewed source connects OMAN/OMREN to MAN LAN or CANARIE; MAN LAN peer lists contain no Oman entry. AAR notes it rides the CANARIE interface. No reviewed ASN, no organization or country-network assumption.",
     "asn": null
    }
-  ]
+  ],
+  "entity_review": {
+   "date": "2026-08-05",
+   "reason": "Internal walkthrough correction: test equipment and entities without established attachment were rendered as reviewed Layer-2 fabric attachments. Reviewed classification now follows the reviewed target research and pilot selection: only entities whose reviewed evidence supports fabric attachment are AttachedNetwork; all others are classified TestEquipment / InterconnectContext / OperationalService / UnresolvedMention.",
+   "prior_classification": "10 reviewed attachments (NORDUnet, ESnet, GÉANT, CANARIE, TWAREN, SINET, Ixia, NEAAR, OMAN, WIX interconnect), all rendered as Layer-2 attachments.",
+   "corrected_classification": "5 reviewed attached networks (NORDUnet, ESnet, GÉANT, CANARIE, SINET); Ixia = test equipment; WIX interconnect = interconnect context; NEAAR = operational/service reference; TWAREN and OMAN = unresolved source mentions (TWAREN AS7539 retained as identity detail).",
+   "evidence": "case-studies/manlan-2019/target-research.json; case-studies/manlan-2019/pilot/PILOT-SELECTION.md; AAR-derived target roles in case-study.json"
+  }
  }
 }

@@ -100,6 +100,24 @@ NotDirectlyVisible condition stays NotDirectlyObservable even when a pilot
 run exists; a narrow pilot's absence of observations never refutes
 non-BGP-visible conditions, and never extends beyond its own window.
 
+## Observer-coverage summaries (2026-08)
+
+Event pages may render a reviewed **observation-coverage summary**
+(collector-by-collector: collector, collector site, source family,
+target-origin visibility, reviewed-relationship visibility, and the
+qualification reason). Coverage summaries are derived from canonical
+preflight/run evidence (reviewed per-collector counts, the reviewed
+archive manifest, and the reviewed manifest analyst notes) and are
+reviewed interpretation, not new evidence. Target-origin visibility and
+reviewed-relationship visibility are distinct facts and are always
+presented separately: target routes may be visible at a collector while
+the reviewed relationship is not exposed by its baselines. Collector
+site describes where the collector's route reflector is hosted; it is
+not the observer peer's location. A coverage summary never claims a
+relationship did not exist, that routing was stable, or that no outage
+occurred — it states what the selected public observers could and could
+not see.
+
 ## Pilot timing interpretation
 
 Temporal relations preserve event order: for point action anchors the

@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "fetched_at_utc": "2026-08-04T00:01:37Z",
+  "lifecycle_at_snapshot": "Open",
+  "lifecycle_evidence": "source state In Progress (state code 2) with no published end at the refresh retrieval; the event remains open",
+  "snapshot_role": "latest reviewed immutable snapshot (exact source refresh retrieval)",
+  "cutoff_provenance": "Analysis cutoff is the reviewed snapshot cutoff: the exact source refresh retrieval 2026-08-04T00:01:37Z (state In Progress, no end). It is the reviewed end of the provisional analysis window (manifest analysis_end_utc), not the fetch time of the older tracked offline fixture.",
+  "provenance": "docs/audits/2026-08-smithville-source-refresh.md (Exact source refresh); manifests/INC0301970.json analyst note 3"
+}

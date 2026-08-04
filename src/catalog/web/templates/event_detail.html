@@ -23,14 +23,16 @@ evaluator workflow.</p>
 
 <div class="panel">
 <table>
-  <tr><th>Status</th><td>{% if status == "Stale" %}<span class="tag stale">{{ status }}</span>{% elif status == "Blocked" %}<span class="tag blocked">{{ status }}</span>{% else %}<span class="tag">{{ status }}</span>{% endif %}</td></tr>
-  <tr><th>Lifecycle</th><td>{{ lifecycle }}</td></tr>
+  <tr><th>Analysis status</th><td>{% if status == "Stale" %}<span class="tag stale">{{ status }}</span>{% elif status == "Blocked" %}<span class="tag blocked">{{ status }}</span>{% else %}<span class="tag">{{ status }}</span>{% endif %}</td></tr>
+  <tr><th>Source lifecycle</th><td>{{ lifecycle }}</td></tr>
   <tr><th>Event window</th>
     <td>{% if is_open && !analysis_cutoff.is_empty() %}
       <ul class="flat">
         <li>Start: {{ start }}</li>
-        <li>Source lifecycle: Open</li>
+        {% if !snapshot_fetched_at.is_empty() %}<li>Source snapshot fetched at: {{ snapshot_fetched_at }}</li>{% endif %}
+        <li>Source lifecycle at snapshot: {% if !snapshot_lifecycle.is_empty() %}{{ snapshot_lifecycle }}{% else %}Open{% endif %}{% if !snapshot_lifecycle_evidence.is_empty() %} <span class="muted">({{ snapshot_lifecycle_evidence }})</span>{% endif %}</li>
         <li>Analysis cutoff: {{ analysis_cutoff }}</li>
+        {% if !cutoff_provenance.is_empty() %}<li class="muted">Cutoff provenance: {{ cutoff_provenance }}</li>{% endif %}
       </ul>
     {% else %}{{ start }} → {{ end }}{% endif %}</td>
   </tr>
@@ -46,6 +48,35 @@ evaluator workflow.</p>
 <p class="error">{{ stale_reason }}</p>
 {% endif %}
 </div>
+
+{% if coverage.is_some() %}
+{% let cv = coverage.as_ref().unwrap() %}
+<div class="panel">
+<h3>Observation coverage</h3>
+<p>{{ cv.summary }}</p>
+<table>
+<thead><tr><th>Collector</th><th>Collector site</th><th>Source family</th><th>Target visible?</th><th>Reviewed relationship visible?</th><th>Qualification</th></tr></thead>
+<tbody>
+{% for r in cv.rows %}
+<tr>
+  <td>{{ r.collector }}</td>
+  <td>{% if r.site.is_empty() %}<span class="muted">not recorded</span>{% else %}{{ r.site }}{% endif %}</td>
+  <td>{{ r.family }}</td>
+  <td>{% if r.target_visible %}Yes — {{ r.target_prefixes }} prefix{% if r.target_prefixes != 1 %}es{% endif %}{% else %}No — 0 prefixes{% endif %}</td>
+  <td>{% if r.relationship_visible %}Yes{% else %}No{% endif %}</td>
+  <td>{{ r.human_label }}{% if !r.note.is_empty() %} <span class="muted">({{ r.note }})</span>{% endif %}<br><span class="muted">exact classification: {{ r.blocker_classification }}</span></td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+<p class="muted">Collector site describes where the collector's route reflector is hosted; it is not the observer peer's location.</p>
+<p>{% if cv.updates_acquired %}UPDATE archives were acquired for the selected qualifying streams.{% else %}<strong>UPDATE archives were not acquired.</strong> {{ cv.updates_explanation }}{% endif %}</p>
+{% if completed_run_id.is_some() %}
+<p><a href="/analyses/{{ completed_run_id.as_ref().unwrap() }}">Full observation coverage and evidence</a></p>
+{% endif %}
+<p class="muted">Provenance: {{ cv.provenance }}</p>
+</div>
+{% endif %}
 
 <h3>Analysis runs</h3>
 <table>
@@ -73,8 +104,8 @@ evaluator workflow.</p>
 <tr>
   <td>{{ s.id }}</td>
   <td>{{ s.fetched_at }}</td>
-  <td>{% if s.fixture_import %}GRNOC Public Task Viewer — external ID {{ event.external_id }}{% else %}{{ s.source_url }}{% endif %}</td>
-  <td>{% if s.fixture_import %}<span class="muted">imported from tracked offline fixture (<code>{{ s.source_url }}</code>)</span>{% else %}<span class="muted">fetched from source</span>{% endif %}</td>
+  <td>{% if s.fixture_import %}{% if s.tracked_snapshot %}GRNOC Public Task Viewer — external ID {{ event.external_id }} (tracked immutable snapshot){% else %}GRNOC Public Task Viewer — external ID {{ event.external_id }}{% endif %}{% else %}{{ s.source_url }}{% endif %}</td>
+  <td>{% if s.fixture_import %}{% if s.tracked_snapshot %}<span class="muted">imported from tracked immutable snapshot (<code>{{ s.source_url }}</code>)</span>{% else %}<span class="muted">imported from tracked offline fixture (<code>{{ s.source_url }}</code>)</span>{% endif %}{% else %}<span class="muted">fetched from source</span>{% endif %}</td>
   <td><code>{{ s.sha256 }}</code></td>
   <td><code>{{ s.raw_preview }}</code></td>
 </tr>
