@@ -171,7 +171,7 @@ verified against implementation (`JobState` +
 
 | Area | As implemented | As claimed | Apparently intended | Classification | Evidence | Consequence |
 |------|----------------|------------|---------------------|----------------|----------|-------------|
-| Continuity gate | empty-transitions returns strong verdict before gate | module doc says strong verdicts suppressed on unknown continuity | gate should precede empty case | partially enforced invariant | `src/assess.rs:208-224` vs `:13-14` | run with gaps + no changes may overstate "no route-state change" |
+| Continuity gate | empty-transitions returns strong verdict before gate | module doc says strong verdicts suppressed on unknown continuity | gate should precede empty case | partially enforced invariant | `src/assess.rs:208-224` vs `:19-20` | run with gaps + no changes may overstate "no route-state change" |
 | Artifact resolution | 4 resolvers | single resolver authority | one resolver | duplicated authority | `artifact_path.rs`, `workbench.rs`, `demo.rs`, `publish.rs` | same path can resolve differently per consumer |
 | Scope enforcement | worker/queue/retry only | "rechecked before source access" | all execution paths | abstraction leak | `src/worker.rs`, `src/main.rs` | standalone analyze unguarded |
 | Open-event cutoff | storable Ready plan without cutoff via import | manifest validation requires cutoff | one enforcement point | partially enforced invariant | `src/catalog/import.rs`, `src/manifest.rs` | catalog may show Ready for un-runnable plan |
