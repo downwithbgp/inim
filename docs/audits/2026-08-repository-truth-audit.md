@@ -24,21 +24,21 @@ This audit verifies that every tracked file is classified, that every current st
 
 ## Summary
 
-Tracked files: **417** · inventory entries: **417**
+Tracked files: **442** · inventory entries: **442**
 
 | Category | Files |
 |---|---|
-| Immutable or generated evidence | 146 |
+| Immutable or generated evidence | 148 |
 | Production source | 102 |
-| Historical decision record | 30 |
-| Reviewed case-study interpretation | 27 |
-| Configuration | 23 |
-| Normative current documentation | 22 |
-| Script or developer tool | 22 |
+| Normative current documentation | 35 |
+| Historical decision record | 34 |
+| Reviewed case-study interpretation | 28 |
+| Script or developer tool | 25 |
+| Configuration | 24 |
 | Template or stylesheet | 16 |
 | Test fixture | 11 |
 | Test source | 10 |
-| GitHub/community metadata | 3 |
+| GitHub/community metadata | 4 |
 | Packaging or release metadata | 3 |
 | License or third-party notice | 2 |
 
@@ -46,7 +46,8 @@ Tracked files: **417** · inventory entries: **417**
 
 | Path | Category | Audience | Authoritative source | Generated | Current | Review result | Changes required | Final status |
 |---|---|---|---|---|---|---|---|---|
-| `.github/ISSUE_TEMPLATE/noc-alpha-feedback.md` | GitHub/community metadata | contributors | reviewed protocol | no | current | reviewed in this audit | none | reviewed in this audit |
+| `.github/ISSUE_TEMPLATE/noc-alpha-feedback.yml` | GitHub/community metadata | contributors | reviewed protocol | no | current | reviewed in this audit | none | reviewed in this audit |
+| `.github/PULL_REQUEST_TEMPLATE.md` | GitHub/community metadata | contributors | reviewed protocol | no | current | reviewed in this audit | none | reviewed in this audit |
 | `.github/dependabot.yml` | GitHub/community metadata | contributors | GitHub Dependabot configuration + action review policy | no | current | reviewed in this audit | none | reviewed in this audit |
 | `.github/workflows/ci.yml` | GitHub/community metadata | contributors | GitHub Actions upstream releases | no | current | reviewed in this audit | none | reviewed in this audit |
 | `.gitignore` | Configuration | maintainers | reviewed operator configuration | no | current | reviewed in this audit | none | reviewed in this audit |
@@ -118,6 +119,7 @@ Tracked files: **417** · inventory entries: **417**
 | `case-studies/manlan-2019/pilot/corpus-validation.md` | Reviewed case-study interpretation | network analysts | canonical evidence + operator sources (reviewed) | no | current | claims re-checked against canonical evidence in this audit | none | reviewed in this audit |
 | `case-studies/manlan-2019/pilot/cross-observer-matrix.json` | Immutable or generated evidence | network analysts | MRT/RIB/UPDATE archives + generator run (immutable) | yes | current | schema/container reviewed; contents canonical, not hand-edited | none | reviewed in this audit |
 | `case-studies/manlan-2019/pilot/cross-observer-matrix.md` | Reviewed case-study interpretation | network analysts | canonical evidence + operator sources (reviewed) | no | current | claims re-checked against canonical evidence in this audit | none | reviewed in this audit |
+| `case-studies/manlan-2019/pilot/demo-linked-runs.json` | Reviewed case-study interpretation | maintainers | reviewed case-study metadata | no | current | claims re-checked against canonical evidence in this audit | none | reviewed in this audit |
 | `case-studies/manlan-2019/pilot/manifests/MANLAN-2019-NORDUNET-PILOT-I2PX-RRC00.json` | Configuration | maintainers | reviewed operator configuration | no | current | reviewed in this audit | none | reviewed in this audit |
 | `case-studies/manlan-2019/pilot/manifests/MANLAN-2019-NORDUNET-PILOT-I2PX-RRC06.json` | Configuration | maintainers | reviewed operator configuration | no | current | reviewed in this audit | none | reviewed in this audit |
 | `case-studies/manlan-2019/pilot/manifests/MANLAN-2019-NORDUNET-PILOT-I2PX-RRC15.json` | Configuration | maintainers | reviewed operator configuration | no | current | reviewed in this audit | none | reviewed in this audit |
@@ -267,7 +269,11 @@ Tracked files: **417** · inventory entries: **417**
 | `docs/TASKS.md` | Historical decision record | maintainers | decision context at time of writing | no | historical | status and applicability reviewed in this audit | none | reviewed in this audit |
 | `docs/UX.md` | Normative current documentation | contributors and operators | implementation + canonical evidence (see docs/README authority map) | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
 | `docs/audits/2026-08-clean-clone.md` | Normative current documentation | maintainers | dated audit evidence | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
+| `docs/audits/2026-08-evaluation-accessibility.md` | Historical decision record | maintainers | dated execution audit | no | historical | status and applicability reviewed in this audit | none | reviewed in this audit |
+| `docs/audits/2026-08-evaluation-procedural-dry-run.md` | Historical decision record | maintainers | dated execution audit | no | historical | status and applicability reviewed in this audit | none | reviewed in this audit |
+| `docs/audits/2026-08-evaluation-task-answerability.md` | Historical decision record | maintainers | dated execution audit | no | historical | status and applicability reviewed in this audit | none | reviewed in this audit |
 | `docs/audits/2026-08-evaluator-bootstrap.md` | Historical decision record | maintainers | dated audit evidence | no | historical | status and applicability reviewed in this audit | none | reviewed in this audit |
+| `docs/audits/2026-08-evaluator-journey.md` | Historical decision record | maintainers | dated execution audit | no | historical | status and applicability reviewed in this audit | none | reviewed in this audit |
 | `docs/audits/2026-08-fresh-event-candidates.md` | Normative current documentation | maintainers | dated audit evidence | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
 | `docs/audits/2026-08-fresh-event-discovery.md` | Historical decision record | maintainers | dated audit evidence | no | historical | status and applicability reviewed in this audit | none | reviewed in this audit |
 | `docs/audits/2026-08-grnoc-catalog-reconciliation.md` | Normative current documentation | maintainers | dated audit evidence | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
@@ -280,11 +286,27 @@ Tracked files: **417** · inventory entries: **417**
 | `docs/audits/2026-08-smithville-source-refresh.md` | Historical decision record | maintainers | dated audit evidence | no | historical | status and applicability reviewed in this audit | none | reviewed in this audit |
 | `docs/audits/external-links-2026-08.md` | Normative current documentation | maintainers | dated curl checks of documented external URLs | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
 | `docs/audits/repository-inventory.json` | Configuration | maintainers | reviewed classification of tracked files | no | current | reviewed in this audit | none | reviewed in this audit |
+| `docs/evaluation/ALPHA-FREEZE.md` | Normative current documentation | contributors | reviewed protocol | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
+| `docs/evaluation/EVALUATION-DATA-HANDLING.md` | Normative current documentation | evaluators | reviewed protocol | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
+| `docs/evaluation/EXTERNAL-PILOT-CHECKLIST.md` | Normative current documentation | facilitators | reviewed protocol | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
+| `docs/evaluation/FEEDBACK-TRIAGE.md` | Normative current documentation | facilitators | reviewed protocol | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
 | `docs/evaluation/NOC-ALPHA-EVALUATION.md` | Normative current documentation | evaluators | reviewed protocol | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
+| `docs/evaluation/NOC-ALPHA-INVITATION.md` | Normative current documentation | project owner | reviewed protocol | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
+| `docs/evaluation/PILOT-REGISTRY.md` | Normative current documentation | facilitators | reviewed protocol | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
+| `docs/evaluation/POST-PILOT-DECISION-GATE.md` | Normative current documentation | project owner | reviewed protocol | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
 | `docs/evaluation/SECOND-NETWORK-ALPHA-HANDOFF.md` | Normative current documentation | evaluators | line-by-line reviewed in this audit | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
+| `docs/evaluation/evaluator/NOC-ALPHA-RESPONSE-SHEET.md` | Normative current documentation | evaluators | reviewed protocol | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
+| `docs/evaluation/evaluator/NOC-ALPHA-TASKS.md` | Normative current documentation | evaluators | reviewed protocol | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
+| `docs/evaluation/evaluator/TERMS.md` | Normative current documentation | evaluators | docs/GLOSSARY.md | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
+| `docs/evaluation/facilitator/NOC-ALPHA-FACILITATOR-GUIDE.md` | Normative current documentation | facilitators | reviewed protocol | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
+| `docs/evaluation/facilitator/POST-SESSION-DECISION.md` | Normative current documentation | facilitators | reviewed protocol | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
+| `docs/evaluation/facilitator/SESSION-NOTES-TEMPLATE.md` | Normative current documentation | facilitators | reviewed protocol | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
 | `docs/session-10-baseline.md` | Historical decision record | maintainers | decision context at time of writing | no | historical | status and applicability reviewed in this audit | none | reviewed in this audit |
 | `docs/sources/GRNOC_BULK_ACCESS_REQUEST.md` | Normative current documentation | contributors and operators | implementation + canonical evidence (see docs/README authority map) | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
 | `docs/sources/GRNOC_PUBLIC_TASK_VIEWER.md` | Normative current documentation | contributors and operators | implementation + canonical evidence (see docs/README authority map) | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
+| `evaluation/generated/answer-key.json` | Immutable or generated evidence | facilitators | reviewed tracked artifacts + generator | yes | current | schema/container reviewed; contents canonical, not hand-edited | none | reviewed in this audit |
+| `evaluation/generated/answer-key.md` | Immutable or generated evidence | facilitators | answer-key.json | yes | current | schema/container reviewed; contents canonical, not hand-edited | none | reviewed in this audit |
+| `evaluation/scenarios.toml` | Configuration | evaluators | reviewed evaluation protocol | no | current | reviewed in this audit | none | reviewed in this audit |
 | `manifests/INC0040293.json` | Reviewed case-study interpretation | analysts | reviewed manifest | no | current | claims re-checked against canonical evidence in this audit | none | reviewed in this audit |
 | `manifests/INC0299001.json` | Configuration | maintainers | reviewed operator configuration | no | current | reviewed in this audit | none | reviewed in this audit |
 | `manifests/INC0301970.json` | Configuration | maintainers | reviewed operator configuration | no | current | reviewed in this audit | none | reviewed in this audit |
@@ -295,10 +317,13 @@ Tracked files: **417** · inventory entries: **417**
 | `scripts/audit_pilot_absence.py` | Script or developer tool | maintainers | the command it wraps + its inputs | no | current | comments and usage strings audited in this audit | none | reviewed in this audit |
 | `scripts/bench_parse_scaling.sh` | Script or developer tool | maintainers | the command it wraps + its inputs | no | current | comments and usage strings audited in this audit | none | reviewed in this audit |
 | `scripts/build-cross-observer-matrix.py` | Script or developer tool | maintainers | the command it wraps + its inputs | no | current | comments and usage strings audited in this audit | none | reviewed in this audit |
+| `scripts/build-evaluation-answer-key.py` | Script or developer tool | facilitators | reviewed tracked artifacts | no | current | comments and usage strings audited in this audit | none | reviewed in this audit |
+| `scripts/build-evaluation-pack.sh` | Script or developer tool | facilitators | reviewed tracked artifacts | no | current | comments and usage strings audited in this audit | none | reviewed in this audit |
 | `scripts/build-repo-audit.py` | Script or developer tool | maintainers | the command it wraps + its inputs | no | current | comments and usage strings audited in this audit | none | reviewed in this audit |
 | `scripts/build-rrc11-audit.py` | Script or developer tool | maintainers | the command it wraps + its inputs | no | current | comments and usage strings audited in this audit | none | reviewed in this audit |
 | `scripts/build-rrc11-i2px-decision.py` | Script or developer tool | maintainers | the command it wraps + its inputs | no | current | comments and usage strings audited in this audit | none | reviewed in this audit |
 | `scripts/compare_runs.py` | Script or developer tool | maintainers | the command it wraps + its inputs | no | current | comments and usage strings audited in this audit | none | reviewed in this audit |
+| `scripts/evaluator-bootstrap.sh` | Script or developer tool | evaluators | reviewed protocol | no | current | comments and usage strings audited in this audit | none | reviewed in this audit |
 | `scripts/pilot_rerun_equivalence.sh` | Script or developer tool | maintainers | the command it wraps + its inputs | no | current | comments and usage strings audited in this audit | none | reviewed in this audit |
 | `scripts/ris_collector_preflight.sh` | Script or developer tool | maintainers | the command it wraps + its inputs | no | current | comments and usage strings audited in this audit | none | reviewed in this audit |
 | `scripts/screenshot-review-session36.sh` | Script or developer tool | maintainers | the command it wraps + its inputs | no | current | comments and usage strings audited in this audit | none | reviewed in this audit |

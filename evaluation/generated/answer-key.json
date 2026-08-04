@@ -1,0 +1,466 @@
+{
+ "demo_manifest": {
+  "artifacts": 118,
+  "expected_workbench_urls": [
+   "/events/INC0302574/workbench",
+   "/events/INC0299001/workbench",
+   "/events/INC0040293/workbench",
+   "/events/INC0301970/workbench",
+   "/case-studies/manlan-2019/workbench"
+  ],
+  "grnoc_source_events": 9,
+  "imported_snapshots": 13,
+  "jobs": 0,
+  "plans": 12,
+  "runs": 12,
+  "schema_version": 1,
+  "tracked_source_events": 4
+ },
+ "generator": "scripts/build-evaluation-answer-key.py",
+ "scenarios": [
+  {
+   "analysis_window_utc": "2019-08-21T16:00:00Z .. 2019-08-21T17:30:00Z",
+   "evidence_needed": [
+    "the direct observer session (route-views2 peer 64.57.28.241) for the absence/return pair",
+    "the exact-baseline restoration timestamps per prefix (lifecycle.json)",
+    "the RRC15 cooldown transitions (report.json transitions.cooldown = 11)"
+   ],
+   "likely_confusions": [
+    "exact baseline returned (17:02:03Z) versus final route state",
+    "one observer's result (route-views2) versus all observers",
+    "collector site versus peer location"
+   ],
+   "non_conclusions": [
+    "collector site (Eugene, Oregon, US) does not establish peer location or target location",
+    "observer-route absence does not prove traffic loss",
+    "a 2-second absence at one observer may reflect session behavior rather than the participant's own action",
+    "this is a single-target, single-collector-direct pilot \u2014 not a complete MAN LAN incident verdict",
+    "temporal association with the reported instability interval is not attribution to a specific interface action"
+   ],
+   "observed_result": {
+    "direct_observer": "11 of 33 selected observer-prefix streams (all AS2603 via AS11537) became absent at 16:45:25Z and returned at 16:45:27Z (2 s); 30 path replacements followed (16:45:26-17:02:03Z), with 11 streams departing the reviewed transit and 11 retaining it with material path changes; all 33 streams returned to baseline paths by 17:02:19Z.",
+    "finding": "Public BGP exposed a temporally related routing consequence for one reviewed participant (NORDUnet, AS2603) at one selected public collector during the reported incident \u2014 transient route-state disruption temporally associated with the broader reported instability interval, not attributed to either specific interface action. Single-target, single-collector, single-window pilot; not a complete MAN LAN incident verdict.",
+    "reference": "case-studies/manlan-2019/pilot/pilot-result.json"
+   },
+   "observers": [
+    {
+     "baseline_prefixes": 11,
+     "baseline_streams": 33,
+     "collector": "route-views2",
+     "collector_site": "Eugene, Oregon, US",
+     "evidence_interval_utc": "2019-08-21T16:45:25+00:00 .. 2019-08-21T17:02:19+00:00",
+     "peer_asn": 11537,
+     "peer_ip": "64.57.28.241",
+     "reference": "case-studies/manlan-2019/pilot/cross-observer-matrix.json",
+     "relationship": "direct R&E (peer ASN 11537)",
+     "source_family": "RouteViews",
+     "temporary_stream_absences": 11,
+     "verdict": "ExpectedLossOfReachability"
+    },
+    {
+     "baseline_streams": 11,
+     "collector": "rrc00",
+     "collector_site": "Amsterdam, Netherlands",
+     "peer_asn": 4608,
+     "peer_ip": "203.119.104.1",
+     "reference": "case-studies/manlan-2019/pilot/cross-observer-matrix.json",
+     "relationship": "indirect R&E (path contains AS11537)",
+     "source_family": "RipeRis",
+     "temporary_stream_absences": 0,
+     "verdict": "LessImpactThanExpected"
+    },
+    {
+     "baseline_streams": 12,
+     "collector": "rrc06",
+     "collector_site": "Otemachi, Tokyo, Japan",
+     "evidence_interval_utc": "2019-08-21T16:45:44+00:00 .. 2019-08-21T17:02:38+00:00",
+     "finding": "The event produced partial and heterogeneous external routing impact. Among the remaining 12 streams, 12 remained visible after departing that transit.",
+     "peer_asn": 4777,
+     "peer_ip": "202.249.2.20",
+     "reference": "case-studies/manlan-2019/pilot/cross-observer-matrix.json",
+     "relationship": "indirect R&E (path contains AS11537)",
+     "source_family": "RipeRis",
+     "temporary_stream_absences": 0,
+     "verdict": "LessImpactThanExpected"
+    },
+    {
+     "baseline_streams": 24,
+     "collector": "rrc15",
+     "collector_site": "Sao Paulo, Brazil",
+     "cooldown_reference": "case-studies/manlan-2019/pilot/out/MANLAN-2019-NORDUNET-PILOT-RIS-RRC15/report.json",
+     "cooldown_transitions": 11,
+     "evidence_interval_utc": "2019-08-21T16:35:38+00:00 .. 2019-08-21T17:52:16+00:00",
+     "peer_asn": 1916,
+     "peer_ip": "187.16.216.4",
+     "reference": "case-studies/manlan-2019/pilot/cross-observer-matrix.json",
+     "relationship": "indirect R&E (path contains AS11537)",
+     "source_family": "RipeRis",
+     "temporary_stream_absences": 0,
+     "verdict": "LessImpactThanExpected"
+    }
+   ],
+   "reviewed_relationship": {
+    "predicate": "origin AS2603 AND baseline AS path contains AS11537",
+    "reference": "case-studies/manlan-2019/pilot/cross-observer-matrix.json",
+    "text": "NORDUnet (AS2603) routes via the Internet2 R&E plane (AS11537)"
+   },
+   "route_changes": {
+    "absence_duration_seconds": 2,
+    "affected_prefix_count": 11,
+    "analysis_final_state": "exact event-baseline path present at analysis end (18:30:00 UTC)",
+    "exact_baseline_restoration_range_utc": "2019-08-21T16:59:26Z .. 2019-08-21T17:02:03Z",
+    "first_direct_absence_utc": "2019-08-21T16:45:25+00:00",
+    "reference": "case-studies/manlan-2019/pilot/pilot-result.json",
+    "returned_path": "11537 22388 24489 24489 24489 24489 24490 20965 2603 (still traverses AS11537)",
+    "rrc15_cooldown": {
+     "count": 11,
+     "first_change_utc": "2019-08-21T17:52:16+00:00",
+     "note": "path replacements in the cooldown window; no restoration observed before analysis end",
+     "reference": "case-studies/manlan-2019/pilot/out/MANLAN-2019-NORDUNET-PILOT-RIS-RRC15/report.json"
+    }
+   },
+   "source_event": {
+    "case_study_slug": "manlan-2019",
+    "id": "MAN LAN 2019-08-21 (multi-ticket operator incident)",
+    "reference": "case-studies/manlan-2019/pilot/pilot-result.json"
+   },
+   "target": {
+    "name": "NORDUnet (AS2603)",
+    "reference": "case-studies/manlan-2019/pilot/pilot-result.json"
+   },
+   "unsupported_stronger_conclusion": [
+    "attributing the absence to the reported 16:50 interface-disable action",
+    "claiming traffic interruption from the 2-second BGP absence",
+    "an incident-wide MAN LAN assessment from this single-target pilot"
+   ]
+  },
+  {
+   "analysis_window_utc": "2026-07-14 06:35:00 UTC \u2013 2026-07-14 07:56:00 UTC",
+   "evidence_needed": [
+    "the finding-chronology audit for prefix-level baseline/withdrawal/return/final paths",
+    "the report.json finding for the 13-of-48 stream signature"
+   ],
+   "expectation": "ParticipantRelationshipUnavailable (no parenthesized site code in the title)",
+   "likely_confusions": [
+    "event baseline (AS225\u00d77) versus pre-withdrawal route (AS225\u00d71)",
+    "prepend change (07:24:47Z) versus withdrawal (07:33:59Z)",
+    "11-prefix group versus the 12th prefix (137.54.122.0/23)"
+   ],
+   "non_conclusions": [
+    "observer-route absence does not prove traffic loss",
+    "the 54 ms absence at one observer session is not a measured outage duration",
+    "exact baseline restoration at return does not mean the final state matched the baseline"
+   ],
+   "observed_result": {
+    "finding": "The event produced partial and heterogeneous external routing impact. 13 of 48 selected observer-prefix streams became absent and later returned. Among the remaining 35 streams, 22 showed prepend-only changes, 11 had other material path changes while retaining the reviewed transit, and 2 remained visible after departing that transit.",
+    "reference": "case-studies/inc0299001/out/INC0299001/report.json",
+    "verdict": "Partial routing impact observed"
+   },
+   "observers": [
+    {
+     "collector": "route-views2",
+     "collector_site": "Eugene, Oregon, US",
+     "note": "the chronology audit session for the 11-prefix group",
+     "peer_asn": 11537,
+     "peer_ip": "163.253.3.14",
+     "reference": "case-studies/inc0299001/finding-chronology-audit.json",
+     "relationship": "direct Internet2 session (peer ASN 11537)",
+     "source_family": "RouteViews"
+    }
+   ],
+   "reviewed_relationship": {
+    "predicate": "origin AS225 AND baseline AS path contains AS11537",
+    "reference": "manifests/INC0299001.json",
+    "text": "UVA (AS225) via Internet2 (AS11537)"
+   },
+   "route_changes": {
+    "absence_duration_secs": 0.054,
+    "event_baseline_path": "11537 40220 225 225 225 225 225 225 225",
+    "example_prefixes": [
+     "128.143.0.0/16",
+     "137.54.0.0/16",
+     "192.131.232.0/24"
+    ],
+    "final_matches": "pre-withdrawal route (AS225\u00d71), not the event baseline (AS225\u00d77)",
+    "final_path": "11537 40220 225",
+    "first_returned_path": "11537 40220 225 225 225 225 225 225 225",
+    "outlier_prefix": {
+     "absence_duration_secs": 120.993,
+     "baseline_path": "11537 40220 225",
+     "final_path": "11537 40220 225",
+     "note": "baseline already the reduced path; much longer absence than the 11-prefix group",
+     "prefix": "137.54.122.0/23"
+    },
+    "pre_withdrawal_path": "11537 40220 225",
+    "prepend_count_change": "AS225 prepend reduced from 7 to 1 while routes remained visible",
+    "principal_prefix_count": 11,
+    "reference": "case-studies/inc0299001/finding-chronology-audit.json",
+    "return_timestamp": "2026-07-14T07:33:59.516258955Z",
+    "withdrawal_timestamp": "2026-07-14T07:33:59.462019920Z"
+   },
+   "source_event": {
+    "id": "INC0299001",
+    "reference": "case-studies/inc0299001/finding-chronology-audit.json"
+   },
+   "target": {
+    "name": "UVA via Internet2",
+    "origin_asns": [
+     225
+    ],
+    "reference": "manifests/INC0299001.json"
+   },
+   "unsupported_stronger_conclusion": [
+    "claiming the final state restored the event baseline",
+    "claiming traffic impact from BGP absence"
+   ]
+  },
+  {
+   "assessment": "Insufficient public-collector visibility for the named I2PX relationship: the direct AS11164 sessions existed at RRC11 and RRC14 on 2026-07-30, but no AS3333-origin route was visible through them, and no AS3333-origin path contained AS11164. No qualifying I2PX baseline exists; the relationship cannot be assessed with public-collector evidence.",
+   "decision": "insufficient-visibility",
+   "direct_sessions_reviewed": [
+    {
+     "address_family": "ipv4",
+     "as3333_origin_route_count": 0,
+     "collector": "rrc11",
+     "peer_asn": 11164,
+     "peer_ip": "198.32.160.221"
+    },
+    {
+     "address_family": "ipv6",
+     "as3333_origin_route_count": 0,
+     "collector": "rrc11",
+     "peer_asn": 11164,
+     "peer_ip": "2001:504:1::a501:1164:1"
+    },
+    {
+     "address_family": "ipv4",
+     "as3333_origin_route_count": 0,
+     "collector": "rrc14",
+     "peer_asn": 11164,
+     "peer_ip": "198.32.176.128"
+    },
+    {
+     "address_family": "ipv6",
+     "as3333_origin_route_count": 0,
+     "collector": "rrc14",
+     "peer_asn": 11164,
+     "peer_ip": "2001:504:d::1:1164:2"
+    }
+   ],
+   "evidence_needed": [
+    "the relationship-audit direct-session rows with zero AS3333-origin counts",
+    "the supporting report.json 19-stream no-change observation"
+   ],
+   "likely_confusions": [
+    "direct AS11164 session existed (true) versus a qualifying baseline existed (false)",
+    "AS3333-origin routes visible via other peers versus visible through the I2PX sessions",
+    "supporting AS11537 evidence treated as named-relationship evidence"
+   ],
+   "non_conclusions": [
+    "the supporting no-change observation (route-views2/route-views6, AS11537) does not assess the named I2PX relationship",
+    "a direct AS11164 session existing does not make the relationship observable without a target-origin baseline",
+    "no route-state change on a supporting plane is not 'the I2PX relationship was stable'"
+   ],
+   "non_qualification_reason": "all four direct AS11164 sessions existed on 2026-07-30 but carried zero AS3333-origin routes; no AS3333-origin path contained AS11164; no qualifying I2PX baseline exists",
+   "reviewed_relationship": {
+    "reference": "case-studies/inc0302574/out/INC0302574/relationship-audit.json",
+    "text": "direct I2PX peer relationship (ticket: 'Brief Outage - I2 PX Peer RIPE via NYIIX (NEWA)')"
+   },
+   "source_event": {
+    "id": "INC0302574",
+    "reference": "case-studies/inc0302574/out/INC0302574/relationship-audit.json",
+    "title": "direct I2PX peer relationship (ticket: 'Brief Outage - I2 PX Peer RIPE via NYIIX (NEWA)')"
+   },
+   "strongest_conclusion": "the named I2PX relationship cannot be assessed from public-collector evidence at the event date; the direct sessions existed but carried no target-origin baseline, so no route-state claim about the relationship is supported",
+   "supporting_observation": {
+    "baseline_observer_prefix_streams": 19,
+    "collectors": [
+     "route-views2",
+     "route-views6"
+    ],
+    "note": "supporting AS11537 observation only; does not assess the named I2PX relationship",
+    "reference": "case-studies/inc0302574/out/INC0302574/report.json",
+    "text": "Across 19 selected observer-prefix streams at route-views2, route-views6, inim observed no announcements, withdrawals, path changes, or community changes during the event analysis window.",
+    "verdict": "No route-state change observed"
+   },
+   "target": {
+    "name": "RIPE (AS3333)",
+    "reference": "case-studies/inc0302574/out/INC0302574/relationship-audit.json"
+   },
+   "unsupported_stronger_conclusion": [
+    "claiming the I2PX relationship was stable",
+    "claiming the event had no routing impact from a supporting plane"
+   ]
+  },
+  {
+   "collectors_selected": [
+    "route-views2",
+    "route-views6"
+   ],
+   "evidence_needed": [
+    "the manifest analyst notes (event-date baseline preflight counts)",
+    "the report.json InsufficientVisibility assessment"
+   ],
+   "likely_confusions": [
+    "target AS11550 routes were visible (true) versus the reviewed AS19782\u2013AS11550 relationship was visible (false)",
+    "insufficient visibility versus no change",
+    "named peer relationship versus all Smithville connectivity"
+   ],
+   "non_conclusions": [
+    "no qualifying relationship evidence was observed through the reviewed cutoff",
+    "not claimed: no relationship existed",
+    "not claimed: no routing change occurred",
+    "not claimed: Smithville was unaffected",
+    "the named peer relationship is not all Smithville connectivity",
+    "the result is provisional; the source event remained open at the cutoff"
+   ],
+   "provisional_cutoff_utc": "2026-08-04T00:01:37Z",
+   "provisional_language": "source event remains open; result is provisional through the reviewed snapshot cutoff; a later source refresh creates a new snapshot and run",
+   "result": {
+    "assessment_statement": "No selected RouteViews observer had a pre-event route matching the reviewed path predicate.",
+    "reference": "case-studies/indiana-gigapop-smithville-2026/out/INC0301970/report.json",
+    "verdict": "insufficient_visibility",
+    "verdict_label": "InsufficientVisibility"
+   },
+   "reviewed_relationship": {
+    "predicate": "Adjacent(19782, 11550)",
+    "provenance": "The named Indiana GigaPOP\u2013Smithville peer relationship is represented as adjacency between the reviewed Indiana GigaPOP routing ASN AS19782 (INDIANAGIGAPOP, ARIN RDAP registration 2001-02-14, c/o Indiana University; routing POC 'I-Light and Indiana GigaPOP'; PeeringDB Indiana GigaPOP; reviewed 2026-08-04) and the reviewed peer ASN AS11550 (Smithville Digital LLC, ARIN RDAP registration 1998-09-30; PeeringDB Smithville Digital, LLC; reviewed 2026-08-04).",
+    "reference": "manifests/INC0301970.json",
+    "text": "Indiana GigaPOP (AS19782) peer Smithville (AS11550)"
+   },
+   "source_event": {
+    "id": "INC0301970",
+    "open": true,
+    "reference": "manifests/INC0301970.json"
+   },
+   "target": {
+    "name": "Smithville via Indiana GigaPOP",
+    "origin_asns": [
+     11550
+    ],
+    "reference": "manifests/INC0301970.json"
+   },
+   "unsupported_stronger_conclusion": [
+    "claiming Smithville had no routing change",
+    "claiming the peer relationship was stable",
+    "claiming Smithville was unaffected by the outage"
+   ],
+   "visibility_facts": {
+    "as11550_at_route_views6": 0,
+    "as11550_prefix_count": 13,
+    "as11550_routes_visible": true,
+    "as11550_transit": "Cogent/Telia/BroadbandONE transit only (no AS19782)",
+    "direct_as19782_sessions": 0,
+    "note": "facts from the reviewed manifest analyst notes (event-date baseline preflight)",
+    "reference": "manifests/INC0301970.json",
+    "routes_traversing_as19782": 0
+   },
+   "why_insufficient_visibility": "no selected RouteViews observer had a pre-event route matching the reviewed path predicate, so no qualifying baseline exists; the run records InsufficientVisibility with no UPDATE acquisition. This is distinct from observing no route-state change: there was no qualifying observation at all."
+  },
+  {
+   "evidence_needed": [
+    "the report.json scope-mismatch supporting observation",
+    "the event detail page's 'not directly assessable with public BGP' statement"
+   ],
+   "likely_confusions": [
+    "contemporaneous stable BGP routes treated as an optical-interface assessment"
+   ],
+   "non_conclusions": [
+    "public BGP cannot assess the optical interface state",
+    "stable contemporaneous BGP routes do not assess an optical interface",
+    "not claimed: less impact than expected",
+    "not claimed: no optical impact",
+    "not claimed: optical service stayed available"
+   ],
+   "reviewed_relationship": {
+    "reference": "case-studies/manlan-esnet-2019/out/INC0040293/report.json",
+    "text": "I2 Optical Participant ESnet (optical participant relationship)"
+   },
+   "scope_statement": "public BGP does not directly observe the named optical participant interface",
+   "source_event": {
+    "id": "INC0040293",
+    "reference": "case-studies/manlan-esnet-2019/out/INC0040293/report.json"
+   },
+   "supporting_observation": {
+    "baseline_observer_prefix_streams": 3,
+    "collectors": [
+     "route-views2"
+    ],
+    "note": "contemporaneous supporting observation with scope mismatch; retained separately",
+    "reference": "case-studies/manlan-esnet-2019/out/INC0040293/report.json",
+    "text": "Across 3 selected observer-prefix streams at route-views2, inim observed no announcements, withdrawals, path changes, or community changes during the event analysis window.",
+    "verdict": "Unexpected continued reviewed-transit path"
+   },
+   "target": {
+    "name": "ESnet (Energy Sciences Network)",
+    "origin_asns": [
+     293
+    ],
+    "reference": "manifests/INC0040293.json"
+   },
+   "unsupported_stronger_conclusion": [
+    "claiming the optical service stayed available",
+    "comparing the supporting observation as an IP-participant result"
+   ]
+  }
+ ],
+ "schema_version": 1,
+ "source_demo_manifest_sha256": "e50d6a83685714f42a29221fc7f03a70c03a174832bfa4806786b4c71e48e960",
+ "summary_table": [
+  {
+   "expectation_assessment": "not incident-wide; pilot only",
+   "final_state": "exact event-baseline path present at analysis end (18:30:00 UTC)",
+   "named_relationship": "NORDUnet (AS2603) routes via the Internet2 R&E plane (AS11537)",
+   "observed_result": "direct observer: 11 streams absent 2 s, returned, baseline restored",
+   "observer_eligibility": "1 direct (route-views2) + 3 indirect RIS observers",
+   "primary_limitation": "single direct observer; 2 s absence may be session behavior",
+   "scenario": "nordunet-route-changes",
+   "source_lifecycle": "Closed",
+   "target": "NORDUnet (AS2603)"
+  },
+  {
+   "expectation_assessment": "ParticipantRelationshipUnavailable (no parenthesized site code in the title)",
+   "final_state": "11537 40220 225 (pre-withdrawal route (AS225\u00d71), not the event baseline (AS225\u00d77))",
+   "named_relationship": "UVA (AS225) via Internet2 (AS11537)",
+   "observed_result": "Partial routing impact observed",
+   "observer_eligibility": "direct AS11537 session at route-views2; 48 baseline streams",
+   "primary_limitation": "observer-scoped BGP only; no traffic measurement",
+   "scenario": "uva-prepend-withdrawal",
+   "source_lifecycle": "Closed",
+   "target": "UVA via Internet2"
+  },
+  {
+   "expectation_assessment": "no expectation assessment for the named relationship",
+   "final_state": "not assessable",
+   "named_relationship": "direct I2PX peer relationship (ticket: 'Brief Outage - I2 PX Peer RIPE via NYIIX (NEWA)')",
+   "observed_result": "named relationship not assessable (insufficient visibility)",
+   "observer_eligibility": "4 direct AS11164 sessions existed; 0 qualifying baselines",
+   "primary_limitation": "no target-origin baseline through direct sessions",
+   "scenario": "i2px-not-assessable",
+   "source_lifecycle": "Closed",
+   "target": "RIPE (AS3333)"
+  },
+  {
+   "expectation_assessment": "insufficient visibility; no expectation assessment possible",
+   "final_state": "no qualifying observation through cutoff (provisional)",
+   "named_relationship": "Indiana GigaPOP (AS19782) peer Smithville (AS11550)",
+   "observed_result": "InsufficientVisibility",
+   "observer_eligibility": "target visible; reviewed relationship absent; 0 direct sessions",
+   "primary_limitation": "open event; provisional cutoff; relationship not visible",
+   "scenario": "smithville-insufficient-visibility",
+   "source_lifecycle": true,
+   "target": "Smithville via Indiana GigaPOP"
+  },
+  {
+   "expectation_assessment": "not stated",
+   "final_state": "not assessable (optical scope)",
+   "named_relationship": "I2 Optical Participant ESnet (optical participant relationship)",
+   "observed_result": "supporting observation only",
+   "observer_eligibility": "1 supporting observer (scope mismatch)",
+   "primary_limitation": "optical interface not observable in public BGP",
+   "scenario": "esnet-optical-scope",
+   "source_lifecycle": "Closed",
+   "target": "ESnet (Energy Sciences Network)"
+  }
+ ]
+}

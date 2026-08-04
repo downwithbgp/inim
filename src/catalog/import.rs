@@ -449,6 +449,35 @@ pub fn build_plan_record(
     })
 }
 
+/// Build the per-stream evidence-reference string from the reviewed
+/// lifecycle artifact: one reference per transition, formatted
+/// `<collector>:<peer_ip> <prefix> at <timestamp>
+/// (archive_sha256:<hash>)`, joined by "; ". Empty when the lifecycle
+/// carries no transitions (unchanged streams have no transition
+/// evidence). The archive SHA-256 resolves through the run's
+/// archive-manifest artifact on the analysis detail page.
+fn stream_evidence_refs(lc: &serde_json::Value) -> String {
+    let collector = lc.get("collector").and_then(|v| v.as_str()).unwrap_or("");
+    let peer_ip = lc.get("peer_ip").and_then(|v| v.as_str()).unwrap_or("");
+    let prefix = lc.get("prefix").and_then(|v| v.as_str()).unwrap_or("");
+    let mut refs: Vec<String> = Vec::new();
+    if let Some(transitions) = lc.get("transitions").and_then(|v| v.as_array()) {
+        for t in transitions {
+            let ts = t.get("timestamp").and_then(|v| v.as_str()).unwrap_or("");
+            let sha = t
+                .get("archive_sha256")
+                .and_then(|v| v.as_str())
+                .unwrap_or("");
+            if !ts.is_empty() && !sha.is_empty() {
+                refs.push(format!(
+                    "{collector}:{peer_ip} {prefix} at {ts} (archive_sha256:{sha})"
+                ));
+            }
+        }
+    }
+    refs.join("; ")
+}
+
 pub(crate) fn import_stream_summaries(
     conn: &Connection,
     run_id: i64,
@@ -522,7 +551,7 @@ pub(crate) fn import_stream_summaries(
                 .and_then(|f| f.get("add_path_ambiguous"))
                 .and_then(|v| v.as_bool())
                 .unwrap_or(false),
-            evidence_refs: "[]".to_string(),
+            evidence_refs: stream_evidence_refs(&lc),
             first_change_utc: lc
                 .get("first_change")
                 .and_then(|v| v.as_str())

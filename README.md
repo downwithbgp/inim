@@ -10,6 +10,28 @@ sessions.
 > observations of BGP control-plane state — not traffic-impact or
 > root-cause conclusions.
 
+## Evaluate the public alpha
+
+The repository includes a small external-evaluation kit for network
+engineers. The evaluation takes approximately 20–30 minutes: you
+inspect preloaded public-BGP incident examples in a local read-only
+demo and answer a short task sheet. No private network access, no
+telemetry, and no live BGP acquisition are involved.
+
+```sh
+scripts/evaluator-bootstrap.sh --db ./inim-evaluation.sqlite --port 8080
+# then start the read-only server with the command the script prints
+```
+
+- Task booklet: `docs/evaluation/evaluator/NOC-ALPHA-TASKS.md`
+- The demo is read-only (loopback only) and never contacts
+  RouteViews, RIPE RIS, GRNOC, PeeringDB, or RIR services after build.
+- Feedback is optional and anonymous:
+  `.github/ISSUE_TEMPLATE/noc-alpha-feedback.yml`
+
+External evaluation sessions have **not** been completed yet; the
+evaluation kit is prepared, not validated.
+
 ## What it does
 
 An operator declares an event (a ticket with a reviewed time window) and

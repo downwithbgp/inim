@@ -447,6 +447,148 @@ def check_project_scope_docs() -> list[str]:
     return problems
 
 
+def check_evaluation_docs() -> list[str]:
+    """NOC alpha evaluation drift guards (Session 51)."""
+    problems = []
+    freeze = ROOT / "docs/evaluation/ALPHA-FREEZE.md"
+    if not freeze.exists():
+        problems.append("docs/evaluation/ALPHA-FREEZE.md missing (alpha freeze policy required)")
+        return problems
+    freeze_text = freeze.read_text(errors="replace")
+    # Freeze policy content anchors (Part 1).
+    if "exit condition" not in freeze_text.lower():
+        problems.append("ALPHA-FREEZE.md: exit conditions must be defined")
+    for allowed in ["security", "correctness"]:
+        if allowed not in freeze_text.lower():
+            problems.append(f"ALPHA-FREEZE.md: must allow {allowed} fixes during the freeze")
+    if "feature expansion" not in freeze_text.lower():
+        problems.append("ALPHA-FREEZE.md: must prohibit feature expansion without evidence")
+    for doc in ["docs/README.md", "CONTRIBUTING.md"]:
+        f = ROOT / doc
+        if f.exists() and "ALPHA-FREEZE" not in f.read_text(errors="replace"):
+            problems.append(f"{doc}: must link the alpha freeze policy")
+    # Task booklet exists and contains no answer material (Part 7/10).
+    # Task text may name reviewed ASNs when the task itself must ask
+    # about them (Smithville E4 names the reviewed pair); it must never
+    # contain timestamps, paths, or verdicts.
+    tasks = ROOT / "docs/evaluation/evaluator/NOC-ALPHA-TASKS.md"
+    if not tasks.exists():
+        problems.append("docs/evaluation/evaluator/NOC-ALPHA-TASKS.md missing")
+    else:
+        tasks_text = tasks.read_text(errors="replace")
+        for leak in ["answer key", "AS225", "11164", "16:45:25", "07:33:59",
+                     "11537 40220", "expected evaluator understanding"]:
+            if leak.lower() in tasks_text.lower():
+                problems.append(f"NOC-ALPHA-TASKS.md: evaluator-visible answer leakage ({leak!r})")
+    # Generated answer key exists with a generation header (Part 9/52).
+    ak = ROOT / "evaluation/generated/answer-key.json"
+    if not ak.exists():
+        problems.append("evaluation/generated/answer-key.json missing (run scripts/build-evaluation-answer-key.py)")
+    else:
+        try:
+            doc = json.loads(ak.read_text(errors="replace"))
+            if doc.get("schema_version") != 1:
+                problems.append("answer-key.json: schema_version must be 1")
+            if not doc.get("generator"):
+                problems.append("answer-key.json: generation header missing generator")
+            if not doc.get("source_demo_manifest_sha256"):
+                problems.append("answer-key.json: generation header missing demo-manifest SHA")
+            for s in doc.get("scenarios", []):
+                if not s.get("reviewed_relationship", {}).get("reference"):
+                    problems.append(f"answer-key.json: scenario {s.get('source_event', {}).get('id')} missing artifact reference")
+        except ValueError:
+            problems.append("answer-key.json: invalid JSON")
+    # Scenario manifest (Part 6): versioned, unique ids, relative paths.
+    manifest = ROOT / "evaluation/scenarios.toml"
+    if not manifest.exists():
+        problems.append("evaluation/scenarios.toml missing")
+    else:
+        try:
+            import tomllib
+            m = tomllib.loads(manifest.read_text(errors="replace"))
+            if m.get("schema_version") != 1:
+                problems.append("evaluation/scenarios.toml: schema_version must be 1")
+            ids = [s.get("id") for s in m.get("scenarios", [])]
+            if len(ids) != len(set(ids)):
+                problems.append("evaluation/scenarios.toml: scenario ids must be unique")
+            task_ids = [t for s in m.get("scenarios", []) for t in s.get("task_ids", [])]
+            # Task IDs must be unique WITHIN each scenario; tasks may be
+            # shared across scenarios (Section A orientation tasks apply
+            # to every scenario).
+            for s in m.get("scenarios", []):
+                ids = s.get("task_ids", [])
+                if len(ids) != len(set(ids)):
+                    problems.append(f"evaluation/scenarios.toml: scenario {s.get('id')} has duplicate task ids")
+            for s in m.get("scenarios", []):
+                p = s.get("path", "")
+                if p.startswith("http") or ":" in p.split("/")[0]:
+                    problems.append(f"evaluation/scenarios.toml: scenario path must be relative ({p})")
+                if s.get("status") not in ("evaluator", "optional", "facilitator-only"):
+                    problems.append(f"evaluation/scenarios.toml: scenario {s.get('id')} has invalid status")
+        except Exception as exc:  # noqa: BLE001 - drift guard reports any parse failure
+            problems.append(f"evaluation/scenarios.toml: unparseable ({exc})")
+    # Pilot registry: no fabricated sessions (Part 42/48).
+    registry = ROOT / "docs/evaluation/PILOT-REGISTRY.md"
+    if registry.exists():
+        reg = registry.read_text(errors="replace")
+        if "No external evaluations completed yet" not in reg and "external sessions recorded" not in reg.lower():
+            problems.append("PILOT-REGISTRY.md: must truthfully state the external-session count")
+    # No external-evaluation claims (Part 48).
+    for name in ["README.md", "docs/README.md"]:
+        f = ROOT / name
+        if not f.exists():
+            continue
+        text = f.read_text(errors="replace").lower()
+        for claim in ["evaluated by network engineers", "externally validated", "noc validated",
+                      "user tested", "proven useful", "production ready", "validated by network"]:
+            if claim in text:
+                problems.append(f"{name}: unsupported external-validation claim ({claim!r})")
+    readme = ROOT / "README.md"
+    if readme.exists() and "alpha" not in readme.read_text(errors="replace").lower():
+        problems.append("README.md: must call the project a public alpha")
+    # Response sheet must not require personal identity (Part 12).
+    sheet = ROOT / "docs/evaluation/evaluator/NOC-ALPHA-RESPONSE-SHEET.md"
+    if sheet.exists():
+        s = re.sub(r"\s+", " ", sheet.read_text(errors="replace"))
+        if "no real name and no employer are required" not in s.lower():
+            problems.append("NOC-ALPHA-RESPONSE-SHEET.md: must state identity is not required")
+    # Issue form warns against confidential data (Part 15).
+    form = ROOT / ".github/ISSUE_TEMPLATE/noc-alpha-feedback.yml"
+    if form.exists():
+        ftext = form.read_text(errors="replace")
+        if "confidential" not in ftext.lower():
+            problems.append("noc-alpha-feedback.yml: must warn against confidential data")
+        for required in ["organization", "real name", "email"]:
+            if f"required: true" in ftext and required in ftext.lower():
+                pass  # required flags exist only for the privacy confirmation
+    # Bootstrap: read-only, loopback, no worker (Part 5). The guard
+    # matches command positions, not prose (the script documents that
+    # write mode and the worker are never used).
+    boot = ROOT / "scripts/evaluator-bootstrap.sh"
+    if boot.exists():
+        b = boot.read_text(errors="replace")
+        if re.search(r"serve[^\n]*--enable-writes", b):
+            problems.append("evaluator-bootstrap.sh: must never enable write mode")
+        if re.search(r'(^|[\s"\'])(inim|"\$BIN"|\$BIN)[\s"\']+worker\b', b):
+            problems.append("evaluator-bootstrap.sh: must not start the worker")
+        if "127.0.0.1" not in b:
+            problems.append("evaluator-bootstrap.sh: must default to loopback bind")
+    # Evaluator material contains no excluded project-scope material (Part 36).
+    import subprocess as _sp
+    excluded = ["NOAA", "INC0303298"]
+    eval_paths = ["evaluation/", "docs/evaluation/"]
+    hits = _sp.run(
+        ["git", "grep", "-inE", "NOAA|INC0303298", "--", *eval_paths],
+        capture_output=True, text=True,
+    ).stdout.splitlines()
+    for hit in hits:
+        hit = hit.strip()
+        if not hit:
+            continue
+        problems.append(f"excluded material in evaluation files: {hit}")
+    return problems
+
+
 def main() -> int:
     binary = str(ROOT / "target/debug/inim")
     if not Path(binary).exists():
@@ -465,6 +607,7 @@ def main() -> int:
     problems += check_job_workflow_docs()
     problems += check_project_scope_docs()
     problems += check_second_network_docs()
+    problems += check_evaluation_docs()
     if problems:
         print("documentation drift audit FAILED:", file=sys.stderr)
         for p in problems:

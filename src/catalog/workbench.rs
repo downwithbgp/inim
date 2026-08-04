@@ -5883,7 +5883,14 @@ pub fn render_observed_result(vm: &IncidentWorkbenchViewModel) -> String {
     let baseline: usize = vm.breadth.iter().map(|b| b.baseline_streams).sum();
     let changed_streams: usize = vm.breadth.iter().map(|b| b.changed_streams).sum();
     let distinct = vm.units.distinct_prefix_count;
-    let mut out = if changed == 0 {
+    let mut out = if eligible == 0 && baseline == 0 {
+        // No eligible observer session and no baseline stream existed:
+        // nothing was observable. This must never be phrased as "no
+        // route-state change" (insufficient visibility is not a
+        // no-change observation).
+        "No qualifying baseline existed at the selected observer sessions; no route-state observation was possible."
+            .to_string()
+    } else if changed == 0 {
         format!(
             "No route-state change at {eligible} of {eligible} eligible observer sessions covering {baseline} baseline streams."
         )
@@ -6025,6 +6032,9 @@ pub struct IncidentWorkbenchViewModel {
     pub observed_result: String,
     /// Scope limit (case studies): single-target pilot, not incident-wide.
     pub scope_limit: String,
+    /// Open-source-event provisional statement (Part 37): names the
+    /// reviewed snapshot cutoff; empty for closed events.
+    pub provisional_cutoff: String,
     /// Operator incident horizon (case studies; empty for events).
     pub incident_horizon_start: String,
     pub incident_horizon_end: String,
@@ -6251,6 +6261,7 @@ impl IncidentWorkbenchViewModel {
         let mut run_plane_asns: std::collections::HashMap<String, Vec<u32>> =
             std::collections::HashMap::new();
         let mut analysis_end_hint = String::new();
+        let mut provisional_cutoff = String::new();
         let mut target_label = String::new();
         let mut target_origin_asns: Vec<u32> = Vec::new();
 
@@ -6264,6 +6275,12 @@ impl IncidentWorkbenchViewModel {
                 .or_insert_with(|| meta.predicate_asns.clone());
             if analysis_end_hint.is_empty() {
                 analysis_end_hint = meta.analysis_end.clone();
+            }
+            if provisional_cutoff.is_empty() && meta.open && !meta.analysis_end_utc.is_empty() {
+                provisional_cutoff = format!(
+                    "Open source event: this result is provisional through the reviewed snapshot cutoff {}. A later source refresh creates a new snapshot, plan revision, job, and run.",
+                    meta.analysis_end_utc
+                );
             }
             if target_label.is_empty() {
                 target_label = meta.target_label.clone();
@@ -6473,6 +6490,7 @@ impl IncidentWorkbenchViewModel {
             archive_coverage,
             observed_result: String::new(),
             scope_limit: String::new(),
+            provisional_cutoff,
             incident_horizon_start: String::new(),
             incident_horizon_end: String::new(),
             pilot_label: String::new(),
@@ -6603,6 +6621,12 @@ struct RunMeta {
     /// Reviewed target label + origin ASNs from the manifest payload.
     target_label: String,
     target_origin_asns: Vec<u32>,
+    /// Open-event marker from the manifest payload (Part 37): open
+    /// events render an explicit provisional-cutoff statement.
+    open: bool,
+    /// Reviewed snapshot cutoff from the manifest payload
+    /// (analysis_end_utc); empty when the event is closed.
+    analysis_end_utc: String,
 }
 
 fn run_meta(
@@ -6620,6 +6644,8 @@ fn run_meta(
     let mut event_external_id = String::new();
     let mut target_label = String::new();
     let mut target_origin_asns: Vec<u32> = Vec::new();
+    let mut open = false;
+    let mut analysis_end_utc = String::new();
     {
         let mut stmt = conn
             .prepare(
@@ -6674,6 +6700,12 @@ fn run_meta(
                     .and_then(|s| s.as_str())
                     .unwrap_or("")
                     .to_string();
+            }
+            if let Some(o) = v.get("open").and_then(|o| o.as_bool()) {
+                open = o;
+            }
+            if let Some(a) = v.get("analysis_end_utc").and_then(|a| a.as_str()) {
+                analysis_end_utc = a.to_string();
             }
             if let Some(f) = v.get("source_family").and_then(|s| s.as_str()) {
                 family = f.to_string();
@@ -6829,6 +6861,8 @@ fn run_meta(
         event_external_id,
         target_label,
         target_origin_asns,
+        open,
+        analysis_end_utc,
     })
 }
 
@@ -6878,6 +6912,7 @@ mod workbench_view_tests {
             archive_coverage: "Complete".to_string(),
             observed_result: String::new(),
             scope_limit: String::new(),
+            provisional_cutoff: String::new(),
             incident_horizon_start: String::new(),
             incident_horizon_end: String::new(),
             pilot_label: String::new(),
@@ -7308,6 +7343,7 @@ mod text_report_tests {
             archive_coverage: "Complete".to_string(),
             observed_result: String::new(),
             scope_limit: String::new(),
+            provisional_cutoff: String::new(),
             incident_horizon_start: String::new(),
             incident_horizon_end: String::new(),
             pilot_label: String::new(),
@@ -8061,6 +8097,7 @@ mod session38_unit_tests {
             archive_coverage: "Complete".to_string(),
             observed_result: String::new(),
             scope_limit: String::new(),
+            provisional_cutoff: String::new(),
             incident_horizon_start: String::new(),
             incident_horizon_end: String::new(),
             pilot_label: String::new(),
@@ -10478,6 +10515,7 @@ impl IncidentWorkbenchViewModel {
             archive_coverage: String::new(),
             observed_result: String::new(),
             scope_limit: String::new(),
+            provisional_cutoff: String::new(),
             incident_horizon_start: String::new(),
             incident_horizon_end: String::new(),
             pilot_label: String::new(),

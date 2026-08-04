@@ -180,3 +180,120 @@ jobs:
             exit 1
           fi
           echo "project-scope smoke ok"
+
+  # Evaluation kit smoke (Session 51): build the demo, generate the
+  # answer key, build the evaluation pack, serve read-only, and verify
+  # all scenario URLs, read-only behavior, no external assets, and no
+  # database mutation. Fully offline. No GitHub write token; nothing is
+  # uploaded (no demo DB, no pack, no screenshots).
+  evaluation-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Toolchain
+        uses: dtolnay/rust-toolchain@stable
+      - name: Rust cache
+        uses: Swatinem/rust-cache@c19371144df3bb44fab255c43d04cbc2ab54d1c4 # v2.9.1
+      - name: Build release binary
+        run: cargo build --release --locked
+      - name: Fresh demo + answer key + pack
+        env:
+          RUST_BACKTRACE: 0
+        run: |
+          ./target/release/inim demo init --db /tmp/eval-demo.sqlite --root . --force
+          ./target/release/inim demo verify --db /tmp/eval-demo.sqlite --root . | grep -q "demo verify: ok"
+          ./target/release/inim project-scope audit --db /tmp/eval-demo.sqlite --root . | grep -q "excluded events in catalog: 0"
+          python3 scripts/build-evaluation-answer-key.py --db /tmp/eval-demo.sqlite --root . --out evaluation/generated
+          # Answer-key regeneration drift: regeneration must produce no diff.
+          python3 scripts/build-evaluation-answer-key.py --db /tmp/eval-demo.sqlite --root . --out /tmp/answerkey-drift
+          diff -r evaluation/generated /tmp/answerkey-drift
+          sh scripts/build-evaluation-pack.sh --output /tmp/eval-pack --db /tmp/eval-demo.sqlite --root .
+          test -f /tmp/eval-pack/SHA256SUMS
+          test ! -e /tmp/eval-pack/*.sqlite
+          echo "demo + answer key + pack ok"
+      - name: Read-only server + scenario URLs
+        run: |
+          ./target/release/inim serve --db /tmp/eval-demo.sqlite --root . --bind 127.0.0.1:8099 &
+          SERVER_PID=$!
+          trap 'kill $SERVER_PID 2>/dev/null || true' EXIT
+          python3 - <<'PY'
+          import subprocess, tomllib, urllib.request, urllib.error, urllib.parse
+          import hashlib, re, time
+
+          base = "http://127.0.0.1:8099"
+
+          def get(url):
+              try:
+                  with urllib.request.urlopen(url, timeout=10) as r:
+                      return r.status, r.read().decode("utf-8", "replace")
+              except urllib.error.HTTPError as e:
+                  return e.code, e.read().decode("utf-8", "replace")
+
+          # Wait for the server (retry loop; no fixed sleep race).
+          for _ in range(60):
+              try:
+                  status, _ = get(base + "/")
+                  if status == 200:
+                      break
+              except Exception:
+                  pass
+              time.sleep(0.5)
+          else:
+              raise SystemExit("server did not become ready")
+
+          # All scenario URLs must return 200.
+          with open("evaluation/scenarios.toml", "rb") as f:
+              manifest = tomllib.load(f)
+          paths = [s["path"] for s in manifest["scenarios"]]
+          for p in paths:
+              status, body = get(base + p)
+              assert status == 200, f"{p} returned {status}"
+              assert "CSRF" not in body, f"{p} renders write-mode controls"
+          # Core pages render.
+          for p in ["/", "/events", "/case-studies", "/analysis-queue"]:
+              status, _ = get(base + p)
+              assert status == 200, f"{p} returned {status}"
+          # Excluded items return 404 (project-scope exclusion).
+          status, _ = get(base + "/events/INC0303298")
+          assert status == 404, "excluded event must 404"
+          # No write controls in read-only mode: mutation routes reject.
+          import urllib.request as u
+          for p in ["/analysis-jobs/1/cancel", "/analysis-jobs/1/retry",
+                    "/events/INC0299001/analysis-plan"]:
+              req = u.Request(base + p, data=b"", method="POST")
+              try:
+                  u.urlopen(req, timeout=10)
+                  raise AssertionError(f"POST {p} unexpectedly succeeded")
+              except urllib.error.HTTPError as e:
+                  assert e.code in (404, 405, 415), f"POST {p} -> {e.code}"
+          # No external asset URLs in the served HTML.
+          for p in paths:
+              _, body = get(base + p)
+              for m in re.findall(r'(?:src|href)="(https?://[^"]+)"', body):
+                  host = urllib.parse.urlparse(m).netloc
+                  assert host == "127.0.0.1:8099", f"external asset on {p}: {m}"
+          # Database bytes unchanged by the browse session.
+          def sha(path):
+              h = hashlib.sha256()
+              with open(path, "rb") as f:
+                  for chunk in iter(lambda: f.read(65536), b""):
+                      h.update(chunk)
+              return h.hexdigest()
+          before = sha("/tmp/eval-demo.sqlite")
+          after = sha("/tmp/eval-demo.sqlite")
+          assert before == after, "database mutated by read-only browse"
+          print("read-only server smoke ok")
+          PY
+      - name: Excluded-material scan of evaluation artifacts
+        run: |
+          if grep -rniE 'NOAA|INC0303298' evaluation/ docs/evaluation/; then
+            echo "excluded material in evaluation artifacts" >&2
+            exit 1
+          fi
+          echo "evaluation material clean"

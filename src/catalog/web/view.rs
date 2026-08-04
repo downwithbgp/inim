@@ -4073,18 +4073,26 @@ fn episode_row(
         });
     }
 
-    // Representative evidence references (unique, bounded).
+    // Representative evidence references (unique, bounded). Imported
+    // streams carry a "; "-joined human reference string; the legacy
+    // format was a JSON array of strings — accept both.
     let mut refs: Vec<String> = Vec::new();
     for s in &e.streams {
+        let mut items: Vec<String> = Vec::new();
         if let Ok(v) = serde_json::from_str::<serde_json::Value>(&s.evidence_refs) {
-            if let Some(items) = v.as_array() {
-                for it in items {
-                    if let Some(r) = it.as_str() {
-                        if !refs.contains(&r.to_string()) && refs.len() < 6 {
-                            refs.push(r.to_string());
-                        }
-                    }
-                }
+            if let Some(arr) = v.as_array() {
+                items = arr
+                    .iter()
+                    .filter_map(|it| it.as_str().map(str::to_string))
+                    .collect();
+            }
+        }
+        if items.is_empty() && !s.evidence_refs.is_empty() && s.evidence_refs != "[]" {
+            items = s.evidence_refs.split("; ").map(str::to_string).collect();
+        }
+        for r in items {
+            if !refs.contains(&r) && refs.len() < 6 {
+                refs.push(r);
             }
         }
     }

@@ -21,6 +21,103 @@ pub const DEMO_EXPECTED_EVENTS: &[&str] = &[
     "INC0040293", // MAN LAN optical participant event (supporting observation)
 ];
 
+/// Import completed pilot runs from the reviewed pilot tree
+/// into the demo catalog and link the reviewed R&E-plane runs to the
+/// manlan-2019 case study. Offline and deterministic: only reviewed
+/// tracked material is read, and nothing is executed.
+fn import_pilot_runs(conn: &Connection, root: &Path) -> Result<usize, String> {
+    let pilot_dir = root.join("case-studies/manlan-2019/pilot");
+    let manifests_dir = pilot_dir.join("manifests");
+    let out_dir = pilot_dir.join("out");
+    if !manifests_dir.is_dir() || !out_dir.is_dir() {
+        return Ok(0);
+    }
+    let mut manifest_paths: Vec<std::path::PathBuf> = std::fs::read_dir(&manifests_dir)
+        .map_err(|e| format!("cannot read {}: {e}", manifests_dir.display()))?
+        .filter_map(|e| e.ok().map(|e| e.path()))
+        .filter(|p| p.extension().map(|x| x == "json").unwrap_or(false))
+        .collect();
+    manifest_paths.sort();
+    let mut imported = 0usize;
+    for path in &manifest_paths {
+        let event_id = path.file_stem().and_then(|s| s.to_str()).unwrap_or("");
+        // Only completed runs (report.json present) are imported; the
+        // Peering-plane dirs hold preflight-only results and are
+        // never imported as runs.
+        if !out_dir.join(event_id).join("report.json").is_file() {
+            continue;
+        }
+        let mut summary = crate::catalog::import::ImportSummary::default();
+        crate::catalog::import::import_one(
+            conn,
+            path,
+            &out_dir,
+            env!("CARGO_PKG_VERSION"),
+            None,
+            &mut summary,
+        )
+        .map_err(|e| format!("pilot run import failed ({event_id}): {e}"))?;
+        imported += 1;
+    }
+    // Link the reviewed R&E-plane runs to the case study. The linked
+    // run names are reviewed data (pilot/demo-linked-runs.json), never
+    // source literals.
+    let cs_id: Option<i64> = conn
+        .query_row(
+            "SELECT id FROM case_studies WHERE slug = 'manlan-2019'",
+            [],
+            |r| r.get(0),
+        )
+        .ok();
+    let linkage_path = pilot_dir.join("demo-linked-runs.json");
+    let linked_runs: Vec<String> = if linkage_path.is_file() {
+        let raw = std::fs::read_to_string(&linkage_path)
+            .map_err(|e| format!("cannot read pilot demo linkage: {e}"))?;
+        let v: serde_json::Value =
+            serde_json::from_str(&raw).map_err(|e| format!("invalid pilot demo linkage: {e}"))?;
+        v.get("linked_runs")
+            .and_then(|r| r.as_array())
+            .map(|a| {
+                a.iter()
+                    .filter_map(|x| x.as_str().map(str::to_string))
+                    .collect()
+            })
+            .unwrap_or_default()
+    } else {
+        return Err("demo pilot linkage file missing (pilot/demo-linked-runs.json)".to_string());
+    };
+    if let Some(cs_id) = cs_id {
+        for run_event in linked_runs {
+            let run_id: Option<i64> = conn
+                .query_row(
+                    "SELECT r.id FROM analysis_runs r
+                     JOIN analysis_plans p ON p.id = r.plan_id
+                     JOIN manifest_revisions m ON m.id = p.manifest_revision_id
+                     JOIN catalog_events e ON e.id = m.event_id
+                     WHERE e.external_id = ?1",
+                    [run_event],
+                    |r| r.get(0),
+                )
+                .ok();
+            if let Some(run_id) = run_id {
+                let _ = crate::catalog::store::insert_case_study_analysis_link(
+                    conn,
+                    &crate::catalog::domain::CaseStudyAnalysisLink {
+                        id: 0,
+                        case_study_id: cs_id,
+                        run_id,
+                        role: "PilotObservation".to_string(),
+                        reviewed_note: Some(
+                            "Reviewed R&E-plane pilot run (demo linkage).".to_string(),
+                        ),
+                    },
+                )?;
+            }
+        }
+    }
+    Ok(imported)
+}
+
 pub fn demo_init(db_path: &Path, root: &Path, force: bool) -> Result<DemoReport, String> {
     if db_path.exists() && !force {
         return Err(format!(
@@ -56,6 +153,17 @@ pub fn demo_init(db_path: &Path, root: &Path, force: bool) -> Result<DemoReport,
     if cs_path.is_dir() {
         crate::catalog::case_study_import::import_case_study(&conn, &cs_path)
             .map_err(|e| format!("demo case-study import failed (manlan-2019): {e}"))?;
+    }
+    // Import the completed pilot runs (case-study evidence)
+    // and link the reviewed R&E-plane runs so the manlan-2019 workbench
+    // renders the route changes. Without this step the case-study
+    // workbench would show no observer findings.
+    let pilot_imported = import_pilot_runs(&conn, root)?;
+    if pilot_imported == 0 && root.join("case-studies/manlan-2019/pilot/out").is_dir() {
+        return Err(
+            "demo pilot import failed: no completed pilot runs imported from the reviewed pilot tree"
+                .to_string(),
+        );
     }
     drop(conn);
     let report = demo_verify(db_path, root)?;

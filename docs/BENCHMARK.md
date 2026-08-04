@@ -189,3 +189,26 @@ Dated measurement with the corpus-enriched demo (release build).
 Cleanup enumeration is linear in the job count and only walks the
 eligible staging directories (no recursive hashing of cache trees).
 Local-alpha targets remain: median GET < 100 ms, reviewed max < 250 ms.
+
+## Evaluator path — 2026-08-04
+
+Dated measurement of the NOC alpha evaluation pages (release build,
+deterministic demo, read-only server, loopback; 5 GETs per page).
+
+| Page | Median (ms) | Reviewed max (ms) |
+|---|---|---|
+| `/` (dashboard) | 12.3 | 14.9 |
+| `/events` | 15.2 | 18.2 |
+| `/case-studies/manlan-2019/workbench` | 25.0 | 28.3 |
+| `/events/INC0299001/workbench` | 20.2 | 31.7 |
+| `/events/INC0302574/workbench` | 15.9 | 18.3 |
+| `/events/INC0301970/workbench` | 15.2 | 24.0 |
+| `/events/INC0040293/workbench` | 16.7 | 22.5 |
+
+Browser startup is not counted. SQL query counts per workbench page
+are bounded by the existing per-request measurement (workbench query
+count test); no indexes were added — measured scans do not justify
+them. No generated HTML caching was introduced. Local-alpha targets
+(median GET < 100 ms, reviewed max < 250 ms) are met with a large
+margin; these numbers are evaluator-path measurements, not production
+deployment claims.
