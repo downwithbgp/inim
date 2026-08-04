@@ -13,12 +13,16 @@ categories = ["command-line-utilities", "network-programming"]
 # Packaging: exclude caches, raw MRT archives, generated event outputs,
 # validation/archived runs, and local scratch files. The crate ships only
 # source, tests/fixtures (provenance-documented, MIT-compatible), and docs.
+# Anchored patterns exclude only the top-level runtime directories: the
+# reviewed case-study evidence under case-studies/*/out and
+# case-studies/*/pilot/out IS packaged (the deterministic demo and the
+# answer-key generator import it).
 exclude = [
-    "out/",
-    "tmp/",
-    "cache/",
+    "/out/",
+    "/tmp/",
+    "/cache/",
     "run_stderr*.log",
-    "data/",
+    "/data/",
     "*.sqlite",
     "*.sqlite-wal",
     "*.sqlite-shm",
