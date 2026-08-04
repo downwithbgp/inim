@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
-# Session 35, Part 10 benchmark — local-cache stage metrics, jobs sweep,
-# and repeated two-plane reuse measurement. Network acquisition excluded
+# Local-cache stage-metrics benchmark — stage metrics, jobs sweep, and
+# repeated two-plane reuse measurement. Network acquisition excluded
 # (all archives cached). Writes machine-readable results to tmp/bench/.
+#
+# Usage: scripts/session35-benchmark.sh
 set -uo pipefail
 cd "$(dirname "$0")/.."
 

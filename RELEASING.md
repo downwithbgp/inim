@@ -20,6 +20,19 @@ cargo package --list
 cargo package
 ```
 
+## Project-scope and documentation validation
+
+```sh
+inim project-scope show --root .
+inim project-scope audit --db data/inim.sqlite --root .
+scripts/audit-docs.sh          # documentation drift audit (also in CI)
+```
+
+The tracked project-scope policy (`config/project-scope.toml`) must be
+unchanged by the release; the audit reports excluded material in the
+catalog, and the docs audit verifies no excluded material leaked into
+current documentation outside the allowlisted paths.
+
 ## License and dependency audit
 
 ```sh

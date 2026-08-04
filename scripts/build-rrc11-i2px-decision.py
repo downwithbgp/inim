@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Session 36, Part 2 — Direct I2PX pilot decision builder.
+"""Direct I2PX pilot decision builder.
 
 Reads the RRC11 historical audit (rrc11-audit-2019.json) and records the
 reviewed decision for the direct I2PX pilot: run the reviewed NORDUnet

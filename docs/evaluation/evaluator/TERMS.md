@@ -21,9 +21,10 @@ the tasks.
 - **Target origin** — the origin ASN (or ASNs) of the reviewed target
   whose routes the analysis tracks.
 - **Named relationship** — the reviewed, named routing relationship
-  declared by the source event (for example an R&E plane or a
-  paid-peering I2PX plane between two named networks). "Named" means
-  reviewed and labeled, never invented by the tool.
+  declared by the source event (for example an R&E — Research and
+  Education — plane or a paid-peering I2PX — Internet2 Peer Exchange —
+  plane between two named networks). "Named" means reviewed and
+  labeled, never invented by the tool.
 - **Event baseline** — the route frozen at the event start (the first
   observed route), independent of any later change. Distinct from every
   later state.

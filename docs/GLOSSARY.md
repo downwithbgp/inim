@@ -33,9 +33,9 @@ terms" — the historical meaning is never used in current output.
 - **Transit predicate** — the reviewed AS-path condition (a named
   service plane) that qualifies a route as "via the reviewed path".
 - **Named service plane** — a reviewed, named AS-path condition used to
-  classify routes (for example an R&E plane or a paid-peering I2PX
-  plane). "Named" means reviewed and labeled, never invented by the
-  tool.
+  classify routes (for example an R&E — Research and Education — plane
+  or a paid-peering I2PX — Internet2 Peer Exchange — plane). "Named"
+  means reviewed and labeled, never invented by the tool.
 - **Source family** — the public BGP data source family (RouteViews,
   RIPE RIS, GRNOC). Families are distinct evidence sources and may
   legitimately disagree.
@@ -136,7 +136,7 @@ terms" — the historical meaning is never used in current output.
 
 | Term | Meaning |
 |---|---|
-| **Analysis job** | durable execution state for one exact immutable plan revision: Queued → Claimed → execution stages → Completed/Cancelled/Failed. Job state is execution state, never ticket lifecycle, plan status, or analysis outcome (a completed analysis may be InsufficientVisibility without the job failing). |
+| **Analysis job** | durable execution state for one exact immutable plan revision: Queued → Claimed → execution stages → Completed/Cancelled/Failed. Job state is execution state, never ticket lifecycle, plan status, or analysis outcome (a completed analysis may be InsufficientVisibility without the job failing). The job-state vocabulary (exact labels, legal transitions, forward skips, terminal states) is `Queued`, `Claimed`, `DiscoveringArchives`, `AcquiringArchives`, `ParsingBaseline`, `FreezingCohort`, `ParsingUpdates`, `ReconstructingRoutes`, `DerivingEvidence`, `RenderingArtifacts`, `ValidatingArtifacts`, `PublishingRun`, `Completed`, `CancelRequested`, `Cancelled`, `Failed`. Forward stage skips are declared; `ValidatingArtifacts` cannot be skipped; publication never precedes validation; cancellation is checked before publication. |
 | **Plan revision** | one immutable `analysis_plans` row: reviewed manifest + derived plan payload + status. Editing creates a new revision; a queued or completed revision is never mutated. |
 | **Worker lease** | the time-bounded claim a worker holds on a job. A lease expires after a fixed interval unless renewed; an expired lease marks the job Failed (`worker_lease_expired`), preserves staging, and requires explicit retry — never silent auto-resume. |
 | **Staging artifact** | an output written under `data/jobs/<job-id>/staging` before validation and atomic publication into `data/runs/<job-id>/`. An incomplete job never appears as a completed workbench. |

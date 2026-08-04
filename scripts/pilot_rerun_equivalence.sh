@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
-# Pilot rerun equivalence (Session 32, Part 10): jobs=1 / default / 24,
-# local raw caches, rebuilt UPDATE derived caches. Substantive artifacts
-# must be byte-identical across job counts; only performance.json differs.
+# Pilot rerun equivalence: jobs=1 / default / 24, local raw caches,
+# rebuilt UPDATE derived caches. Substantive artifacts must be
+# byte-identical across job counts; only performance.json differs.
+#
+# Usage: scripts/pilot_rerun_equivalence.sh
 set -eu
 EVENT=case-studies/manlan-2019/pilot/pilot-event.json
 MANIFEST=case-studies/manlan-2019/pilot/manifests/MANLAN-2019-NORDUNET-PILOT.json

@@ -26,8 +26,10 @@ introduce breaking changes.
 - Evidence-bearing reports: observed event signature, observable mechanism
   hints, limitations, evidence appendix, withdrawal audit, archive
   manifest.
-- Completed case studies: INC0302574 (RIPE via NYIIX — no observable BGP
-  impact) and INC0299001 (UVA via Internet2 — partial impact), both
-  regenerated from canonical manifests under current schemas.
+- Completed case studies: INC0302574 (RIPE via NYIIX — named I2PX
+  relationship not assessable from the selected public observers,
+  insufficient visibility) and INC0299001 (UVA via Internet2 — partial
+  impact), both regenerated from canonical manifests under current
+  schemas.
 - Offline blocked planning: unresolved mappings produce a generic blocked
   plan artifact without an observational outcome.

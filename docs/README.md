@@ -28,6 +28,16 @@ facts from a higher level — it may never silently contradict them.
    record what was decided when; later ADRs supersede them, but the
    original text is not rewritten.
 
+Two additional classes are defined for completeness: **evaluation
+material** (task booklets, scenario manifests, facilitator guides —
+evaluation configuration, never a semantic specification) and
+**dated audits** (`docs/audits/`, execution records of a dated review,
+never current normative semantics). A dated audit may report
+historical execution facts; it must not redefine current normative
+semantics. An evaluator task document is not a semantic specification.
+The evidence-derived answer key is generated from canonical artifacts;
+it is not itself canonical route evidence.
+
 Generated outputs identify their generator, schema version, and source
 evidence or run. ADRs retain their original decision and carry a status
 (`Accepted`, `Superseded`, `Partially superseded`) plus links to
@@ -38,12 +48,19 @@ follow-up ADRs.
 | Topic | Document |
 |---|---|
 | Product purpose and current scope | `README.md` (root) |
+| Current public status | `docs/STATUS.md` |
 | Architecture and design decisions | `docs/DESIGN.md` |
 | Domain model: identities, units, transitions | `docs/DOMAIN.md` |
 | Evidence and provenance policy | `docs/DATA_PROVENANCE.md` |
 | Observability limits (what BGP evidence can and cannot show) | `docs/OBSERVABILITY.md` |
 | Operator UX and workbench design | `docs/UX.md` |
 | Local operations: event → plan → job → workbench | `docs/OPERATIONS.md` |
+| CLI reference (verified) | `docs/reference/CLI.md` |
+| HTTP API reference (verified) | `docs/reference/API.md` |
+| Web route reference (maintainers) | `docs/reference/WEB-ROUTES.md` |
+| Catalog database reference | `docs/reference/CATALOG-SCHEMA.md` |
+| Analysis artifact reference | `docs/reference/ARTIFACTS.md` |
+| Schema/version matrix | `docs/reference/SCHEMA-VERSIONS.md` |
 | Performance measurements | `docs/BENCHMARK.md` |
 | Data sources: GRNOC, RouteViews, RIPE RIS | `docs/sources/` |
 | Terminology (normative definitions) | `docs/GLOSSARY.md` |
@@ -51,6 +68,7 @@ follow-up ADRs.
 | Release process and packaging | `RELEASING.md`, `CHANGELOG.md` |
 | Contribution policy | `CONTRIBUTING.md` |
 | Historical decisions | `docs/ADRs/` (index: `docs/ADRs/README.md`) |
+| Dated audits (index) | `docs/audits/README.md` |
 | Audit trail of this repository truth audit | `docs/audits/` |
 
 ## External alpha evaluation
@@ -84,7 +102,26 @@ architecture or observability documentation before the tasks.
 
 The `docs/audits/` directory holds the dated evaluation audits
 (evaluator journey, task answerability, accessibility, procedural dry
-run).
+run). The audit index is `docs/audits/README.md`.
+
+## CI jobs
+
+CI (`.github/workflows/ci.yml`) runs these offline jobs on every push
+and pull request. No live GRNOC, RouteViews, RIPE RIS, PeeringDB, or
+RIR access happens in CI; no runtime data is uploaded; actions are
+full-SHA pinned with reviewed release comments (policy in the workflow
+file, which is the authority for pins).
+
+| Job | What it runs |
+|---|---|
+| `fmt` | `cargo fmt --check` |
+| `test` | `cargo test` + `cargo test --doc` |
+| `clippy` | `cargo clippy --all-targets --all-features -- -D warnings` |
+| `docs` | `cargo doc --no-deps --document-private-items` (warnings denied) + `scripts/audit-docs.sh` |
+| `license` | `cargo deny check licenses` + `cargo deny check bans` |
+| `package` | `cargo package` + packaged-runtime-material exclusion check |
+| `queued-analysis-smoke` | offline queued-analysis e2e, project-scope smoke, demo init/verify on a fresh demo |
+| `evaluation-smoke` | fresh demo + answer-key regeneration drift + evaluation pack + read-only server scenario URLs + database-hash check + excluded-material scan |
 
 ## Read order for a new contributor
 

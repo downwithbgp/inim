@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
-# Deterministic visual-review harness (Session 32, Part 12).
+# Deterministic visual-review harness.
 #
 # Uses the deterministic demo catalog (data/inim.sqlite), starts inim on
 # loopback, captures fixed-viewport screenshots with an already-installed
 # headless Chromium (via Playwright), shuts the server down, and writes the
 # images to tmp/ui-review/ (gitignored, excluded from the crate package).
+# Visual quality is not self-certified here: the images are produced for
+# EXTERNAL computer-vision review.
 #
-# The implementation agent must not self-certify visual quality: the images
-# are produced here for EXTERNAL computer-vision review.
+# Usage: scripts/screenshot-review.sh
 #
 # Requirements: a Playwright chromium build in ~/.cache/ms-playwright.
 # Fails with a clear "browser unavailable" message otherwise.

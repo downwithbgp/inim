@@ -1275,7 +1275,7 @@ async fn corpus_api_is_readonly_and_enveloped() {
     assert!(!text.contains("set-cookie"), "{text}");
 }
 
-// ── Session 36, Part 13: workbench query/render performance ─────────
+// ── Workbench query/render performance ──────────────────────────────
 
 #[tokio::test]
 async fn workbench_get_performs_no_analysis() {
@@ -1669,7 +1669,7 @@ async fn expectation_assessment_uses_assessment_not_title() {
         return;
     }
     assert_eq!(status, StatusCode::OK);
-    // Session 38 Part 8: the ticket names the direct peer relationship
+    // The ticket names the direct peer relationship
     // on the reviewed PX plane (plane identity lives in reviewed data,
     // never in src/), so the expectation assessment comes from the
     // reviewed relationship audit (insufficient visibility), not from
@@ -2017,7 +2017,7 @@ async fn changed_rows_sort_before_unchanged_rows() {
     );
     // Changed findings in the Routing findings table are
     // time-ordered: 16:35:38 before 16:45:25 (the principal card
-    // order is by operational priority, not time — Session 40, Part 8).
+    // order is by operational priority, not time).
     let table = body.find("Routing findings").unwrap();
     let table_slice = &body[table..];
     assert!(
@@ -2245,7 +2245,7 @@ async fn drilldown_uses_no_raw_mrt_parse() {
 
 #[tokio::test]
 async fn expand_one_opens_every_episode() {
-    // Session 36 harness compatibility: ?expand=1 renders every episode
+    // Harness compatibility: ?expand=1 renders every episode
     // detail open, deterministically.
     let (status, body) = manlan_workbench_q("expand=1").await;
     if body.is_empty() {
@@ -2777,7 +2777,7 @@ async fn no_changed_event_leads_with_session_ratio() {
         return;
     }
     assert_eq!(status, StatusCode::OK);
-    // Session 40, Part 11: the no-visibility page renders the compact
+    // The no-visibility page renders the compact
     // primary result (named relationship / eligibility / assessment)
     // with no empty analysis scaffolding.
     assert!(
@@ -2888,7 +2888,7 @@ async fn region_ratio_is_secondary_metadata() {
         return;
     }
     assert_eq!(status, StatusCode::OK);
-    // Session 40, Part 10: regional ratios are NOT part of the
+    // Regional ratios are NOT part of the
     // observer comparison — they live only in Observation coverage.
     let section = body.find("Observer comparison by region").unwrap();
     let region_end = body.find("Routing findings").unwrap_or(body.len());
@@ -5564,7 +5564,7 @@ async fn csrf_token_is_not_logged() {
     );
 }
 
-// ── Optical-relationship presentation (Session 48 correction) ──────
+// ── Optical-relationship presentation (post-review correction) ──────
 
 #[tokio::test]
 async fn optical_ticket_has_no_ip_route_expectation_assessment() {

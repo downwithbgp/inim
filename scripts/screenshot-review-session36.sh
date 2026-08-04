@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-# Session 36 — deterministic workbench screenshot harness.
+# Deterministic workbench screenshot harness (2026-08).
+#
+# Usage: scripts/screenshot-review-session36.sh
 #
 # Captures the NOC incident workbench pages at three viewports into
 # tmp/ui-review/session-36/. Uses the same Playwright chromium as

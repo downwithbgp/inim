@@ -69,7 +69,9 @@ not as unaffected.
 
 - **RouteViews and RIPE RIS MRT archives** — RIB baselines and UPDATE
   streams, acquired and cached locally, keyed with ADD-PATH-aware route
-  identity. Observer sessions are the unit of observation; the two
+  identity. (MRT = Multi-threaded Routing Toolkit archive format; RIS =
+  RIPE Routing Information Service; RIB = Routing Information Base.)
+  Observer sessions are the unit of observation; the two
   families are independent evidence and may legitimately disagree.
 - **GRNOC Public Task Viewer ticket snapshots** — immutable, locally
   cached source declarations for the event catalog.
@@ -131,7 +133,9 @@ inim serve --db ./inim-demo.sqlite --root .
 
 `inim demo init` builds a fresh catalog from tracked reviewed material
 (no private databases, no downloads, no network); `inim demo verify`
-checks events, workbenches, and artifact references.
+checks events, workbenches, and artifact references. Building with
+Cargo may need Internet access to fetch dependencies; demo
+initialization and serving never contact live BGP or ticket sources.
 
 ### Local catalog and web workbench
 
@@ -162,7 +166,8 @@ The web server is trusted-local only: no authentication exists, write
 mode is disabled by default, the default bind is loopback-only, and a
 non-loopback bind with writes requires the explicit
 `--allow-unauthenticated-writes` acknowledgement. Every mutation POST
-requires a process-lifetime CSRF token (from the OS random source),
+requires a process-lifetime CSRF token (cross-site request forgery
+protection; from the OS random source),
 bodies are size-bounded (64 KiB), GET never mutates, and mutation
 endpoints do not exist when writes are disabled. Do not expose write
 mode to untrusted networks; there is no TLS termination and no password

@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
-# Session 44 visual-review harness: three genuinely distinct UVA states
+# Visual-review harness: three genuinely distinct UVA states
 # with required-marker and hash-distinct validation.
+#
+# Usage: scripts/screenshot-review-session44.sh
 set -u
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"

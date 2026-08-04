@@ -24,14 +24,14 @@ This audit verifies that every tracked file is classified, that every current st
 
 ## Summary
 
-Tracked files: **442** · inventory entries: **442**
+Tracked files: **454** · inventory entries: **454**
 
 | Category | Files |
 |---|---|
 | Immutable or generated evidence | 148 |
 | Production source | 102 |
-| Normative current documentation | 35 |
-| Historical decision record | 34 |
+| Normative current documentation | 42 |
+| Historical decision record | 39 |
 | Reviewed case-study interpretation | 28 |
 | Script or developer tool | 25 |
 | Configuration | 24 |
@@ -266,9 +266,13 @@ Tracked files: **442** · inventory entries: **442**
 | `docs/OPERATIONS.md` | Normative current documentation | operators | implementation + ADR-004 | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
 | `docs/README.md` | Normative current documentation | contributors and operators | implementation + canonical evidence (see docs/README authority map) | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
 | `docs/REQUIREMENTS.md` | Historical decision record | maintainers | decision context at time of writing | no | historical | status and applicability reviewed in this audit | none | reviewed in this audit |
+| `docs/STATUS.md` | Normative current documentation | users/evaluators | current product state | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
 | `docs/TASKS.md` | Historical decision record | maintainers | decision context at time of writing | no | historical | status and applicability reviewed in this audit | none | reviewed in this audit |
 | `docs/UX.md` | Normative current documentation | contributors and operators | implementation + canonical evidence (see docs/README authority map) | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
 | `docs/audits/2026-08-clean-clone.md` | Normative current documentation | maintainers | dated audit evidence | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
+| `docs/audits/2026-08-documentation-clean-clone.md` | Historical decision record | maintainers | dated audit | no | historical | status and applicability reviewed in this audit | none | reviewed in this audit |
+| `docs/audits/2026-08-documentation-inventory.md` | Historical decision record | maintainers | dated audit | no | historical | status and applicability reviewed in this audit | none | reviewed in this audit |
+| `docs/audits/2026-08-documentation-spec-conformance.md` | Historical decision record | maintainers | dated audit | no | historical | status and applicability reviewed in this audit | none | reviewed in this audit |
 | `docs/audits/2026-08-evaluation-accessibility.md` | Historical decision record | maintainers | dated execution audit | no | historical | status and applicability reviewed in this audit | none | reviewed in this audit |
 | `docs/audits/2026-08-evaluation-procedural-dry-run.md` | Historical decision record | maintainers | dated execution audit | no | historical | status and applicability reviewed in this audit | none | reviewed in this audit |
 | `docs/audits/2026-08-evaluation-task-answerability.md` | Historical decision record | maintainers | dated execution audit | no | historical | status and applicability reviewed in this audit | none | reviewed in this audit |
@@ -284,6 +288,8 @@ Tracked files: **442** · inventory entries: **442**
 | `docs/audits/2026-08-repository-truth-audit.md` | Normative current documentation | maintainers | repository-inventory.json + git state (rendered, reviewed content) | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
 | `docs/audits/2026-08-second-network-neutrality.md` | Historical decision record | maintainers | dated audit evidence | no | historical | status and applicability reviewed in this audit | none | reviewed in this audit |
 | `docs/audits/2026-08-smithville-source-refresh.md` | Historical decision record | maintainers | dated audit evidence | no | historical | status and applicability reviewed in this audit | none | reviewed in this audit |
+| `docs/audits/2026-08-specification-coverage.md` | Historical decision record | maintainers | dated audit | no | historical | status and applicability reviewed in this audit | none | reviewed in this audit |
+| `docs/audits/README.md` | Historical decision record | maintainers | dated audit index | no | historical | status and applicability reviewed in this audit | none | reviewed in this audit |
 | `docs/audits/external-links-2026-08.md` | Normative current documentation | maintainers | dated curl checks of documented external URLs | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
 | `docs/audits/repository-inventory.json` | Configuration | maintainers | reviewed classification of tracked files | no | current | reviewed in this audit | none | reviewed in this audit |
 | `docs/evaluation/ALPHA-FREEZE.md` | Normative current documentation | contributors | reviewed protocol | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
@@ -301,6 +307,12 @@ Tracked files: **442** · inventory entries: **442**
 | `docs/evaluation/facilitator/NOC-ALPHA-FACILITATOR-GUIDE.md` | Normative current documentation | facilitators | reviewed protocol | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
 | `docs/evaluation/facilitator/POST-SESSION-DECISION.md` | Normative current documentation | facilitators | reviewed protocol | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
 | `docs/evaluation/facilitator/SESSION-NOTES-TEMPLATE.md` | Normative current documentation | facilitators | reviewed protocol | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
+| `docs/reference/API.md` | Normative current documentation | operators/contributors | router definitions | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
+| `docs/reference/ARTIFACTS.md` | Normative current documentation | maintainers | artifact writers | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
+| `docs/reference/CATALOG-SCHEMA.md` | Normative current documentation | maintainers | migrations | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
+| `docs/reference/CLI.md` | Normative current documentation | operators/contributors | binary help | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
+| `docs/reference/SCHEMA-VERSIONS.md` | Normative current documentation | maintainers | schema constants | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
+| `docs/reference/WEB-ROUTES.md` | Normative current documentation | maintainers | router definitions | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
 | `docs/session-10-baseline.md` | Historical decision record | maintainers | decision context at time of writing | no | historical | status and applicability reviewed in this audit | none | reviewed in this audit |
 | `docs/sources/GRNOC_BULK_ACCESS_REQUEST.md` | Normative current documentation | contributors and operators | implementation + canonical evidence (see docs/README authority map) | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
 | `docs/sources/GRNOC_PUBLIC_TASK_VIEWER.md` | Normative current documentation | contributors and operators | implementation + canonical evidence (see docs/README authority map) | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
