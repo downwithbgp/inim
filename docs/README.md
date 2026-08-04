@@ -63,7 +63,7 @@ architecture or observability documentation before the tasks.
 
 | Document | Audience |
 |---|---|
-| Alpha freeze policy (what may change during evaluation) | contributors, project owner |
+| Alpha freeze policy (`ALPHA-FREEZE.md` — what may change during evaluation) | contributors, project owner |
 | Evaluator task booklet (`evaluator/NOC-ALPHA-TASKS.md`) | evaluators |
 | Evaluator glossary (`evaluator/TERMS.md`) | evaluators |
 | Manual response sheet (`evaluator/NOC-ALPHA-RESPONSE-SHEET.md`) | evaluators |

@@ -19,7 +19,7 @@ demo and answer a short task sheet. No private network access, no
 telemetry, and no live BGP acquisition are involved.
 
 ```sh
-scripts/evaluator-bootstrap.sh --db /tmp/inim-evaluation.sqlite --port 8080
+scripts/evaluator-bootstrap.sh --db ./inim-evaluation.sqlite --port 8080
 # then start the read-only server with the command the script prints
 ```
 
