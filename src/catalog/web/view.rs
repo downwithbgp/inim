@@ -897,7 +897,11 @@ pub fn load_event_detail(
     // coverage summary; the stored assessment statement remains in the
     // run artifact.
     let coverage = observation_coverage_for(catalog_root, external_id);
-    let assessment = if coverage.is_some() && result.as_deref().is_some_and(|r| r.contains("Insufficient")) {
+    let assessment = if coverage.is_some()
+        && result
+            .as_deref()
+            .is_some_and(|r| r.contains("Insufficient"))
+    {
         Some(String::from(
             "Target-origin routes were visible at selected public collectors, but no selected event baseline exposed the reviewed relationship and no direct observer session for the reviewed peer ASN was available.",
         ))
