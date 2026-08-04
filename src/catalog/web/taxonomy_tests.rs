@@ -680,7 +680,7 @@ async fn smithville_human_explanation_mentions_target_visibility() {
     let (_, body) = get(&app, "/events/INC0301970").await;
     let text = strip_html(&body);
     assert!(
-        text.contains("Target routes were visible at selected public collectors"),
+        text.contains("Target-origin routes were visible at selected public collectors"),
         "operator-readable explanation mentions target visibility"
     );
 }
@@ -695,7 +695,7 @@ async fn smithville_human_explanation_mentions_relationship_visibility() {
     let (_, body) = get(&app, "/events/INC0301970").await;
     let text = strip_html(&body);
     assert!(
-        text.contains("reviewed relationship was not exposed by the selected baselines"),
+        text.contains("no selected event baseline exposed the reviewed relationship"),
         "operator-readable explanation mentions relationship visibility"
     );
 }

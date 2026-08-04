@@ -157,7 +157,7 @@ pub(crate) fn import_one(
         let fetched_at = meta
             .get("fetched_at_utc")
             .and_then(|v| v.as_str())
-            .unwrap_or("2026-07-31T00:00:00Z")
+            .unwrap_or("")
             .to_string();
         // The tracked snapshot is the raw source record; the normalized
         // event is derived from it (title + window), mirroring the

@@ -948,7 +948,7 @@ pub fn load_event_detail(
             // assessment statement remains in the run artifact.
             if stored.contains("insufficient") && coverage.is_some() {
                 assessment = String::from(
-                    "Target routes were visible at selected public collectors, but the reviewed relationship was not exposed by the selected baselines and the required direct observer session was absent.",
+                    "Target-origin routes were visible at selected public collectors, but no selected event baseline exposed the reviewed relationship and no direct observer session for the reviewed peer ASN was available.",
                 );
             } else if supporting_only {
                 // Scope-mismatched supporting observation: the run row

@@ -50,7 +50,7 @@
   </tbody>
   </table>
   {% endif %}
-  {% if ic.interconnect_context.len() > 0 %}
+  {% if ic.interconnect_context.len() > 0 || ic.operational_services.len() > 0 %}
   <h5>Interconnect / service references</h5>
   <table>
   <thead><tr><th>Entity</th><th>Reviewed ASN</th><th>Reviewed note</th></tr></thead>
