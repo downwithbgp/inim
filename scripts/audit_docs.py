@@ -349,6 +349,8 @@ def check_action_pins() -> list[str]:
 def check_inventory_and_render() -> list[str]:
     problems = []
     tracked = git_ls_files()
+    if not tracked:
+        return problems  # packaged source: git-dependent render check skips
     inv_path = ROOT / "docs/audits/repository-inventory.json"
     inv = json.loads(inv_path.read_text())
     inv_paths = {e["path"] for e in inv}
