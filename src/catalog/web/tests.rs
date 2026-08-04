@@ -1411,6 +1411,28 @@ async fn open_event_workbench_shows_provisional_cutoff() {
     assert!(!closed.contains("Open source event"), "closed event not provisional");
 }
 
+/// Insufficient visibility with zero eligible sessions must never be
+/// phrased as a no-change observation (Part 37): "no route-state
+/// change at 0 of 0" would imply an observation was made.
+#[tokio::test]
+async fn zero_eligible_insufficient_visibility_is_not_no_change() {
+    if !repo_artifacts_available() {
+        return;
+    }
+    let (dbdir, rootdir) = setup_catalog();
+    let app = build_app(state_from(&dbdir, &rootdir));
+    let (status, body) = get(&app, "/events/INC0301970/workbench").await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(
+        !body.contains("No route-state change at 0 of 0"),
+        "zero-eligible insufficiency must not render as no change"
+    );
+    assert!(
+        body.contains("No qualifying baseline existed"),
+        "the page states that no baseline observation was possible"
+    );
+}
+
 // ── workbench semantic invariants (Parts 1, 2, 4, 6, 8, 11) ──
 //
 // Token discipline: src/ must stay free of the reviewed plane ASN

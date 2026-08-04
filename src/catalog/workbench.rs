@@ -5883,7 +5883,14 @@ pub fn render_observed_result(vm: &IncidentWorkbenchViewModel) -> String {
     let baseline: usize = vm.breadth.iter().map(|b| b.baseline_streams).sum();
     let changed_streams: usize = vm.breadth.iter().map(|b| b.changed_streams).sum();
     let distinct = vm.units.distinct_prefix_count;
-    let mut out = if changed == 0 {
+    let mut out = if eligible == 0 && baseline == 0 {
+        // No eligible observer session and no baseline stream existed:
+        // nothing was observable. This must never be phrased as "no
+        // route-state change" (insufficient visibility is not a
+        // no-change observation).
+        "No qualifying baseline existed at the selected observer sessions; no route-state observation was possible."
+            .to_string()
+    } else if changed == 0 {
         format!(
             "No route-state change at {eligible} of {eligible} eligible observer sessions covering {baseline} baseline streams."
         )
