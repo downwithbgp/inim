@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Session 36, Part 1/2 — RRC11 historical audit report builder.
+"""RRC11 historical audit report builder.
 
 Consumes the full peer inventory of the RRC11 2019-08-21 baseline bview
 (`inim catalog session-audit --full-inventory` output) and writes the

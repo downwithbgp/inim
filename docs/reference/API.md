@@ -69,9 +69,10 @@ absolute path is ever returned.
   Found** (web: plain text; API: JSON error `writes are disabled on
   this server`). Mutation controls are not rendered on GET pages.
 - **CSRF:** every POST requires the header **`X-Inim-CSRF`** with the
-  process-lifetime token (web forms may alternatively send `_csrf` as a
-  form field; the header wins when both are present). Missing or
-  mismatched token → **403 Forbidden**.
+  process-lifetime token (cross-site request forgery protection; web
+  forms may alternatively send `_csrf` as a form field; the header wins
+  when both are present). Missing or mismatched token → **403
+  Forbidden**.
 - **Body size:** router-wide limit of **64 KiB** for mutation bodies;
   over-limit requests are rejected (413).
 - **Non-loopback:** write mode on a non-loopback bind additionally

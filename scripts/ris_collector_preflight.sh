@@ -1,5 +1,7 @@
 #!/bin/bash
-# Session 34, Part 5 — RIPE RIS collector RIB preflight for the NORDUnet pilot.
+# RIPE RIS collector RIB preflight for the NORDUnet pilot (2026-08).
+#
+# Usage: scripts/ris_collector_preflight.sh
 # For each historically available candidate collector: download the
 # 2019-08-21 00:00 bview (8-hour grid, pre-warmup baseline) and run the
 # reviewed RIB preflight (origin AS2603 + ContainsAny[11537]).
@@ -31,7 +33,7 @@ m = json.load(open(base))
 # and family. Preflight runs are probes, not AnalysisRuns.
 m["collectors"] = [collector]
 m["source_family"] = "RipeRis"
-m["analyst_notes"] = m.get("analyst_notes", []) + ["RIS collector selection preflight (Session 34, Part 5); not a pilot run."]
+m["analyst_notes"] = m.get("analyst_notes", []) + ["RIS collector selection preflight (2026-08); not a pilot run."]
 json.dump(m, open(out, "w"), indent=2)
 PYEOF
   echo "== $c preflight =="

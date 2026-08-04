@@ -40,6 +40,7 @@ NORMATIVE_DOCS = [
     "CHANGELOG.md",
     "RELEASING.md",
     "docs/README.md",
+    "docs/STATUS.md",
     "docs/GLOSSARY.md",
     "docs/DESIGN.md",
     "docs/DOMAIN.md",
@@ -47,9 +48,32 @@ NORMATIVE_DOCS = [
     "docs/DATA_PROVENANCE.md",
     "docs/BENCHMARK.md",
     "docs/UX.md",
+    "docs/OPERATIONS.md",
     "docs/sources/GRNOC_PUBLIC_TASK_VIEWER.md",
     "docs/sources/GRNOC_BULK_ACCESS_REQUEST.md",
 ]
+
+# Verified reference docs are normative current documentation for the
+# terminology/session checks (the route/CLI/schema checks below verify
+# them against code).
+REFERENCE_DOCS = [
+    "docs/reference/CLI.md",
+    "docs/reference/API.md",
+    "docs/reference/WEB-ROUTES.md",
+    "docs/reference/CATALOG-SCHEMA.md",
+    "docs/reference/SCHEMA-VERSIONS.md",
+    "docs/reference/ARTIFACTS.md",
+]
+
+# Current reviewed case-study READMEs (checked by name in the
+# case-study-specific guards).
+CASE_STUDY_READMES = {
+    "case-studies/manlan-2019/README.md",
+    "case-studies/inc0299001/README.md",
+    "case-studies/inc0302574/README.md",
+    "case-studies/manlan-esnet-2019/README.md",
+    "case-studies/indiana-gigapop-smithville-2026/README.md",
+}
 
 OBSOLETE_TERMS = [
     "departed-I2",
@@ -115,7 +139,7 @@ def check_absolute_paths() -> list[str]:
 
 def check_terminology() -> list[str]:
     problems = []
-    for name in NORMATIVE_DOCS:
+    for name in NORMATIVE_DOCS + REFERENCE_DOCS:
         if name == "docs/GLOSSARY.md":
             continue  # the glossary is the term authority and names them
         f = ROOT / name
@@ -245,7 +269,7 @@ def check_case_study_index() -> list[str]:
 
 def check_session_narrative() -> list[str]:
     problems = []
-    for name in NORMATIVE_DOCS:
+    for name in NORMATIVE_DOCS + REFERENCE_DOCS:
         f = ROOT / name
         if not f.exists():
             continue
@@ -347,7 +371,7 @@ def check_inventory_and_render() -> list[str]:
 
 
 def check_second_network_docs() -> list[str]:
-    """Second-network relationship-scope drift guards (Session 50)."""
+    """Second-network relationship-scope drift guards."""
     problems = []
     docs = ["docs/DESIGN.md", "docs/DOMAIN.md", "docs/UX.md", "docs/OBSERVABILITY.md",
             "docs/DATA_PROVENANCE.md", "README.md"]
@@ -379,7 +403,7 @@ def check_second_network_docs() -> list[str]:
 
 
 def check_project_scope_docs() -> list[str]:
-    """Project-scope documentation drift guards (Session 49)."""
+    """Project-scope documentation drift guards."""
     problems = []
     config = ROOT / "config/project-scope.toml"
     if not config.exists():
@@ -448,7 +472,7 @@ def check_project_scope_docs() -> list[str]:
 
 
 def check_evaluation_docs() -> list[str]:
-    """NOC alpha evaluation drift guards (Session 51)."""
+    """NOC alpha evaluation drift guards."""
     problems = []
     freeze = ROOT / "docs/evaluation/ALPHA-FREEZE.md"
     if not freeze.exists():
@@ -589,6 +613,317 @@ def check_evaluation_docs() -> list[str]:
     return problems
 
 
+def check_documentation_inventory() -> list[str]:
+    """The dated documentation inventory's checked lists must match git
+    exactly (every tracked Markdown, docs/, evaluation/, and .github/
+    file listed; every listed file tracked)."""
+    problems = []
+    tracked = git_ls_files()
+    inv = (ROOT / "docs/audits/2026-08-documentation-inventory.md").read_text(errors="replace")
+    sections = {
+        "markdown": [f for f in tracked if f.endswith(".md") and not f.startswith("spec/")],
+        "docs": [f for f in tracked if f.startswith("docs/")],
+        "evaluation": [f for f in tracked if f.startswith("evaluation/")],
+        "github": [f for f in tracked if f.startswith(".github/")],
+    }
+    for label, expected in sections.items():
+        for p in expected:
+            if f"\n{p}\n" not in inv:
+                problems.append(f"documentation inventory: {label} file missing from checked list: {p}")
+    # parse back the fenced lists and verify they only contain tracked files
+    for m in re.finditer(r"```\n((?:[^\n`]+\n)+)```", inv):
+        listed = [ln.strip() for ln in m.group(1).splitlines() if ln.strip()]
+        for p in listed:
+            if p not in tracked:
+                problems.append(f"documentation inventory: listed untracked file: {p}")
+    return problems
+
+
+def check_anchor_links() -> list[str]:
+    """Internal markdown links with #anchors must resolve to a heading in
+    the target file (GitHub-style anchor approximation)."""
+    problems = []
+
+    def anchors(path: Path) -> set[str]:
+        out = set()
+        for line in path.read_text(errors="replace").splitlines():
+            m = re.match(r"^(#{1,6})\s+(.*)", line)
+            if m:
+                a = re.sub(r"[^\w\s-]", "", m.group(2).strip().lower())
+                out.add(a.replace(" ", "-"))
+        return out
+
+    link_re = re.compile(r"\[[^\]]*\]\(([^)#]+)(#[^)]*)?\)")
+    for f in all_markdown():
+        text = f.read_text(errors="replace")
+        for m in link_re.finditer(text):
+            path_part, anchor = m.group(1), m.group(2)
+            if path_part.startswith(("http://", "https://", "mailto:")):
+                continue
+            if not anchor or anchor == "#":
+                continue
+            target = (f.parent / path_part.strip("`<>")).resolve()
+            if not target.exists():
+                continue  # file-level breakage is reported by check_links
+            wanted = anchor[1:]
+            if wanted not in anchors(target):
+                problems.append(
+                    f"{f.relative_to(ROOT)}: anchor #{wanted} not found in {path_part}"
+                )
+    return problems
+
+
+def check_cli_reference(binary: str) -> list[str]:
+    """Every `inim <command>` form in the CLI reference must exist in the
+    binary's help tree."""
+    problems = []
+    tree = cli_tree(binary)
+    known = set(tree)
+    doc = (ROOT / "docs/reference/CLI.md").read_text(errors="replace")
+    cmd_re = re.compile(r"\binim ([a-z][a-z-]*(?: [a-z][a-z-]*)*)")
+    for i, line in enumerate(doc.splitlines(), 1):
+        for m in cmd_re.finditer(line):
+            cmds = m.group(1).split()
+            depth = 0
+            for d in range(1, len(cmds) + 1):
+                if " ".join(cmds[:d]) in known:
+                    depth = d
+            if depth == 0:
+                problems.append(f"docs/reference/CLI.md:{i}: unknown command `inim {' '.join(cmds)}`")
+    return problems
+
+
+def router_paths() -> list[str]:
+    """Every route literal registered in the axum router, from source."""
+    paths = set()
+    for f in sorted((ROOT / "src/catalog/web").glob("*.rs")):
+        text = f.read_text(errors="replace")
+        for m in re.finditer(r'\.route\(\s*"([^"]+)"', text):
+            paths.add(m.group(1))
+    return sorted(paths)
+
+
+def check_api_route_reference() -> list[str]:
+    """The API and web route references must list every router route, and
+    every documented route must exist in the router source."""
+    problems = []
+    router = router_paths()
+    docs = ["docs/reference/API.md", "docs/reference/WEB-ROUTES.md"]
+    documented = []
+    for name in docs:
+        text = (ROOT / name).read_text(errors="replace")
+        for m in re.finditer(r"^\| (`?)(/[^`|]*)`? \|", text, re.M):
+            route = m.group(2).strip()
+            documented.append((name, route))
+    documented_routes = {r for _, r in documented}
+    for route in router:
+        if route not in documented_routes:
+            problems.append(f"api route reference: undocumented router route {route}")
+    for name, route in documented:
+        if route not in router:
+            problems.append(f"{name}: documented route not in router: {route}")
+    return problems
+
+
+def schema_constant(name: str) -> str:
+    """Read a `pub const NAME: u32 = N;` value from src/."""
+    out = subprocess.run(
+        ["git", "grep", "-h", "-E", rf"pub const {name}: u32 = [0-9]+;"],
+        cwd=ROOT, capture_output=True, text=True,
+    ).stdout
+    m = re.search(r"= ([0-9]+);", out)
+    return m.group(1) if m else "?"
+
+
+def check_schema_matrix() -> list[str]:
+    """SCHEMA-VERSIONS.md must agree with the implementation constants."""
+    problems = []
+    doc = (ROOT / "docs/reference/SCHEMA-VERSIONS.md").read_text(errors="replace")
+    constants = {
+        "CATALOG_SCHEMA_VERSION": "Catalog database",
+        "MANIFEST_SCHEMA_VERSION": "Manifest (analysis plan input)",
+        "RIB_CACHE_SCHEMA_VERSION": "RIB derived cache",
+        "UPDATE_CACHE_SCHEMA_VERSION": "UPDATE derived cache",
+        "OBSERVATION_SCHEMA_VERSION": "RouteObservation",
+        "COHORT_IDENTITY_SCHEMA_VERSION": "Frozen cohort identity",
+        "EXTRACTION_SCHEMA_VERSION": "Source-extraction cache",
+        "REPORT_SCHEMA_VERSION": "Report",
+        "EVIDENCE_APPENDIX_SCHEMA_VERSION": "Evidence appendix",
+        "ARCHIVE_MANIFEST_SCHEMA_VERSION": "Archive manifest",
+        "LIFECYCLE_ARTIFACT_SCHEMA_VERSION": "Lifecycle artifact",
+        "TRANSITIONS_ARTIFACT_SCHEMA_VERSION": "Transitions artifact",
+        "WITHDRAWAL_AUDIT_SCHEMA_VERSION": "Withdrawal audit",
+        "SEMANTIC_WAVE_SCHEMA_VERSION": "Semantic wave artifact",
+        "COMPARISON_SCHEMA_VERSION": "Comparison artifact",
+        "ANALYSIS_PLAN_SCHEMA_VERSION": "Analysis-plan artifact",
+        "EXECUTION_METADATA_SCHEMA_VERSION": "Execution metadata",
+        "PERFORMANCE_SCHEMA_VERSION": "Performance metadata",
+        "SCOPE_CONFIG_SCHEMA_VERSION": "Project-scope policy",
+        "CASE_STUDY_DATA_SCHEMA_VERSION": "Case-study data file",
+        "TARGET_RESEARCH_SCHEMA_VERSION": "Target-research record",
+    }
+    for const, label in constants.items():
+        value = schema_constant(const)
+        if value == "?":
+            problems.append(f"schema matrix: constant {const} not found")
+            continue
+        row = re.search(rf"\| {re.escape(label)} \| v(\d+)", doc)
+        if not row:
+            problems.append(f"schema matrix: no row for {label}")
+            continue
+        if row.group(1) != value:
+            problems.append(
+                f"schema matrix: {label} documented v{row.group(1)} but code says v{value}"
+            )
+    return problems
+
+
+def check_spec_coverage() -> list[str]:
+    """The specification coverage matrix lists every normative area."""
+    problems = []
+    doc = (ROOT / "docs/audits/2026-08-specification-coverage.md").read_text(errors="replace")
+    areas = [
+        "Product purpose and scope", "Domain model", "Architecture",
+        "Observability limits", "Data provenance", "Project scope",
+        "Network profiles", "Event interpretation", "Plan readiness",
+        "Route-selection semantics", "Observer eligibility",
+        "Route and stream identity", "Lifecycle reconstruction",
+        "Findings", "Restoration classes", "Observed results and expectation assessment",
+        "Job state machine", "Worker leases", "Staging and publication",
+        "Catalog behavior", "API behavior", "CLI behavior", "Web routes",
+        "Demo behavior", "Evaluation freeze", "Source adapters (GRNOC)",
+        "Source families (RouteViews/RIS)",
+    ]
+    for area in areas:
+        if f"| {area} " not in doc:
+            problems.append(f"specification coverage: missing area {area!r}")
+    return problems
+
+
+def check_status_doc() -> list[str]:
+    """STATUS.md is the current public status page."""
+    problems = []
+    doc = (ROOT / "docs/STATUS.md").read_text(errors="replace")
+    if "Public alpha" not in doc:
+        problems.append("docs/STATUS.md: must say the stage is a public alpha")
+    if "Zero external evaluation sessions" not in doc:
+        problems.append("docs/STATUS.md: must state zero external evaluation sessions")
+    if "ALPHA-FREEZE" not in doc:
+        problems.append("docs/STATUS.md: must link the alpha freeze policy")
+    neg = ("not", "never", "no ", "does not", "cannot")
+    for i, line in enumerate(doc.splitlines(), 1):
+        low = line.lower()
+        if "production-ready" in low and not any(n in low for n in neg):
+            problems.append(f"docs/STATUS.md:{i}: unsupported production-ready claim")
+    return problems
+
+
+def check_prohibited_current_claims() -> list[str]:
+    """Current normative docs must not make claims the evidence model
+    forbids, unless the sentence is an explicit negation."""
+    problems = []
+    negation = ("not", "never", "no ", "does not", "cannot", "explicitly")
+    # 1. No performed incident-wide verdict claim.
+    for name in NORMATIVE_DOCS + REFERENCE_DOCS + list(CASE_STUDY_READMES):
+        f = ROOT / name
+        if not f.exists():
+            continue
+        for i, line in enumerate(f.read_text(errors="replace").splitlines(), 1):
+            low = line.lower()
+            if ("incident-wide" in low or "complete incident" in low) and (
+                "verdict" in low or "assessment" in low or "analysis" in low
+            ):
+                if not any(n in low for n in negation):
+                    problems.append(
+                        f"{name}:{i}: performed incident-wide verdict claim: {line.strip()[:90]}")
+            if "unexpected continued reviewed-transit path" in low:
+                problems.append(f"{name}:{i}: stale human label 'Unexpected continued reviewed-transit path'")
+            if "beta" in low and "alpha" not in low:
+                problems.append(f"{name}:{i}: inconsistent product status (beta without alpha): {line.strip()[:80]}")
+    # 2. Smithville must be insufficient visibility, never no-change.
+    sv = (ROOT / "case-studies/indiana-gigapop-smithville-2026/README.md").read_text(errors="replace")
+    if "Insufficient" not in sv:
+        problems.append("Smithville README: must state Insufficient qualifying visibility")
+    for line in sv.splitlines():
+        low = line.lower()
+        if "no route-state change" in low and "not" not in low and "rather than" not in low:
+            problems.append(f"Smithville README: no-change substituted for insufficient visibility: {line.strip()[:90]}")
+    # 3. Optical supporting observation must not be a relationship assessment.
+    es = (ROOT / "case-studies/manlan-esnet-2019/README.md").read_text(errors="replace")
+    if "does not assess" not in es.lower():
+        problems.append("ESnet optical README: must state the supporting BGP observation does not assess the optical relationship")
+    if "NotDirectlyObservableInPublicBgp" not in es:
+        problems.append("ESnet optical README: must carry the NotDirectlyObservableInPublicBgp reviewed applicability")
+    # 4. I2PX no-change must not substitute for not-assessable.
+    i2 = (ROOT / "case-studies/inc0302574/README.md").read_text(errors="replace")
+    if "insufficient-visibility" not in i2 and "not assessable" not in i2.lower():
+        problems.append("INC0302574 README: must state the relationship is not assessable")
+    return problems
+
+
+def check_scenario_answer_key() -> list[str]:
+    """Every scenario path in the manifest must be a demo workbench URL in
+    the generated answer key."""
+    problems = []
+    manifest = ROOT / "evaluation/scenarios.toml"
+    ak = ROOT / "evaluation/generated/answer-key.json"
+    if not manifest.exists() or not ak.exists():
+        return problems  # covered by check_evaluation_docs
+    import tomllib
+    m = tomllib.loads(manifest.read_text(errors="replace"))
+    try:
+        doc = json.loads(ak.read_text(errors="replace"))
+    except ValueError:
+        problems.append("answer-key.json: invalid JSON (scenario check)")
+        return problems
+    urls = set(doc.get("demo_manifest", {}).get("expected_workbench_urls", []))
+    for s in m.get("scenarios", []):
+        p = s.get("path", "")
+        if p and p not in urls:
+            problems.append(f"evaluation/scenarios.toml: scenario {s.get('id')} path {p} not in answer-key demo workbench URLs")
+    return problems
+
+
+def check_fixture_inventory() -> list[str]:
+    """tests/fixtures/README.md must document every fixture family."""
+    problems = []
+    readme = (ROOT / "tests/fixtures/README.md").read_text(errors="replace")
+    families = sorted(d.name for d in (ROOT / "tests/fixtures").iterdir() if d.is_dir())
+    for fam in families:
+        if f"{fam}/" not in readme:
+            problems.append(f"tests/fixtures/README.md: fixture family {fam} not documented")
+    for fam in ["mrt", "ris", "internet2", "grnoc"]:
+        if f"{fam}/" not in readme:
+            problems.append(f"tests/fixtures/README.md: fixture family {fam} not documented")
+    return problems
+
+
+def check_script_basics() -> list[str]:
+    """Tracked shell scripts carry a shebang and usage text."""
+    problems = []
+    for f in sorted((ROOT / "scripts").glob("*.sh")):
+        text = f.read_text(errors="replace")
+        if not text.startswith("#!"):
+            problems.append(f"{f.relative_to(ROOT)}: missing shebang")
+        if "usage" not in text.lower() and "--help" not in text and "-h" not in text:
+            problems.append(f"{f.relative_to(ROOT)}: missing usage/help text")
+    return problems
+
+
+def check_ci_docs() -> list[str]:
+    """The CI jobs must be documented in docs/README.md."""
+    problems = []
+    ci = (ROOT / ".github/workflows/ci.yml").read_text(errors="replace")
+    jobs = re.findall(r"^  ([a-z][a-z0-9-]*):\n", ci, re.M)
+    readme = (ROOT / "docs/README.md").read_text(errors="replace")
+    for job in jobs:
+        if job == "help":
+            continue
+        if job not in readme:
+            problems.append(f"docs/README.md: CI job {job} not documented")
+    return problems
+
+
 def main() -> int:
     binary = str(ROOT / "target/debug/inim")
     if not Path(binary).exists():
@@ -596,18 +931,30 @@ def main() -> int:
         subprocess.check_call(["cargo", "build", "-q"], cwd=ROOT)
     problems: list[str] = []
     problems += check_links()
+    problems += check_anchor_links()
     problems += check_action_pins()
     problems += check_absolute_paths()
     problems += check_terminology()
     problems += check_cli_examples(binary)
+    problems += check_cli_reference(binary)
+    problems += check_api_route_reference()
+    problems += check_schema_matrix()
+    problems += check_spec_coverage()
     problems += check_adr_index()
     problems += check_case_study_index()
     problems += check_session_narrative()
     problems += check_inventory_and_render()
+    problems += check_documentation_inventory()
     problems += check_job_workflow_docs()
     problems += check_project_scope_docs()
     problems += check_second_network_docs()
     problems += check_evaluation_docs()
+    problems += check_status_doc()
+    problems += check_prohibited_current_claims()
+    problems += check_scenario_answer_key()
+    problems += check_fixture_inventory()
+    problems += check_script_basics()
+    problems += check_ci_docs()
     if problems:
         print("documentation drift audit FAILED:", file=sys.stderr)
         for p in problems:

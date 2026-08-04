@@ -11,7 +11,8 @@ router metadata.
 
 | Route | Page |
 |---|---|
-| `/` | dashboard (alias `/catalog`) |
+| `/` | dashboard |
+| `/catalog` | dashboard (alias of `/`) |
 | `/events` | event list |
 | `/events/{event_id}` | event detail |
 | `/events/{event_id}/workbench` | event workbench (primary result page) |

@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-# Session 39 visual-review harness: operator-first workbench viewports.
+# Operator-first workbench viewport review harness (2026-08).
+#
+# Usage: scripts/screenshot-review-session39.sh
 #
 # Captures true-viewport screenshots of the reworked workbench pages:
 #   MAN LAN 1440x900, UVA 1280x800, INC0302574 1280x800,

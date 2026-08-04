@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-# Session 42 visual-review harness: compact findings viewports.
+# Compact-findings visual-review harness (2026-08).
+#
+# Usage: scripts/screenshot-review-session42.sh
 set -u
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"

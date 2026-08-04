@@ -33,9 +33,9 @@ terms" — the historical meaning is never used in current output.
 - **Transit predicate** — the reviewed AS-path condition (a named
   service plane) that qualifies a route as "via the reviewed path".
 - **Named service plane** — a reviewed, named AS-path condition used to
-  classify routes (for example an R&E plane or a paid-peering I2PX
-  plane). "Named" means reviewed and labeled, never invented by the
-  tool.
+  classify routes (for example an R&E — Research and Education — plane
+  or a paid-peering I2PX — Internet2 Peer Exchange — plane). "Named"
+  means reviewed and labeled, never invented by the tool.
 - **Source family** — the public BGP data source family (RouteViews,
   RIPE RIS, GRNOC). Families are distinct evidence sources and may
   legitimately disagree.

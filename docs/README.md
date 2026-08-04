@@ -102,7 +102,26 @@ architecture or observability documentation before the tasks.
 
 The `docs/audits/` directory holds the dated evaluation audits
 (evaluator journey, task answerability, accessibility, procedural dry
-run).
+run). The audit index is `docs/audits/README.md`.
+
+## CI jobs
+
+CI (`.github/workflows/ci.yml`) runs these offline jobs on every push
+and pull request. No live GRNOC, RouteViews, RIPE RIS, PeeringDB, or
+RIR access happens in CI; no runtime data is uploaded; actions are
+full-SHA pinned with reviewed release comments (policy in the workflow
+file, which is the authority for pins).
+
+| Job | What it runs |
+|---|---|
+| `fmt` | `cargo fmt --check` |
+| `test` | `cargo test` + `cargo test --doc` |
+| `clippy` | `cargo clippy --all-targets --all-features -- -D warnings` |
+| `docs` | `cargo doc --no-deps --document-private-items` (warnings denied) + `scripts/audit-docs.sh` |
+| `license` | `cargo deny check licenses` + `cargo deny check bans` |
+| `package` | `cargo package` + packaged-runtime-material exclusion check |
+| `queued-analysis-smoke` | offline queued-analysis e2e, project-scope smoke, demo init/verify on a fresh demo |
+| `evaluation-smoke` | fresh demo + answer-key regeneration drift + evaluation pack + read-only server scenario URLs + database-hash check + excluded-material scan |
 
 ## Read order for a new contributor
 

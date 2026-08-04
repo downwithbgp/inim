@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
-# Local raw-cache parse scaling benchmark (Session 32, Part 5/9).
+# Local raw-cache parse scaling benchmark.
 # All archives are already in the local raw cache; --rebuild-derived-cache
 # forces re-parse. No network acquisition.
+#
+# Usage: scripts/bench_parse_scaling.sh
 set -u
 EVENT=case-studies/manlan-2019/pilot/pilot-event.json
 MANIFEST=case-studies/manlan-2019/pilot/manifests/MANLAN-2019-NORDUNET-PILOT.json

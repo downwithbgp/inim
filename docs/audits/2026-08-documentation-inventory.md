@@ -162,7 +162,7 @@ canonical artifacts; it is not itself canonical route evidence.
 | `docs/audits/2026-08-evaluation-procedural-dry-run.md` | internal procedural dry run |
 | `docs/audits/2026-08-evaluator-bootstrap.md` | bootstrap verification |
 | `docs/audits/2026-08-fresh-event-discovery.md` | GRNOC discovery probes |
-| `docs/audits/2026-08-fresh-event-candidates.md` | candidate events (non-NOAA) |
+| `docs/audits/2026-08-fresh-event-candidates.md` | candidate events |
 | `docs/audits/2026-08-non-noaa-ip-event-candidates.md` | candidate shortlist |
 | `docs/audits/2026-08-grnoc-catalog-reconciliation.md` | corpus reconciliation |
 | `docs/audits/2026-08-manlan-ticket-readiness.md` | MAN LAN ticket readiness |
@@ -171,6 +171,7 @@ canonical artifacts; it is not itself canonical route evidence.
 | `docs/audits/2026-08-smithville-source-refresh.md` | Smithville refresh evidence |
 | `docs/audits/2026-08-incident-family-deferral.md` | deferral decision |
 | `docs/audits/external-links-2026-08.md` | external link status record |
+| `docs/audits/README.md` | dated audit index |
 | `docs/audits/2026-08-documentation-inventory.md` | this document |
 | `docs/audits/2026-08-specification-coverage.md` | specification coverage matrix |
 | `docs/audits/2026-08-documentation-spec-conformance.md` | final conformance audit |
@@ -213,7 +214,7 @@ The following lists are compared with `git ls-files` by
 must be classified in a table above (or in `repository-inventory.json`
 for non-documentation files).
 
-### Tracked Markdown files (75, excluding `spec/`)
+### Tracked Markdown files (84, excluding `spec/`)
 
 ```
 .github/PULL_REQUEST_TEMPLATE.md
@@ -252,9 +253,11 @@ docs/OBSERVABILITY.md
 docs/OPERATIONS.md
 docs/README.md
 docs/REQUIREMENTS.md
+docs/STATUS.md
 docs/TASKS.md
 docs/UX.md
 docs/audits/2026-08-clean-clone.md
+docs/audits/2026-08-documentation-inventory.md
 docs/audits/2026-08-evaluation-accessibility.md
 docs/audits/2026-08-evaluation-procedural-dry-run.md
 docs/audits/2026-08-evaluation-task-answerability.md
@@ -270,6 +273,7 @@ docs/audits/2026-08-project-scope-noaa-removal.md
 docs/audits/2026-08-repository-truth-audit.md
 docs/audits/2026-08-second-network-neutrality.md
 docs/audits/2026-08-smithville-source-refresh.md
+docs/audits/2026-08-specification-coverage.md
 docs/audits/external-links-2026-08.md
 docs/evaluation/ALPHA-FREEZE.md
 docs/evaluation/EVALUATION-DATA-HANDLING.md
@@ -286,13 +290,19 @@ docs/evaluation/evaluator/TERMS.md
 docs/evaluation/facilitator/NOC-ALPHA-FACILITATOR-GUIDE.md
 docs/evaluation/facilitator/POST-SESSION-DECISION.md
 docs/evaluation/facilitator/SESSION-NOTES-TEMPLATE.md
+docs/reference/API.md
+docs/reference/ARTIFACTS.md
+docs/reference/CATALOG-SCHEMA.md
+docs/reference/CLI.md
+docs/reference/SCHEMA-VERSIONS.md
+docs/reference/WEB-ROUTES.md
 docs/session-10-baseline.md
 docs/sources/GRNOC_BULK_ACCESS_REQUEST.md
 docs/sources/GRNOC_PUBLIC_TASK_VIEWER.md
 evaluation/generated/answer-key.md
 tests/fixtures/README.md
 ```
-### Tracked files under `docs/` (55)
+### Tracked files under `docs/` (64)
 
 ```
 docs/ADRs/CASE-STUDY-LAYER.md
@@ -312,9 +322,11 @@ docs/OBSERVABILITY.md
 docs/OPERATIONS.md
 docs/README.md
 docs/REQUIREMENTS.md
+docs/STATUS.md
 docs/TASKS.md
 docs/UX.md
 docs/audits/2026-08-clean-clone.md
+docs/audits/2026-08-documentation-inventory.md
 docs/audits/2026-08-evaluation-accessibility.md
 docs/audits/2026-08-evaluation-procedural-dry-run.md
 docs/audits/2026-08-evaluation-task-answerability.md
@@ -330,6 +342,7 @@ docs/audits/2026-08-project-scope-noaa-removal.md
 docs/audits/2026-08-repository-truth-audit.md
 docs/audits/2026-08-second-network-neutrality.md
 docs/audits/2026-08-smithville-source-refresh.md
+docs/audits/2026-08-specification-coverage.md
 docs/audits/external-links-2026-08.md
 docs/audits/repository-inventory.json
 docs/evaluation/ALPHA-FREEZE.md
@@ -347,6 +360,12 @@ docs/evaluation/evaluator/TERMS.md
 docs/evaluation/facilitator/NOC-ALPHA-FACILITATOR-GUIDE.md
 docs/evaluation/facilitator/POST-SESSION-DECISION.md
 docs/evaluation/facilitator/SESSION-NOTES-TEMPLATE.md
+docs/reference/API.md
+docs/reference/ARTIFACTS.md
+docs/reference/CATALOG-SCHEMA.md
+docs/reference/CLI.md
+docs/reference/SCHEMA-VERSIONS.md
+docs/reference/WEB-ROUTES.md
 docs/session-10-baseline.md
 docs/sources/GRNOC_BULK_ACCESS_REQUEST.md
 docs/sources/GRNOC_PUBLIC_TASK_VIEWER.md

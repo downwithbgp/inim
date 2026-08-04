@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
-# Session 37 — validated workbench screenshot harness.
+# Validated workbench screenshot harness (2026-08).
+#
+# Usage: scripts/screenshot-review-session37.sh
 #
 # Captures the redesigned NOC workbench at explicit viewports into
 # tmp/ui-review/session-37/. For each capture this harness:

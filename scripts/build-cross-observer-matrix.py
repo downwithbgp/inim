@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Session 35, Part 6 — cross-observer matrix builder.
+"""Cross-observer matrix builder.
 
 Reads the session audit (MRT peer facts), the four R&E-plane runs, and the
 four I2PX preflights; writes cross-observer-matrix.{json,md}. The matrix
