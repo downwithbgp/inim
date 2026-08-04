@@ -6,6 +6,12 @@ The freeze began when the evaluation kit merged on 2026-08-04
 (merge commit `91ac498`). It ends when one of the exit conditions
 below is met and the project owner records that decision in this file.
 
+A documentation/correctness pass under this freeze (2026-08) repaired
+evaluator-blocking workbench defects found by the internal
+project-owner walkthrough (see
+`docs/audits/2026-08-internal-evaluator-findings.md`); that
+walkthrough is internal and is not an external evaluation session.
+
 ## Purpose
 
 The project is entering a period of external evaluation by working

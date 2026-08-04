@@ -6,7 +6,16 @@
 
 <div class="panel">
 <h3>Analysis workflow</h3>
+{% if workflow_status == "Open workbench" && is_open && !analysis_cutoff.is_empty() %}
+<p><strong>Provisional analysis completed</strong> — observed through
+{{ analysis_cutoff }}. <a href="{{ workflow_link }}">Open the workbench</a>.</p>
+<p>Latest result: {{ latest_result }}</p>
+<p class="muted">The reviewed plan remains reproducible; queueing another
+execution is an explicit operator action, not the next step in the
+evaluator workflow.</p>
+{% else %}
 <p><a href="{{ workflow_link }}">{{ workflow_status }}</a>{% if !workflow_detail.is_empty() %} — {{ workflow_detail }}{% endif %}</p>
+{% endif %}
 {% if active_job_id.is_some() %}
 <p class="muted">An active job does not create a workbench; the workbench is derived from completed runs only.</p>
 {% endif %}
@@ -16,7 +25,15 @@
 <table>
   <tr><th>Status</th><td>{% if status == "Stale" %}<span class="tag stale">{{ status }}</span>{% elif status == "Blocked" %}<span class="tag blocked">{{ status }}</span>{% else %}<span class="tag">{{ status }}</span>{% endif %}</td></tr>
   <tr><th>Lifecycle</th><td>{{ lifecycle }}</td></tr>
-  <tr><th>Event window</th><td>{{ start }} → {{ end }}</td></tr>
+  <tr><th>Event window</th>
+    <td>{% if is_open && !analysis_cutoff.is_empty() %}
+      <ul class="flat">
+        <li>Start: {{ start }}</li>
+        <li>Source lifecycle: Open</li>
+        <li>Analysis cutoff: {{ analysis_cutoff }}</li>
+      </ul>
+    {% else %}{{ start }} → {{ end }}{% endif %}</td>
+  </tr>
   <tr><th>Expectation</th><td>{{ expectation }}</td></tr>
   <tr><th>Latest result</th><td>{{ latest_result }}</td></tr>
   {% if supporting_only %}
@@ -50,13 +67,14 @@
 
 <h3>Source snapshot history (immutable)</h3>
 <table>
-<thead><tr><th>#</th><th>Fetched</th><th>Source URL</th><th>SHA-256</th><th>Payload preview</th></tr></thead>
+<thead><tr><th>#</th><th>Fetched</th><th>Source identity</th><th>Import provenance</th><th>SHA-256</th><th>Payload preview</th></tr></thead>
 <tbody>
 {% for s in snapshots %}
 <tr>
   <td>{{ s.id }}</td>
   <td>{{ s.fetched_at }}</td>
-  <td>{{ s.source_url }}</td>
+  <td>{% if s.fixture_import %}GRNOC Public Task Viewer — external ID {{ event.external_id }}{% else %}{{ s.source_url }}{% endif %}</td>
+  <td>{% if s.fixture_import %}<span class="muted">imported from tracked offline fixture (<code>{{ s.source_url }}</code>)</span>{% else %}<span class="muted">fetched from source</span>{% endif %}</td>
   <td><code>{{ s.sha256 }}</code></td>
   <td><code>{{ s.raw_preview }}</code></td>
 </tr>

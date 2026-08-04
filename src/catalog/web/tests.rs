@@ -912,7 +912,7 @@ async fn case_study_page_shows_related_ticket_roles() {
     assert_eq!(status, StatusCode::OK);
     assert!(body.contains("INC0040257"));
     assert!(body.contains("PrimaryIncident"));
-    assert!(body.contains("document-referenced; no source snapshot"));
+    assert!(body.contains("AAR reference only"));
 }
 
 #[tokio::test]

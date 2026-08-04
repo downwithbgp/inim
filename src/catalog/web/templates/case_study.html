@@ -11,7 +11,15 @@
 
 <div class="panel">
   <h3>What public BGP showed</h3>
+  {% if !route_story.is_empty() %}
+  <ul class="flat">
+  {% for s in route_story %}
+    <li>{{ s }}</li>
+  {% endfor %}
+  </ul>
+  {% else %}
   <p>{{ what_bgp_showed }}</p>
+  {% endif %}
 </div>
 
 <div class="panel">
@@ -50,16 +58,17 @@
 
 <h3>Related tickets</h3>
 <table>
-<thead><tr><th>Identifier</th><th>Relationship</th><th>Reviewed note</th></tr></thead>
+<thead><tr><th>Identifier</th><th>Provenance status</th><th>Relationship</th><th>Reviewed note</th></tr></thead>
 <tbody>
 {% for t in related_tickets %}
 <tr>
-  <td>{% if t.event_href.is_some() %}<a href="{{ t.event_href.as_ref().unwrap() }}">{{ t.external_id }}</a>{% else %}{{ t.external_id }} <span class="muted">(document-referenced; no source snapshot)</span>{% endif %}</td>
+  <td>{% if t.event_href.is_some() %}<a href="{{ t.event_href.as_ref().unwrap() }}">{{ t.external_id }}</a>{% else %}{{ t.external_id }}{% endif %}</td>
+  <td>{{ t.status }}</td>
   <td>{{ t.relationship }}</td>
   <td class="muted">{{ t.reviewed_note }}</td>
 </tr>
 {% else %}
-<tr><td colspan="3" class="muted">No related tickets recorded.</td></tr>
+<tr><td colspan="4" class="muted">No related tickets recorded.</td></tr>
 {% endfor %}
 </tbody>
 </table>
@@ -84,7 +93,28 @@
 </tbody>
 </table>
 
-<h3>Reviewed analysis targets</h3>
+<h3>Analyzed targets</h3>
+{% if analyzed_targets.is_empty() %}
+<p class="muted">No analyzed targets: no reviewed analysis run is linked to this case study.</p>
+{% else %}
+<table>
+<thead><tr><th>Target</th><th>Origin ASNs</th><th>Reviewed path condition</th><th>Linked runs</th></tr></thead>
+<tbody>
+{% for t in analyzed_targets %}
+<tr>
+  <td>{{ t.label }}</td>
+  <td>{{ t.origin_asns }}</td>
+  <td>{{ t.predicate_text }}</td>
+  <td>{% for rid in t.run_ids %}<a href="/analyses/{{ rid }}">{{ rid }}</a> {% endfor %}</td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+{% endif %}
+
+<h3>Other operator-reported participants</h3>
+<p class="muted">Entities mentioned by the source record but not reviewed for
+analysis. No identity is inferred for them here.</p>
 <table>
 <thead><tr><th>Source label</th><th>Role in report</th><th>Candidate org</th><th>Candidate origin ASNs</th><th>Path predicate</th><th>Research</th><th>BGP applicability</th><th>Provenance</th></tr></thead>
 <tbody>
@@ -100,7 +130,7 @@
   <td class="muted">{{ t.provenance }}</td>
 </tr>
 {% else %}
-<tr><td colspan="8" class="muted">No analysis targets recorded.</td></tr>
+<tr><td colspan="8" class="muted">No additional participants recorded.</td></tr>
 {% endfor %}
 </tbody>
 </table>
@@ -116,22 +146,17 @@
   <tr><th>Baseline RIB (initial state)</th><td>{% for b in p.baseline_ribs %}{{ b }}<br>{% endfor %}</td></tr>
   <tr><th>Validation RIB (checkpoint only)</th><td>{% for v in p.validation_ribs %}{{ v }}<br>{% endfor %}</td></tr>
   <tr><th>UPDATE sequence</th><td>{% for u in p.update_ranges %}{{ u }}<br>{% endfor %}</td></tr>
-  <tr><th>Estimated volume</th><td>~{{ p.estimated_bytes }} bytes compressed / ~{{ p.estimated_uncompressed_bytes }} bytes uncompressed (estimates; no archives downloaded to plan)</td></tr>
-  {% if !p.blocked_targets.is_empty() %}
+  <tr><th>Estimated volume</th><td>~{{ p.estimated_bytes }} bytes compressed /
+    ~{{ p.estimated_uncompressed_bytes }} bytes uncompressed
+    {% if p.estimated_bytes > 0 %}({{ p.estimated_bytes }} B compressed){% endif %}</td></tr>
+  <tr><th>Notes</th><td><ul class="flat">{% for n in p.notes %}<li>{{ n }}</li>{% endfor %}</ul></td></tr>
   <tr><th>Blocked targets</th><td>{% for b in p.blocked_targets %}{{ b }}<br>{% endfor %}</td></tr>
-  {% endif %}
-  {% if !p.skipped_targets.is_empty() %}
-  <tr><th>Not applicable</th><td>{% for b in p.skipped_targets %}{{ b }}<br>{% endfor %}</td></tr>
-  {% endif %}
+  <tr><th>Skipped targets</th><td>{% for s in p.skipped_targets %}{{ s }}<br>{% endfor %}</td></tr>
 </tbody>
 </table>
-<ul class="flat">
-{% for n in p.notes %}
-<li class="muted">{{ n }}</li>
-{% endfor %}
-</ul>
 {% else %}
-<p class="muted">No historical archive plan yet. Run <code>inim catalog case-study plan</code> to produce a draft plan without downloading archives.</p>
+<p class="muted">Incident-wide plan: None — no complete incident-wide public-BGP analysis has been reviewed.
+An incident-wide plan would be drafted with <code>inim catalog case-study plan</code> without downloading archives.</p>
 {% endif %}
 
 <h3>Historical pilot</h3>
@@ -151,28 +176,38 @@
   <tr><th>Finding</th><td>{{ p.pilot_finding }}</td></tr>
 </tbody>
 </table>
+{% elif !runs.is_empty() %}
+<p class="muted">Completed target analysis: the linked runs below constitute a
+single-target historical pilot. An incident-wide plan is None — no complete
+incident-wide public-BGP analysis has been reviewed.</p>
 {% else %}
 <p class="muted">Historical pilot — Not planned. The case study continues to hold no complete incident-wide public-BGP conclusion.</p>
 {% endif %}
 
 <h3>Analysis runs</h3>
 <table>
-<thead><tr><th>Run</th><th>Started</th><th>Verdict</th><th>Assessment</th></tr></thead>
+<thead><tr><th>Target</th><th>Source family</th><th>Collector</th><th>Run</th><th>Started</th><th>Observed result</th><th>Expectation assessment</th></tr></thead>
 <tbody>
 {% for r in runs %}
 <tr>
-  <td><a href="/analyses/{{ r.id }}">{{ r.id }}</a></td>
+  <td>{{ r.target }}</td>
+  <td>{{ r.family }}</td>
+  <td>{{ r.collectors }}</td>
+  <td><a href="/analyses/{{ r.id }}">run {{ r.id }}</a></td>
   <td>{{ r.started_at }}</td>
-  <td>{{ r.verdict }}</td>
-  <td>{{ r.assessment }}</td>
+  <td>{{ r.observed_result }}</td>
+  <td>{{ r.expectation_assessment }}</td>
 </tr>
 {% else %}
-<tr><td colspan="4" class="muted">No analysis runs linked. Historical analysis has not been executed.</td></tr>
+<tr><td colspan="7" class="muted">No analysis runs linked. Historical analysis has not been executed.</td></tr>
 {% endfor %}
 </tbody>
 </table>
 
 <h3>Phase-conditioned BGP summaries</h3>
+{% if !route_story.is_empty() %}
+<p class="muted">{{ what_bgp_showed }}</p>
+{% endif %}
 {% if phase_summaries.is_empty() %}
 <p class="muted">No phase-conditioned summaries: no analysis run is linked.</p>
 {% else %}
@@ -227,31 +262,29 @@
 {% for e in observer_comparison.planes_explainer %}
 <p class="muted">{{ e }}</p>
 {% endfor %}
-<p class="muted">Each run keeps its own evidence; rows are per normalized prefix per collector. Agreement across collectors is not global proof.</p>
+
+<h4>Per-collector summaries</h4>
+<p class="muted">Collector site is the site hosting the collector; it is not
+the observer peer's location and does not indicate affected geography.</p>
 <table>
-<thead><tr><th>Prefix</th><th>Collector</th><th>Location</th><th>Family</th><th>Peer</th><th>Peer ASN</th><th>Relationship</th><th>Plane</th><th>Cohort predicate</th><th>First change (UTC)</th><th>Temporary absence</th><th>Path replacement</th><th>Transit departure</th><th>Restoration (UTC)</th><th>Baseline visibility</th></tr></thead>
+<thead><tr><th>Collector</th><th>Collector site</th><th>Source family</th><th>Observer peers</th><th>Changed prefixes</th><th>Baseline-visible prefixes</th><th>First change (UTC)</th><th>Restoration (UTC)</th><th>Summary</th></tr></thead>
 <tbody>
-{% for r in observer_comparison.rows %}
+{% for c in observer_comparison.collector_summaries %}
 <tr>
-  <td><code>{{ r.prefix }}</code></td>
-  <td>{{ r.collector }}</td>
-  <td>{{ r.location }}</td>
-  <td>{{ r.family }}</td>
-  <td>{{ r.peer }}</td>
-  <td>{{ r.peer_asn }}</td>
-  <td>{{ r.relationship }}</td>
-  <td>{{ r.plane }}</td>
-  <td>{{ r.cohort_predicate }}</td>
-  <td>{{ r.first_change_utc }}</td>
-  <td>{{ r.temporary_absence }}</td>
-  <td>{{ r.path_replacement }}</td>
-  <td>{{ r.transit_departure }}</td>
-  <td>{{ r.restoration_utc }}</td>
-  <td>{{ r.baseline_visibility }}</td>
+  <td>{{ c.collector }}</td>
+  <td>{% if c.collector_site.is_empty() %}<span class="muted">not recorded</span>{% else %}{{ c.collector_site }}{% endif %}</td>
+  <td>{{ c.family }}</td>
+  <td>{{ c.peers }}</td>
+  <td>{{ c.changed_prefixes }}</td>
+  <td>{{ c.baseline_visible_prefixes }}</td>
+  <td>{{ c.first_change_utc }}</td>
+  <td>{{ c.restoration_utc }}</td>
+  <td>{{ c.summary }}</td>
 </tr>
 {% endfor %}
 </tbody>
 </table>
+
 <h4>Cross-observer statements</h4>
 <table>
 <thead><tr><th>Prefix</th><th>Visible at</th><th>Changed at</th><th>Statement</th><th>Timing detail</th></tr></thead>
@@ -267,6 +300,39 @@
 {% endfor %}
 </tbody>
 </table>
+
+<details>
+<summary>Complete prefix × observer evidence ({{ observer_comparison.groups.len() }} collector groups, {{ observer_comparison.rows.len() }} peer rows)</summary>
+<p class="muted">Each run keeps its own evidence; rows are grouped per prefix per
+collector with peer-level detail beneath. Agreement across collectors is not
+global proof.</p>
+<table>
+<thead><tr><th>Prefix</th><th>Collector</th><th>Collector site</th><th>Family</th><th>Plane</th><th>Cohort predicate</th><th>First change (UTC)</th><th>Temporary absence</th><th>Path replacement</th><th>Transit departure</th><th>Restoration (UTC)</th><th>Baseline visibility</th></tr></thead>
+<tbody>
+{% for g in observer_comparison.groups %}
+<tr>
+  <td rowspan="{{ g.peers.len() }}"><code>{{ g.prefix }}</code></td>
+  <td rowspan="{{ g.peers.len() }}">{{ g.collector }}</td>
+  <td rowspan="{{ g.peers.len() }}">{% if g.collector_site.is_empty() %}<span class="muted">not recorded</span>{% else %}{{ g.collector_site }}{% endif %}</td>
+  <td rowspan="{{ g.peers.len() }}">{{ g.family }}</td>
+  <td rowspan="{{ g.peers.len() }}">{{ g.plane }}</td>
+  <td rowspan="{{ g.peers.len() }}">{{ g.cohort_predicate }}</td>
+  <td rowspan="{{ g.peers.len() }}">{{ g.first_change_utc }}</td>
+  <td rowspan="{{ g.peers.len() }}">{{ g.temporary_absence }}</td>
+  <td rowspan="{{ g.peers.len() }}">{{ g.path_replacement }}</td>
+  <td rowspan="{{ g.peers.len() }}">{{ g.transit_departure }}</td>
+  <td rowspan="{{ g.peers.len() }}">{{ g.restoration_utc }}</td>
+  <td rowspan="{{ g.peers.len() }}">{{ g.baseline_visibility }}</td>
+</tr>
+{% for p in g.peers %}
+<tr>
+  <td>peer {{ p.peer }}{% if !p.peer_asn.is_empty() %} (ASN {{ p.peer_asn }}){% endif %}{% if !p.first_change_utc.is_empty() %} · first change {{ p.first_change_utc }}{% endif %}{% if !p.temporary_absence.is_empty() %} · {{ p.temporary_absence }}{% endif %}{% if !p.restoration_utc.is_empty() %} · restored {{ p.restoration_utc }}{% endif %}</td>
+</tr>
+{% endfor %}
+{% endfor %}
+</tbody>
+</table>
+</details>
 {% endif %}
 
 <h3>Operator report vs public BGP (reviewed comparison)</h3>

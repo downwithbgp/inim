@@ -195,6 +195,7 @@ impl Verdict {
             "Less impact than expected" => Verdict::LessImpactThanExpected,
             "No route-state change observed" => Verdict::NoObservableBgpImpact,
             "Insufficient visibility" => Verdict::InsufficientVisibility,
+            "insufficient_visibility" => Verdict::InsufficientVisibility,
             "Indeterminate" => Verdict::Indeterminate,
             _ => return None,
         })
