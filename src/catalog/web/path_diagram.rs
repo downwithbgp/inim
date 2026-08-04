@@ -99,7 +99,7 @@ pub struct RelationshipView {
     pub note: String,
 }
 
-/// Compact consecutive-run representation: `[11537, 20965, 2603]` stays
+/// Compact consecutive-run representation: `[64500, 64501]` stays
 /// as-is; `[24489, 24489, 24489, 24489]` becomes one node with
 /// `repeat = 4`. Order is preserved.
 pub fn compact_segments(asns: &[u32]) -> Vec<(u32, u32)> {

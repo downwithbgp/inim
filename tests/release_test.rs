@@ -346,6 +346,7 @@ fn production_source_contains_no_internet2_specific_plane_branch() {
         "src/assess.rs",
         "src/catalog/batch.rs",
         "src/catalog/target_research.rs",
+        "src/catalog/web/fabric_path_tests.rs",
         "src/cohort.rs",
         "src/compare.rs",
         "src/derived_cache.rs",
