@@ -215,7 +215,7 @@ The following lists are compared with `git ls-files` by
 must be classified in a table above (or in `repository-inventory.json`
 for non-documentation files).
 
-### Tracked Markdown files (89, excluding `spec/`)
+### Tracked Markdown files (96, excluding `spec/`)
 
 ```
 .github/PULL_REQUEST_TEMPLATE.md
@@ -244,9 +244,15 @@ docs/ADRs/MONOCLE-DATAPLANE.md
 docs/ADRs/README.md
 docs/ADRs/RIPE-RIS-SUPPORT.md
 docs/BENCHMARK.md
+docs/computational-model.md
 docs/DATA_PROVENANCE.md
 docs/DECISIONS.md
 docs/DESIGN.md
+docs/design/algorithms.md
+docs/design/algorithm-data-matrix.md
+docs/design/data-structures.md
+docs/design/invariants.md
+docs/design/state-machines.md
 docs/DOMAIN.md
 docs/GLOSSARY.md
 docs/MONOCLE_EVALUATION.md
@@ -279,6 +285,7 @@ docs/audits/2026-08-repository-truth-audit.md
 docs/audits/2026-08-second-network-neutrality.md
 docs/audits/2026-08-smithville-source-refresh.md
 docs/audits/2026-08-specification-coverage.md
+docs/audits/2026-08-wirthian-design-recovery.md
 docs/audits/README.md
 docs/audits/external-links-2026-08.md
 docs/evaluation/ALPHA-FREEZE.md
@@ -315,7 +322,7 @@ tests/fixtures/README.md
 
 
 
-### Tracked files under `docs/` (69)
+### Tracked files under `docs/` (76)
 
 ```
 docs/ADRs/CASE-STUDY-LAYER.md
@@ -325,9 +332,15 @@ docs/ADRs/MONOCLE-DATAPLANE.md
 docs/ADRs/README.md
 docs/ADRs/RIPE-RIS-SUPPORT.md
 docs/BENCHMARK.md
+docs/computational-model.md
 docs/DATA_PROVENANCE.md
 docs/DECISIONS.md
 docs/DESIGN.md
+docs/design/algorithms.md
+docs/design/algorithm-data-matrix.md
+docs/design/data-structures.md
+docs/design/invariants.md
+docs/design/state-machines.md
 docs/DOMAIN.md
 docs/GLOSSARY.md
 docs/MONOCLE_EVALUATION.md
@@ -360,6 +373,7 @@ docs/audits/2026-08-repository-truth-audit.md
 docs/audits/2026-08-second-network-neutrality.md
 docs/audits/2026-08-smithville-source-refresh.md
 docs/audits/2026-08-specification-coverage.md
+docs/audits/2026-08-wirthian-design-recovery.md
 docs/audits/README.md
 docs/audits/external-links-2026-08.md
 docs/audits/repository-inventory.json

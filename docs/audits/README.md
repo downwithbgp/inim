@@ -32,6 +32,7 @@ header say so.
 | `2026-08-documentation-inventory.md` | 2026-08 | documentation-surface inventory | `91ac498` | checked lists (drift-guarded) | — |
 | `2026-08-specification-coverage.md` | 2026-08 | specification coverage matrix | `91ac498` | navigation aid; not normative | — |
 | `2026-08-documentation-spec-conformance.md` | 2026-08 | final documentation conformance audit | `91ac498` | this session's audit | — |
+| `2026-08-wirthian-design-recovery.md` | 2026-08 | as-built computational-model recovery (reconstruction/falsification/synthesis) | `92f83d8` | current normative model in `docs/computational-model.md` + `docs/design/` | — |
 
 ## Rules
 

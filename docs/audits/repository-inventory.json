@@ -3702,5 +3702,61 @@
   "authoritative": "reviewed",
   "generated": false,
   "current": false
+ },
+ {
+  "path": "docs/computational-model.md",
+  "category": "Normative current documentation",
+  "audience": "contributors and maintainers",
+  "authoritative": "implementation + canonical evidence (see docs/README authority map)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "docs/design/algorithms.md",
+  "category": "Normative current documentation",
+  "audience": "contributors and maintainers",
+  "authoritative": "implementation + canonical evidence (session 56 design recovery)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "docs/design/algorithm-data-matrix.md",
+  "category": "Normative current documentation",
+  "audience": "contributors and maintainers",
+  "authoritative": "implementation + canonical evidence (session 56 design recovery)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "docs/design/data-structures.md",
+  "category": "Normative current documentation",
+  "audience": "contributors and maintainers",
+  "authoritative": "implementation + canonical evidence (session 56 design recovery)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "docs/design/invariants.md",
+  "category": "Normative current documentation",
+  "audience": "contributors and maintainers",
+  "authoritative": "implementation + canonical evidence (session 56 design recovery)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "docs/design/state-machines.md",
+  "category": "Normative current documentation",
+  "audience": "contributors and maintainers",
+  "authoritative": "implementation + canonical evidence (session 56 design recovery)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "docs/audits/2026-08-wirthian-design-recovery.md",
+  "category": "Historical decision record",
+  "audience": "maintainers",
+  "authoritative": "dated audit",
+  "generated": false,
+  "current": false
  }
 ]

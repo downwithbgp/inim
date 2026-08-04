@@ -62,6 +62,8 @@ follow-up ADRs.
 | Analysis artifact reference | `docs/reference/ARTIFACTS.md` |
 | Schema/version matrix | `docs/reference/SCHEMA-VERSIONS.md` |
 | Performance measurements | `docs/BENCHMARK.md` |
+| As-built computational model (program equation, inputs, effects) | `docs/computational-model.md` |
+| Design recovery: data structures, algorithms, invariants, state machines, matrix | `docs/design/` |
 | Data sources: GRNOC, RouteViews, RIPE RIS | `docs/sources/` |
 | Terminology (normative definitions) | `docs/GLOSSARY.md` |
 | Case studies | `case-studies/` (per-case README files) |
