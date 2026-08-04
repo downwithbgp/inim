@@ -190,3 +190,32 @@ factual progress, recent events, worker heartbeat, cancellation and
 retry controls (write mode only), and the completed-run link. No
 verbose parser logs on the first screen; execution details are
 collapsed.
+
+## AS-path and fabric diagrams (2026-08)
+
+Case-study and run pages may render server-rendered SVG diagrams using
+a familiar operational visual grammar (compact square-cornered ASN
+nodes, monospaced ASN text, a short reviewed organization label,
+directional or near-orthogonal edges, restrained grouping, strong
+target highlight). The grammar is inspired by common AS-path tooling;
+exact colors, layout, and product details are never copied.
+
+Evidence semantics are encoded visually and repeated in text:
+
+- **solid arrow** — observed AS-path order at one public observer;
+- **dashed edge** — reviewed relationship or predicate not observed in
+  the selected evidence;
+- **grey undirected line** — reviewed Layer-2 attachment context (never
+  a BGP adjacency claim).
+
+Rules: arrow direction is never described as provider/customer/peer
+without separate reviewed evidence; a Layer-2 fabric is never drawn as
+an ASN node; a withdrawn route is an absence block, never an arrow to
+a "withdrawn" node; repeated prepends render compactly (AS24489 ×4)
+with the full sequence in the text equivalent; node position and
+organization category never imply a relationship class; the diagram
+states that it shows what one public BGP observer received, not a
+complete topology map. All diagrams have a textual equivalent, an SVG
+title and description, no color-only meaning, keyboard-accessible
+links, bounded horizontal scrolling on mobile, and remain legible when
+printed. No animation and no zoom/pan controls.

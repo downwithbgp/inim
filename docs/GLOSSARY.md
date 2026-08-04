@@ -213,3 +213,29 @@ the source retrieval timestamp or another reviewed time); the result
 is Provisional and states "observed through cutoff". A later source
 refresh creates a new snapshot, plan revision, job, and run; the
 provisional run is never mutated.
+
+## Interconnection context and observed AS paths
+
+- **Layer-2 fabric context** — reviewed physical / Layer-2
+  participation context of an incident (for example an exchange
+  fabric). A fabric for the purposes of a case study has no ASN, does
+  not speak BGP, does not originate routes, and does not appear as an
+  AS-path hop. Fabric context is reviewed interpretation; it is
+  presentation and case-study metadata, never protocol evidence.
+- **Attached network** — an organization / network with a reviewed
+  Layer-2 attachment to the fabric. An attachment is reviewed physical
+  or Layer-2 participation context; it does **not** prove BGP
+  adjacency, exported route visibility, a commercial relationship,
+  traffic flow, or active state during the event. Attachment is never
+  rendered as a directional BGP edge.
+- **Observed AS-path diagram** — a presentation of an observed AS path
+  at one public observer, rendered from canonical route evidence. A
+  solid arrow is observed AS-path order; arrow direction never labels
+  provider/customer/peer semantics unless separate reviewed
+  relationship evidence supports that exact label. The diagram is a
+  single-observer observation, not a topology map.
+- **Reviewed unobserved relationship** — a reviewed relationship or
+  predicate (for example an adjacency) that the selected evidence did
+  not expose. It is rendered with a dashed edge and stated as "not
+  observed in the selected public baselines" — never as "the
+  relationship does not exist".

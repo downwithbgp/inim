@@ -132,3 +132,21 @@ occur.
 4. Update the pilot registry
    (`docs/evaluation/PILOT-REGISTRY.md`).
 5. Do not implement feedback immediately without triage.
+
+## Layer-2 fabric terminology (2026-08)
+
+When an evaluator works the NORDUnet scenario, the facilitator holds
+these reviewed truths and may clarify them without leading answers:
+
+- MAN LAN is **Layer-2 fabric context**: it has no ASN for the case
+  study, does not speak BGP, does not originate routes, and does not
+  appear as an AS-path hop.
+- **NORDUnet AS2603** is the analyzed BGP target — one attached
+  network. The completed pilot is NORDUnet-target-scoped public-BGP
+  analysis during the operator-reported Layer-2 incident; it is not
+  MAN LAN BGP analysis and not a complete analysis of all connectors.
+- Observed AS paths in the diagrams are **public-collector evidence**
+  (what one observer received), never switch-fabric state.
+- **Layer-2 attachment and AS-path adjacency are different evidence
+  classes**: attachment does not prove BGP adjacency, route export, a
+  commercial relationship, traffic flow, or active state.
