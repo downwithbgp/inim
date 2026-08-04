@@ -15,9 +15,11 @@ labeled provisional.
   reported unavailable.
 - **Ticket horizon:** work_start 2026-07-28T04:35:26Z; source state In
   Progress; no published end (open event).
-- **Analysis horizon:** 2026-07-28T04:35:26Z through the reviewed
-  snapshot cutoff 2026-08-04T00:01:37Z (the exact source refresh
-  retrieval, reviewed). Result is Provisional.
+- **Analysis horizon:** the reviewed event window from
+  2026-07-28T04:35:00Z (reviewed window start; the source work_start is
+  04:35:26Z) through the reviewed snapshot cutoff 2026-08-04T00:01:37Z
+  (the exact source refresh retrieval, reviewed). Result is
+  Provisional.
 
 ## Reviewed identities
 
