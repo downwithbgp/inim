@@ -934,12 +934,12 @@ def check_job_state_docs() -> list[str]:
         problems.append("job state check: JobState enum not found")
         return problems
     variants = re.findall(r"^\s{4}([A-Za-z]+),", m.group(1), re.M)
-    docs = "\n".join(
-        (ROOT / "docs/GLOSSARY.md").read_text(errors="replace")
-        + (ROOT / "docs/OPERATIONS.md").read_text(errors="replace")
-        + (ROOT / "docs/reference/CLI.md").read_text(errors="replace")
-        + (ROOT / "docs/reference/API.md").read_text(errors="replace")
-    )
+    docs = "\n".join([
+        (ROOT / "docs/GLOSSARY.md").read_text(errors="replace"),
+        (ROOT / "docs/OPERATIONS.md").read_text(errors="replace"),
+        (ROOT / "docs/reference/CLI.md").read_text(errors="replace"),
+        (ROOT / "docs/reference/API.md").read_text(errors="replace"),
+    ])
     for v in variants:
         if v not in docs:
             problems.append(f"job state docs: variant {v} not documented in GLOSSARY/OPERATIONS/CLI/API")
