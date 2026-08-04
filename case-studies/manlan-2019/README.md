@@ -16,6 +16,36 @@ created metadata-only, and the file was attached in a later local import
 repository** and must not enter the crate package until redistribution
 rights are explicitly established.
 
+## Layer-2 fabric semantics (2026-08-04 correction)
+
+MAN LAN is a **Layer-2 exchange/fabric** operated by Internet2 for
+research-and-education interconnection. For the purposes of this case
+study:
+
+- MAN LAN has **no ASN**;
+- MAN LAN does **not** speak BGP, does not originate routes, and does
+  **not** appear as an AS-path hop;
+- MAN LAN facilitates Layer-2 connectivity among attached networks
+  (reviewed attachments are listed in `case-study.json` →
+  `interconnection_context`, with ASN labels only where the reviewed
+  target research establishes them for 2019-08-21);
+- **Layer-2 attachment is not BGP adjacency**: an attached network may
+  or may not have exchanged routes directly with other attachments;
+- public BGP observes **exported route consequences** at public
+  collectors, never switch-fabric state.
+
+The completed historical pilot is a **NORDUnet (AS2603) target-scoped
+BGP analysis** of route observations during the operator-reported
+Layer-2 incident. It is not MAN LAN BGP analysis, not a MAN LAN
+routing-plane analysis, not evidence that MAN LAN announced or
+withdrew routes, not a complete analysis of all connectors, and not
+evidence that every attached network shared the same BGP topology.
+
+Where reviewed records say "MAN LAN attachment predicate", read it as
+the reviewed **proxy** for Internet2 R&E-plane transit presence
+(AS11537-in-path) in NORDUnet paths — a modeling convenience, never a
+MAN LAN ASN.
+
 ## What this directory contains
 
 `case-study.json` — the single canonical reviewed data file (schema v1):

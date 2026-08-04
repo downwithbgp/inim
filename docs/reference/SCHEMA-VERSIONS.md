@@ -11,7 +11,7 @@ version for them.
 
 | Format | Current version | Implementation authority | Compatibility policy | Producer | Consumer | Tracked examples | Generated or authored |
 |---|---|---|---|---|---|---|---|
-| Catalog database | v10 | `src/catalog/migrations.rs` (`CATALOG_SCHEMA_VERSION`) | ordered migrations; future schema rejected at open | `catalog init`, `demo init` | web, CLI, worker | none (runtime) | generated at runtime |
+| Catalog database | v11 | `src/catalog/migrations.rs` (`CATALOG_SCHEMA_VERSION`) | ordered migrations; future schema rejected at open | `catalog init`, `demo init` | web, CLI, worker | none (runtime) | generated at runtime |
 | Manifest (analysis plan input) | v2 | `src/schema.rs` (`MANIFEST_SCHEMA_VERSION`) | v1 rejected with `LegacyManifestRequiresMigration`; offline `migrate-manifest` | authored | `plan`, `analyze`, catalog import | `manifests/*.json` | authored |
 | RIB derived cache | v2 | `src/schema.rs` (`RIB_CACHE_SCHEMA_VERSION`) | mismatch → invalidated and rebuilt atomically | orchestrator | preflight/execution | none (runtime) | generated at runtime |
 | UPDATE derived cache | v2 | `src/schema.rs` (`UPDATE_CACHE_SCHEMA_VERSION`) | mismatch → invalidated and rebuilt atomically | orchestrator | execution | none (runtime) | generated at runtime |

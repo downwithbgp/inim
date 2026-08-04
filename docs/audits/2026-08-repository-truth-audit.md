@@ -24,12 +24,12 @@ This audit verifies that every tracked file is classified, that every current st
 
 ## Summary
 
-Tracked files: **457** · inventory entries: **457**
+Tracked files: **459** · inventory entries: **459**
 
 | Category | Files |
 |---|---|
 | Immutable or generated evidence | 148 |
-| Production source | 104 |
+| Production source | 106 |
 | Normative current documentation | 42 |
 | Historical decision record | 40 |
 | Reviewed case-study interpretation | 28 |
@@ -403,10 +403,12 @@ Tracked files: **457** · inventory entries: **457**
 | `src/catalog/target_research.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed in this audit |
 | `src/catalog/tests.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed in this audit |
 | `src/catalog/web/api.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed in this audit |
+| `src/catalog/web/fabric_path_tests.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed in this audit |
 | `src/catalog/web/handlers.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed in this audit |
 | `src/catalog/web/job_handlers.rs` | Production source | developers | implementation | no | current | implementation comments audited in this audit | none | reviewed in this audit |
 | `src/catalog/web/jobs_view.rs` | Production source | developers | implementation | no | current | implementation comments audited in this audit | none | reviewed in this audit |
 | `src/catalog/web/mod.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed in this audit |
+| `src/catalog/web/path_diagram.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed in this audit |
 | `src/catalog/web/server.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed in this audit |
 | `src/catalog/web/session_context.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed in this audit |
 | `src/catalog/web/templates/analysis.html` | Template or stylesheet | operators (NOC analysts) | workbench view model + domain model | no | current | user-visible text audited in this audit | none | reviewed in this audit |

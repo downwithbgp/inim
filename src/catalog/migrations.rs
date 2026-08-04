@@ -5,10 +5,10 @@
 //! reopened database at the current version is a no-op.
 
 /// Current catalog schema version.
-pub const CATALOG_SCHEMA_VERSION: u32 = 10;
+pub const CATALOG_SCHEMA_VERSION: u32 = 11;
 
 /// Ordered migrations. Index i migrates user_version i -> i+1.
-pub const MIGRATIONS: &[&str] = &[V1, V2, V3, V4, V5, V6, V7, V8, V9, V10];
+pub const MIGRATIONS: &[&str] = &[V1, V2, V3, V4, V5, V6, V7, V8, V9, V10, V11];
 
 const V1: &str = r#"
 CREATE TABLE catalog_events (
@@ -544,4 +544,16 @@ CREATE TABLE worker_heartbeats (
     offline_mode    INTEGER NOT NULL
 );
 CREATE INDEX idx_worker_heartbeat ON worker_heartbeats(last_heartbeat);
+"#;
+
+/// V11 — reviewed interconnection context on case studies.
+///
+/// `interconnection_context` is an optional reviewed-presentation JSON
+/// document describing the Layer-2 / interconnection context an
+/// operator-reported incident took place in (for example an exchange
+/// fabric). It is reviewed interpretation: it names attachments and
+/// their reviewed ASN labels where established, and it never becomes
+/// protocol evidence in analysis (attachment is not BGP adjacency).
+const V11: &str = r#"
+ALTER TABLE case_studies ADD COLUMN interconnection_context TEXT;
 "#;

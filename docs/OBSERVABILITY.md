@@ -87,10 +87,15 @@ missed detection; `no BGP change does not refute a Layer-2 incident`, and
 
 ## Historical predicate validation
 
-A MAN LAN attachment predicate is a **candidate** until validated by
+A candidate path predicate for the reviewed Internet2 transit presence in
+NORDUnet paths (ContainsAny[11537]) is **candidate** until validated by
 contemporaneous observation: the 2019-08-21 RouteViews RIB (Stage A
 preflight) confirmed ContainsAny[11537] for AS2603 (33 streams), so the
-pilot predicate is reviewed-by-observation rather than assumed. A
+pilot predicate is reviewed-by-observation rather than assumed. The
+predicate is a proxy for the reviewed R&E-plane transit presence in the
+NORDUnet (AS2603) target's paths; it never represents MAN LAN itself
+(MAN LAN is a Layer-2 exchange fabric with no ASN for the case study,
+and does not appear as an AS-path hop). A
 NotDirectlyVisible condition stays NotDirectlyObservable even when a pilot
 run exists; a narrow pilot's absence of observations never refutes
 non-BGP-visible conditions, and never extends beyond its own window.

@@ -180,7 +180,7 @@ pub async fn api_case_study(
     AxumPath(slug): AxumPath<String>,
 ) -> Response {
     let db = state.db.lock().unwrap();
-    match super::view::load_case_study(&db, &slug) {
+    match super::view::load_case_study(&db, &slug, &state.catalog_root) {
         Ok(Some(v)) => envelope(serde_json::json!({
             "slug": v.slug,
             "title": v.title,
@@ -229,6 +229,25 @@ pub async fn api_case_study(
                 "not_directly_visible": v.observability_not_directly_visible,
                 "unknown": v.observability_unknown,
             },
+            "interconnection_context": v.interconnection.as_ref().map(|ic| serde_json::json!({
+                "kind": ic.kind,
+                "label": ic.label,
+                "attachments": ic.attachments.iter().map(|a| serde_json::json!({
+                    "label": a.label, "note": a.note, "asn": a.asn_text,
+                })).collect::<Vec<_>>(),
+                "limitations": ic.limitations,
+            })),
+            "path_comparison": v.path_comparison.as_ref().map(|pc| serde_json::json!({
+                "observer": pc.observer,
+                "prefix": pc.prefix,
+                "run_id": pc.run_id,
+                "states": pc.states.iter().map(|s| serde_json::json!({
+                    "label": s.label,
+                    "timestamp": s.timestamp,
+                    "path": s.path.as_ref().map(|p| p.text_sequence()),
+                    "observation_kind": s.path.as_ref().map(|p| p.observation_kind.clone()),
+                })).collect::<Vec<_>>(),
+            })),
         })),
         Ok(None) => super::handlers::json_error(StatusCode::NOT_FOUND, "case study not found"),
         Err(e) => super::handlers::json_error(StatusCode::INTERNAL_SERVER_ERROR, &e),
@@ -242,7 +261,7 @@ pub async fn api_case_study_timeline(
     AxumPath(slug): AxumPath<String>,
 ) -> Response {
     let db = state.db.lock().unwrap();
-    match super::view::load_case_study(&db, &slug) {
+    match super::view::load_case_study(&db, &slug, &state.catalog_root) {
         Ok(Some(v)) => envelope(serde_json::json!({
             "slug": v.slug,
             "phases": v.phases.iter().map(|p| serde_json::json!({
@@ -272,7 +291,7 @@ pub async fn api_case_study_comparison(
     AxumPath(slug): AxumPath<String>,
 ) -> Response {
     let db = state.db.lock().unwrap();
-    match super::view::load_case_study(&db, &slug) {
+    match super::view::load_case_study(&db, &slug, &state.catalog_root) {
         Ok(Some(v)) => envelope(serde_json::json!({
             "slug": v.slug,
             "rows": v.comparison.iter().map(|c| serde_json::json!({

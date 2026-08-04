@@ -435,7 +435,7 @@ async fn linked_reviewed_target_overrides_unresearched_aar_placeholder() {
         "analyzed target names the reviewed target: {segment}"
     );
     // The mentioned-participants table no longer lists the analyzed target.
-    let mentioned = body.find("Other operator-reported participants").unwrap();
+    let mentioned = body.find("operator-reported").unwrap();
     let segment = &body[mentioned..mentioned + 1200];
     assert!(
         !segment.to_lowercase().contains("nordunet"),
@@ -451,7 +451,7 @@ async fn unreviewed_aar_participant_remains_unreviewed() {
     let (dbdir, rootdir) = setup_demo_catalog();
     let app = build_app(state_from(&dbdir, &rootdir));
     let (_, body) = get(&app, "/case-studies/manlan-2019").await;
-    let mentioned = body.find("Other operator-reported participants").unwrap();
+    let mentioned = body.find("operator-reported").unwrap();
     let segment = &body[mentioned..mentioned + 2000];
     assert!(
         segment.to_lowercase().contains("canarie"),

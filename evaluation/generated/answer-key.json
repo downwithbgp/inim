@@ -25,6 +25,13 @@
     "the exact-baseline restoration timestamps per prefix (lifecycle.json)",
     "the RRC15 cooldown transitions (report.json transitions.cooldown = 11)"
    ],
+   "incident_context": {
+    "attachment_vs_adjacency": "Layer-2 attachment and AS-path adjacency are different evidence classes: attachment does not prove BGP adjacency, route export, a commercial relationship, traffic flow, or active state during the event.",
+    "path_evidence": "observed AS paths are public-collector evidence (route-views2 peer 64.57.28.241 and RIS observers); they show what the collector received, never switch-fabric state.",
+    "reference": "case-studies/manlan-2019/case-study.json",
+    "target": "NORDUnet AS2603 is the analyzed BGP target (one attached network); the completed pilot is NORDUnet-target-scoped, not MAN LAN BGP analysis.",
+    "text": "MAN LAN is a Layer-2 exchange/fabric: it has no ASN for this case study, does not speak BGP, does not originate routes, and does not appear as an AS-path hop."
+   },
    "likely_confusions": [
     "exact baseline returned (17:02:03Z) versus final route state",
     "one observer's result (route-views2) versus all observers",

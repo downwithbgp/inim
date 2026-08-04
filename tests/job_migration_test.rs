@@ -13,40 +13,22 @@ fn open_temp_db() -> (tempfile::TempDir, rusqlite::Connection) {
 /// Build a database at exactly the previous schema version (v9) by
 /// applying the first nine migrations and recording the version.
 fn open_v9_db() -> (tempfile::TempDir, rusqlite::Connection) {
-    let (dir, conn) = open_temp_db();
-    let conn = conn;
-    let v9 = (CATALOG_SCHEMA_VERSION - 1) as usize;
-    // Fresh DBs already migrated to the current version; rebuild at v9.
-    conn.execute_batch("DROP TABLE IF EXISTS worker_heartbeats")
-        .ok();
-    conn.execute_batch("DROP TABLE IF EXISTS analysis_job_events")
-        .ok();
-    conn.execute_batch("DROP TABLE IF EXISTS analysis_jobs")
-        .ok();
-    conn.execute_batch(&format!("PRAGMA user_version = {}", v9))
-        .unwrap();
+    // Build a schema-v9 database directly from the migration slice.
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("catalog.sqlite");
+    let conn = rusqlite::Connection::open(&path).unwrap();
+    conn.execute_batch("PRAGMA foreign_keys = ON;").unwrap();
+    for m in &MIGRATIONS[..9] {
+        conn.execute_batch(m).unwrap();
+    }
+    conn.execute_batch("PRAGMA user_version = 9").unwrap();
     (dir, conn)
 }
 
 #[test]
 fn empty_v9_database_migrates_to_v10() {
-    let (dir, conn) = open_temp_db();
-    // Strip the V10 tables to simulate a v9 database, then migrate.
-    conn.execute_batch("DROP TABLE IF EXISTS worker_heartbeats")
-        .ok();
-    conn.execute_batch("DROP TABLE IF EXISTS analysis_job_events")
-        .ok();
-    conn.execute_batch("DROP TABLE IF EXISTS analysis_jobs")
-        .ok();
-    conn.execute_batch(&format!(
-        "PRAGMA user_version = {}",
-        CATALOG_SCHEMA_VERSION - 1
-    ))
-    .unwrap();
-    assert_eq!(
-        db::current_version(&conn).unwrap(),
-        CATALOG_SCHEMA_VERSION - 1
-    );
+    let (dir, conn) = open_v9_db();
+    assert_eq!(db::current_version(&conn).unwrap(), 9);
     db::migrate(&conn).unwrap();
     assert_eq!(db::current_version(&conn).unwrap(), CATALOG_SCHEMA_VERSION);
     let jobs: i64 = conn
@@ -71,6 +53,15 @@ fn empty_v9_database_migrates_to_v10() {
         )
         .unwrap();
     assert_eq!((jobs, events, hb), (1, 1, 1));
+    // V11 adds the reviewed interconnection-context column.
+    let ctx_col: i64 = conn
+        .query_row(
+            "SELECT COUNT(*) FROM pragma_table_info('case_studies') WHERE name = 'interconnection_context'",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap();
+    assert_eq!(ctx_col, 1);
     drop(dir);
 }
 
@@ -80,8 +71,8 @@ fn migration_batch_is_transactional() {
     // version bump. We simulate by running the migration SQL minus its
     // last statement inside a transaction and rolling back.
     let (dir, conn) = open_v9_db();
-    let v10 = MIGRATIONS.last().unwrap();
-    // Split off the final CREATE INDEX (worker heartbeat freshness).
+    let v10 = MIGRATIONS[MIGRATIONS.len() - 2]; // V10: the last table-creating migration
+                                                // Split off the final CREATE INDEX (worker heartbeat freshness).
     let idx = "CREATE INDEX idx_worker_heartbeat ON worker_heartbeats(last_heartbeat);";
     let partial = v10.replace(
         idx,
@@ -100,10 +91,7 @@ fn migration_batch_is_transactional() {
         )
         .unwrap();
     assert_eq!(jobs, 0, "partial migration must not leave tables behind");
-    assert_eq!(
-        db::current_version(&conn).unwrap(),
-        CATALOG_SCHEMA_VERSION - 1
-    );
+    assert_eq!(db::current_version(&conn).unwrap(), 9);
     drop(dir);
 }
 
@@ -376,7 +364,10 @@ fn open_v9_db_with_data() -> (tempfile::TempDir, rusqlite::Connection) {
 fn v9_to_v10_preserves_catalog_events() {
     let (dir, conn) = open_v9_db_with_data();
     inim::catalog::db::migrate(&conn).unwrap();
-    assert_eq!(inim::catalog::db::current_version(&conn).unwrap(), 10);
+    assert_eq!(
+        inim::catalog::db::current_version(&conn).unwrap(),
+        CATALOG_SCHEMA_VERSION
+    );
     let n: i64 = conn
         .query_row("SELECT COUNT(*) FROM catalog_events", [], |r| r.get(0))
         .unwrap();
@@ -477,7 +468,10 @@ fn migration_is_idempotent_at_v10() {
         .query_row("SELECT COUNT(*) FROM catalog_events", [], |r| r.get(0))
         .unwrap();
     assert_eq!(before, after);
-    assert_eq!(inim::catalog::db::current_version(&conn).unwrap(), 10);
+    assert_eq!(
+        inim::catalog::db::current_version(&conn).unwrap(),
+        CATALOG_SCHEMA_VERSION
+    );
     drop(dir);
 }
 

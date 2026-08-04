@@ -198,6 +198,38 @@ a:focus-visible, button:focus-visible, summary:focus-visible { outline: 2px soli
 /* ── Narrow / mobile (Part 12): stacked header, scrollable tables,
    definition-list episode rows. Text never shrinks below readable size;
    timestamps, ASNs, and prefixes never break. */
+/* Path diagrams (server-rendered SVG; evidence-semantic legend) */
+.pd-svg { width:100%; height:auto; display:block; background:#fff; border:1px solid var(--line); margin:10px 0; border-radius:4px; }
+.pd-node rect { fill:#fff; stroke:var(--ink); stroke-width:1.2; }
+.pd-node-origin rect { fill:#eef3fb; stroke:var(--ink); stroke-width:2.4; }
+.pd-node-plane rect { fill:#eef6ee; }
+.pd-node-unknown rect { stroke-dasharray:3 2; }
+.pd-node-changed rect { fill:#fdf3e3; }
+.pd-asn { font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:13px; font-weight:700; fill:var(--ink); }
+.pd-name { font-size:10px; fill:var(--muted); }
+.pd-edge { stroke:var(--ink); stroke-width:1.6; }
+.pd-arrow-head { fill:var(--ink); }
+.pd-edge-dashed { stroke:#8a5a00; stroke-width:1.6; stroke-dasharray:6 4; }
+.pd-absence { fill:#fafafa; stroke:#c0392b; stroke-width:1.4; stroke-dasharray:5 3; }
+.pd-absence-text { font-size:13px; fill:#8a2b1d; }
+.pd-caption { font-size:10px; fill:var(--muted); }
+.pd-state-label { font-size:12px; font-weight:600; fill:var(--ink); }
+.pd-state-time { font-size:10px; fill:var(--muted); }
+.pd-fabric { fill:#f3efe4; stroke:#8a7a4a; stroke-width:1.6; }
+.pd-fabric-title { font-size:14px; font-weight:700; fill:var(--ink); }
+.pd-fabric-sub { font-size:10px; fill:#8a7a4a; }
+.pd-attach { stroke:#9a9a9a; stroke-width:1.4; }
+.pd-attach-node rect { fill:#fff; stroke:#9a9a9a; stroke-width:1.2; }
+.pd-attach-asn { font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; font-size:12px; font-weight:700; fill:var(--ink); }
+.pd-attach-name { font-size:10px; fill:var(--muted); }
+.pd-legend { list-style:none; display:flex; flex-wrap:wrap; gap:0 1.6rem; padding:0; margin:0.4rem 0 0.6rem; }
+.pd-legend li { display:flex; align-items:center; gap:0.45rem; font-size:12px; }
+.pd-legend-swatch { width:28px; border-top:2.5px solid var(--ink); }
+.pd-legend-swatch.dashed { border-top-style:dashed; border-color:#8a5a00; }
+.pd-legend-swatch.attach { border-top-color:#9a9a9a; }
+.pd-scroll { overflow-x:auto; }
+@media print { .pd-svg { border:none; } }
+
 @media (max-width: 640px) {
   body { font-size: 13px; }
   main { padding: 0.5rem 8px 1.5rem; }
@@ -414,6 +446,13 @@ pub struct InsufficientVisibilityView {
     /// Reviewed manifest notes (analyst_notes), quoted as reviewed
     /// determination rather than machine-discovered fact.
     pub reviewed_notes: Vec<String>,
+    /// Dashed reviewed-relationship SVG (sought, not observed).
+    pub relationship_svg: String,
+    /// Reviewed note on the relationship's observed status.
+    pub relationship_note: String,
+    /// Observed-path area: absence text when no selected route was
+    /// visible (zero qualifying streams), empty when streams exist.
+    pub observed_paths_text: String,
 }
 
 #[derive(Template)]
@@ -1380,6 +1419,43 @@ fn build_insufficiency_view(
     let qualifying_streams = stream_count(conn, run.id)?;
     let relationship_matches = relationship_match_count(conn, run.id)?;
 
+    // Reviewed relationship sought vs observed evidence: the reviewed
+    // adjacency is rendered dashed (sought, not observed in selected
+    // baselines); observed target-origin paths would render solid. With
+    // zero qualifying streams the observed area is an explicit absence
+    // block — never an empty diagram and never a no-change claim.
+    let predicate_asns: Vec<u32> = target
+        .get("transit_predicate")
+        .and_then(|p| p.get("predicate"))
+        .and_then(|p| p.as_object())
+        .map(|obj| {
+            obj.values()
+                .filter_map(|v| v.as_array())
+                .flatten()
+                .filter_map(|n| n.as_u64().map(|n| n as u32))
+                .collect()
+        })
+        .unwrap_or_default();
+    let relationship_note = String::from("no selected public baseline exposed that relationship");
+    let relationship_svg = if predicate_asns.len() >= 2 {
+        crate::catalog::web::path_diagram::render_relationship_svg(
+            &crate::catalog::web::path_diagram::RelationshipView {
+                label: predicate_text.clone(),
+                asns: predicate_asns,
+                observed: false,
+                note: relationship_note.clone(),
+            },
+        )
+    } else {
+        String::new()
+    };
+    let observed_paths_text = if qualifying_streams == 0 {
+        String::from(
+            "No selected route visible at this observer — zero qualifying observer-prefix streams were frozen.",
+        )
+    } else {
+        String::new()
+    };
     Ok(Some(InsufficientVisibilityView {
         relationship_label: label,
         predicate_text,
@@ -1393,6 +1469,9 @@ fn build_insufficiency_view(
         collectors,
         updates_acquired,
         reviewed_notes,
+        relationship_svg,
+        relationship_note,
+        observed_paths_text,
     }))
 }
 
@@ -1815,6 +1894,59 @@ pub struct CaseStudyView {
     pub public_tickets: Vec<PublicTicketView>,
     /// Cross-observer comparison over linked runs.
     pub observer_comparison: ObserverComparisonView,
+    /// Reviewed interconnection (Layer-2 fabric) context, when present.
+    pub interconnection: Option<InterconnectionContextView>,
+    /// First-screen incident context sentence.
+    pub incident_context: String,
+    /// First-screen completed-analysis sentence.
+    pub completed_analysis: String,
+    /// Explicit scope sentence for the first screen.
+    pub scope_text: String,
+    /// Representative observed-path comparison (when linked runs have
+    /// canonical lifecycle evidence).
+    pub path_comparison: Option<PathComparisonView>,
+    /// Heading for the unreviewed participants section.
+    pub participants_heading: String,
+}
+
+/// Reviewed Layer-2 / interconnection context of a case study
+/// (reviewed interpretation; attachment is not BGP adjacency).
+#[derive(Serialize)]
+pub struct InterconnectionContextView {
+    pub kind: String,
+    pub label: String,
+    pub attachments: Vec<AttachmentView>,
+    pub provenance: String,
+    pub limitations: Vec<String>,
+    pub fabric_svg: String,
+}
+
+#[derive(Serialize)]
+pub struct AttachmentView {
+    pub label: String,
+    pub note: String,
+    pub asn_text: String,
+}
+
+/// Representative observed-path comparison for a case-study page.
+#[derive(Serialize)]
+pub struct PathComparisonView {
+    pub observer: String,
+    pub prefix: String,
+    pub run_id: i64,
+    pub run_href: String,
+    pub states: Vec<crate::catalog::web::path_diagram::PathStateView>,
+    pub comparison_svg: String,
+    pub text_rows: Vec<PathStateTextView>,
+    pub disclaimer: String,
+}
+
+#[derive(Serialize)]
+pub struct PathStateTextView {
+    pub label: String,
+    pub timestamp: String,
+    pub path_text: String,
+    pub observation_kind: String,
 }
 
 /// A reviewed analyzed target: the reviewed target of one or more
@@ -2190,9 +2322,369 @@ fn observer_conclusion(
     }
 }
 
+/// Parse the reviewed interconnection context of a case study.
+fn interconnection_view(
+    cs: &crate::catalog::domain::CaseStudy,
+) -> Option<InterconnectionContextView> {
+    let json = cs.interconnection_context.as_ref()?;
+    let v: serde_json::Value = serde_json::from_str(json).ok()?;
+    let kind = v
+        .get("kind")
+        .and_then(|k| k.as_str())
+        .unwrap_or("")
+        .to_string();
+    let label = v
+        .get("label")
+        .and_then(|k| k.as_str())
+        .unwrap_or("")
+        .to_string();
+    let provenance = v
+        .get("provenance")
+        .and_then(|k| k.as_str())
+        .unwrap_or("")
+        .to_string();
+    let limitations: Vec<String> = v
+        .get("limitations")
+        .and_then(|l| l.as_array())
+        .map(|arr| {
+            arr.iter()
+                .filter_map(|l| l.as_str().map(|s| s.to_string()))
+                .collect()
+        })
+        .unwrap_or_default();
+    let attachments: Vec<AttachmentView> = v
+        .get("attachments")
+        .and_then(|a| a.as_array())
+        .map(|arr| {
+            arr.iter()
+                .filter_map(|a| {
+                    let label = a.get("label")?.as_str()?.to_string();
+                    let note = a
+                        .get("note")
+                        .and_then(|n| n.as_str())
+                        .unwrap_or("")
+                        .to_string();
+                    let asn_text = a
+                        .get("asn")
+                        .and_then(|n| n.as_u64())
+                        .map(|n| format!("AS{n}"))
+                        .unwrap_or_else(|| "no reviewed ASN".to_string());
+                    Some(AttachmentView {
+                        label,
+                        note,
+                        asn_text,
+                    })
+                })
+                .collect()
+        })
+        .unwrap_or_default();
+    let fabric = crate::catalog::web::path_diagram::FabricView {
+        label: label.clone(),
+        attachments: attachments
+            .iter()
+            .map(
+                |a| crate::catalog::web::path_diagram::FabricAttachmentView {
+                    label: a.label.clone(),
+                    note: a.note.clone(),
+                    asn: a
+                        .asn_text
+                        .strip_prefix("AS")
+                        .and_then(|n| n.parse::<u32>().ok()),
+                },
+            )
+            .collect(),
+        provenance: provenance.clone(),
+        limitations: limitations.clone(),
+    };
+    let fabric_svg = crate::catalog::web::path_diagram::render_fabric_svg(&fabric);
+    Some(InterconnectionContextView {
+        kind,
+        label,
+        attachments,
+        provenance,
+        limitations,
+        fabric_svg,
+    })
+}
+
+/// Manifest payload (target, origin, predicate) for a run.
+fn manifest_payload_for_run(conn: &rusqlite::Connection, run_id: i64) -> Option<serde_json::Value> {
+    let payload: Option<String> = conn
+        .query_row(
+            "SELECT m.payload
+             FROM analysis_runs r
+             JOIN analysis_plans p ON p.id = r.plan_id
+             JOIN manifest_revisions m ON m.id = p.manifest_revision_id
+             WHERE r.id = ?1",
+            [run_id],
+            |row| row.get(0),
+        )
+        .ok();
+    payload
+        .and_then(|s| serde_json::from_str(&s).ok())
+        .and_then(|v: serde_json::Value| v.get("target").cloned())
+}
+
+/// Plane ASNs from a reviewed `transit_predicate` object.
+fn plane_asns_from_predicate(target: &serde_json::Value) -> Vec<u32> {
+    target
+        .get("transit_predicate")
+        .and_then(|p| p.get("predicate"))
+        .and_then(|p| p.as_object())
+        .map(|obj| {
+            obj.values()
+                .filter_map(|v| v.as_array())
+                .flatten()
+                .filter_map(|n| n.as_u64().map(|n| n as u32))
+                .collect()
+        })
+        .unwrap_or_default()
+}
+
+/// Reviewed peer-IP → peer-ASN map from `session-audit*.json` files
+/// under the case-study pilot directory (generic discovery).
+fn peer_asns_for_case(
+    root: &std::path::Path,
+    slug: &str,
+) -> std::collections::BTreeMap<(String, String), u32> {
+    let mut out = std::collections::BTreeMap::new();
+    let pilot = root.join("case-studies").join(slug).join("pilot");
+    let Ok(entries) = std::fs::read_dir(&pilot) else {
+        return out;
+    };
+    for entry in entries.flatten() {
+        let name = entry.file_name().to_string_lossy().to_string();
+        if !name.starts_with("session-audit") || !name.ends_with(".json") {
+            continue;
+        }
+        let Ok(content) = std::fs::read_to_string(entry.path()) else {
+            continue;
+        };
+        let Ok(v) = serde_json::from_str::<serde_json::Value>(&content) else {
+            continue;
+        };
+        let arr = match v.as_array() {
+            Some(arr) => arr,
+            None => continue,
+        };
+        for row in arr {
+            let collector = row.get("collector").and_then(|c| c.as_str()).unwrap_or("");
+            let peer_ip = row.get("peer_ip").and_then(|c| c.as_str()).unwrap_or("");
+            let asn = row
+                .get("peer_asn")
+                .and_then(|c| c.as_u64())
+                .map(|n| n as u32);
+            if let (Some(asn), false) = (asn, collector.is_empty() || peer_ip.is_empty()) {
+                out.entry((collector.to_string(), peer_ip.to_string()))
+                    .or_insert(asn);
+            }
+        }
+    }
+    out
+}
+
+/// Representative observed-path comparison for a case study: the first
+/// direct-observation stream with an absence-and-return story across
+/// the linked runs, derived from canonical lifecycle artifacts.
+fn build_path_comparison(
+    conn: &rusqlite::Connection,
+    cs_id: i64,
+    slug: &str,
+    root: &std::path::Path,
+    names: &std::collections::BTreeMap<u32, String>,
+) -> Option<PathComparisonView> {
+    let run_ids: Vec<i64> = conn
+        .prepare(
+            "SELECT l.run_id FROM case_study_analysis_links l
+             WHERE l.case_study_id = ?1 ORDER BY l.run_id",
+        )
+        .ok()?
+        .query_map([cs_id], |r| r.get(0))
+        .ok()?
+        .filter_map(|r| r.ok())
+        .collect();
+    let peer_asns = peer_asns_for_case(root, slug);
+    let mut best: Option<(
+        i64,
+        String,
+        String,
+        Vec<crate::catalog::web::path_diagram::PathStateView>,
+    )> = None;
+    for run_id in run_ids {
+        let Some(target) = manifest_payload_for_run(conn, run_id) else {
+            continue;
+        };
+        let origin_asn = target
+            .get("origin_asns")
+            .and_then(|a| a.as_array())
+            .and_then(|a| a.first())
+            .and_then(|n| n.as_u64())
+            .map(|n| n as u32);
+        let plane_asns = plane_asns_from_predicate(&target);
+        let rel: String = conn
+            .query_row(
+                "SELECT relative_path FROM analysis_artifacts
+                 WHERE run_id = ?1 AND relative_path LIKE '%lifecycle.json'
+                 ORDER BY relative_path LIMIT 1",
+                [run_id],
+                |r| r.get(0),
+            )
+            .ok()
+            .unwrap_or_default();
+        if rel.is_empty() {
+            continue;
+        }
+        let Some(resolved) = crate::catalog::artifact_path::resolve_artifact(root, &rel) else {
+            continue;
+        };
+        let Ok(content) = std::fs::read_to_string(&resolved) else {
+            continue;
+        };
+        let Ok(evs) = crate::catalog::web::path_diagram::load_lifecycle_evidence(&content) else {
+            continue;
+        };
+        // Candidate streams: absence-and-return stories (Withdrawal with
+        // an empty after_path followed by a return).
+        let candidates: Vec<&crate::catalog::web::path_diagram::StreamPathEvidence> = evs
+            .iter()
+            .filter(|ev| {
+                ev.transitions
+                    .iter()
+                    .any(|t| t.kind == "Withdrawal" && t.after_path.is_empty())
+                    && ev
+                        .transitions
+                        .iter()
+                        .any(|t| t.kind != "Withdrawal" && !t.after_path.is_empty())
+            })
+            .collect();
+        if candidates.is_empty() {
+            continue;
+        }
+        let direct = |ev: &crate::catalog::web::path_diagram::StreamPathEvidence| -> bool {
+            peer_asns
+                .get(&(ev.collector.clone(), ev.peer_ip.clone()))
+                .map(|asn| plane_asns.contains(asn))
+                .unwrap_or(false)
+        };
+        let mut chosen = candidates[0];
+        for c in candidates.iter().skip(1) {
+            let (c_direct, best_direct) = (direct(c), direct(chosen));
+            let prefer = if c_direct != best_direct {
+                c_direct
+            } else {
+                c.prefix < chosen.prefix
+            };
+            if prefer {
+                chosen = c;
+            }
+        }
+        let mut states = crate::catalog::web::path_diagram::comparison_states(
+            chosen,
+            origin_asn,
+            &plane_asns,
+            names,
+        );
+        let direct_flag = direct(chosen);
+        for st in states.iter_mut() {
+            if let Some(p) = st.path.as_mut() {
+                p.observation_kind = if direct_flag {
+                    "direct collector session".to_string()
+                } else {
+                    "indirect AS-path observation".to_string()
+                };
+                p.evidence_ref = Some(format!("/analyses/{run_id}"));
+            }
+        }
+        let score = states.iter().filter(|s| s.path.is_none()).count();
+        let replace = match &best {
+            None => true,
+            Some((_, _, _, cur_states)) => {
+                let cur_score = cur_states.iter().filter(|s| s.path.is_none()).count();
+                score > cur_score
+                    || (score == cur_score && chosen.prefix < best_prefix_of(cur_states))
+            }
+        };
+        if replace {
+            best = Some((
+                run_id,
+                chosen.collector.clone(),
+                chosen.prefix.clone(),
+                states,
+            ));
+        }
+    }
+    let (run_id, collector, prefix, states) = best?;
+    let observer = format!("{collector} (peer {})", first_peer(&states));
+    let comparison_svg = crate::catalog::web::path_diagram::render_comparison_svg(&states);
+    let text_rows = states
+        .iter()
+        .map(|s| PathStateTextView {
+            label: s.label.clone(),
+            timestamp: s.timestamp.clone(),
+            path_text: s
+                .path
+                .as_ref()
+                .map(|p| p.text_sequence())
+                .unwrap_or_else(|| "No selected route visible at this observer".to_string()),
+            observation_kind: s
+                .path
+                .as_ref()
+                .map(|p| p.observation_kind.clone())
+                .unwrap_or_default(),
+        })
+        .collect();
+    Some(PathComparisonView {
+        observer,
+        prefix,
+        run_id,
+        run_href: format!("/analyses/{run_id}"),
+        states,
+        comparison_svg,
+        text_rows,
+        disclaimer:
+            "This is an observed AS path at one public observer, not a complete topology map."
+                .to_string(),
+    })
+}
+
+fn best_prefix_of(states: &[crate::catalog::web::path_diagram::PathStateView]) -> String {
+    states
+        .iter()
+        .filter_map(|s| s.path.as_ref())
+        .map(|p| p.prefix.clone())
+        .next()
+        .unwrap_or_default()
+}
+
+fn first_peer(states: &[crate::catalog::web::path_diagram::PathStateView]) -> String {
+    states
+        .iter()
+        .filter_map(|s| s.path.as_ref())
+        .map(|p| {
+            p.observer
+                .split("(peer ")
+                .nth(1)
+                .and_then(|s| s.strip_suffix(')'))
+                .unwrap_or("")
+                .to_string()
+        })
+        .next()
+        .unwrap_or_default()
+}
+
+/// Load reviewed ASN display names for a case study (pilot registry
+/// first, then the case-study directory).
+fn case_asn_names(root: &std::path::Path, slug: &str) -> std::collections::BTreeMap<u32, String> {
+    crate::catalog::web::path_diagram::load_asn_names(&[
+        &root.join("case-studies").join(slug).join("pilot"),
+        &root.join("case-studies").join(slug),
+    ])
+}
+
 pub fn load_case_study(
     conn: &rusqlite::Connection,
     slug: &str,
+    catalog_root: &std::path::Path,
 ) -> Result<Option<CaseStudyView>, String> {
     let Some(cs) = crate::catalog::archive_plan::find_case_study(conn, slug) else {
         return Ok(None);
@@ -3123,6 +3615,57 @@ pub fn load_case_study(
             .unwrap_or_default(),
     };
 
+    // Reviewed interconnection context and first-screen framing.
+    let interconnection = interconnection_view(&cs);
+    let incident_context = interconnection
+        .as_ref()
+        .map(|ic| {
+            format!(
+                "{} — reviewed Layer-2 exchange/fabric context: the fabric has no ASN for this case study, does not speak BGP, does not originate routes, and does not appear as an AS-path hop.",
+                ic.label
+            )
+        })
+        .unwrap_or_default();
+    let completed_analysis = if analyzed_targets.is_empty() {
+        "No completed public-BGP analysis: no reviewed analysis run is linked.".to_string()
+    } else {
+        let targets = analyzed_targets
+            .iter()
+            .map(|t| {
+                if t.origin_asns.is_empty() {
+                    t.label.clone()
+                } else {
+                    format!("{} ({})", t.label, t.origin_asns)
+                }
+            })
+            .collect::<Vec<_>>()
+            .join(", ");
+        format!(
+            "Completed public-BGP analysis: {targets} — a reviewed single-target historical pilot; it is not a complete analysis of the fabric or of all connectors."
+        )
+    };
+    let scope_text = if interconnection.is_some() {
+        "Scope: public BGP observations of one attached network; not a complete analysis of the fabric or all connectors.".to_string()
+    } else {
+        "Scope: public BGP observations of the reviewed target; not a complete incident-wide assessment.".to_string()
+    };
+    let participants_heading = if interconnection.is_some() {
+        "Other operator-reported attached networks/connectors".to_string()
+    } else {
+        "Other operator-reported participants".to_string()
+    };
+    let path_comparison = if analyzed_targets.is_empty() {
+        None
+    } else {
+        build_path_comparison(
+            conn,
+            cs_id,
+            &cs.slug,
+            catalog_root,
+            &case_asn_names(catalog_root, &cs.slug),
+        )
+    };
+
     Ok(Some(CaseStudyView {
         slug: cs.slug,
         title: cs.title,
@@ -3154,6 +3697,12 @@ pub fn load_case_study(
             crate::catalog::domain::OBSERVABILITY_NOT_DIRECTLY_VISIBLE,
         ),
         observability_unknown: obs(crate::catalog::domain::OBSERVABILITY_UNKNOWN),
+        interconnection,
+        incident_context,
+        completed_analysis,
+        scope_text,
+        path_comparison,
+        participants_heading,
     }))
 }
 

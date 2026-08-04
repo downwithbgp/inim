@@ -11,7 +11,7 @@ catalog. It is not a column-by-column duplicate of the migrations.
 
 ## Migration policy
 
-- `src/catalog/migrations.rs` holds ordered migrations `V1..V10`;
+- `src/catalog/migrations.rs` holds ordered migrations `V1..V11`;
   index `i` migrates `user_version i → i+1`.
 - A fresh database applies all migrations in order; each migration runs
   inside a transaction.
@@ -37,6 +37,7 @@ catalog. It is not a column-by-column duplicate of the migrations.
 | V8 | — (ALTER) | `stream_lifecycle_summaries.first_change_utc`, `restoration_time_utc` |
 | V9 | `observer_session_metadata` (+ `analysis_runs.classification`) | observed peer ASNs from baseline RIBs; run role classification |
 | V10 | `analysis_jobs`, `analysis_job_events`, `worker_heartbeats` | durable job state machine, append-only job events, worker heartbeats |
+| V11 | `case_studies.interconnection_context` | reviewed Layer-2 / interconnection context (presentation; never protocol evidence) |
 
 ## Important relationships (foreign keys)
 

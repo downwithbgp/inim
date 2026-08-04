@@ -398,6 +398,7 @@ mod tests {
             content_sha256: "abc".to_string(),
             created_utc: "2026-08-01T00:00:00Z".to_string(),
             updated_utc: "2026-08-01T00:00:00Z".to_string(),
+            interconnection_context: None,
         };
         store::insert_case_study(conn, &cs).unwrap();
         let event_id =

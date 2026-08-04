@@ -417,3 +417,20 @@ used for queue idempotency and run provenance. Staged artifact roots
 are catalog-root-relative paths, never absolute. See
 `docs/GLOSSARY.md` (Analysis job, Worker lease, Plan revision, Staging
 artifact).
+
+## Layer-2 interconnection context (reviewed, non-protocol)
+
+A case study may carry **reviewed interconnection context** describing
+the Layer-2 environment of an operator-reported incident (for example
+an exchange fabric). The context names reviewed attachments and, where
+the reviewed records establish them, their ASN labels with a validity
+date. It is stored as reviewed interpretation in the case-study layer
+(`interconnection_context`) and rendered as presentation.
+
+The context is deliberately **not protocol evidence**: production
+analysis never uses fabric attachment metadata in route predicates,
+cohort selection, or findings. Layer-2 attachment is not BGP
+adjacency; an exchange fabric is not automatically an AS-path hop;
+public BGP observes exported route consequences, not switch-fabric
+state. Observed AS paths are rendered from canonical route evidence
+only (stream lifecycles and transitions), never from fabric context.

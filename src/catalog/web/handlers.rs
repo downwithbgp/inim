@@ -141,7 +141,7 @@ pub async fn case_study_detail(
     AxumPath(slug): AxumPath<String>,
 ) -> Response {
     let db = state.db.lock().unwrap();
-    match super::view::load_case_study(&db, &slug) {
+    match super::view::load_case_study(&db, &slug, &state.catalog_root) {
         Ok(Some(view)) => render_view(view),
         Ok(None) => not_found_view("case study"),
         Err(e) => server_error(&e),

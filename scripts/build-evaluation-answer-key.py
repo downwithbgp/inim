@@ -171,6 +171,13 @@ def nordunet_section(root: Path) -> dict:
             "predicate": "origin AS2603 AND baseline AS path contains AS11537",
             "reference": path_as_ref("case-studies/manlan-2019/pilot/cross-observer-matrix.json"),
         },
+        "incident_context": {
+            "text": "MAN LAN is a Layer-2 exchange/fabric: it has no ASN for this case study, does not speak BGP, does not originate routes, and does not appear as an AS-path hop.",
+            "target": "NORDUnet AS2603 is the analyzed BGP target (one attached network); the completed pilot is NORDUnet-target-scoped, not MAN LAN BGP analysis.",
+            "path_evidence": "observed AS paths are public-collector evidence (route-views2 peer 64.57.28.241 and RIS observers); they show what the collector received, never switch-fabric state.",
+            "attachment_vs_adjacency": "Layer-2 attachment and AS-path adjacency are different evidence classes: attachment does not prove BGP adjacency, route export, a commercial relationship, traffic flow, or active state during the event.",
+            "reference": path_as_ref("case-studies/manlan-2019/case-study.json"),
+        },
         "analysis_window_utc": pilot["window_start_utc"] + " .. " + pilot["window_end_utc"],
         "observers": [
             {
@@ -755,6 +762,15 @@ def render_markdown(doc: dict) -> str:
         lines.append(f"- **Source event**: {s['source_event']['id']}")
         lines.append(f"- **Target**: {s['target']['name']}")
         lines.append(f"- **Reviewed relationship**: {s['reviewed_relationship']['text']}")
+        if "incident_context" in s:
+            ic = s["incident_context"]
+            lines.append("")
+            lines.append("### Incident context (Layer-2 fabric)")
+            lines.append("")
+            for k, v in ic.items():
+                if k != "reference":
+                    lines.append(f"- **{k}**: {v}")
+            lines.append(f"- **reference**: `{ic.get('reference', '')}`")
         lines.append(f"- **Artifact**: `{s['reviewed_relationship'].get('reference', '')}`")
         lines.append("")
         lines.append("### Route state answers")
