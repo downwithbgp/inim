@@ -6,6 +6,9 @@
 {% if !compact_scope_line.is_empty() %}
 <p class="wb-scope-line">{{ compact_scope_line }}</p>
 {% endif %}
+{% if !vm.provisional_cutoff.is_empty() %}
+<p class="wb-scope-line">{{ vm.provisional_cutoff }}</p>
+{% endif %}
 
 {% if !no_visibility_page %}
 <div class="wb-panel wb-header">
@@ -344,6 +347,9 @@
     <div><dt>Source task type</dt><dd>{{ vm.source_task_type }}</dd></div>
     <div><dt>Reviewed incident role</dt><dd>{{ vm.reviewed_incident_role }}</dd></div>
     <div><dt>Lifecycle</dt><dd>{{ vm.lifecycle }}</dd></div>
+    {% if !vm.provisional_cutoff.is_empty() %}
+    <div><dt>Provisional analysis</dt><dd>{{ vm.provisional_cutoff }}</dd></div>
+    {% endif %}
     {% if !vm.expectation_assessment.is_empty() && !no_visibility_page %}
     <div><dt>Expectation assessment</dt><dd>{{ vm.expectation_assessment }}</dd></div>
     {% endif %}

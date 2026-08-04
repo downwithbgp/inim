@@ -1380,6 +1380,37 @@ async fn workbench_result_is_deterministic() {
     assert_eq!(a, b, "workbench HTML must be byte-identical across GETs");
 }
 
+/// Open-source events render the reviewed snapshot cutoff and the
+/// provisional qualifier (Part 37): the result must never be presented
+/// as final while the source event remains open.
+#[tokio::test]
+async fn open_event_workbench_shows_provisional_cutoff() {
+    if !repo_artifacts_available() {
+        return;
+    }
+    let (dbdir, rootdir) = setup_catalog();
+    let app = build_app(state_from(&dbdir, &rootdir));
+    let (status, body) = get(&app, "/events/INC0301970/workbench").await;
+    assert_eq!(status, StatusCode::OK);
+    assert!(body.contains("Open source event"), "{body}");
+    assert!(body.contains("provisional"), "{body}");
+    assert!(body.contains("cutoff"), "{body}");
+    // The reviewed snapshot cutoff from the manifest (runtime data).
+    let manifest_raw =
+        std::fs::read_to_string("manifests/INC0301970.json").unwrap_or_default();
+    let v: serde_json::Value = serde_json::from_str(&manifest_raw).unwrap_or_default();
+    let cutoff = v
+        .get("analysis_end_utc")
+        .and_then(|c| c.as_str())
+        .unwrap_or("")
+        .to_string();
+    assert!(!cutoff.is_empty(), "manifest carries the snapshot cutoff");
+    assert!(body.contains(&cutoff), "page names the exact cutoff");
+    // Closed events must NOT render the provisional statement.
+    let (_, closed) = get(&app, "/events/INC0299001/workbench").await;
+    assert!(!closed.contains("Open source event"), "closed event not provisional");
+}
+
 // ── workbench semantic invariants (Parts 1, 2, 4, 6, 8, 11) ──
 //
 // Token discipline: src/ must stay free of the reviewed plane ASN
