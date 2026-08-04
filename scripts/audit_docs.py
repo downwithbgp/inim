@@ -924,6 +924,47 @@ def check_ci_docs() -> list[str]:
     return problems
 
 
+def check_job_state_docs() -> list[str]:
+    """Every JobState variant label must appear in the operational
+    documentation (GLOSSARY/OPERATIONS are the job-model prose)."""
+    problems = []
+    src = (ROOT / "src/catalog/jobs/mod.rs").read_text(errors="replace")
+    m = re.search(r"pub enum JobState \{(.*?)\n\}", src, re.S)
+    if not m:
+        problems.append("job state check: JobState enum not found")
+        return problems
+    variants = re.findall(r"^\s{4}([A-Za-z]+),", m.group(1), re.M)
+    docs = "\n".join(
+        (ROOT / "docs/GLOSSARY.md").read_text(errors="replace")
+        + (ROOT / "docs/OPERATIONS.md").read_text(errors="replace")
+        + (ROOT / "docs/reference/CLI.md").read_text(errors="replace")
+        + (ROOT / "docs/reference/API.md").read_text(errors="replace")
+    )
+    for v in variants:
+        if v not in docs:
+            problems.append(f"job state docs: variant {v} not documented in GLOSSARY/OPERATIONS/CLI/API")
+    return problems
+
+
+def check_artifact_reference() -> list[str]:
+    """Every artifact filename produced by the current writers must be
+    documented in the artifact reference."""
+    problems = []
+    doc = (ROOT / "docs/reference/ARTIFACTS.md").read_text(errors="replace")
+    artifacts = [
+        "report.json", "report.txt", "archive_manifest.json",
+        "evidence_appendix.jsonl", "lifecycle.json", "transitions.json",
+        "semantic_waves.json", "withdrawal_audit.json", "limitations.json",
+        "performance.json", "execution_metadata.json",
+        "analysis_plan.json", "analysis_plan.txt",
+        "comparison.json", "comparison.txt",
+    ]
+    for a in artifacts:
+        if f"`{a}`" not in doc:
+            problems.append(f"artifact reference: {a} not documented")
+    return problems
+
+
 def main() -> int:
     binary = str(ROOT / "target/debug/inim")
     if not Path(binary).exists():
@@ -955,6 +996,8 @@ def main() -> int:
     problems += check_fixture_inventory()
     problems += check_script_basics()
     problems += check_ci_docs()
+    problems += check_job_state_docs()
+    problems += check_artifact_reference()
     if problems:
         print("documentation drift audit FAILED:", file=sys.stderr)
         for p in problems:
