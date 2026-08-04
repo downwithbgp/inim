@@ -73,8 +73,8 @@ fn import_pilot_runs(conn: &Connection, root: &Path) -> Result<usize, String> {
     let linked_runs: Vec<String> = if linkage_path.is_file() {
         let raw = std::fs::read_to_string(&linkage_path)
             .map_err(|e| format!("cannot read pilot demo linkage: {e}"))?;
-        let v: serde_json::Value = serde_json::from_str(&raw)
-            .map_err(|e| format!("invalid pilot demo linkage: {e}"))?;
+        let v: serde_json::Value =
+            serde_json::from_str(&raw).map_err(|e| format!("invalid pilot demo linkage: {e}"))?;
         v.get("linked_runs")
             .and_then(|r| r.as_array())
             .map(|a| {
