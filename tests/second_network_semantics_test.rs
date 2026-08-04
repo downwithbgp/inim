@@ -11,10 +11,10 @@
 use std::path::Path;
 
 use inim::catalog::scope::ProjectScope;
+use inim::domain::event::{EventId, EventWindow};
+use inim::domain::expectation::ExpectationKind;
 use inim::sources::grnoc::GrnocRecord;
 use inim::sources::internet2::ticket::Internet2Ticket;
-use inim::domain::event::{EventId, EventWindow};
-use inim::domain::expectation::{ExpectationKind, ImpactExpectation};
 use inim::sources::internet2::ticket::{derive_expectation, detect_redundancy_indicator};
 
 fn ticket_for(title: &str) -> Internet2Ticket {
@@ -71,8 +71,16 @@ fn unqualified_peer_title_does_not_claim_global_single_homing() {
     let t = ticket_for("Outage - Example Managed Network Peer SampleNet");
     let expectation = derive_expectation(&t);
     let text = format!("{expectation:?}");
-    for forbidden in ["single-homed", "no other upstream", "entirely offline", "lost Internet"] {
-        assert!(!text.contains(forbidden), "expectation claims {forbidden}: {text}");
+    for forbidden in [
+        "single-homed",
+        "no other upstream",
+        "entirely offline",
+        "lost Internet",
+    ] {
+        assert!(
+            !text.contains(forbidden),
+            "expectation claims {forbidden}: {text}"
+        );
     }
     let profile = inim::profiles::internet2::apply_indiana_gigapop(&GrnocRecord {
         number: "INC-T".to_string(),
@@ -108,8 +116,7 @@ fn peer_outage_does_not_require_withdrawal_only() {
     let expectation = derive_expectation(&t);
     assert!(matches!(
         expectation.kind,
-        ExpectationKind::NonRedundant
-            | ExpectationKind::PeerRelationshipUnavailable
+        ExpectationKind::NonRedundant | ExpectationKind::PeerRelationshipUnavailable
     ));
     // The expectation text must not demand a withdrawal.
     let text = format!("{expectation:?}").to_lowercase();
@@ -169,7 +176,10 @@ fn origin_only_is_not_fallback_for_unresolved_peer_scope() {
         maintenance_type: None,
         notification_text: None,
     });
-    assert_eq!(profile.transit_asn, 19782, "reviewed profile drives the network semantics");
+    assert_eq!(
+        profile.transit_asn, 19782,
+        "reviewed profile drives the network semantics"
+    );
     assert!(
         profile.collectors.contains(&"route-views2".to_string()),
         "profile supplies its own default collector set"
@@ -280,9 +290,8 @@ fn source_adapter_normalizes_without_network_semantics() {
     // The GRNOC adapter interprets titles with the SHARED convention;
     // the network profile then interprets the result. The adapter
     // itself carries no managed-network branch.
-    let interp = inim::conventions::grnoc::interpret(
-        "Outage - Example Managed Network Peer SampleNet",
-    );
+    let interp =
+        inim::conventions::grnoc::interpret("Outage - Example Managed Network Peer SampleNet");
     assert_eq!(interp.redundancy_expected, Some(false));
     let interp2 = inim::conventions::grnoc::interpret(
         "Outage - Example Managed Network Peer SampleNet (SITEAB)",

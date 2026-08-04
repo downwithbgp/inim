@@ -53,7 +53,10 @@ fn probe_event_date_as11550_paths() {
                 continue;
             }
         };
-        eprintln!("{collector}: cached {} ({} bytes)", cached.local_path, cached.size);
+        eprintln!(
+            "{collector}: cached {} ({} bytes)",
+            cached.local_path, cached.size
+        );
         let bytes = match std::fs::read(&cached.local_path) {
             Ok(b) => b,
             Err(e) => {
@@ -71,7 +74,8 @@ fn probe_event_date_as11550_paths() {
         std::fs::write(&tmp, &bytes).unwrap();
         let parser: bgpkit_parser::BgpkitParser<_> =
             bgpkit_parser::BgpkitParser::new(tmp.to_str().unwrap()).unwrap();
-        let mut paths: std::collections::HashMap<Vec<u32>, usize> = std::collections::HashMap::new();
+        let mut paths: std::collections::HashMap<Vec<u32>, usize> =
+            std::collections::HashMap::new();
         let mut peers: std::collections::HashMap<u32, usize> = std::collections::HashMap::new();
         let mut prefixes: std::collections::HashSet<String> = std::collections::HashSet::new();
         let mut total = 0usize;
@@ -124,10 +128,13 @@ fn probe_event_date_as11550_paths() {
         eprintln!("  (paths containing 11550 anywhere: {any_11550_in_path}; paths containing IGP AS19782 anywhere: {any_19782_in_path}; direct peer sessions with AS19782: {peer_19782})");
         println!("== {collector} ==");
         println!("  total announces parsed: {announces}");
-        println!("  AS11550-origin routes: {total}; distinct prefixes: {}", prefixes.len());
+        println!(
+            "  AS11550-origin routes: {total}; distinct prefixes: {}",
+            prefixes.len()
+        );
         println!("  peer ASNs: {peers:?}");
         let mut sorted: Vec<_> = paths.into_iter().collect();
-        sorted.sort_by(|a, b| b.1.cmp(&a.1));
+        sorted.sort_by_key(|(_, n)| std::cmp::Reverse(*n));
         for (path, n) in sorted.iter().take(8) {
             println!("    path {path:?} x{n}");
         }
