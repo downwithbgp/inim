@@ -2529,10 +2529,20 @@ fn build_path_comparison(
                 [run_id],
                 |r| r.get(0),
             )
-            .ok()?;
-        let resolved = crate::catalog::artifact_path::resolve_artifact(root, &rel)?;
-        let content = std::fs::read_to_string(&resolved).ok()?;
-        let evs = crate::catalog::web::path_diagram::load_lifecycle_evidence(&content).ok()?;
+            .ok()
+            .unwrap_or_default();
+        if rel.is_empty() {
+            continue;
+        }
+        let Some(resolved) = crate::catalog::artifact_path::resolve_artifact(root, &rel) else {
+            continue;
+        };
+        let Ok(content) = std::fs::read_to_string(&resolved) else {
+            continue;
+        };
+        let Ok(evs) = crate::catalog::web::path_diagram::load_lifecycle_evidence(&content) else {
+            continue;
+        };
         // Candidate streams: absence-and-return stories (Withdrawal with
         // an empty after_path followed by a return).
         let candidates: Vec<&crate::catalog::web::path_diagram::StreamPathEvidence> = evs

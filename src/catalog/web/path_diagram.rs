@@ -208,7 +208,7 @@ pub fn render_path_svg(path: &ObservedPath) -> String {
         path.observer, path.prefix
     );
     format!(
-        r#"<svg class="pd-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width:.0} 92" role="img" aria-label="{note}">
+        r#"<svg class="pd-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width:.0} 92" role="img" aria-label="{{note_esc}}">
 <defs>
 <marker id="pd-arrow" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
 <path d="M0,0 L8,4.5 L0,9 z" class="pd-arrow-head"/>
@@ -222,6 +222,7 @@ pub fn render_path_svg(path: &ObservedPath) -> String {
             path.observer, path.prefix, path.timestamp
         ))
     )
+    .replace("{note_esc}", &escape_svg(&note))
 }
 
 /// Render the absence block: no selected route visible at this observer.
@@ -229,8 +230,10 @@ pub fn render_absence_svg(observer: &str, prefix: &str) -> String {
     format!(
         r#"<svg class="pd-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 64" role="img" aria-label="No selected route visible at this observer">
 <rect class="pd-absence" x="12" y="10" width="396" height="40" rx="2"/>
-<text x="24" y="34" class="pd-absence-text">No selected route visible at this observer — {observer} · {prefix}</text>
-</svg>"#
+<text x="24" y="34" class="pd-absence-text">No selected route visible at this observer — {obs} · {pre}</text>
+</svg>"#,
+        obs = escape_svg(observer),
+        pre = escape_svg(prefix)
     )
 }
 
@@ -500,8 +503,6 @@ pub struct StreamPathEvidence {
     pub final_path: Vec<u32>,
     pub restoration_time_utc: Option<String>,
     pub first_change_utc: Option<String>,
-    /// Observation ids of the transitions, for exact evidence links.
-    pub observation_ids: Vec<String>,
 }
 
 /// Load all stream path evidence from a `lifecycle.json` artifact.
@@ -574,7 +575,6 @@ pub fn load_lifecycle_evidence(json: &str) -> Result<Vec<StreamPathEvidence>, St
                 .get("first_change")
                 .and_then(|x| x.as_str())
                 .map(|s| s.to_string()),
-            observation_ids,
         });
     }
     Ok(out)
@@ -584,7 +584,7 @@ fn asn_vec(v: Option<&serde_json::Value>) -> Vec<u32> {
     v.and_then(|x| x.as_array())
         .map(|arr| {
             arr.iter()
-                .filter_map(|n| n.as_u64().map(|n| n as u32))
+                .filter_map(|n| n.as_u64().and_then(|n| u32::try_from(n).ok()))
                 .collect()
         })
         .unwrap_or_default()
