@@ -1396,8 +1396,7 @@ async fn open_event_workbench_shows_provisional_cutoff() {
     assert!(body.contains("provisional"), "{body}");
     assert!(body.contains("cutoff"), "{body}");
     // The reviewed snapshot cutoff from the manifest (runtime data).
-    let manifest_raw =
-        std::fs::read_to_string("manifests/INC0301970.json").unwrap_or_default();
+    let manifest_raw = std::fs::read_to_string("manifests/INC0301970.json").unwrap_or_default();
     let v: serde_json::Value = serde_json::from_str(&manifest_raw).unwrap_or_default();
     let cutoff = v
         .get("analysis_end_utc")
@@ -1408,7 +1407,10 @@ async fn open_event_workbench_shows_provisional_cutoff() {
     assert!(body.contains(&cutoff), "page names the exact cutoff");
     // Closed events must NOT render the provisional statement.
     let (_, closed) = get(&app, "/events/INC0299001/workbench").await;
-    assert!(!closed.contains("Open source event"), "closed event not provisional");
+    assert!(
+        !closed.contains("Open source event"),
+        "closed event not provisional"
+    );
 }
 
 /// Insufficient visibility with zero eligible sessions must never be

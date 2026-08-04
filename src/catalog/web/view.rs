@@ -4088,11 +4088,7 @@ fn episode_row(
             }
         }
         if items.is_empty() && !s.evidence_refs.is_empty() && s.evidence_refs != "[]" {
-            items = s
-                .evidence_refs
-                .split("; ")
-                .map(str::to_string)
-                .collect();
+            items = s.evidence_refs.split("; ").map(str::to_string).collect();
         }
         for r in items {
             if !refs.contains(&r) && refs.len() < 6 {
