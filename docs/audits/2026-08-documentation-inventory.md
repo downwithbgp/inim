@@ -215,7 +215,7 @@ The following lists are compared with `git ls-files` by
 must be classified in a table above (or in `repository-inventory.json`
 for non-documentation files).
 
-### Tracked Markdown files (87, excluding `spec/`)
+### Tracked Markdown files (88, excluding `spec/`)
 
 ```
 .github/PULL_REQUEST_TEMPLATE.md
@@ -270,6 +270,7 @@ docs/audits/2026-08-fresh-event-candidates.md
 docs/audits/2026-08-fresh-event-discovery.md
 docs/audits/2026-08-grnoc-catalog-reconciliation.md
 docs/audits/2026-08-incident-family-deferral.md
+docs/audits/2026-08-internal-evaluator-findings.md
 docs/audits/2026-08-manlan-ticket-readiness.md
 docs/audits/2026-08-non-noaa-ip-event-candidates.md
 docs/audits/2026-08-project-scope-noaa-removal.md
@@ -311,7 +312,8 @@ tests/fixtures/README.md
 
 
 
-### Tracked files under `docs/` (67)
+
+### Tracked files under `docs/` (68)
 
 ```
 docs/ADRs/CASE-STUDY-LAYER.md
@@ -347,6 +349,7 @@ docs/audits/2026-08-fresh-event-candidates.md
 docs/audits/2026-08-fresh-event-discovery.md
 docs/audits/2026-08-grnoc-catalog-reconciliation.md
 docs/audits/2026-08-incident-family-deferral.md
+docs/audits/2026-08-internal-evaluator-findings.md
 docs/audits/2026-08-manlan-ticket-readiness.md
 docs/audits/2026-08-non-noaa-ip-event-candidates.md
 docs/audits/2026-08-project-scope-noaa-removal.md
@@ -382,6 +385,7 @@ docs/session-10-baseline.md
 docs/sources/GRNOC_BULK_ACCESS_REQUEST.md
 docs/sources/GRNOC_PUBLIC_TASK_VIEWER.md
 ```
+
 
 
 

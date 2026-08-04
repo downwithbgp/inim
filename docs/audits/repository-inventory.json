@@ -3638,5 +3638,21 @@
   "authoritative": "dated audit",
   "generated": false,
   "current": false
+ },
+ {
+  "path": "src/catalog/artifact_path.rs",
+  "category": "Production source",
+  "audience": "maintainers",
+  "authoritative": "implementation",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/catalog/web/workbench_fix_tests.rs",
+  "category": "Production source",
+  "audience": "maintainers",
+  "authoritative": "implementation",
+  "generated": false,
+  "current": true
  }
 ]

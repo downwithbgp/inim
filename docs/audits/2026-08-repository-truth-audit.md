@@ -24,14 +24,14 @@ This audit verifies that every tracked file is classified, that every current st
 
 ## Summary
 
-Tracked files: **454** · inventory entries: **454**
+Tracked files: **457** · inventory entries: **457**
 
 | Category | Files |
 |---|---|
 | Immutable or generated evidence | 148 |
-| Production source | 102 |
+| Production source | 104 |
 | Normative current documentation | 42 |
-| Historical decision record | 39 |
+| Historical decision record | 40 |
 | Reviewed case-study interpretation | 28 |
 | Script or developer tool | 25 |
 | Configuration | 24 |
@@ -282,6 +282,7 @@ Tracked files: **454** · inventory entries: **454**
 | `docs/audits/2026-08-fresh-event-discovery.md` | Historical decision record | maintainers | dated audit evidence | no | historical | status and applicability reviewed in this audit | none | reviewed in this audit |
 | `docs/audits/2026-08-grnoc-catalog-reconciliation.md` | Normative current documentation | maintainers | dated audit evidence | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
 | `docs/audits/2026-08-incident-family-deferral.md` | Historical decision record | maintainers | dated audit evidence | no | historical | status and applicability reviewed in this audit | none | reviewed in this audit |
+| `docs/audits/2026-08-internal-evaluator-findings.md` | Historical decision record | maintainers | dated audit | no | historical | status and applicability reviewed in this audit | none | reviewed in this audit |
 | `docs/audits/2026-08-manlan-ticket-readiness.md` | Normative current documentation | maintainers | dated audit evidence | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
 | `docs/audits/2026-08-non-noaa-ip-event-candidates.md` | Historical decision record | maintainers | dated audit evidence | no | historical | status and applicability reviewed in this audit | none | reviewed in this audit |
 | `docs/audits/2026-08-project-scope-noaa-removal.md` | Historical decision record | maintainers | dated audit evidence | no | historical | status and applicability reviewed in this audit | none | reviewed in this audit |
@@ -365,6 +366,7 @@ Tracked files: **454** · inventory entries: **454**
 | `src/catalog/access.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed in this audit |
 | `src/catalog/analyzability.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed in this audit |
 | `src/catalog/archive_plan.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed in this audit |
+| `src/catalog/artifact_path.rs` | Production source | maintainers | implementation | no | current | implementation comments audited in this audit | none | reviewed in this audit |
 | `src/catalog/batch.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed in this audit |
 | `src/catalog/case_study_compare.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed in this audit |
 | `src/catalog/case_study_import.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed in this audit |
@@ -428,6 +430,7 @@ Tracked files: **454** · inventory entries: **454**
 | `src/catalog/web/templates/workbench.html` | Template or stylesheet | operators (NOC analysts) | workbench view model + domain model | no | current | user-visible text audited in this audit | none | reviewed in this audit |
 | `src/catalog/web/tests.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed in this audit |
 | `src/catalog/web/view.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed in this audit |
+| `src/catalog/web/workbench_fix_tests.rs` | Production source | maintainers | implementation | no | current | implementation comments audited in this audit | none | reviewed in this audit |
 | `src/catalog/workbench.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed in this audit |
 | `src/cohort.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed in this audit |
 | `src/compare.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed in this audit |
