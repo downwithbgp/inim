@@ -83,7 +83,15 @@ OUT_ABS=$(printf '%s' "$OUT_ABS" | sed 's:/\.$::')
 
 # Safety guards: never allow the output to be a filesystem root, the
 # repository root, or anything inside the repository (the pack is a
-# generated distribution artifact that must stay outside Git).
+# generated distribution artifact that must stay outside Git). A ".."
+# component is rejected outright — a simple output path never needs it
+# and string-normalizing it is not worth the risk.
+case "$OUT_ABS" in
+    *"/../"*|*"/..")
+        printf 'error: --output must not contain ".." components: %s\n' "$OUT" >&2
+        exit 2
+        ;;
+esac
 if [ "$OUT_ABS" = "/" ] || [ "$OUT_ABS" = "$ROOT" ]; then
     printf 'error: refusing to use %s as the evaluation pack output\n' "$OUT_ABS" >&2
     exit 2
