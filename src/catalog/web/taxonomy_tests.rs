@@ -53,23 +53,31 @@ async fn get(app: &axum::Router, uri: &str) -> (StatusCode, String) {
     (status, String::from_utf8_lossy(&bytes).to_string())
 }
 
-/// Case-insensitive run lookup (SQLite LIKE is ASCII case-insensitive).
-fn run_id_for_like(dbdir: &tempfile::TempDir, _pattern: &str) -> i64 {
-    let conn = crate::catalog::db::open_catalog(&dbdir.path().join("catalog.sqlite")).unwrap();
-    let rows: Vec<i64> = conn
-        .prepare("SELECT id FROM analysis_runs WHERE status = 'Complete' ORDER BY id")
-        .unwrap()
-        .query_map([], |r| r.get(0))
-        .unwrap()
-        .map(|x| x.unwrap())
-        .collect();
-    // The first complete run is the Smithville run in the demo.
-    assert!(!rows.is_empty(), "demo has a complete run");
-    rows[0]
-}
-
 fn db_conn(dbdir: &tempfile::TempDir) -> rusqlite::Connection {
     crate::catalog::db::open_catalog(&dbdir.path().join("catalog.sqlite")).unwrap()
+}
+
+/// The first SVG element (the fabric diagram on the case-study page).
+fn fabric_svg(body: &str) -> &str {
+    let start = body.find("<svg").unwrap_or(0);
+    let end = body[start..]
+        .find("</svg>")
+        .map(|i| start + i)
+        .unwrap_or(body.len());
+    &body[start..end]
+}
+
+/// The reviewed attached-networks section, up to the other-context
+/// section (so contextual entities never leak into the assertion).
+fn attached_section(text: &str) -> &str {
+    let start = text
+        .find("Reviewed attached networks (Layer-2 fabric participants)")
+        .unwrap_or(0);
+    let end = text[start..]
+        .find("Other incident context")
+        .map(|i| start + i)
+        .unwrap_or(text.len());
+    &text[start..end]
 }
 
 fn strip_html(body: &str) -> String {
@@ -92,10 +100,7 @@ async fn ixia_is_not_layer2_fabric_attachment() {
     let text = strip_html(&body);
     // Ixia appears only inside the "Test equipment" contextual table,
     // never in the reviewed attached-networks table.
-    let attached_region = text
-        .find("Reviewed attached networks (Layer-2 fabric participants)")
-        .map(|i| &text[i..])
-        .unwrap_or("");
+    let attached_region = attached_section(&text);
     let other_region = text
         .find("Other incident context")
         .map(|i| &text[i..])
@@ -119,11 +124,9 @@ async fn ixia_is_not_rendered_as_network_node() {
     let app = build_app(state_from(&dbdir, &rootdir));
     let (_, body) = get(&app, "/case-studies/manlan-2019").await;
     // The fabric SVG (the network diagram) contains no Ixia node.
-    let svg_start = body.find("<svg").unwrap_or(0);
-    let svg_end = body.rfind("</svg>").unwrap_or(body.len());
-    let fabric_svg = &body[svg_start..svg_end];
+    let svg = fabric_svg(&body);
     assert!(
-        !fabric_svg.contains("Ixia"),
+        !svg.contains("Ixia"),
         "Ixia must not be a node in the fabric diagram"
     );
 }
@@ -139,13 +142,9 @@ async fn ixia_is_not_counted_as_attached_network() {
     let text = strip_html(&body);
     // The count line states the reviewed attached-network count; Ixia
     // is not among the counted labels (verified by the table test).
-    let count_line = text
-        .find("reviewed attached")
-        .map(|i| text[i..i + 80].to_string())
-        .unwrap_or_default();
     assert!(
-        count_line.starts_with("5 reviewed attached networks"),
-        "attachment count is 5: {count_line}"
+        text.contains("5 reviewed attached networks; 5 other source-mentioned entities"),
+        "attachment count is 5, other-mentioned count is 5"
     );
 }
 
@@ -184,12 +183,18 @@ async fn ixia_has_no_bgp_relationship() {
         .map(|i| &text[i..i + 200])
         .unwrap_or("");
     assert!(
-        !ixia_region.contains("peer") && !ixia_region.contains("Adjacent"),
-        "Ixia has no BGP relationship wording: {ixia_region}"
+        ixia_region.contains("not a BGP peer"),
+        "Ixia explicitly not a BGP peer: {ixia_region}"
     );
     assert!(
-        !body.contains("Ixia</title>") && !body.contains(">Ixia<"),
-        "no Ixia node markup"
+        !ixia_region.contains("Adjacent") && !ixia_region.contains("ContainsAny"),
+        "Ixia has no adjacency/predicate wording: {ixia_region}"
+    );
+    // No node markup (svg text node or edge) for Ixia: the fabric SVG
+    // has no Ixia, and no solid/dashed edge references it.
+    assert!(
+        !fabric_svg(&body).contains("Ixia"),
+        "no Ixia node markup in any diagram"
     );
 }
 
@@ -222,10 +227,7 @@ async fn aar_mention_does_not_imply_attachment() {
     let app = build_app(state_from(&dbdir, &rootdir));
     let (_, body) = get(&app, "/case-studies/manlan-2019").await;
     let text = strip_html(&body);
-    let attached_region = text
-        .find("Reviewed attached networks (Layer-2 fabric participants)")
-        .map(|i| &text[i..])
-        .unwrap_or("");
+    let attached_region = attached_section(&text);
     let other_region = text
         .find("Other incident context")
         .map(|i| &text[i..])
@@ -251,10 +253,7 @@ async fn reviewed_asn_does_not_imply_attachment() {
     let app = build_app(state_from(&dbdir, &rootdir));
     let (_, body) = get(&app, "/case-studies/manlan-2019").await;
     let text = strip_html(&body);
-    let attached_region = text
-        .find("Reviewed attached networks (Layer-2 fabric participants)")
-        .map(|i| &text[i..])
-        .unwrap_or("");
+    let attached_region = attached_section(&text);
     assert!(
         !attached_region.contains("TWAREN"),
         "TWAREN has a reviewed ASN but not established MAN LAN attachment"
@@ -298,12 +297,10 @@ async fn unresolved_entity_not_rendered_as_network() {
     let (dbdir, rootdir) = setup_demo_catalog();
     let app = build_app(state_from(&dbdir, &rootdir));
     let (_, body) = get(&app, "/case-studies/manlan-2019").await;
-    let svg_start = body.find("<svg").unwrap_or(0);
-    let svg_end = body.rfind("</svg>").unwrap_or(body.len());
-    let fabric_svg = &body[svg_start..svg_end];
+    let svg = fabric_svg(&body);
     for unresolved in ["OMAN", "NEAAR", "TWAREN"] {
         assert!(
-            !fabric_svg.contains(unresolved),
+            !svg.contains(unresolved),
             "{unresolved} must not be a fabric network node"
         );
     }
@@ -332,9 +329,7 @@ async fn diagram_entities_equal_reviewed_attached_networks() {
         .collect();
     expected.sort();
     // Node labels present in the fabric SVG.
-    let svg_start = body.find("<svg").unwrap_or(0);
-    let svg_end = body.rfind("</svg>").unwrap_or(body.len());
-    let svg = &body[svg_start..svg_end];
+    let svg = fabric_svg(&body);
     let mut found: Vec<String> = expected
         .iter()
         .filter(|label| svg.contains(label.as_str()))
@@ -357,9 +352,7 @@ async fn contextual_entities_not_given_attachment_edges() {
     let (dbdir, rootdir) = setup_demo_catalog();
     let app = build_app(state_from(&dbdir, &rootdir));
     let (_, body) = get(&app, "/case-studies/manlan-2019").await;
-    let svg_start = body.find("<svg").unwrap_or(0);
-    let svg_end = body.rfind("</svg>").unwrap_or(body.len());
-    let svg = &body[svg_start..svg_end];
+    let svg = fabric_svg(&body);
     for contextual in ["Ixia", "NEAAR", "OMAN", "WIX", "TWAREN"] {
         assert!(
             !svg.contains(contextual),
@@ -471,7 +464,19 @@ async fn event_summary_links_to_full_evidence() {
         return;
     }
     let (dbdir, rootdir) = setup_demo_catalog();
-    let run_id = run_id_for_like(&dbdir, "%");
+    let conn = db_conn(&dbdir);
+    let run_id: i64 = conn
+        .query_row(
+            "SELECT r.id FROM analysis_runs r
+             JOIN analysis_plans p ON p.id = r.plan_id
+             JOIN manifest_revisions m ON m.id = p.manifest_revision_id
+             JOIN catalog_events e ON e.id = m.event_id
+             WHERE e.external_id = 'INC0301970' AND r.status = 'Complete'
+             ORDER BY r.id DESC LIMIT 1",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap();
     let app = build_app(state_from(&dbdir, &rootdir));
     let (_, body) = get(&app, "/events/INC0301970").await;
     assert!(
@@ -480,7 +485,7 @@ async fn event_summary_links_to_full_evidence() {
     );
     assert!(
         body.contains(&format!("/analyses/{run_id}")),
-        "full-evidence link targets the run workbench"
+        "full-evidence link targets the run workbench (run {run_id})"
     );
 }
 
@@ -589,12 +594,14 @@ async fn demo_imports_latest_reviewed_snapshot_when_present() {
     let (fetched_at, sha) = snapshot.expect("INC0301970 snapshot imported");
     assert_eq!(fetched_at, "2026-08-04T00:01:37Z", "reviewed fetch time");
     // The imported snapshot is the tracked immutable source snapshot.
-    let tracked = std::fs::read("case-studies/indiana-gigapop-smithville-2026/INC0301970.source.json")
-        .unwrap();
-    let tracked_sha = {
-        crate::catalog::document::hex_sha256(&tracked)
-    };
-    assert_eq!(sha, tracked_sha, "imported snapshot is the tracked source.json");
+    let tracked =
+        std::fs::read("case-studies/indiana-gigapop-smithville-2026/INC0301970.source.json")
+            .unwrap();
+    let tracked_sha = { crate::catalog::document::hex_sha256(&tracked) };
+    assert_eq!(
+        sha, tracked_sha,
+        "imported snapshot is the tracked source.json"
+    );
 }
 
 #[tokio::test]
@@ -604,12 +611,12 @@ async fn no_immutable_snapshot_mutation() {
     }
     // The tracked immutable snapshot still hashes to the SHA-256
     // recorded in the case-study README.
-    let tracked = std::fs::read("case-studies/indiana-gigapop-smithville-2026/INC0301970.source.json")
-        .unwrap();
+    let tracked =
+        std::fs::read("case-studies/indiana-gigapop-smithville-2026/INC0301970.source.json")
+            .unwrap();
     let sha = crate::catalog::document::hex_sha256(&tracked);
     assert_eq!(
-        sha,
-        "d911687c634a5efa7eafbea5816c4aa376f61c7c8fc14bd3611042873696de77",
+        sha, "d911687c634a5efa7eafbea5816c4aa376f61c7c8fc14bd3611042873696de77",
         "immutable snapshot content must be unchanged"
     );
 }
@@ -654,10 +661,7 @@ async fn complete_does_not_imply_event_closed() {
         text.contains("Source lifecycle") && text.contains("Open"),
         "source lifecycle Open shown alongside"
     );
-    assert!(
-        text.contains("Analysis cutoff"),
-        "cutoff retained"
-    );
+    assert!(text.contains("Analysis cutoff"), "cutoff retained");
     assert!(
         !text.contains("event is closed") && !text.contains("Lifecycle Closed"),
         "Complete must not be presented as event closure"
@@ -724,12 +728,10 @@ async fn equipment_never_rendered_as_as_node() {
     let (dbdir, rootdir) = setup_demo_catalog();
     let app = build_app(state_from(&dbdir, &rootdir));
     let (_, body) = get(&app, "/case-studies/manlan-2019").await;
-    let svg_start = body.find("<svg").unwrap_or(0);
-    let svg_end = body.rfind("</svg>").unwrap_or(body.len());
-    let svg = &body[svg_start..svg_end];
+    let svg = fabric_svg(&body);
     assert!(
         !svg.contains("Ixia"),
-        "equipment is never an AS node in any diagram"
+        "equipment is never an AS node in the fabric diagram"
     );
 }
 
@@ -747,8 +749,8 @@ async fn equipment_never_rendered_as_peer() {
         .map(|i| &text[i..i + 300])
         .unwrap_or("");
     assert!(
-        !ixia_region.contains("peer") && !ixia_region.contains("BGP peer"),
-        "equipment is never described as a peer: {ixia_region}"
+        ixia_region.contains("not a BGP peer"),
+        "equipment explicitly not a peer: {ixia_region}"
     );
 }
 
@@ -785,11 +787,12 @@ async fn only_reviewed_attached_networks_enter_fabric_diagram() {
         .iter()
         .map(|a| a["label"].as_str().unwrap().to_string())
         .collect();
-    let svg_start = body.find("<svg").unwrap_or(0);
-    let svg_end = body.rfind("</svg>").unwrap_or(body.len());
-    let svg = &body[svg_start..svg_end];
+    let svg = fabric_svg(&body);
     for label in &expected {
-        assert!(svg.contains(label.as_str()), "attached network {label} drawn");
+        assert!(
+            svg.contains(label.as_str()),
+            "attached network {label} drawn"
+        );
     }
     // The diagram draws no entity outside the reviewed set.
     for token in ["Ixia", "NEAAR", "OMAN", "TWAREN", "WIX"] {

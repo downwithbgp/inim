@@ -801,10 +801,7 @@ fn ticket_fixture_for(event_id: &str) -> Option<PathBuf> {
 /// with its optional `<EVENT>.source.json.meta.json` sidecar
 /// (reviewed fetch time, lifecycle at snapshot, cutoff provenance).
 /// Returns `None` when no tracked snapshot exists for the event.
-fn case_study_snapshot_for(
-    out_dir: &Path,
-    event_id: &str,
-) -> Option<(PathBuf, serde_json::Value)> {
+fn case_study_snapshot_for(out_dir: &Path, event_id: &str) -> Option<(PathBuf, serde_json::Value)> {
     let snapshot_path = out_dir.parent()?.join(format!("{event_id}.source.json"));
     if !snapshot_path.is_file() {
         return None;

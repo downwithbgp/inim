@@ -985,31 +985,32 @@ pub fn load_event_detail(
     // sidecar metadata (fetched time, lifecycle at snapshot, cutoff
     // provenance) when the case study carries one; else the manifest's
     // reviewed notes are the authority.
-    let (snapshot_lifecycle, snapshot_lifecycle_evidence, cutoff_provenance) =
-        if let Some(meta) = snapshot_meta_for(catalog_root, &snapshots) {
-            let lifecycle = meta
-                .get("lifecycle_at_snapshot")
-                .and_then(|v| v.as_str())
-                .unwrap_or("")
-                .to_string();
-            let evidence = meta
-                .get("lifecycle_evidence")
-                .and_then(|v| v.as_str())
-                .unwrap_or("")
-                .to_string();
-            let cutoff = meta
-                .get("cutoff_provenance")
-                .and_then(|v| v.as_str())
-                .unwrap_or("")
-                .to_string();
-            (lifecycle, evidence, cutoff)
-        } else {
-            (
+    let (snapshot_lifecycle, snapshot_lifecycle_evidence, cutoff_provenance) = if let Some(meta) =
+        snapshot_meta_for(catalog_root, &snapshots)
+    {
+        let lifecycle = meta
+            .get("lifecycle_at_snapshot")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string();
+        let evidence = meta
+            .get("lifecycle_evidence")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string();
+        let cutoff = meta
+            .get("cutoff_provenance")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string();
+        (lifecycle, evidence, cutoff)
+    } else {
+        (
                 String::new(),
                 String::new(),
                 "Reviewed snapshot cutoff: the reviewed end of the provisional analysis window (manifest analysis_end_utc); not a source fetch time unless the reviewed record says so.".to_string(),
             )
-        };
+    };
 
     Ok(Some(EventDetailView {
         event,
@@ -2640,10 +2641,7 @@ fn interconnection_view(
 
 /// Parse one reviewed entity list (label / note / reviewed ASN) from
 /// the interconnection-context JSON.
-fn parse_optional_entity_list(
-    v: &serde_json::Value,
-    key: &str,
-) -> Vec<AttachmentView> {
+fn parse_optional_entity_list(v: &serde_json::Value, key: &str) -> Vec<AttachmentView> {
     v.get(key)
         .and_then(|a| a.as_array())
         .map(|arr| parse_attachment_views(arr))
