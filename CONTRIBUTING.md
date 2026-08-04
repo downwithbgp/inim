@@ -63,6 +63,16 @@ There is no Contributor License Agreement.
   canonical transitions. Correct stale presentation prose or regenerate
   through the documented command; do not make generated JSON agree with
   prose by hand.
+- **Documentation follows the authority model.** Current normative
+  documentation must describe the current implementation and evidence;
+  historical records (ADRs, dated audits, `spec/`) are exempt and are
+  never rewritten to look current. See `docs/README.md` for the
+  authority hierarchy and conflict-resolution order.
+- **Generated documents are regenerated, not hand-edited.** Generated
+  files (evaluation answer key, repository-truth audit render,
+  demo manifest) carry a generation header; change the generator, then
+  regenerate, and commit both together. Regeneration must be
+  deterministic (no volatile timestamps).
 - **Keep changes surgical.** Match the existing style; every changed line
   should trace to the request.
 - **New persisted formats carry schema versions.** Bump the schema and
