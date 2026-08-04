@@ -1,3 +1,26 @@
+## [unreleased]
+
+### Session 55 — fabric entity taxonomy + Smithville coverage summary (2026-08-05)
+
+- MAN LAN entity taxonomy correction: Ixia is test/measurement equipment
+  (not a fabric attachment, peer, or AS node); WIX interconnect is
+  interconnect context; NEAAR is a service reference; TWAREN and OMAN are
+  unresolved source mentions. Fabric diagram and attachment count
+  (10 -> 5) contain only reviewed attached networks.
+- Reviewed interconnection context gains a bounded entity taxonomy
+  (AttachedNetwork / TestEquipment / InterconnectContext /
+  OperationalService / UnresolvedMention) with a dated classification
+  review record.
+- Smithville event page: observation-coverage summary (collector, site,
+  family, target visibility, relationship visibility, qualification)
+  derived from canonical preflight evidence; why Insufficient qualifying
+  visibility; why no UPDATE archives were acquired.
+- Source snapshot time, source lifecycle at snapshot, analysis cutoff,
+  and cutoff provenance are distinct fields; the demo import prefers the
+  latest reviewed immutable snapshot over the older fixture.
+- Assessment leads with the operator-readable explanation; Analysis
+  status is distinct from Source lifecycle.
+- Evaluation kit: facilitator truths and regenerated answer key.
 # Changelog
 
 All notable changes to inim are documented here. This project follows
