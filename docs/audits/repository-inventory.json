@@ -3697,7 +3697,7 @@
  },
  {
   "path": "docs/audits/2026-08-entity-taxonomy-smithville-summary.md",
-  "category": "Audit",
+  "category": "Historical decision record",
   "audience": "maintainers",
   "authoritative": "reviewed",
   "generated": false,
