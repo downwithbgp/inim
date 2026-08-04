@@ -24,14 +24,14 @@ This audit verifies that every tracked file is classified, that every current st
 
 ## Summary
 
-Tracked files: **451** · inventory entries: **451**
+Tracked files: **452** · inventory entries: **452**
 
 | Category | Files |
 |---|---|
 | Immutable or generated evidence | 148 |
 | Production source | 102 |
 | Normative current documentation | 42 |
-| Historical decision record | 36 |
+| Historical decision record | 37 |
 | Reviewed case-study interpretation | 28 |
 | Script or developer tool | 25 |
 | Configuration | 24 |
@@ -287,6 +287,7 @@ Tracked files: **451** · inventory entries: **451**
 | `docs/audits/2026-08-second-network-neutrality.md` | Historical decision record | maintainers | dated audit evidence | no | historical | status and applicability reviewed in this audit | none | reviewed in this audit |
 | `docs/audits/2026-08-smithville-source-refresh.md` | Historical decision record | maintainers | dated audit evidence | no | historical | status and applicability reviewed in this audit | none | reviewed in this audit |
 | `docs/audits/2026-08-specification-coverage.md` | Historical decision record | maintainers | dated audit | no | historical | status and applicability reviewed in this audit | none | reviewed in this audit |
+| `docs/audits/README.md` | Historical decision record | maintainers | dated audit index | no | historical | status and applicability reviewed in this audit | none | reviewed in this audit |
 | `docs/audits/external-links-2026-08.md` | Normative current documentation | maintainers | dated curl checks of documented external URLs | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
 | `docs/audits/repository-inventory.json` | Configuration | maintainers | reviewed classification of tracked files | no | current | reviewed in this audit | none | reviewed in this audit |
 | `docs/evaluation/ALPHA-FREEZE.md` | Normative current documentation | contributors | reviewed protocol | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |

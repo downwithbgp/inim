@@ -214,7 +214,7 @@ The following lists are compared with `git ls-files` by
 must be classified in a table above (or in `repository-inventory.json`
 for non-documentation files).
 
-### Tracked Markdown files (84, excluding `spec/`)
+### Tracked Markdown files (85, excluding `spec/`)
 
 ```
 .github/PULL_REQUEST_TEMPLATE.md
@@ -274,6 +274,7 @@ docs/audits/2026-08-repository-truth-audit.md
 docs/audits/2026-08-second-network-neutrality.md
 docs/audits/2026-08-smithville-source-refresh.md
 docs/audits/2026-08-specification-coverage.md
+docs/audits/README.md
 docs/audits/external-links-2026-08.md
 docs/evaluation/ALPHA-FREEZE.md
 docs/evaluation/EVALUATION-DATA-HANDLING.md
@@ -302,7 +303,8 @@ docs/sources/GRNOC_PUBLIC_TASK_VIEWER.md
 evaluation/generated/answer-key.md
 tests/fixtures/README.md
 ```
-### Tracked files under `docs/` (64)
+
+### Tracked files under `docs/` (65)
 
 ```
 docs/ADRs/CASE-STUDY-LAYER.md
@@ -343,6 +345,7 @@ docs/audits/2026-08-repository-truth-audit.md
 docs/audits/2026-08-second-network-neutrality.md
 docs/audits/2026-08-smithville-source-refresh.md
 docs/audits/2026-08-specification-coverage.md
+docs/audits/README.md
 docs/audits/external-links-2026-08.md
 docs/audits/repository-inventory.json
 docs/evaluation/ALPHA-FREEZE.md
@@ -370,6 +373,7 @@ docs/session-10-baseline.md
 docs/sources/GRNOC_BULK_ACCESS_REQUEST.md
 docs/sources/GRNOC_PUBLIC_TASK_VIEWER.md
 ```
+
 ### Tracked evaluation files (3)
 
 ```
@@ -377,6 +381,7 @@ evaluation/generated/answer-key.json
 evaluation/generated/answer-key.md
 evaluation/scenarios.toml
 ```
+
 ### Tracked GitHub files (4)
 
 ```
@@ -385,6 +390,7 @@ evaluation/scenarios.toml
 .github/dependabot.yml
 .github/workflows/ci.yml
 ```
+
 ## Required checks satisfied
 
 - every_tracked_markdown_file_is_classified — checked list above plus

@@ -3606,5 +3606,13 @@
   "authoritative": "artifact writers",
   "generated": false,
   "current": true
+ },
+ {
+  "path": "docs/audits/README.md",
+  "category": "Historical decision record",
+  "audience": "maintainers",
+  "authoritative": "dated audit index",
+  "generated": false,
+  "current": false
  }
 ]
