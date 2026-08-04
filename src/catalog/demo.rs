@@ -21,19 +21,7 @@ pub const DEMO_EXPECTED_EVENTS: &[&str] = &[
     "INC0040293", // MAN LAN optical participant event (supporting observation)
 ];
 
-/// Reviewed NORDUnet pilot runs linked to the manlan-2019 case study in
-/// the demo (the R&E-plane runs of the reviewed cross-observer matrix:
-/// route-views2 direct, rrc00, rrc06, rrc15). Pilot linkage mirrors the
-/// reviewed pilot-result linkage; the I2PX peering-plane runs are not
-/// linked (their dirs hold preflight-only results).
-const DEMO_PILOT_LINKED_RUNS: &[&str] = &[
-    "MANLAN-2019-NORDUNET-PILOT-RE-RV2",
-    "MANLAN-2019-NORDUNET-PILOT-RE-RRC00",
-    "MANLAN-2019-NORDUNET-PILOT-RE-RRC06",
-    "MANLAN-2019-NORDUNET-PILOT-RE-RRC15",
-];
-
-/// Import completed NORDUnet pilot runs from the reviewed pilot tree
+/// Import completed pilot runs from the reviewed pilot tree
 /// into the demo catalog and link the reviewed R&E-plane runs to the
 /// manlan-2019 case study. Offline and deterministic: only reviewed
 /// tracked material is read, and nothing is executed.
@@ -54,7 +42,7 @@ fn import_pilot_runs(conn: &Connection, root: &Path) -> Result<usize, String> {
     for path in &manifest_paths {
         let event_id = path.file_stem().and_then(|s| s.to_str()).unwrap_or("");
         // Only completed runs (report.json present) are imported; the
-        // I2PX peering-plane dirs hold preflight-only results and are
+        // Peering-plane dirs hold preflight-only results and are
         // never imported as runs.
         if !out_dir.join(event_id).join("report.json").is_file() {
             continue;
@@ -71,7 +59,9 @@ fn import_pilot_runs(conn: &Connection, root: &Path) -> Result<usize, String> {
         .map_err(|e| format!("pilot run import failed ({event_id}): {e}"))?;
         imported += 1;
     }
-    // Link the reviewed R&E-plane runs to the case study.
+    // Link the reviewed R&E-plane runs to the case study. The linked
+    // run names are reviewed data (pilot/demo-linked-runs.json), never
+    // source literals.
     let cs_id: Option<i64> = conn
         .query_row(
             "SELECT id FROM case_studies WHERE slug = 'manlan-2019'",
@@ -79,8 +69,25 @@ fn import_pilot_runs(conn: &Connection, root: &Path) -> Result<usize, String> {
             |r| r.get(0),
         )
         .ok();
+    let linkage_path = pilot_dir.join("demo-linked-runs.json");
+    let linked_runs: Vec<String> = if linkage_path.is_file() {
+        let raw = std::fs::read_to_string(&linkage_path)
+            .map_err(|e| format!("cannot read pilot demo linkage: {e}"))?;
+        let v: serde_json::Value = serde_json::from_str(&raw)
+            .map_err(|e| format!("invalid pilot demo linkage: {e}"))?;
+        v.get("linked_runs")
+            .and_then(|r| r.as_array())
+            .map(|a| {
+                a.iter()
+                    .filter_map(|x| x.as_str().map(str::to_string))
+                    .collect()
+            })
+            .unwrap_or_default()
+    } else {
+        return Err("demo pilot linkage file missing (pilot/demo-linked-runs.json)".to_string());
+    };
     if let Some(cs_id) = cs_id {
-        for run_event in DEMO_PILOT_LINKED_RUNS {
+        for run_event in linked_runs {
             let run_id: Option<i64> = conn
                 .query_row(
                     "SELECT r.id FROM analysis_runs r
@@ -147,7 +154,7 @@ pub fn demo_init(db_path: &Path, root: &Path, force: bool) -> Result<DemoReport,
         crate::catalog::case_study_import::import_case_study(&conn, &cs_path)
             .map_err(|e| format!("demo case-study import failed (manlan-2019): {e}"))?;
     }
-    // Import the completed NORDUnet pilot runs (case-study evidence)
+    // Import the completed pilot runs (case-study evidence)
     // and link the reviewed R&E-plane runs so the manlan-2019 workbench
     // renders the route changes. Without this step the case-study
     // workbench would show no observer findings.

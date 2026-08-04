@@ -64,8 +64,8 @@ fn package_does_not_include_cache_directory() {
     let toml = read("Cargo.toml");
     let section = package_section(&toml);
     assert!(
-        section.contains("\"cache/\"") || section.contains("\"cache\""),
-        "package exclude rules must exclude cache/"
+        section.contains("cache/"),
+        "package exclude rules must exclude cache/ (anchored /cache/ or bare cache/)"
     );
 }
 
@@ -74,8 +74,8 @@ fn package_does_not_include_out_directory() {
     let toml = read("Cargo.toml");
     let section = package_section(&toml);
     assert!(
-        section.contains("\"out/\"") || section.contains("\"out\""),
-        "package exclude rules must exclude out/"
+        section.contains("out/"),
+        "package exclude rules must exclude out/ (anchored /out/ or bare out/)"
     );
 }
 
@@ -317,8 +317,8 @@ fn screenshot_output_is_gitignored_and_not_packaged() {
     );
     let toml = read("Cargo.toml");
     assert!(
-        toml.contains("\"tmp/\""),
-        "tmp/ must be excluded from the crate package"
+        toml.contains("tmp/"),
+        "tmp/ must be excluded from the crate package (anchored /tmp/ or bare tmp/)"
     );
 }
 

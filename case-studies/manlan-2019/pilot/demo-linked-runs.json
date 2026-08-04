@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "case_study_slug": "manlan-2019",
+  "role": "PilotObservation",
+  "reviewed_note": "Reviewed R&E-plane pilot runs linked to the manlan-2019 case study in the deterministic demo (the runs of the reviewed cross-observer matrix: route-views2 direct, rrc00, rrc06, rrc15). The demo reads this file; the run names are data, never source code.",
+  "linked_runs": [
+    "MANLAN-2019-NORDUNET-PILOT-RE-RV2",
+    "MANLAN-2019-NORDUNET-PILOT-RE-RRC00",
+    "MANLAN-2019-NORDUNET-PILOT-RE-RRC06",
+    "MANLAN-2019-NORDUNET-PILOT-RE-RRC15"
+  ]
+}

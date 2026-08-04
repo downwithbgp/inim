@@ -584,6 +584,14 @@
   "current": true
  },
  {
+  "path": "case-studies/manlan-2019/pilot/demo-linked-runs.json",
+  "category": "Reviewed case-study interpretation",
+  "audience": "maintainers",
+  "authoritative": "reviewed case-study metadata",
+  "generated": false,
+  "current": true
+ },
+ {
   "path": "case-studies/manlan-2019/pilot/manifests/MANLAN-2019-NORDUNET-PILOT-I2PX-RRC00.json",
   "category": "Configuration",
   "audience": "maintainers",
