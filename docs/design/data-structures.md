@@ -36,7 +36,7 @@ CLAIMED (documented, not established), UNKNOWN.
 | `AnalysisPlanRecord` | Stored plan row | `sha256 UNIQUE` | catalog lifetime | import/queue | append-only | blocked plans not queueable | readiness derivation | SQLite `analysis_plans` |
 | `ArchivePlan` / `CollectorPlan` / `ExpectedFile` | Archive selection plan per collector/family | case study | catalog lifetime | `build_plan_for_families` | Draft until saved | family-correct URLs/cadence | archive planning | `src/catalog/archive_plan.rs` |
 | `BlockedTarget` | Reviewed target that cannot be analyzed | source label | plan lifetime | reviewed target status | immutable | only HistoricallyReviewed targets enter | target coverage | `src/catalog/archive_plan.rs` |
-| `Analyzability` | Derived readiness record | `event_id` | derived on read | `derive_analyzability` | never stored | 15-state readiness vocabulary | readiness derivation | `src/catalog/analyzability.rs` |
+| `Analyzability` | Derived readiness record | `event_id` | derived on read | `derive_analyzability` | never stored | 14-state readiness vocabulary | readiness derivation | `src/catalog/analyzability.rs` |
 
 ## 4. Durable execution
 
@@ -74,8 +74,8 @@ CLAIMED (documented, not established), UNKNOWN.
 | `ImpactWave` / `WaveMotif` | Temporally concentrated transition group + SEQUITUR motif | wave id (run-local) | analysis run | `detect_waves` | immutable | deterministic gap clustering | wave detection | `src/waves.rs` |
 | `RoutingFinding` | Operator-facing routing story at one observer session | `stable_id` | presentation | workbench derivation | derived on read | presentation model; exact paths in streams | finding grouping, `select_principal_findings` | `src/catalog/workbench.rs` |
 | `Verdict` | Machine verdict enum | enum variant | analysis run + report | `derive_verdict` | immutable | 16 variants; `observed_result_kind` and `expectation_assessment_kind` are projections | verdict derivation | `src/domain/assessment.rs` |
-| `ObservedResultKind` | Observed route-state result (4 values) | enum | analysis run + report | verdict projection | immutable | labels never contain expectation wording | result derivation | `src/domain/observation.rs` |
-| `ExpectationAssessmentKind` | Expectation assessment (7 values) | enum | analysis run + report | verdict projection | immutable | references reviewed expectation | assessment | `src/domain/observation.rs` |
+| `ObservedResultKind` | Observed route-state result (4 values) | enum | analysis run + report | verdict projection | immutable | labels never contain expectation wording | result derivation | `src/domain/assessment.rs` |
+| `ExpectationAssessmentKind` | Expectation assessment (7 values) | enum | analysis run + report | verdict projection | immutable | references reviewed expectation | assessment | `src/domain/assessment.rs` |
 | `AnalysisOutcome` | Run outcome (completed / insufficient_visibility / incomplete) | tagged enum | analysis run + report | outcome assembly | immutable | infrastructure failure never a routing verdict | outcome assembly | `src/outcome.rs` |
 
 ## 8. Artifacts and provenance
@@ -94,7 +94,7 @@ CLAIMED (documented, not established), UNKNOWN.
 | `CatalogStatus` | Derived analyst-facing status (8 values) | event | derived on read | `derive_status` | never stored | deterministic precedence | status derivation | `src/catalog/status.rs` |
 | `StreamLifecycleSummary` | Projected stream summary row | `(run_id, collector, peer_ip, prefix)` | catalog lifetime | import | immutable | counts match report | import | SQLite `stream_lifecycle_summaries`; `src/catalog/import.rs` |
 | `SemanticWaveSummary` | Projected wave row | `(run_id, wave_id)` | catalog lifetime | import | immutable | counts match report | import | SQLite `semantic_wave_summaries` |
-| `RunTransitionRecord` | Projected transition row | `(run_id, occurred_utc)` | catalog lifetime | import | immutable | references canonical artifact | import | SQLite `run_transitions`; `src/catalog/import.rs` |
+| `RunTransitionRecord` | Projected transition row | `(run_id, seq)` | catalog lifetime | import | immutable | references canonical artifact | import | SQLite `run_transitions`; `src/catalog/import.rs` |
 | `CaseStudyEventLink` | Case-study ↔ event link | case-study + event | catalog lifetime | case-study import | append-only | never fabricates source snapshots | case-study projection | SQLite `case_study_event_links` |
 
 ## 10. Presentation models

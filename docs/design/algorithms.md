@@ -263,7 +263,7 @@ Algorithms are named even when distributed across modules. Classification:
 - Symbols: `derive_status` (`src/catalog/status.rs`),
   `derive_analyzability` (`src/catalog/analyzability.rs`).
 - Purpose: derive `CatalogStatus` (8 values, deterministic precedence)
-  and readiness (15 values) from stored inputs — never stored as truth.
+  and readiness (14 values) from stored inputs — never stored as truth.
 - Classification: repository-specific.
 
 ## A20. Demo init and verify

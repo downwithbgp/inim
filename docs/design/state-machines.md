@@ -32,7 +32,7 @@ historical run stays completed; `Stale` never invalidates it.
 
 `AnalysisPlanStatus` (`src/plan.rs`): `Ready` | `Blocked { reason }`
 with five `AnalysisBlockReason` variants. The catalog-level readiness
-vocabulary has 15 states (`src/catalog/analyzability.rs`):
+vocabulary has 14 states (`src/catalog/analyzability.rs`):
 `NotReviewed`, `NeedsEntityMapping`, `NeedsTransitPredicate`,
 `NeedsAnalysisWindow`, `NotApplicableToPublicBgp`,
 `ReadyForArchivePlanning`, `ArchivePlanReady`,

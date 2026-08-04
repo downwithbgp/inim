@@ -129,7 +129,7 @@ verified against implementation (`JobState` +
    (`src/assess.rs:208-224`); with archive gaps and zero transitions
    the verdict is "No route-state change observed", not
    `InsufficientVisibility`. The module doc claims suppression
-   (`src/assess.rs:13-14`). The gaps + empty-transitions combination is
+   (`src/assess.rs:19-20`). The gaps + empty-transitions combination is
    untested.
 
 ## Claims narrowed
