@@ -928,24 +928,63 @@ No qualifying baseline observer streams; no route findings were produced.
                 .map_err(|e| format!("limitations json: {e}"))?,
         )
         .map_err(|e| format!("cannot write limitations.json: {e}"))?;
+        // The insufficient-visibility artifact set carries the SAME
+        // standard shapes as a completed run, with empty content:
+        // schema_version + event_id are always present so artifact
+        // audits and downstream tooling treat the run uniformly.
         std::fs::write(
             out_dir.join("archive_manifest.json"),
-            serde_json::to_string_pretty(&serde_json::json!({"archives": archives}))
-                .map_err(|e| format!("archive manifest json: {e}"))?,
+            serde_json::to_string_pretty(&serde_json::json!({
+                "schema_version": crate::schema::ARCHIVE_MANIFEST_SCHEMA_VERSION,
+                "event_id": event_id,
+                "archives": archives,
+            }))
+            .map_err(|e| format!("archive manifest json: {e}"))?,
         )
         .map_err(|e| format!("cannot write archive_manifest.json: {e}"))?;
         std::fs::write(
             out_dir.join("transitions.json"),
-            "[]
-",
+            serde_json::to_string_pretty(&serde_json::json!({
+                "schema_version": crate::schema::TRANSITIONS_ARTIFACT_SCHEMA_VERSION,
+                "event_id": event_id,
+                "transitions": [],
+            }))
+            .map_err(|e| format!("transitions json: {e}"))?,
         )
         .map_err(|e| format!("cannot write transitions.json: {e}"))?;
         std::fs::write(
             out_dir.join("semantic_waves.json"),
-            "[]
-",
+            serde_json::to_string_pretty(&serde_json::json!({
+                "schema_version": crate::schema::SEMANTIC_WAVE_SCHEMA_VERSION,
+                "event_id": event_id,
+                "waves": [],
+            }))
+            .map_err(|e| format!("semantic waves json: {e}"))?,
         )
         .map_err(|e| format!("cannot write semantic_waves.json: {e}"))?;
+        std::fs::write(
+            out_dir.join("lifecycle.json"),
+            serde_json::to_string_pretty(&serde_json::json!({
+                "schema_version": crate::schema::LIFECYCLE_ARTIFACT_SCHEMA_VERSION,
+                "event_id": event_id,
+                "lifecycles": [],
+            }))
+            .map_err(|e| format!("lifecycle json: {e}"))?,
+        )
+        .map_err(|e| format!("cannot write lifecycle.json: {e}"))?;
+        std::fs::write(
+            out_dir.join("withdrawal_audit.json"),
+            serde_json::to_string_pretty(&serde_json::json!({
+                "schema_version": crate::schema::WITHDRAWAL_AUDIT_SCHEMA_VERSION,
+                "event_id": event_id,
+                "summary": {"withdrawals": 0, "restorations": 0},
+                "records": [],
+            }))
+            .map_err(|e| format!("withdrawal audit json: {e}"))?,
+        )
+        .map_err(|e| format!("cannot write withdrawal_audit.json: {e}"))?;
+        std::fs::write(out_dir.join("evidence_appendix.jsonl"), "")
+            .map_err(|e| format!("cannot write evidence_appendix.jsonl: {e}"))?;
         Ok(())
     }
 

@@ -111,11 +111,7 @@ pub(crate) fn import_repository_scoped(
         let out_dir = out_roots
             .iter()
             .find(|root| root.join(&event_id).join("report.json").is_file())
-            .or_else(|| {
-                out_roots
-                    .iter()
-                    .find(|root| root.join(&event_id).is_dir())
-            })
+            .or_else(|| out_roots.iter().find(|root| root.join(&event_id).is_dir()))
             .cloned()
             .unwrap_or_else(|| out_roots[0].clone());
         let r = import_one(
@@ -834,26 +830,32 @@ mod tests {
         }
         let (_dir, conn) = open_temp_db();
         let summary = import_repository(&conn, Path::new("."), "0.1.0", Some("test-git")).unwrap();
-        // INC0302574 + INC0299001 + INC0040293 completed; INC0301970 blocked.
+        // INC0302574 + INC0299001 + INC0040293 completed;
+        // INC0301970 completed with InsufficientVisibility (open event,
+        // provisional; no qualifying baseline).
         assert_eq!(summary.events, 4);
         assert_eq!(summary.manifests, 4);
         assert_eq!(summary.plans, 4);
-        assert_eq!(summary.runs, 3);
+        assert_eq!(summary.runs, 4);
         assert!(summary.artifacts > 0);
-        // INC0301970: no run, no outcome.
+        // INC0301970: a run with the insufficient-visibility verdict.
         let e = db::get_event_by_external(&conn, "local-repository", "INC0301970")
             .unwrap()
             .unwrap();
-        assert!(db::list_runs_for_event(&conn, e.id).unwrap().is_empty());
+        let runs = db::list_runs_for_event(&conn, e.id).unwrap();
+        assert_eq!(runs.len(), 1);
+        assert_eq!(
+            runs[0].verdict.as_deref(),
+            Some("insufficient_visibility"),
+            "the second-network run records the insufficient-visibility verdict"
+        );
         let manifests = db::list_manifest_revisions(&conn, e.id).unwrap();
         assert_eq!(manifests.len(), 1);
         let plans = db::list_plans_for_manifest(&conn, manifests[0].id).unwrap();
         assert_eq!(plans.len(), 1);
-        assert_eq!(plans[0].status, "Blocked");
-        assert_eq!(
-            plans[0].block_reason.as_deref(),
-            Some("MissingReviewedTransitPredicate")
-        );
+        // The Smithville plan is Ready (reviewed representation) and the
+        // EXECUTION produced the insufficient-visibility run.
+        assert_eq!(plans[0].status, "Ready");
     }
 
     #[test]
@@ -1101,9 +1103,65 @@ mod tests {
         }
         let (_dir, conn) = open_temp_db();
         import_repository(&conn, Path::new("."), "0.1.0", None).unwrap();
-        let e = db::get_event_by_external(&conn, "local-repository", "INC0301970")
-            .unwrap()
+        // The repository no longer carries a blocked manifest, so the
+        // blocked-event behavior is exercised with a synthetic
+        // unresolved predicate on a temp event.
+        conn.execute(
+            "INSERT INTO catalog_events (source_kind, external_id, first_seen, last_seen)
+             VALUES ('grnoc-public-task-viewer', 'INC-BLOCKED-T', '2026-08-01T00:00:00Z', '2026-08-01T01:00:00Z')",
+            [],
+        )
+        .unwrap();
+        let eid = conn
+            .query_row(
+                "SELECT id FROM catalog_events WHERE external_id = 'INC-BLOCKED-T'",
+                [],
+                |r| r.get::<_, i64>(0),
+            )
             .unwrap();
+        let snapshot = super::EventSnapshot {
+            id: 0,
+            event_id: eid,
+            fetched_at: "2026-08-01T00:00:00Z".to_string(),
+            source_url: "file:///x".to_string(),
+            content_sha256: "s".to_string(),
+            raw_payload: "{}".to_string(),
+            normalized_json: "{}".to_string(),
+            parser_version: "t".to_string(),
+        };
+        let sid = store::insert_snapshot(&conn, eid, &snapshot).unwrap();
+        let manifest = super::ManifestRevision {
+            id: 0,
+            event_id: eid,
+            snapshot_id: sid,
+            manifest_schema: 2,
+            payload: serde_json::json!({
+                "event_id": "INC-BLOCKED-T",
+                "revision": 1,
+                "schema_version": 2,
+                "open": false,
+                "event_window_utc": {"start": "2026-08-01T00:00:00Z", "end": "2026-08-01T01:00:00Z"},
+                "ticket_window_local": {"start": "2026-08-01 00:00:00", "end": "2026-08-01 01:00:00", "timezone": "UTC"},
+                "warmup_minutes": 0,
+                "cooldown_minutes": 0,
+                "target": {
+                    "label": "Blocked Target",
+                    "origin_asns": [64500],
+                    "transit_predicate": {"status": "Unresolved", "predicate": null, "provenance": null}
+                },
+                "collectors": ["rrc00"],
+                "source_family": "RipeRis"
+            }).to_string(),
+            sha256: "m".to_string(),
+            review_status: "Unresolved".to_string(),
+            reviewed_at: None,
+            reviewer: None,
+        };
+        let mid = store::insert_manifest_revision(&conn, &manifest).unwrap();
+        let parsed: crate::manifest::Manifest = serde_json::from_str(&manifest.payload).unwrap();
+        let plan_rec = super::build_plan_record(&conn, mid, &parsed, true).unwrap();
+        store::insert_plan(&conn, &plan_rec).unwrap();
+        let e = db::get_event(&conn, eid).unwrap().unwrap();
         let runs = db::list_runs_for_event(&conn, e.id).unwrap();
         assert!(runs.is_empty(), "blocked event has no analysis run");
         let manifests = db::list_manifest_revisions(&conn, e.id).unwrap();

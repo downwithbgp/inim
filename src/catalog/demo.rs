@@ -318,7 +318,8 @@ fn resolve_artifact(root: &Path, rel: &str) -> std::path::PathBuf {
         root.join("out").join(rel),
         root.join("case-studies/manlan-2019/pilot/out").join(rel),
         root.join("case-studies/manlan-esnet-2019/out").join(rel),
-        root.join("case-studies/indiana-gigapop-smithville-2026/out").join(rel),
+        root.join("case-studies/indiana-gigapop-smithville-2026/out")
+            .join(rel),
         root.join("case-studies/inc0302574/out").join(rel),
         root.join("case-studies/inc0299001/out").join(rel),
     ];

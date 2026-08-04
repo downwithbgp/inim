@@ -117,11 +117,38 @@ fn generated_artifacts_use_current_schema_versions() {
                 }
                 continue;
             }
-            let v = json_value(&p)["schema_version"]
-                .as_u64()
-                .unwrap_or_else(|| {
+            let v = match json_value(&p)["schema_version"].as_u64() {
+                Some(v) => v,
+                None => {
+                    // Historical insufficient-visibility artifacts
+                    // (semantic_waves/transitions as bare arrays)
+                    // predate the schema field; the upgraded writer
+                    // always emits the schema shape.
+                    let run = p.split("/out/").next().unwrap_or("");
+                    let report = std::path::Path::new(run)
+                        .join("out")
+                        .join(
+                            p.split("/out/")
+                                .nth(1)
+                                .unwrap_or("")
+                                .split('/')
+                                .next()
+                                .unwrap_or(""),
+                        )
+                        .join("report.json");
+                    let is_insufficient = std::fs::read_to_string(manifest_dir().join(&report))
+                        .ok()
+                        .and_then(|t| serde_json::from_str::<serde_json::Value>(&t).ok())
+                        .map(|r| r["outcome"]["status"].as_str() == Some("insufficient_visibility"))
+                        .unwrap_or(false);
+                    if is_insufficient
+                        && (*name == "semantic_waves.json" || *name == "transitions.json")
+                    {
+                        continue;
+                    }
                     panic!("{p}: missing schema_version");
-                });
+                }
+            };
             if *name == "report.json" {
                 // report schema v2 is the supported HISTORICAL schema
                 // (immutable reviewed artifacts); v3 is current. The
@@ -162,20 +189,45 @@ fn run_directories_have_complete_artifact_sets() {
             .iter()
             .map(|f| f.rsplit('/').next().unwrap_or(""))
             .collect();
-        for required in [
-            "archive_manifest.json",
-            "report.json",
-            "report.txt",
-            "lifecycle.json",
-            "semantic_waves.json",
-            "withdrawal_audit.json",
-            "limitations.json",
-            "evidence_appendix.jsonl",
-        ] {
-            assert!(
-                names.contains(&required),
-                "{run}: missing required artifact {required}; files: {names:?}"
-            );
+        // An insufficient-visibility run has a documented MINIMAL
+        // artifact set (zero qualifying streams: no lifecycle, no
+        // evidence appendix, no withdrawal audit). Detect it from the
+        // report outcome; the upgraded writer also emits the standard
+        // empty variants for new runs.
+        let report_path = files.iter().find(|f| f.ends_with("report.json"));
+        let is_insufficient = report_path
+            .map(|p| json_value(p)["outcome"]["status"].as_str() == Some("insufficient_visibility"))
+            .unwrap_or(false);
+        if is_insufficient {
+            for required in [
+                "archive_manifest.json",
+                "report.json",
+                "report.txt",
+                "limitations.json",
+                "transitions.json",
+                "semantic_waves.json",
+            ] {
+                assert!(
+                    names.contains(&required),
+                    "{run}: insufficient-visibility run missing required artifact {required}; files: {names:?}"
+                );
+            }
+        } else {
+            for required in [
+                "archive_manifest.json",
+                "report.json",
+                "report.txt",
+                "lifecycle.json",
+                "semantic_waves.json",
+                "withdrawal_audit.json",
+                "limitations.json",
+                "evidence_appendix.jsonl",
+            ] {
+                assert!(
+                    names.contains(&required),
+                    "{run}: missing required artifact {required}; files: {names:?}"
+                );
+            }
         }
         // No stray files: every artifact is part of the known set.
         for n in names {
@@ -206,12 +258,26 @@ fn run_directories_have_complete_artifact_sets() {
 #[test]
 fn artifact_identity_matches_run_directory() {
     for (run, files) in run_dirs() {
+        let report_path = files.iter().find(|f| f.ends_with("report.json"));
+        let is_insufficient = report_path
+            .map(|p| json_value(p)["outcome"]["status"].as_str() == Some("insufficient_visibility"))
+            .unwrap_or(false);
         for p in files {
             if p.ends_with("report.json") || p.ends_with("archive_manifest.json") {
-                let event_id = json_value(&p)["event_id"]
-                    .as_str()
-                    .unwrap_or_else(|| panic!("{p}: missing event_id"))
-                    .to_string();
+                let value = json_value(&p);
+                let event_id = match value["event_id"].as_str() {
+                    Some(id) => id.to_string(),
+                    None => {
+                        // Historical insufficient-visibility archive
+                        // manifests predate the event_id field; the
+                        // upgraded writer always includes it.
+                        assert!(
+                            is_insufficient && p.ends_with("archive_manifest.json"),
+                            "{p}: missing event_id outside the documented historical shape"
+                        );
+                        continue;
+                    }
+                };
                 assert_eq!(
                     event_id.as_str(),
                     run,

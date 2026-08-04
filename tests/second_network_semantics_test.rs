@@ -485,7 +485,8 @@ fn queue_validation_accepts_open_event_with_cutoff() {
             },
             "collectors": ["rrc00"],
             "source_family": "RipeRis"
-        }).to_string(),
+        })
+        .to_string(),
         sha256: "m".to_string(),
         review_status: "Reviewed".to_string(),
         reviewed_at: Some("2026-08-04T00:00:00Z".to_string()),
@@ -555,7 +556,10 @@ fn import_prefers_tracked_case_evidence_over_runtime_stub() {
     let db = root.join("c.sqlite");
     let conn = inim::catalog::db::open_catalog(&db).unwrap();
     let summary = inim::catalog::import::import_repository(&conn, &root, "0.1.0", None).unwrap();
-    assert_eq!(summary.runs, 1, "the tracked case-study run must be imported");
+    assert_eq!(
+        summary.runs, 1,
+        "the tracked case-study run must be imported"
+    );
     let n: i64 = conn
         .query_row("SELECT COUNT(*) FROM analysis_runs", [], |r| r.get(0))
         .unwrap();
