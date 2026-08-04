@@ -69,6 +69,25 @@ pub struct DataInterconnectionContext {
     /// Reviewed attachments (physical / Layer-2 participation context).
     #[serde(default)]
     pub attachments: Vec<DataAttachment>,
+    /// Network test/measurement hardware mentioned by sources. Never a
+    /// peer, an AS node, or an attached network.
+    #[serde(default)]
+    pub test_equipment: Vec<DataAttachment>,
+    /// Interconnection or external-fabric references that are not
+    /// established as attached networks on this fabric.
+    #[serde(default)]
+    pub interconnect_context: Vec<DataAttachment>,
+    /// Service or facility context not established as an attached
+    /// autonomous network.
+    #[serde(default)]
+    pub operational_services: Vec<DataAttachment>,
+    /// Source-mentioned entities whose role is not sufficiently
+    /// established to classify as attachments.
+    #[serde(default)]
+    pub unresolved_mentions: Vec<DataAttachment>,
+    /// Record of reviewed classification corrections.
+    #[serde(default)]
+    pub entity_review: Option<serde_json::Value>,
     /// Where this reviewed context comes from.
     pub provenance: String,
     /// Explicit limitations of the attachment evidence class.
@@ -76,7 +95,10 @@ pub struct DataInterconnectionContext {
     pub limitations: Vec<String>,
 }
 
-/// One reviewed attachment to a Layer-2 fabric.
+/// One reviewed entity reference in a Layer-2 fabric context. The
+/// semantic class is conveyed by which list the entry appears in
+/// (attachments = attached networks; test_equipment; interconnect
+/// context; operational services; unresolved mentions).
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct DataAttachment {

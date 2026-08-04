@@ -112,7 +112,7 @@ pub async fn event_detail(
     AxumPath(event_id): AxumPath<String>,
 ) -> Response {
     let db = state.db.lock().unwrap();
-    match super::view::load_event_detail(&db, &event_id) {
+    match super::view::load_event_detail(&db, &event_id, &state.catalog_root) {
         Ok(Some(view)) => {
             // Direct access to an excluded event is consistently 404:
             // it is not an active project result.

@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "event_id": "INC0301970",
+  "reviewed_at": "2026-08-05",
+  "provenance": "Reviewed observer-coverage summary for the INC0301970 open-event run. Counts are the canonical event-date baseline preflight facts recorded in docs/audits/2026-08-smithville-source-refresh.md (Event-date baseline preflight table) and the reviewed manifest analyst notes (manifests/INC0301970.json, analyst note 4). Collector sites come from the reviewed collector-location metadata (case-studies/manlan-2019/pilot/collector-locations.json; same collectors, stable locations). No new acquisition; no analysis rerun.",
+  "summary": "Smithville-origin routes were visible at selected public collectors, but none exposed the reviewed Indiana GigaPOP\u2013Smithville AS-path adjacency and no direct AS19782 observer session was available. No qualifying baseline cohort was formed, so UPDATE archives were not acquired.",
+  "updates_acquired": false,
+  "updates_explanation": "No qualifying baseline cohort was formed: zero AS11550 routes traversed AS19782 and zero direct AS19782 observer sessions existed at the selected collectors, so no UPDATE acquisition was justified. The zero-baseline stop is by design.",
+  "rows": [
+    {
+      "collector": "route-views2",
+      "family": "RouteViews",
+      "target_visible": true,
+      "target_prefixes": 13,
+      "relationship_visible": false,
+      "direct_observer_session": false,
+      "human_label": "Target routes visible; reviewed relationship not visible",
+      "blocker_classification": "TargetPresentRelationshipAbsent + RequiredSessionAbsent",
+      "note": "221 AS11550 routes; 0 of 221 traverse AS19782"
+    },
+    {
+      "collector": "rrc00",
+      "family": "RIPE RIS",
+      "target_visible": true,
+      "target_prefixes": 13,
+      "relationship_visible": false,
+      "direct_observer_session": false,
+      "human_label": "Target routes visible; reviewed relationship not visible",
+      "blocker_classification": "TargetPresentRelationshipAbsent + RequiredSessionAbsent",
+      "note": "546 AS11550 routes; 0 of 546 traverse AS19782"
+    },
+    {
+      "collector": "rrc06",
+      "family": "RIPE RIS",
+      "target_visible": true,
+      "target_prefixes": 13,
+      "relationship_visible": false,
+      "direct_observer_session": false,
+      "human_label": "Target routes visible; reviewed relationship not visible",
+      "blocker_classification": "TargetPresentRelationshipAbsent + RequiredSessionAbsent",
+      "note": "65 AS11550 routes; 0 of 65 traverse AS19782"
+    },
+    {
+      "collector": "rrc11",
+      "family": "RIPE RIS",
+      "target_visible": true,
+      "target_prefixes": 13,
+      "relationship_visible": false,
+      "direct_observer_session": false,
+      "human_label": "Target routes visible; reviewed relationship not visible",
+      "blocker_classification": "TargetPresentRelationshipAbsent + RequiredSessionAbsent",
+      "note": "91 AS11550 routes; 0 of 91 traverse AS19782"
+    },
+    {
+      "collector": "route-views6",
+      "family": "RouteViews",
+      "target_visible": false,
+      "target_prefixes": 0,
+      "relationship_visible": false,
+      "direct_observer_session": false,
+      "human_label": "Target origin not visible",
+      "blocker_classification": "TargetOriginNotVisible (IPv6-only collector)",
+      "note": "0 AS11550 announces of 4,854,128 parsed"
+    }
+  ]
+}

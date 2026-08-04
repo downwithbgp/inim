@@ -23,6 +23,7 @@ is authoritative and the contradiction is a P0 defect.
 - **target**: NORDUnet AS2603 is the analyzed BGP target (one attached network); the completed pilot is NORDUnet-target-scoped, not MAN LAN BGP analysis.
 - **path_evidence**: observed AS paths are public-collector evidence (route-views2 peer 64.57.28.241 and RIS observers); they show what the collector received, never switch-fabric state.
 - **attachment_vs_adjacency**: Layer-2 attachment and AS-path adjacency are different evidence classes: attachment does not prove BGP adjacency, route export, a commercial relationship, traffic flow, or active state during the event.
+- **entity_taxonomy**: Ixia is network test/measurement equipment, not a participating network and not a BGP peer. Not every source-mentioned entity is a reviewed fabric attachment: source mention is not proof of attachment, a reviewed ASN is not proof of attachment, and a familiar organization name is not proof of entity class.
 - **reference**: `case-studies/manlan-2019/case-study.json`
 - **Artifact**: `case-studies/manlan-2019/pilot/cross-observer-matrix.json`
 
@@ -208,7 +209,7 @@ is authoritative and the contradiction is a P0 defect.
 
 - **Provisional cutoff**: 2026-08-04T00:01:37Z
 - **Provisional language**: source event remains open; result is provisional through the reviewed snapshot cutoff; a later source refresh creates a new snapshot and run
-- **Why insufficient visibility**: no selected RouteViews observer had a pre-event route matching the reviewed path predicate, so no qualifying baseline exists; the run records InsufficientVisibility with no UPDATE acquisition. This is distinct from observing no route-state change: there was no qualifying observation at all.
+- **Why insufficient visibility**: no selected observer had an event-baseline route exposing the reviewed AS19782-AS11550 adjacency, so no qualifying baseline cohort exists; the run records InsufficientVisibility with no UPDATE acquisition. This is distinct from observing no route-state change: there was no qualifying observation at all. Target-origin visibility (AS11550 routes were visible) and reviewed-relationship visibility (none exposed the adjacency) are separate.
 
 ### Non-conclusions
 

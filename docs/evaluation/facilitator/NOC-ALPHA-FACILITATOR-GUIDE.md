@@ -150,3 +150,24 @@ these reviewed truths and may clarify them without leading answers:
 - **Layer-2 attachment and AS-path adjacency are different evidence
   classes**: attachment does not prove BGP adjacency, route export, a
   commercial relationship, traffic flow, or active state.
+
+## Entity taxonomy and coverage truths (2026-08)
+
+- **Ixia is network test/measurement equipment** — not a participating
+  network, not a BGP peer, not an AS node, and not a reviewed fabric
+  attachment. It may appear as operational/test-equipment context only.
+- **Not every source-mentioned entity is a reviewed fabric
+  attachment**: source mention is not proof of attachment, a reviewed
+  ASN is not proof of attachment, and a familiar organization name is
+  not proof of entity class. The fabric diagram shows only reviewed
+  attached networks; other entities are listed separately.
+- **Smithville target-origin visibility and named-relationship
+  visibility are separate**: AS11550-origin routes were visible at
+  selected public collectors, while the reviewed Indiana
+  GigaPOP–Smithville AS-path adjacency was not exposed and no direct
+  AS19782 observer session was available.
+- **Source snapshot time and analysis cutoff are separate
+  timestamps**: the event page shows the source snapshot fetch time,
+  the source lifecycle at that snapshot, and the reviewed analysis
+  cutoff (the reviewed snapshot cutoff) with its provenance as
+  distinct fields.

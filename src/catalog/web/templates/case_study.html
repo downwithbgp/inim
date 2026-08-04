@@ -15,20 +15,70 @@
   <p>{{ incident_context }}</p>
   {% if interconnection.is_some() %}
   {% let ic = interconnection.as_ref().unwrap() %}
-  <h4>Reviewed attachment context (Layer-2)</h4>
+  <h4>Reviewed attached networks (Layer-2 fabric participants)</h4>
+  <p class="muted">{{ ic.attached_count }} reviewed attached
+  network{% if ic.attached_count != 1 %}s{% endif %}{% if ic.other_count > 0 %};
+  {{ ic.other_count }} other source-mentioned entit{% if ic.other_count == 1 %}y{% else %}ies{% endif %} listed separately
+  below (not fabric attachments){% endif %}.</p>
   {{ ic.fabric_svg|safe }}
   <p class="muted">Undirected grey lines are reviewed Layer-2 attachment
   context. Attachment is not BGP adjacency: it does not prove a direct
   BGP session, exported route visibility, a commercial relationship,
   traffic flow, or active state during the event.</p>
   <table>
-  <thead><tr><th>Attached network/connector</th><th>Reviewed ASN</th><th>Reviewed note</th></tr></thead>
+  <thead><tr><th>Attached network</th><th>Reviewed ASN</th><th>Reviewed note</th></tr></thead>
   <tbody>
   {% for a in ic.attachments %}
   <tr><td>{{ a.label }}</td><td>{{ a.asn_text }}</td><td class="muted">{{ a.note }}</td></tr>
   {% endfor %}
   </tbody>
   </table>
+  {% if ic.test_equipment.len() > 0 || ic.interconnect_context.len() > 0 || ic.operational_services.len() > 0 || ic.unresolved_mentions.len() > 0 %}
+  <h4>Other incident context</h4>
+  <p class="muted">Entities mentioned by the sources whose reviewed class
+  is not an attached network. They are not fabric-attachment edges and
+  they do not enter the fabric diagram. Exclusion from the network
+  diagram does not mean the entity was operationally irrelevant.</p>
+  {% if ic.test_equipment.len() > 0 %}
+  <h5>Test equipment</h5>
+  <table>
+  <thead><tr><th>Entity</th><th>Reviewed ASN</th><th>Reviewed note</th></tr></thead>
+  <tbody>
+  {% for a in ic.test_equipment %}
+  <tr><td>{{ a.label }}</td><td>{{ a.asn_text }}</td><td class="muted">{{ a.note }}</td></tr>
+  {% endfor %}
+  </tbody>
+  </table>
+  {% endif %}
+  {% if ic.interconnect_context.len() > 0 || ic.operational_services.len() > 0 %}
+  <h5>Interconnect / service references</h5>
+  <table>
+  <thead><tr><th>Entity</th><th>Reviewed ASN</th><th>Reviewed note</th></tr></thead>
+  <tbody>
+  {% for a in ic.interconnect_context %}
+  <tr><td>{{ a.label }}</td><td>{{ a.asn_text }}</td><td class="muted">{{ a.note }}</td></tr>
+  {% endfor %}
+  {% for a in ic.operational_services %}
+  <tr><td>{{ a.label }}</td><td>{{ a.asn_text }}</td><td class="muted">{{ a.note }}</td></tr>
+  {% endfor %}
+  </tbody>
+  </table>
+  {% endif %}
+  {% if ic.unresolved_mentions.len() > 0 %}
+  <h5>Unresolved source mentions</h5>
+  <table>
+  <thead><tr><th>Entity</th><th>Reviewed ASN</th><th>Reviewed note</th></tr></thead>
+  <tbody>
+  {% for a in ic.unresolved_mentions %}
+  <tr><td>{{ a.label }}</td><td>{{ a.asn_text }}</td><td class="muted">{{ a.note }}</td></tr>
+  {% endfor %}
+  </tbody>
+  </table>
+  {% endif %}
+  {% if !ic.entity_review.is_empty() %}
+  <p class="muted">Classification review: {{ ic.entity_review }}</p>
+  {% endif %}
+  {% endif %}
   <h4>Limitations</h4>
   <ul class="flat">
   {% for l in ic.limitations %}

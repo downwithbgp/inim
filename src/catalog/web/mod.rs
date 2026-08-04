@@ -16,6 +16,8 @@ pub mod path_diagram;
 pub mod server;
 pub mod session_context;
 #[cfg(test)]
+pub mod taxonomy_tests;
+#[cfg(test)]
 pub mod tests;
 pub mod view;
 #[cfg(test)]

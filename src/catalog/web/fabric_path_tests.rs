@@ -152,7 +152,7 @@ async fn nordunet_identified_as_target_not_fabric() {
         "analyzed target named in the completed-analysis panel: {seg}"
     );
     // The analyzed target is an attachment in the fabric table, not the fabric itself.
-    let context = body.find("Reviewed attachment context").unwrap();
+    let context = body.find("Reviewed attached networks").unwrap();
     let seg = &body[context..context + 1200];
     assert!(
         seg.to_lowercase().contains("nordunet") && seg.contains("AS2603"),
@@ -283,7 +283,7 @@ async fn diagram_uses_only_reviewed_attachments() {
         .iter()
         .map(|a| a["label"].as_str().unwrap().to_string())
         .collect();
-    let fabric = body.find("Reviewed attachment context").unwrap();
+    let fabric = body.find("Reviewed attached networks").unwrap();
     let seg = &body[fabric..fabric + 6000];
     for label in &reviewed {
         assert!(
@@ -313,10 +313,10 @@ async fn diagram_has_text_equivalent() {
     let (dbdir, rootdir) = setup_demo_catalog();
     let app = build_app(state_from(&dbdir, &rootdir));
     let (_, body) = get(&app, "/case-studies/manlan-2019").await;
-    let fabric = body.find("Reviewed attachment context").unwrap();
+    let fabric = body.find("Reviewed attached networks").unwrap();
     let seg = &body[fabric..fabric + 6000];
     assert!(seg.contains("<table>"), "text table equivalent: {seg}");
-    assert!(seg.contains("Attached network/connector"), "{seg}");
+    assert!(seg.contains("Attached network"), "{seg}");
     assert!(seg.contains("Reviewed ASN"), "{seg}");
 }
 

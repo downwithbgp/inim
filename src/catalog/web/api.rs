@@ -67,7 +67,7 @@ pub async fn api_event_detail(
     AxumPath(event_id): AxumPath<String>,
 ) -> Response {
     let db = state.db.lock().unwrap();
-    match super::view::load_event_detail_json(&db, &event_id) {
+    match super::view::load_event_detail_json(&db, &event_id, &state.catalog_root) {
         Ok(Some(v)) => {
             // Direct access to an excluded event is consistently 404.
             if let Ok(Some(event)) = crate::catalog::db::get_event_by_external_any(&db, &event_id) {

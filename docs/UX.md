@@ -208,6 +208,14 @@ Evidence semantics are encoded visually and repeated in text:
 - **grey undirected line** — reviewed Layer-2 attachment context (never
   a BGP adjacency claim).
 
+Case-study pages separate **reviewed attached networks** (the only
+entities drawn in the fabric diagram) from **other incident context**
+(test equipment, interconnect/service references, unresolved source
+mentions), which are listed in tables with their reviewed notes and
+never given attachment edges. The fabric attachment count counts only
+reviewed attached networks; other source-mentioned entities are
+counted separately.
+
 Rules: arrow direction is never described as provider/customer/peer
 without separate reviewed evidence; a Layer-2 fabric is never drawn as
 an ASN node; a withdrawn route is an absence block, never an arrow to

@@ -24,20 +24,20 @@ This audit verifies that every tracked file is classified, that every current st
 
 ## Summary
 
-Tracked files: **459** · inventory entries: **459**
+Tracked files: **463** · inventory entries: **463**
 
 | Category | Files |
 |---|---|
 | Immutable or generated evidence | 148 |
 | Production source | 106 |
 | Normative current documentation | 42 |
-| Historical decision record | 40 |
-| Reviewed case-study interpretation | 28 |
+| Historical decision record | 41 |
+| Reviewed case-study interpretation | 30 |
 | Script or developer tool | 25 |
 | Configuration | 24 |
 | Template or stylesheet | 16 |
+| Test source | 11 |
 | Test fixture | 11 |
-| Test source | 10 |
 | GitHub/community metadata | 4 |
 | Packaging or release metadata | 3 |
 | License or third-party notice | 2 |
@@ -87,7 +87,9 @@ Tracked files: **459** · inventory entries: **459**
 | `case-studies/inc0302574/out/INC0302574/stdout.json` | Immutable or generated evidence | network analysts | MRT/RIB/UPDATE archives + generator run (immutable) | yes | current | schema/container reviewed; contents canonical, not hand-edited | none | reviewed in this audit |
 | `case-studies/inc0302574/out/INC0302574/withdrawal_audit.json` | Immutable or generated evidence | network analysts | MRT/RIB/UPDATE archives + generator run (immutable) | yes | current | schema/container reviewed; contents canonical, not hand-edited | none | reviewed in this audit |
 | `case-studies/indiana-gigapop-smithville-2026/INC0301970.source.json` | Immutable or generated evidence | maintainers | immutable public source snapshot (fetched record) | yes | current | schema/container reviewed; contents canonical, not hand-edited | none | reviewed in this audit |
+| `case-studies/indiana-gigapop-smithville-2026/INC0301970.source.json.meta.json` | Reviewed case-study interpretation | analysts | reviewed | no | current | claims re-checked against canonical evidence in this audit | none | reviewed in this audit |
 | `case-studies/indiana-gigapop-smithville-2026/README.md` | Reviewed case-study interpretation | maintainers | reviewed case-study metadata | no | current | claims re-checked against canonical evidence in this audit | none | reviewed in this audit |
+| `case-studies/indiana-gigapop-smithville-2026/observation-coverage.json` | Reviewed case-study interpretation | analysts | reviewed | no | current | claims re-checked against canonical evidence in this audit | none | reviewed in this audit |
 | `case-studies/indiana-gigapop-smithville-2026/out/INC0301970/archive_manifest.json` | Immutable or generated evidence | maintainers | canonical run artifacts | yes | current | schema/container reviewed; contents canonical, not hand-edited | none | reviewed in this audit |
 | `case-studies/indiana-gigapop-smithville-2026/out/INC0301970/execution_metadata.json` | Immutable or generated evidence | maintainers | canonical run artifacts | yes | current | schema/container reviewed; contents canonical, not hand-edited | none | reviewed in this audit |
 | `case-studies/indiana-gigapop-smithville-2026/out/INC0301970/limitations.json` | Immutable or generated evidence | maintainers | canonical run artifacts | yes | current | schema/container reviewed; contents canonical, not hand-edited | none | reviewed in this audit |
@@ -273,6 +275,7 @@ Tracked files: **459** · inventory entries: **459**
 | `docs/audits/2026-08-documentation-clean-clone.md` | Historical decision record | maintainers | dated audit | no | historical | status and applicability reviewed in this audit | none | reviewed in this audit |
 | `docs/audits/2026-08-documentation-inventory.md` | Historical decision record | maintainers | dated audit | no | historical | status and applicability reviewed in this audit | none | reviewed in this audit |
 | `docs/audits/2026-08-documentation-spec-conformance.md` | Historical decision record | maintainers | dated audit | no | historical | status and applicability reviewed in this audit | none | reviewed in this audit |
+| `docs/audits/2026-08-entity-taxonomy-smithville-summary.md` | Historical decision record | maintainers | reviewed | no | historical | status and applicability reviewed in this audit | none | reviewed in this audit |
 | `docs/audits/2026-08-evaluation-accessibility.md` | Historical decision record | maintainers | dated execution audit | no | historical | status and applicability reviewed in this audit | none | reviewed in this audit |
 | `docs/audits/2026-08-evaluation-procedural-dry-run.md` | Historical decision record | maintainers | dated execution audit | no | historical | status and applicability reviewed in this audit | none | reviewed in this audit |
 | `docs/audits/2026-08-evaluation-task-answerability.md` | Historical decision record | maintainers | dated execution audit | no | historical | status and applicability reviewed in this audit | none | reviewed in this audit |
@@ -411,6 +414,7 @@ Tracked files: **459** · inventory entries: **459**
 | `src/catalog/web/path_diagram.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed in this audit |
 | `src/catalog/web/server.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed in this audit |
 | `src/catalog/web/session_context.rs` | Production source | maintainers | implementation (behavioral authority) | no | current | implementation comments audited in this audit | none | reviewed in this audit |
+| `src/catalog/web/taxonomy_tests.rs` | Test source | maintainers | implementation | no | current | reviewed in this audit | none | reviewed in this audit |
 | `src/catalog/web/templates/analysis.html` | Template or stylesheet | operators (NOC analysts) | workbench view model + domain model | no | current | user-visible text audited in this audit | none | reviewed in this audit |
 | `src/catalog/web/templates/analysis_job.html` | Production source | developers | implementation | no | current | implementation comments audited in this audit | none | reviewed in this audit |
 | `src/catalog/web/templates/analysis_jobs.html` | Production source | developers | implementation | no | current | implementation comments audited in this audit | none | reviewed in this audit |

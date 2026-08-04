@@ -3670,5 +3670,37 @@
   "authoritative": "implementation (behavioral authority)",
   "generated": false,
   "current": true
+ },
+ {
+  "path": "src/catalog/web/taxonomy_tests.rs",
+  "category": "Test source",
+  "audience": "maintainers",
+  "authoritative": "implementation",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "case-studies/indiana-gigapop-smithville-2026/observation-coverage.json",
+  "category": "Reviewed case-study interpretation",
+  "audience": "analysts",
+  "authoritative": "reviewed",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "case-studies/indiana-gigapop-smithville-2026/INC0301970.source.json.meta.json",
+  "category": "Reviewed case-study interpretation",
+  "audience": "analysts",
+  "authoritative": "reviewed",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "docs/audits/2026-08-entity-taxonomy-smithville-summary.md",
+  "category": "Historical decision record",
+  "audience": "maintainers",
+  "authoritative": "reviewed",
+  "generated": false,
+  "current": false
  }
 ]

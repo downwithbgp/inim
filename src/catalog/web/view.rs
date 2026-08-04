@@ -355,6 +355,42 @@ pub struct EventDetailView {
     pub supporting_only: bool,
     /// Reviewed BGP applicability (ticket_reviews), empty when none.
     pub applicability: String,
+    /// Reviewed observer-coverage summary (collector-by-collector)
+    /// when the case study carries one.
+    pub coverage: Option<ObservationCoverageView>,
+    /// Latest imported snapshot's reviewed fetch time.
+    pub snapshot_fetched_at: String,
+    /// Source lifecycle at the latest imported snapshot (reviewed).
+    pub snapshot_lifecycle: String,
+    pub snapshot_lifecycle_evidence: String,
+    /// Reviewed provenance of the analysis cutoff.
+    pub cutoff_provenance: String,
+}
+
+/// Reviewed observer coverage for an event (collector-by-collector
+/// summary derived from canonical preflight/run evidence).
+#[derive(Serialize)]
+pub struct ObservationCoverageView {
+    pub event_id: String,
+    pub summary: String,
+    pub updates_acquired: bool,
+    pub updates_explanation: String,
+    pub provenance: String,
+    pub rows: Vec<CoverageRowView>,
+}
+
+#[derive(Serialize)]
+pub struct CoverageRowView {
+    pub collector: String,
+    pub site: String,
+    pub family: String,
+    pub target_visible: bool,
+    pub target_prefixes: u64,
+    pub relationship_visible: bool,
+    pub direct_observer_session: bool,
+    pub human_label: String,
+    pub blocker_classification: String,
+    pub note: String,
 }
 
 pub struct SnapshotView {
@@ -367,6 +403,10 @@ pub struct SnapshotView {
     /// fixture (file:// provenance) rather than fetched from the
     /// original public source.
     pub fixture_import: bool,
+    /// True when the snapshot is the tracked immutable case-study
+    /// snapshot (`<EVENT>.source.json`), the latest reviewed
+    /// snapshot when present.
+    pub tracked_snapshot: bool,
 }
 
 pub struct ManifestView {
@@ -817,6 +857,7 @@ fn latest_result(
 pub fn load_event_detail(
     conn: &rusqlite::Connection,
     external_id: &str,
+    catalog_root: &std::path::Path,
 ) -> Result<Option<EventDetailView>, String> {
     let Some(event) = db::get_event_by_external(conn, "local-repository", external_id)?.or(
         db::get_event_by_external(conn, "grnoc-public-task-viewer", external_id)?,
@@ -851,6 +892,22 @@ pub fn load_event_detail(
     .to_string();
     let expectation = latest_expectation(conn, event.id)?;
     let (result, assessment) = latest_result(conn, event.id)?;
+    // Operator-readable explanation leads for insufficient-visibility
+    // events when the case study carries a reviewed observation-
+    // coverage summary; the stored assessment statement remains in the
+    // run artifact.
+    let coverage = observation_coverage_for(catalog_root, external_id);
+    let assessment = if coverage.is_some()
+        && result
+            .as_deref()
+            .is_some_and(|r| r.contains("Insufficient"))
+    {
+        Some(String::from(
+            "Target-origin routes were visible at selected public collectors, but no selected event baseline exposed the reviewed relationship and no direct observer session for the reviewed peer ASN was available.",
+        ))
+    } else {
+        assessment
+    };
     let applicability = reviewed_applicability(conn, event.id)?;
     let supporting_only = applicability.as_deref()
         == Some(crate::catalog::domain::applicability::NOT_DIRECTLY_OBSERVABLE);
@@ -880,6 +937,7 @@ pub fn load_event_detail(
             sha256: s.content_sha256.clone(),
             raw_preview: s.raw_payload.chars().take(220).collect(),
             fixture_import: s.source_url.starts_with("file://"),
+            tracked_snapshot: s.source_url.ends_with(".source.json"),
         })
         .collect();
     let manifest_views = db::list_manifest_revisions(conn, event.id)?
@@ -899,7 +957,15 @@ pub fn load_event_detail(
             let stored = r.verdict.clone().unwrap_or_default();
             let (observed, expectation) = present_run_verdict(&stored);
             let mut assessment = r.assessment.clone().unwrap_or_default();
-            if supporting_only {
+            // Operator-readable explanation leads for
+            // insufficient-visibility runs when the case study carries
+            // a reviewed observation-coverage summary; the stored
+            // assessment statement remains in the run artifact.
+            if stored.contains("insufficient") && coverage.is_some() {
+                assessment = String::from(
+                    "Target-origin routes were visible at selected public collectors, but no selected event baseline exposed the reviewed relationship and no direct observer session for the reviewed peer ASN was available.",
+                );
+            } else if supporting_only {
                 // Scope-mismatched supporting observation: the run row
                 // names the observed result but carries no expectation
                 // assessment against the optical relationship.
@@ -930,6 +996,36 @@ pub fn load_event_detail(
     let (workflow_status, workflow_link, workflow_detail, active_job_id, completed_run_id) =
         workflow_status_for(conn, event.id, &st, &result)?;
     let (analysis_cutoff, is_open) = event_cutoff(conn, event.id)?;
+    // Reviewed snapshot provenance: the latest imported snapshot's
+    // sidecar metadata (fetched time, lifecycle at snapshot, cutoff
+    // provenance) when the case study carries one; else the manifest's
+    // reviewed notes are the authority.
+    let (snapshot_lifecycle, snapshot_lifecycle_evidence, cutoff_provenance) = if let Some(meta) =
+        snapshot_meta_for(catalog_root, &snapshots)
+    {
+        let lifecycle = meta
+            .get("lifecycle_at_snapshot")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string();
+        let evidence = meta
+            .get("lifecycle_evidence")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string();
+        let cutoff = meta
+            .get("cutoff_provenance")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string();
+        (lifecycle, evidence, cutoff)
+    } else {
+        (
+                String::new(),
+                String::new(),
+                "Reviewed snapshot cutoff: the reviewed end of the provisional analysis window (manifest analysis_end_utc); not a source fetch time unless the reviewed record says so.".to_string(),
+            )
+    };
 
     Ok(Some(EventDetailView {
         event,
@@ -954,9 +1050,18 @@ pub fn load_event_detail(
         completed_run_id,
         analysis_cutoff,
         is_open,
+        coverage,
+        snapshot_fetched_at: snapshots
+            .first()
+            .map(|s| s.fetched_at.clone())
+            .unwrap_or_default(),
+        snapshot_lifecycle,
+        snapshot_lifecycle_evidence,
+        cutoff_provenance,
     }))
 }
 
+/// Reviewed snapshot cutoff for open events: the latest manifest
 /// Reviewed snapshot cutoff for open events: the latest manifest
 /// revision's `analysis_end_utc` when the manifest marks the event
 /// open. Returns (cutoff, is_open).
@@ -980,6 +1085,141 @@ fn event_cutoff(conn: &rusqlite::Connection, event_id: i64) -> Result<(String, b
         String::new()
     };
     Ok((cutoff, open))
+}
+
+/// Reviewed sidecar metadata for the latest imported snapshot
+/// (`<EVENT>.source.json.meta.json` next to the tracked snapshot).
+/// Generic: the sidecar path is derived from the snapshot's `file://`
+/// source URL, so no case-study slug is hard-coded.
+fn snapshot_meta_for(
+    catalog_root: &std::path::Path,
+    snapshots: &[crate::catalog::domain::EventSnapshot],
+) -> Option<serde_json::Value> {
+    let latest = snapshots.first()?;
+    let source_path = latest.source_url.strip_prefix("file://")?;
+    if !source_path.ends_with(".source.json") {
+        return None;
+    }
+    let meta_path = catalog_root.join(format!("{source_path}.meta.json"));
+    if !meta_path.is_file() {
+        return None;
+    }
+    let content = std::fs::read_to_string(&meta_path).ok()?;
+    serde_json::from_str(&content).ok()
+}
+
+/// Reviewed observer coverage for an event, from
+/// `case-studies/<slug>/observation-coverage.json`. Generic: every
+/// case-study directory is consulted and the file matching the event's
+/// external ID is used — no case-study slug is hard-coded.
+fn observation_coverage_for(
+    catalog_root: &std::path::Path,
+    external_id: &str,
+) -> Option<ObservationCoverageView> {
+    let Ok(entries) = std::fs::read_dir(catalog_root.join("case-studies")) else {
+        return None;
+    };
+    let mut candidates: Vec<std::path::PathBuf> = Vec::new();
+    for entry in entries.flatten() {
+        let candidate = entry.path().join("observation-coverage.json");
+        if candidate.is_file() {
+            candidates.push(candidate);
+        }
+    }
+    candidates.sort();
+    for path in candidates {
+        let Ok(content) = std::fs::read_to_string(&path) else {
+            continue;
+        };
+        let Ok(json) = serde_json::from_str::<serde_json::Value>(&content) else {
+            continue;
+        };
+        if json.get("event_id").and_then(|v| v.as_str()) != Some(external_id) {
+            continue;
+        }
+        let summary = json
+            .get("summary")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string();
+        let updates_acquired = json
+            .get("updates_acquired")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false);
+        let updates_explanation = json
+            .get("updates_explanation")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string();
+        let provenance = json
+            .get("provenance")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string();
+        let mut rows: Vec<CoverageRowView> = Vec::new();
+        if let Some(arr) = json.get("rows").and_then(|v| v.as_array()) {
+            for r in arr {
+                let collector = r
+                    .get("collector")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .to_string();
+                let family = r
+                    .get("family")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .to_string();
+                let human_label = r
+                    .get("human_label")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .to_string();
+                let blocker = r
+                    .get("blocker_classification")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .to_string();
+                let note = r
+                    .get("note")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .to_string();
+                rows.push(CoverageRowView {
+                    collector: collector.clone(),
+                    site: collector_site_for(catalog_root, &collector),
+                    family,
+                    target_visible: r
+                        .get("target_visible")
+                        .and_then(|v| v.as_bool())
+                        .unwrap_or(false),
+                    target_prefixes: r
+                        .get("target_prefixes")
+                        .and_then(|v| v.as_u64())
+                        .unwrap_or(0),
+                    relationship_visible: r
+                        .get("relationship_visible")
+                        .and_then(|v| v.as_bool())
+                        .unwrap_or(false),
+                    direct_observer_session: r
+                        .get("direct_observer_session")
+                        .and_then(|v| v.as_bool())
+                        .unwrap_or(false),
+                    human_label,
+                    blocker_classification: blocker,
+                    note,
+                });
+            }
+        }
+        return Some(ObservationCoverageView {
+            event_id: external_id.to_string(),
+            summary,
+            updates_acquired,
+            updates_explanation,
+            provenance,
+            rows,
+        });
+    }
+    None
 }
 
 /// The event-page workflow line: status text, link, detail, active job
@@ -1708,8 +1948,9 @@ pub fn load_event_list_json(
 pub fn load_event_detail_json(
     conn: &rusqlite::Connection,
     external_id: &str,
+    catalog_root: &std::path::Path,
 ) -> Result<Option<serde_json::Value>, String> {
-    let Some(view) = load_event_detail(conn, external_id)? else {
+    let Some(view) = load_event_detail(conn, external_id, catalog_root)? else {
         return Ok(None);
     };
     Ok(Some(serde_json::json!({
@@ -1916,6 +2157,13 @@ pub struct InterconnectionContextView {
     pub kind: String,
     pub label: String,
     pub attachments: Vec<AttachmentView>,
+    pub test_equipment: Vec<AttachmentView>,
+    pub interconnect_context: Vec<AttachmentView>,
+    pub operational_services: Vec<AttachmentView>,
+    pub unresolved_mentions: Vec<AttachmentView>,
+    pub entity_review: String,
+    pub attached_count: usize,
+    pub other_count: usize,
     pub provenance: String,
     pub limitations: Vec<String>,
     pub fabric_svg: String,
@@ -2355,28 +2603,15 @@ fn interconnection_view(
     let attachments: Vec<AttachmentView> = v
         .get("attachments")
         .and_then(|a| a.as_array())
-        .map(|arr| {
-            arr.iter()
-                .filter_map(|a| {
-                    let label = a.get("label")?.as_str()?.to_string();
-                    let note = a
-                        .get("note")
-                        .and_then(|n| n.as_str())
-                        .unwrap_or("")
-                        .to_string();
-                    let asn_text = a
-                        .get("asn")
-                        .and_then(|n| n.as_u64())
-                        .map(|n| format!("AS{n}"))
-                        .unwrap_or_else(|| "no reviewed ASN".to_string());
-                    Some(AttachmentView {
-                        label,
-                        note,
-                        asn_text,
-                    })
-                })
-                .collect()
-        })
+        .map(|arr| parse_attachment_views(arr))
+        .unwrap_or_default();
+    let test_equipment = parse_optional_entity_list(&v, "test_equipment");
+    let interconnect_context = parse_optional_entity_list(&v, "interconnect_context");
+    let operational_services = parse_optional_entity_list(&v, "operational_services");
+    let unresolved_mentions = parse_optional_entity_list(&v, "unresolved_mentions");
+    let entity_review = v
+        .get("entity_review")
+        .map(|r| serde_json::to_string_pretty(r).unwrap_or_default())
         .unwrap_or_default();
     let fabric = crate::catalog::web::path_diagram::FabricView {
         label: label.clone(),
@@ -2397,14 +2632,60 @@ fn interconnection_view(
         limitations: limitations.clone(),
     };
     let fabric_svg = crate::catalog::web::path_diagram::render_fabric_svg(&fabric);
+    let attached_count = attachments.len();
+    let other_count = test_equipment.len()
+        + interconnect_context.len()
+        + operational_services.len()
+        + unresolved_mentions.len();
     Some(InterconnectionContextView {
         kind,
         label,
         attachments,
+        test_equipment,
+        interconnect_context,
+        operational_services,
+        unresolved_mentions,
+        entity_review,
+        attached_count,
+        other_count,
         provenance,
         limitations,
         fabric_svg,
     })
+}
+
+/// Parse one reviewed entity list (label / note / reviewed ASN) from
+/// the interconnection-context JSON.
+fn parse_optional_entity_list(v: &serde_json::Value, key: &str) -> Vec<AttachmentView> {
+    v.get(key)
+        .and_then(|a| a.as_array())
+        .map(|arr| parse_attachment_views(arr))
+        .unwrap_or_default()
+}
+
+/// Parse reviewed entity entries (attachments and contextual lists
+/// share the same shape; semantic class is the list membership).
+fn parse_attachment_views(arr: &[serde_json::Value]) -> Vec<AttachmentView> {
+    arr.iter()
+        .filter_map(|a| {
+            let label = a.get("label")?.as_str()?.to_string();
+            let note = a
+                .get("note")
+                .and_then(|n| n.as_str())
+                .unwrap_or("")
+                .to_string();
+            let asn_text = a
+                .get("asn")
+                .and_then(|n| n.as_u64())
+                .map(|n| format!("AS{n}"))
+                .unwrap_or_else(|| "no reviewed ASN".to_string());
+            Some(AttachmentView {
+                label,
+                note,
+                asn_text,
+            })
+        })
+        .collect()
 }
 
 /// Manifest payload (target, origin, predicate) for a run.
@@ -3650,7 +3931,7 @@ pub fn load_case_study(
         "Scope: public BGP observations of the reviewed target; not a complete incident-wide assessment.".to_string()
     };
     let participants_heading = if interconnection.is_some() {
-        "Other operator-reported attached networks/connectors".to_string()
+        "Other source-mentioned entities (AAR)".to_string()
     } else {
         "Other operator-reported participants".to_string()
     };

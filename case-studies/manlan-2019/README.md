@@ -26,11 +26,20 @@ study:
 - MAN LAN does **not** speak BGP, does not originate routes, and does
   **not** appear as an AS-path hop;
 - MAN LAN facilitates Layer-2 connectivity among attached networks
-  (reviewed attachments are listed in `case-study.json` →
-  `interconnection_context`, with ASN labels only where the reviewed
-  target research establishes them for 2019-08-21);
+  (reviewed attached networks are listed in `case-study.json` →
+  `interconnection_context` → `attachments`, with ASN labels only
+  where the reviewed target research establishes them for 2019-08-21;
+  all other source-mentioned entities are classified separately as
+  test equipment, interconnect context, service references, or
+  unresolved mentions and are **not** fabric attachments — source
+  mention is not proof of attachment, a reviewed ASN is not proof of
+  attachment, and a familiar organization name is not proof of entity
+  class);
 - **Layer-2 attachment is not BGP adjacency**: an attached network may
   or may not have exchanged routes directly with other attachments;
+- **test/measurement equipment (Ixia) is not a peer**: it has no ASN,
+  no BGP relationship, and no network-participant role; it appears
+  only as operational/test-equipment context;
 - public BGP observes **exported route consequences** at public
   collectors, never switch-fabric state.
 
