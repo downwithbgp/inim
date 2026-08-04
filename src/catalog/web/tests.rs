@@ -146,17 +146,17 @@ async fn dashboard_counts_match_database() {
     assert_eq!(status, StatusCode::OK);
     assert!(body.contains("Catalog health"));
     assert!(body.contains("Total catalog events"));
-    assert!(body.contains(">3<"), "three imported events");
+    assert!(body.contains(">4<"), "four imported events");
     // Completed analyses: the count row and the latest-completed line.
     let completed_row = body
         .lines()
         .find(|l| l.contains("Completed analyses"))
         .unwrap_or("");
     assert!(
-        completed_row.contains(">3<"),
-        "three completed analyses: {completed_row}"
+        completed_row.contains(">4<"),
+        "four completed analyses: {completed_row}"
     );
-    assert!(body.contains(">1<"), "one blocked event");
+    assert!(body.contains(">0<"), "no blocked events remain");
     // No severity score anywhere.
     assert!(body.contains("No severity score is shown"));
 }
@@ -203,12 +203,12 @@ async fn event_list_filters_by_status() {
     let (dbdir, rootdir) = setup_catalog();
     let app = build_app(state_from(&dbdir, &rootdir));
     let (_, body) = get(&app, "/events?status=Blocked").await;
-    assert!(body.contains("INC0301970"));
+    assert!(!body.contains("INC0301970"));
     assert!(!body.contains("INC0302574"));
     let (_, body) = get(&app, "/events?status=Complete").await;
     assert!(body.contains("INC0302574"));
     assert!(body.contains("INC0299001"));
-    assert!(!body.contains("INC0301970"));
+    assert!(body.contains("INC0301970"));
 }
 
 #[tokio::test]
@@ -283,10 +283,16 @@ async fn blocked_and_completed_events_are_distinct() {
 
     let (dbdir, rootdir) = setup_catalog();
     let app = build_app(state_from(&dbdir, &rootdir));
-    let (_, blocked_page) = get(&app, "/events/INC0301970").await;
-    assert!(blocked_page.contains("Blocked"));
-    assert!(blocked_page.contains("no impact verdict exists"));
-    assert!(!blocked_page.contains("No route-state change observed"));
+    // INC0301970 completed with InsufficientVisibility (second-network
+    // case) — the workbench page shows the insufficient-visibility
+    // result, not a blocked plan and not a no-change finding.
+    let (_, smithville_page) = get(&app, "/events/INC0301970").await;
+    assert!(smithville_page.contains("Complete"), "{smithville_page}");
+    assert!(
+        smithville_page.contains("Insufficient") || smithville_page.contains("insufficient"),
+        "the second-network page shows the insufficient-visibility result"
+    );
+    assert!(!smithville_page.contains("No route-state change observed"));
     let (_, complete_page) = get(&app, "/events/INC0302574").await;
     assert!(complete_page.contains("Complete"));
     assert!(complete_page.contains("No route-state change observed"));
@@ -373,8 +379,13 @@ async fn blocked_event_has_no_observational_verdict() {
     let (dbdir, rootdir) = setup_catalog();
     let app = build_app(state_from(&dbdir, &rootdir));
     let (_, body) = get(&app, "/events/INC0301970").await;
-    assert!(body.contains("Open"));
-    assert!(body.contains("Blocked"));
+    // The second-network event is OPEN and completed with
+    // InsufficientVisibility (provisional semantics).
+    assert!(body.contains("Open"), "{body}");
+    assert!(
+        body.to_lowercase().contains("insufficient"),
+        "insufficient-visibility result rendered: {body}"
+    );
     assert!(!body.contains("No route-state change observed"));
     assert!(!body.contains("Partial routing impact"));
 }
@@ -694,10 +705,11 @@ async fn api_catalog_status_counts_match_database() {
     assert_eq!(status, StatusCode::OK);
     let value: serde_json::Value = serde_json::from_str(&body).unwrap();
     let c = &value["data"]["catalog"];
-    // The repo carries four reviewed manifests.
+    // The repo carries four reviewed manifests; all four completed
+    // (the second-network run is an insufficient-visibility completion).
     assert_eq!(c["total_events"], 4);
-    assert_eq!(c["complete"], 3);
-    assert_eq!(c["blocked"], 1);
+    assert_eq!(c["complete"], 4);
+    assert_eq!(c["blocked"], 0);
 }
 
 // ── Filter helpers compile-check (server-side filtering) ────────────

@@ -1,0 +1,18 @@
+{
+  "archives": [
+    {
+      "collector": "route-views2",
+      "data_type": "rib",
+      "local_basename": "rib.20260728.0200.bz2",
+      "sha256": "c0dd71b2a0cd29b74f012634620db1b93d85ec15cf704aaa74799f8f2ed6428e",
+      "url": "http://archive.routeviews.org/bgpdata/2026.07/RIBS/rib.20260728.0200.bz2"
+    },
+    {
+      "collector": "route-views6",
+      "data_type": "rib",
+      "local_basename": "rib.20260728.0200.bz2",
+      "sha256": "d9e35e969ff420a07b726c7156b133a0feb815a5161916f02970a650dcf97cda",
+      "url": "http://archive.routeviews.org/route-views6/bgpdata/2026.07/RIBS/rib.20260728.0200.bz2"
+    }
+  ]
+}

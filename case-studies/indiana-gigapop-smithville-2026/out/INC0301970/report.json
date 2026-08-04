@@ -1,0 +1,30 @@
+{
+  "assessment": {
+    "provisional": false,
+    "statement": "No selected RouteViews observer had a pre-event route matching the reviewed path predicate.",
+    "verdict": "insufficient_visibility"
+  },
+  "event_id": "INC0301970",
+  "limitations": [],
+  "observable_mechanism_hints": [],
+  "observed_event_signature": {
+    "observer_scope": "none"
+  },
+  "outcome": {
+    "assessment": {
+      "event_id": "INC0301970",
+      "evidence": [],
+      "generated_at": "2026-08-04T02:52:40.881995833Z",
+      "verdict": "insufficient_visibility",
+      "waves": []
+    },
+    "status": "insufficient_visibility"
+  },
+  "result": {
+    "verdict": "insufficient_visibility",
+    "verdict_label": "InsufficientVisibility"
+  },
+  "schema_version": 3,
+  "transitions": [],
+  "waves": []
+}

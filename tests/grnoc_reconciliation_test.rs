@@ -223,10 +223,10 @@ fn demo_manifest_matches_import() {
     assert_eq!(manifest["grnoc_source_events"], 9);
     assert_eq!(manifest["tracked_source_events"], 4);
     assert_eq!(manifest["jobs"], jobs);
-    assert_eq!(manifest["runs"], 3);
+    assert_eq!(manifest["runs"], 4);
     assert_eq!(
         events, 13,
-        "4 manifest events + 9 corpus events (INC0040293 represented by its reviewed event)"
+        "4 manifest events + 9 corpus events (INC0301970 is the second-network case)"
     );
     drop(conn);
 }

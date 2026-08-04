@@ -181,3 +181,35 @@ name, reviewed ASN, exact alias); no fuzzy matching. Excluded items are
 omitted from default web, API, candidate, demo, and case-study views;
 the worker rechecks scope before any source access; immutable runtime
 records are never deleted automatically.
+
+## Managed network and named relationship
+
+**Managed network** — an operator network whose public task records are
+published through a supported source (e.g. Internet2, Indiana GigaPOP
+via the GRNOC Public Task Viewer). A **peer relationship** is the
+routing relationship between the managed network and a named
+counterparty. The **named managed relationship** is the complete
+relationship named by the operator record; "complete" refers to the
+record's scope, NOT the counterparty's total external connectivity.
+**Global single-homing** (the counterparty has no other upstreams) is
+never inferred from a title alone.
+
+**Attachment qualifier** — a trailing parenthesized code in the shared
+title convention; presence indicates expected redundancy, absence
+indicates the complete named relationship may be unavailable.
+
+**Direct relationship observation** — evidence from a qualifying direct
+observer session under the reviewed plan (the collector peers with the
+reviewed managed-network ASN and the target-origin routes are visible
+through that session).
+
+**Indirect relationship observation** — a selected AS path matching a
+reviewed relationship predicate without a direct observer session.
+Indirect evidence is never called direct peering evidence.
+
+**Provisional analysis / snapshot cutoff** — for an open source event,
+the analysis end is an explicit reviewed snapshot cutoff (grounded in
+the source retrieval timestamp or another reviewed time); the result
+is Provisional and states "observed through cutoff". A later source
+refresh creates a new snapshot, plan revision, job, and run; the
+provisional run is never mutated.

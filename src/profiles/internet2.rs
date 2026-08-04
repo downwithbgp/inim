@@ -54,7 +54,13 @@ pub fn apply(record: &GrnocRecord) -> ProfileContext {
 ///
 /// Indiana GigaPOP uses the shared GRNOC naming convention. No trailing
 /// parenthesized code → peer relationship may be unavailable.
-/// Network/transit ASN must be reviewed before real analysis.
+/// The reviewed routing identity is AS19782 (INDIANAGIGAPOP, ARIN RDAP
+/// registration 2001-02-14, c/o Indiana University; routing POC
+/// "I-Light and Indiana GigaPOP"; PeeringDB Indiana GigaPOP; reviewed
+/// 2026-08-04). Event-date MRT (2026-07-28) showed NO direct AS19782
+/// observer session at the selected public collectors and NO AS11550
+/// path traversing AS19782, so peer relationships of this network were
+/// not observable through the selected collectors at that date.
 pub fn apply_indiana_gigapop(record: &GrnocRecord) -> ProfileContext {
     let interp = grnoc::interpret(&record.short_description);
     let provenance =
@@ -78,7 +84,7 @@ pub fn apply_indiana_gigapop(record: &GrnocRecord) -> ProfileContext {
     ProfileContext {
         expectation,
         origin_asns: vec![], // caller fills from manifest
-        transit_asn: 0,      // Indiana GigaPOP transit ASN — pending review
+        transit_asn: 19782,  // INDIANAGIGAPOP (reviewed 2026-08-04)
         warmup_minutes: 60,
         cooldown_minutes: 60,
         collectors: vec!["route-views2".into(), "route-views6".into()],
