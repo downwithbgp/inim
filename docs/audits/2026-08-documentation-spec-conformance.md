@@ -20,8 +20,10 @@ sources are linked from `docs/README.md`.
 - 442 tracked files at start; 451 after this audit's additions
   (STATUS.md, six reference docs, two dated audits, audits index,
   inventory entries)
-- Documentation surfaces classified: 75 tracked Markdown (excluding
-  `spec/`), 55 files under `docs/`, 3 evaluation files, 4 GitHub files
+- Documentation surfaces classified: 75 tracked Markdown at the
+  starting commit (86 after this audit's additions, excluding
+  `spec/`); 55 files under `docs/` at the start (66 after); 3
+  evaluation files; 4 GitHub files
 - Surface inventory: `docs/audits/2026-08-documentation-inventory.md`
   (checked lists drift-guarded by `scripts/audit-docs.py`)
 - Authority model: `docs/README.md` (15 classes, explicit conflict

@@ -457,7 +457,7 @@ def check_project_scope_docs() -> list[str]:
     import subprocess
     hits = subprocess.run(
         ["git", "grep", "-inE", "NOAA|INC0303298"],
-        capture_output=True, text=True,
+        cwd=ROOT, capture_output=True, text=True,
     ).stdout.splitlines()
     for hit in hits:
         hit = hit.strip()
@@ -609,7 +609,7 @@ def check_evaluation_docs() -> list[str]:
     eval_paths = ["evaluation/", "docs/evaluation/"]
     hits = _sp.run(
         ["git", "grep", "-inE", "NOAA|INC0303298", "--", *eval_paths],
-        capture_output=True, text=True,
+        cwd=ROOT, capture_output=True, text=True,
     ).stdout.splitlines()
     for hit in hits:
         hit = hit.strip()
@@ -734,7 +734,15 @@ def check_api_route_reference() -> list[str]:
 
 
 def schema_constant(name: str) -> str:
-    """Read a `pub const NAME: u32 = N;` value from src/."""
+    """Read a `pub const NAME: u32 = N;` value from src/.
+
+    Works with or without a git tree (packaged source fallback).
+    """
+    pat = re.compile(rf"pub const {name}: u32 = ([0-9]+);")
+    for f in sorted((ROOT / "src").rglob("*.rs")):
+        m = pat.search(f.read_text(errors="replace"))
+        if m:
+            return m.group(1)
     out = subprocess.run(
         ["git", "grep", "-h", "-E", rf"pub const {name}: u32 = [0-9]+;"],
         cwd=ROOT, capture_output=True, text=True,
