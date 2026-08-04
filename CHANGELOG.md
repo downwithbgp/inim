@@ -26,6 +26,17 @@ introduce breaking changes.
 - Evidence-bearing reports: observed event signature, observable mechanism
   hints, limitations, evidence appendix, withdrawal audit, archive
   manifest.
+- Evaluator workbench corrections (2026-08): a shared artifact-path
+  resolver (web run page and demo verifier agree on artifact
+  availability; SHA-256/size verified against catalog metadata),
+  dedicated insufficient-visibility presentation (vantage-point
+  coverage table, reviewed relationship, provisional cutoff, no-UPDATE
+  explanation; zeros vs not-applicable distinct; no null operator
+  values), event workflow led by completed imported runs with
+  fixture-import provenance disclosure, and case-study pages that
+  derive analyzed targets from linked runs, lead with an operator-first
+  route story, group cross-observer evidence per collector with
+  peer-level detail, and present current result labels.
 - Completed case studies: INC0302574 (RIPE via NYIIX — named I2PX
   relationship not assessable from the selected public observers,
   insufficient visibility) and INC0299001 (UVA via Internet2 — partial
