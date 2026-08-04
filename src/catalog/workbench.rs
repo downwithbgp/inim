@@ -9854,7 +9854,7 @@ mod identity_tests {
     }
 }
 
-/// Session 40 tests: audit-driven prose, precise restoration language,
+/// Tests: audit-driven prose, precise restoration language,
 /// path semantics, and principal selection.
 #[cfg(test)]
 mod session40_tests {
@@ -10548,7 +10548,7 @@ impl IncidentWorkbenchViewModel {
     }
 }
 
-/// Session 41 tests: route chronology, baseline consistency, absence
+/// Tests: route chronology, baseline consistency, absence
 /// wording, identity policy, prepend collapsing.
 #[cfg(test)]
 mod session41_tests {

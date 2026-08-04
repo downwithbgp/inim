@@ -2019,8 +2019,8 @@ fn run_analyze_synthetic(stdout: &mut dyn Write, event_path: &std::path::Path) -
     let _ = writeln!(stdout, "  expectation: {:?}", expectation.kind);
 
     // ── 2. Ingest observations ──────────────────────────────────
-    // TODO: when --rib and --updates are provided, use ingest::ObservationStream.
-    // For now, use synthetic observations for the demo/vertical slice.
+    // Synthetic demonstration path (no --manifest): observations are
+    // generated in code. The real-analysis path is selected by --manifest.
 
     // ── 3. Reconstruct route state ──────────────────────────────
     // For the demo: use the built-in redundant scenario
