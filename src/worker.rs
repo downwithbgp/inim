@@ -1310,7 +1310,7 @@ mod sink_tests {
 mod session50_open_event_tests {
     use super::*;
     use crate::catalog::db;
-    use crate::catalog::domain::{CatalogEvent, EventSnapshot, ManifestRevision};
+    use crate::catalog::domain::{EventSnapshot, ManifestRevision};
 
     fn seed_open_event() -> (tempfile::TempDir, rusqlite::Connection, i64) {
         let dir = tempfile::tempdir().unwrap();
