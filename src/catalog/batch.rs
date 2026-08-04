@@ -223,7 +223,7 @@ mod tests {
             content_sha256: "abc".to_string(),
             created_utc: "2026-08-01T00:00:00Z".to_string(),
             updated_utc: "2026-08-01T00:00:00Z".to_string(),
-        interconnection_context: None,
+            interconnection_context: None,
         };
         archive_plan::build_plan(&cs, &[], 2, 2).unwrap()
     }

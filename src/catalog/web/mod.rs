@@ -7,6 +7,8 @@
 //! bounded body, and are intended for trusted local use only.
 
 pub mod api;
+#[cfg(test)]
+pub mod fabric_path_tests;
 pub mod handlers;
 pub mod job_handlers;
 pub mod jobs_view;

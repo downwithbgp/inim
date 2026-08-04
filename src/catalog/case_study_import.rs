@@ -519,9 +519,10 @@ pub fn import_case_study(
         content_sha256: content_sha.clone(),
         created_utc: now.clone(),
         updated_utc: now,
-        interconnection_context: data.interconnection_context.as_ref().map(|c| {
-            serde_json::to_string(c).expect("interconnection context is serializable")
-        }),
+        interconnection_context: data
+            .interconnection_context
+            .as_ref()
+            .map(|c| serde_json::to_string(c).expect("interconnection context is serializable")),
     };
     let case_study_id = store::insert_case_study(&tx, &cs)?;
 

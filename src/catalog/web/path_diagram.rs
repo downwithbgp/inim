@@ -200,12 +200,7 @@ pub fn render_path_svg(path: &ObservedPath) -> String {
         let x = node_x(i);
         body.push_str(&node_svg(n, x, 24.0, false));
         if i + 1 < path.nodes.len() {
-            body.push_str(&arrow_svg(
-                x + NODE_W,
-                47.0,
-                node_x(i + 1),
-                47.0,
-            ));
+            body.push_str(&arrow_svg(x + NODE_W, 47.0, node_x(i + 1), 47.0));
         }
     }
     let note = format!(
@@ -299,7 +294,10 @@ fn state_row(
                     ));
                 }
             }
-            let full: Vec<u32> = nodes.iter().flat_map(|n| std::iter::repeat(n.asn).take(n.repeat as usize)).collect();
+            let full: Vec<u32> = nodes
+                .iter()
+                .flat_map(|n| std::iter::repeat_n(n.asn, n.repeat as usize))
+                .collect();
             (out, Some(full))
         }
     }
@@ -453,7 +451,10 @@ pub fn render_relationship_svg(rel: &RelationshipView) -> String {
     let title = if rel.observed {
         format!("Observed in selected evidence — {label}", label = rel.note)
     } else {
-        format!("Reviewed relationship sought — not observed in selected evidence — {label}", label = rel.note)
+        format!(
+            "Reviewed relationship sought — not observed in selected evidence — {label}",
+            label = rel.note
+        )
     };
     format!(
         r#"<svg class="pd-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {width:.0} 110" role="img" aria-label="{title}">
@@ -476,7 +477,6 @@ pub fn render_relationship_svg(rel: &RelationshipView) -> String {
         ))
     )
 }
-
 
 /// One canonical transition of a stream (from `lifecycle.json`).
 #[derive(Debug, Clone)]
@@ -506,17 +506,29 @@ pub struct StreamPathEvidence {
 
 /// Load all stream path evidence from a `lifecycle.json` artifact.
 pub fn load_lifecycle_evidence(json: &str) -> Result<Vec<StreamPathEvidence>, String> {
-    let v: serde_json::Value = serde_json::from_str(json)
-        .map_err(|e| format!("invalid lifecycle.json: {e}"))?;
+    let v: serde_json::Value =
+        serde_json::from_str(json).map_err(|e| format!("invalid lifecycle.json: {e}"))?;
     let mut out = Vec::new();
     let lifecycles = v
         .get("lifecycles")
         .and_then(|x| x.as_array())
         .ok_or_else(|| "lifecycle.json: missing lifecycles array".to_string())?;
     for lc in lifecycles {
-        let prefix = lc.get("prefix").and_then(|x| x.as_str()).unwrap_or("").to_string();
-        let collector = lc.get("collector").and_then(|x| x.as_str()).unwrap_or("").to_string();
-        let peer_ip = lc.get("peer_ip").and_then(|x| x.as_str()).unwrap_or("").to_string();
+        let prefix = lc
+            .get("prefix")
+            .and_then(|x| x.as_str())
+            .unwrap_or("")
+            .to_string();
+        let collector = lc
+            .get("collector")
+            .and_then(|x| x.as_str())
+            .unwrap_or("")
+            .to_string();
+        let peer_ip = lc
+            .get("peer_ip")
+            .and_then(|x| x.as_str())
+            .unwrap_or("")
+            .to_string();
         let baseline_path = asn_vec(lc.get("baseline_path"));
         let final_path = lc
             .get("final_state")
@@ -529,8 +541,16 @@ pub fn load_lifecycle_evidence(json: &str) -> Result<Vec<StreamPathEvidence>, St
         if let Some(ts) = lc.get("transitions").and_then(|x| x.as_array()) {
             for tr in ts {
                 transitions.push(PathTransition {
-                    timestamp: tr.get("timestamp").and_then(|x| x.as_str()).unwrap_or("").to_string(),
-                    kind: tr.get("kind").and_then(|x| x.as_str()).unwrap_or("").to_string(),
+                    timestamp: tr
+                        .get("timestamp")
+                        .and_then(|x| x.as_str())
+                        .unwrap_or("")
+                        .to_string(),
+                    kind: tr
+                        .get("kind")
+                        .and_then(|x| x.as_str())
+                        .unwrap_or("")
+                        .to_string(),
                     before_path: asn_vec(tr.get("before_path")),
                     after_path: asn_vec(tr.get("after_path")),
                 });
@@ -591,7 +611,10 @@ pub fn load_asn_names(roots: &[&std::path::Path]) -> std::collections::BTreeMap<
             let Some(asn) = id.get("asn").and_then(|x| x.as_u64()).map(|n| n as u32) else {
                 continue;
             };
-            let name = id.get("display_name").and_then(|x| x.as_str()).unwrap_or("");
+            let name = id
+                .get("display_name")
+                .and_then(|x| x.as_str())
+                .unwrap_or("");
             if !name.is_empty() && !names.contains_key(&asn) {
                 names.insert(asn, name.to_string());
             }
@@ -658,11 +681,7 @@ pub fn comparison_states(
         }
     }
     if let Some(fc) = first_change {
-        let pre = if fc.kind == "Withdrawal" && fc.after_path.is_empty() {
-            &fc.before_path
-        } else {
-            &fc.before_path
-        };
+        let pre = &fc.before_path;
         states.push(PathStateView {
             label: "Pre-finding state".to_string(),
             timestamp: fc.timestamp.clone(),
@@ -794,23 +813,25 @@ mod tests {
 
     #[test]
     fn compact_segments_preserves_order_and_counts() {
-        let segments = [11537, 22388, 24489, 24489, 24489, 24489, 24490, 20965, 2603];
+        let segments = [
+            64500, 64501, 64502, 64502, 64502, 64502, 64503, 64504, 64505,
+        ];
         let compact = compact_segments(&segments);
         assert_eq!(
             compact,
             vec![
-                (11537, 1),
-                (22388, 1),
-                (24489, 4),
-                (24490, 1),
-                (20965, 1),
-                (2603, 1)
+                (64500, 1),
+                (64501, 1),
+                (64502, 4),
+                (64503, 1),
+                (64504, 1),
+                (64505, 1)
             ]
         );
         // Text equivalent preserves the full sequence.
         assert_eq!(
             full_sequence_text(&segments),
-            "AS11537 AS22388 AS24489 AS24489 AS24489 AS24489 AS24490 AS20965 AS2603"
+            "AS64500 AS64501 AS64502 AS64502 AS64502 AS64502 AS64503 AS64504 AS64505"
         );
     }
 
@@ -821,11 +842,11 @@ mod tests {
             observation_kind: "indirect AS-path observation".to_string(),
             prefix: "198.51.100.0/24".to_string(),
             timestamp: "2020-01-01T00:00:00Z".to_string(),
-            nodes: vec![node(20965)],
+            nodes: vec![node(64599)],
             evidence_ref: None,
         };
         let svg = render_path_svg(&path);
-        assert!(svg.contains("AS20965"), "{svg}");
+        assert!(svg.contains("AS64599"), "{svg}");
         assert!(svg.contains("name not reviewed"), "{svg}");
         assert!(!svg.contains(">DreamHost<"), "no guessed organization");
         // Unknown-node class is present.
@@ -880,23 +901,29 @@ mod tests {
             timestamp: "t".to_string(),
             nodes: vec![
                 PathNode {
-                    asn: 24489,
+                    asn: 64502,
                     repeat: 4,
-                    ..node(24489)
+                    ..node(64502)
                 },
-                node(2603),
+                node(64505),
             ],
             evidence_ref: None,
         };
         let svg = render_path_svg(&path);
-        assert!(svg.contains("AS24489 ×4"), "{svg}");
-        assert_eq!(path.text_sequence(), "AS24489 AS24489 AS24489 AS24489 AS2603");
+        assert!(svg.contains("AS64502 ×4"), "{svg}");
+        assert_eq!(
+            path.text_sequence(),
+            "AS64502 AS64502 AS64502 AS64502 AS64505"
+        );
     }
 
     #[test]
     fn absence_not_rendered_as_as_node() {
         let svg = render_absence_svg("collector-x", "198.51.100.0/24");
-        assert!(svg.contains("No selected route visible at this observer"), "{svg}");
+        assert!(
+            svg.contains("No selected route visible at this observer"),
+            "{svg}"
+        );
         assert!(!svg.contains("withdrawn"), "withdrawal is not an ASN node");
         assert!(!svg.contains("pd-node"), "no ASN node rendered");
     }
@@ -929,7 +956,7 @@ mod tests {
                     observation_kind: "direct collector session".to_string(),
                     prefix: "p".to_string(),
                     timestamp: "baseline".to_string(),
-                    nodes: vec![node(11537), node(2603)],
+                    nodes: vec![node(64500), node(64505)],
                     evidence_ref: None,
                 }),
             },
@@ -941,7 +968,7 @@ mod tests {
                     observation_kind: "direct collector session".to_string(),
                     prefix: "p".to_string(),
                     timestamp: "2020-01-01T00:00:00Z".to_string(),
-                    nodes: vec![node(11537), node(20965), node(2603)],
+                    nodes: vec![node(64500), node(64504), node(64505)],
                     evidence_ref: None,
                 }),
             },
@@ -958,7 +985,7 @@ mod tests {
                     observation_kind: "direct collector session".to_string(),
                     prefix: "p".to_string(),
                     timestamp: "2020-01-01T00:00:02Z".to_string(),
-                    nodes: vec![node(11537), node(24489), node(2603)],
+                    nodes: vec![node(64500), node(64502), node(64505)],
                     evidence_ref: None,
                 }),
             },
@@ -970,7 +997,7 @@ mod tests {
                     observation_kind: "direct collector session".to_string(),
                     prefix: "p".to_string(),
                     timestamp: "analysis end".to_string(),
-                    nodes: vec![node(11537), node(20965), node(2603)],
+                    nodes: vec![node(64500), node(64504), node(64505)],
                     evidence_ref: None,
                 }),
             },
@@ -985,7 +1012,10 @@ mod tests {
         ] {
             assert!(svg.contains(label), "missing {label}: {svg}");
         }
-        assert!(svg.contains("No selected route visible at this observer"), "{svg}");
+        assert!(
+            svg.contains("No selected route visible at this observer"),
+            "{svg}"
+        );
         // State labels never imply the segments caused the change.
         assert!(!svg.contains("caused"), "{svg}");
         // The final state is rendered separately from the baseline.
@@ -1048,7 +1078,10 @@ mod tests {
         let svg = render_fabric_svg(&fabric);
         assert!(svg.contains("Layer-2 fabric — not a BGP speaker"), "{svg}");
         assert!(svg.contains("AS64500"), "reviewed ASN label rendered");
-        assert!(svg.contains("no reviewed ASN"), "unestablished ASN not guessed");
+        assert!(
+            svg.contains("no reviewed ASN"),
+            "unestablished ASN not guessed"
+        );
         assert!(!svg.contains("AS64501"), "no fabricated ASN");
         assert!(svg.contains("pd-attach"), "attachment lines present");
         assert!(!svg.contains("marker-end"), "no directional BGP edges");
@@ -1067,7 +1100,10 @@ mod tests {
             limitations: vec![],
         };
         let svg = render_fabric_svg(&fabric);
-        assert!(!svg.contains("pd-edge"), "attachment lines are not BGP edges");
+        assert!(
+            !svg.contains("pd-edge"),
+            "attachment lines are not BGP edges"
+        );
         assert!(svg.contains("pd-attach"), "{svg}");
     }
 

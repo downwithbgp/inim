@@ -3654,5 +3654,21 @@
   "authoritative": "implementation",
   "generated": false,
   "current": true
+ },
+ {
+  "path": "src/catalog/web/path_diagram.rs",
+  "category": "Production source",
+  "audience": "maintainers",
+  "authoritative": "implementation (behavioral authority)",
+  "generated": false,
+  "current": true
+ },
+ {
+  "path": "src/catalog/web/fabric_path_tests.rs",
+  "category": "Production source",
+  "audience": "maintainers",
+  "authoritative": "implementation (behavioral authority)",
+  "generated": false,
+  "current": true
  }
 ]
