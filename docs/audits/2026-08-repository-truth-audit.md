@@ -24,7 +24,7 @@ This audit verifies that every tracked file is classified, that every current st
 
 ## Summary
 
-Tracked files: **441** · inventory entries: **441**
+Tracked files: **442** · inventory entries: **442**
 
 | Category | Files |
 |---|---|
@@ -32,7 +32,7 @@ Tracked files: **441** · inventory entries: **441**
 | Production source | 102 |
 | Normative current documentation | 35 |
 | Historical decision record | 34 |
-| Reviewed case-study interpretation | 27 |
+| Reviewed case-study interpretation | 28 |
 | Script or developer tool | 25 |
 | Configuration | 24 |
 | Template or stylesheet | 16 |
@@ -119,6 +119,7 @@ Tracked files: **441** · inventory entries: **441**
 | `case-studies/manlan-2019/pilot/corpus-validation.md` | Reviewed case-study interpretation | network analysts | canonical evidence + operator sources (reviewed) | no | current | claims re-checked against canonical evidence in this audit | none | reviewed in this audit |
 | `case-studies/manlan-2019/pilot/cross-observer-matrix.json` | Immutable or generated evidence | network analysts | MRT/RIB/UPDATE archives + generator run (immutable) | yes | current | schema/container reviewed; contents canonical, not hand-edited | none | reviewed in this audit |
 | `case-studies/manlan-2019/pilot/cross-observer-matrix.md` | Reviewed case-study interpretation | network analysts | canonical evidence + operator sources (reviewed) | no | current | claims re-checked against canonical evidence in this audit | none | reviewed in this audit |
+| `case-studies/manlan-2019/pilot/demo-linked-runs.json` | Reviewed case-study interpretation | maintainers | reviewed case-study metadata | no | current | claims re-checked against canonical evidence in this audit | none | reviewed in this audit |
 | `case-studies/manlan-2019/pilot/manifests/MANLAN-2019-NORDUNET-PILOT-I2PX-RRC00.json` | Configuration | maintainers | reviewed operator configuration | no | current | reviewed in this audit | none | reviewed in this audit |
 | `case-studies/manlan-2019/pilot/manifests/MANLAN-2019-NORDUNET-PILOT-I2PX-RRC06.json` | Configuration | maintainers | reviewed operator configuration | no | current | reviewed in this audit | none | reviewed in this audit |
 | `case-studies/manlan-2019/pilot/manifests/MANLAN-2019-NORDUNET-PILOT-I2PX-RRC15.json` | Configuration | maintainers | reviewed operator configuration | no | current | reviewed in this audit | none | reviewed in this audit |
