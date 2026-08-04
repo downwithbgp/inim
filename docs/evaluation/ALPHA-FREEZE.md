@@ -2,10 +2,9 @@
 
 Normative policy for the external NOC alpha evaluation period.
 
-The freeze begins when the session that created this document merges
-(Session 51, branch `session-51-noc-alpha-evaluation`). It ends when
-one of the exit conditions below is met and the project owner records
-that decision in this file.
+The freeze began when the evaluation kit merged on 2026-08-04
+(merge commit `91ac498`). It ends when one of the exit conditions
+below is met and the project owner records that decision in this file.
 
 ## Purpose
 

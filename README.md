@@ -131,7 +131,9 @@ inim serve --db ./inim-demo.sqlite --root .
 
 `inim demo init` builds a fresh catalog from tracked reviewed material
 (no private databases, no downloads, no network); `inim demo verify`
-checks events, workbenches, and artifact references.
+checks events, workbenches, and artifact references. Building with
+Cargo may need Internet access to fetch dependencies; demo
+initialization and serving never contact live BGP or ticket sources.
 
 ### Local catalog and web workbench
 

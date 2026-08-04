@@ -1,7 +1,7 @@
 # NOC alpha evaluation — protocol
 
 > **Superseded (2026-08-04).** This early protocol is replaced by the
-> Session 51 evaluation kit: task booklet
+> 2026-08 evaluation kit: task booklet
 > (`docs/evaluation/evaluator/NOC-ALPHA-TASKS.md`), response sheet,
 > facilitator guide, generated answer key
 > (`evaluation/generated/answer-key.md`), and the supported bootstrap

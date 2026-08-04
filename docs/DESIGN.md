@@ -629,8 +629,9 @@ relationship-relevant evidence; the existing AS11537 run is classified
 Workbench GETs perform no analysis and no MRT parsing. Queries use the
 existing run indexes (`idx_streams_run`, `idx_run_transitions_run`,
 `idx_waves_run` — verified with EXPLAIN QUERY PLAN); no new indexes were
-needed. Per-request SQL count and timings are captured; demo catalog
-renders in ~16–23 ms median (target: <100 ms median, <250 ms worst).
+needed. Per-request SQL count and timings are captured; measured page
+latencies for the demo catalog are recorded in `docs/BENCHMARK.md`
+(target: <100 ms median, <250 ms worst).
 
 ## Durable analysis jobs and the worker boundary (ADR-004)
 

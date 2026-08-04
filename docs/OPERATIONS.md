@@ -63,6 +63,13 @@ revision:
 - completed jobs never block a deliberate explicit rerun;
 - queueing performs no network access and no analysis.
 
+An open-event plan must carry an explicit reviewed analysis cutoff; a
+missing cutoff is rejected at queue time (`invalid_plan: open event
+requires an explicit analysis cutoff`). Open events are not
+unconditionally blocked — a plan with a reviewed cutoff queues
+normally and its run is Provisional ("observed through cutoff"; see
+`docs/GLOSSARY.md` — Provisional analysis / snapshot cutoff).
+
 ## Execution
 
 A separate worker process (`inim worker`) claims jobs transactionally.
