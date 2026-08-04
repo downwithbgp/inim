@@ -11,7 +11,8 @@ header say so.
 | Audit | Date | Subject | Historical commit | Current relevance | Superseded by |
 |---|---|---|---|---|---|
 | `2026-08-repository-truth-audit.md` (+ `repository-inventory.json`) | 2026-08 | repository truth audit (all tracked files) | `0517aac` | inventory source; render is drift-checked | — |
-| `2026-08-clean-clone.md` | 2026-08 | clean-clone verification | pre-`91ac498` | superseded by `2026-08-documentation-spec-conformance.md` clean-clone section | this audit |
+| `2026-08-clean-clone.md` | 2026-08 | clean-clone acceptance baseline | pre-`91ac498` | historical baseline | `2026-08-documentation-clean-clone.md` |
+| `2026-08-documentation-clean-clone.md` | 2026-08 | clean-clone documentation verification | `91ac498` | current clean-clone record | — |
 | `2026-08-evaluator-journey.md` | 2026-08 | evaluator journey review | pre-`91ac498` | evaluation-kit quality record | — |
 | `2026-08-evaluation-task-answerability.md` | 2026-08 | task answerability review | pre-`91ac498` | evaluation-kit quality record | — |
 | `2026-08-evaluation-accessibility.md` | 2026-08 | accessibility review (no WCAG claim) | pre-`91ac498` | scope of accessibility checks | — |

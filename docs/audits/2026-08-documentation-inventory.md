@@ -155,7 +155,8 @@ canonical artifacts; it is not itself canonical route evidence.
 |---|---|
 | `docs/audits/2026-08-repository-truth-audit.md` | repository truth audit (rendered from inventory) |
 | `docs/audits/repository-inventory.json` | machine-readable inventory (checked source) |
-| `docs/audits/2026-08-clean-clone.md` | clean-clone verification |
+| `docs/audits/2026-08-clean-clone.md` | clean-clone acceptance baseline |
+| `docs/audits/2026-08-documentation-clean-clone.md` | clean-clone documentation verification |
 | `docs/audits/2026-08-evaluator-journey.md` | evaluator journey review |
 | `docs/audits/2026-08-evaluation-task-answerability.md` | task answerability |
 | `docs/audits/2026-08-evaluation-accessibility.md` | accessibility review |
@@ -307,6 +308,7 @@ tests/fixtures/README.md
 
 
 
+
 ### Tracked files under `docs/` (66)
 
 ```
@@ -377,6 +379,7 @@ docs/session-10-baseline.md
 docs/sources/GRNOC_BULK_ACCESS_REQUEST.md
 docs/sources/GRNOC_PUBLIC_TASK_VIEWER.md
 ```
+
 
 
 
