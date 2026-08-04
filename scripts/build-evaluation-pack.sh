@@ -24,6 +24,12 @@ set -u
 
 SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 ROOT=$(CDPATH= cd -- "$SCRIPT_DIR/.." && pwd)
+# Absolute-ize the repository root so the output-path guards compare
+# absolute paths even when --root is passed relative.
+case "$ROOT" in
+    /*) ;;
+    *) ROOT=$(CDPATH= cd -- "$ROOT" && pwd) ;;
+esac
 
 OUT=""
 DB=""
@@ -63,8 +69,17 @@ fi
 
 case "$OUT" in
     /*) OUT_ABS=$OUT ;;
-    *) OUT_ABS=$(CDPATH= cd -- "$(dirname -- "$OUT")" && pwd)/$(basename -- "$OUT") ;;
+    *)
+        OUT_DIR=$(CDPATH= cd -- "$(dirname -- "$OUT")" 2>/dev/null && pwd) || {
+            printf 'error: cannot resolve output directory: %s\n' "$(dirname -- "$OUT")" >&2
+            exit 2
+        }
+        OUT_ABS=$OUT_DIR/$(basename -- "$OUT")
+        ;;
 esac
+# Normalize a trailing "/." so guards compare the real directory.
+OUT_ABS=$(printf '%s' "$OUT_ABS" | sed 's:/\.$::')
+[ -n "$OUT_ABS" ] || OUT_ABS=/
 
 # Safety guards: never allow the output to be a filesystem root, the
 # repository root, or anything inside the repository (the pack is a

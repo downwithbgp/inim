@@ -127,22 +127,20 @@ def nordunet_section(root: Path) -> dict:
         (min(restorations), max(restorations)) if restorations else (None, None)
     )
     # Absence duration: earliest withdrawal to earliest return across
-    # the absent group (2 s in the reviewed pilot result).
-    absence_seconds = None
-    if absences:
-        def iso_ts(s: str) -> float:
-            return float(s.replace("Z", "")) if "T" in s else float(s)
-        w = min(a[0] for a in absences)
-        r = min(a[1] for a in absences)
-        try:
-            from datetime import datetime, timezone
-            fmt = "%Y-%m-%dT%H:%M:%S.%fZ" if "." in w else "%Y-%m-%dT%H:%M:%SZ"
-            wdt = datetime.strptime(w, fmt).replace(tzinfo=timezone.utc)
-            fmt2 = "%Y-%m-%dT%H:%M:%S.%fZ" if "." in r else "%Y-%m-%dT%H:%M:%SZ"
-            rdt = datetime.strptime(r, fmt2).replace(tzinfo=timezone.utc)
-            absence_seconds = round((rdt - wdt).total_seconds())
-        except ValueError:
-            absence_seconds = None
+    # the absent group (2 s in the reviewed pilot result). The RV2
+    # lifecycle shape is reviewed and stable: a derivation failure is
+    # an artifact-shape change and must fail loudly.
+    if not absences:
+        fail("RV2 lifecycle: no withdrawn streams with withdrawal/return timestamps found")
+    from datetime import datetime, timezone
+
+    def iso_parse(s: str):
+        fmt = "%Y-%m-%dT%H:%M:%S.%fZ" if "." in s else "%Y-%m-%dT%H:%M:%SZ"
+        return datetime.strptime(s, fmt).replace(tzinfo=timezone.utc)
+
+    w = min(a[0] for a in absences)
+    r = min(a[1] for a in absences)
+    absence_seconds = round((iso_parse(r) - iso_parse(w)).total_seconds())
     # RRC15 cooldown transitions (11 path replacements after 17:30).
     transitions = rrc15.get("transitions", {})
     cooldown_count = transitions.get("cooldown", 0)
@@ -237,7 +235,7 @@ def nordunet_section(root: Path) -> dict:
         "route_changes": {
             "first_direct_absence_utc": direct["evidence_interval_utc"].split("..")[0].strip(),
             "affected_prefix_count": direct["temporary_stream_absences"],
-            "absence_duration_seconds": absence_seconds if absence_seconds is not None else "not derived",
+            "absence_duration_seconds": absence_seconds,
             "returned_path": "11537 22388 24489 24489 24489 24489 24490 20965 2603 (still traverses AS11537)",
             "exact_baseline_restoration_range_utc": (
                 restoration_range[0] + " .. " + restoration_range[1]
