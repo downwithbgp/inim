@@ -19,9 +19,9 @@ evaluation tasks.
 git clone https://github.com/downwithbgp/inim.git
 cd inim
 cargo build --release --locked
-./target/release/inim demo init --db /tmp/inim-demo.sqlite --root . --force
-./target/release/inim demo verify --db /tmp/inim-demo.sqlite --root .
-./target/release/inim serve --db /tmp/inim-demo.sqlite --root . --bind 127.0.0.1:8080
+./target/release/inim demo init --db inim-demo.sqlite --root . --force
+./target/release/inim demo verify --db inim-demo.sqlite --root .
+./target/release/inim serve --db inim-demo.sqlite --root . --bind 127.0.0.1:8080
 ```
 
 Read-only server (no writes; writes are disabled by default). URLs:
@@ -40,7 +40,7 @@ Read-only server (no writes; writes are disabled by default). URLs:
 
 ```sh
 ./target/release/inim project-scope show --root .
-./target/release/inim project-scope audit --db /tmp/inim-demo.sqlite --root .
+./target/release/inim project-scope audit --db inim-demo.sqlite --root .
 ```
 
 The demo contains no excluded record; `demo verify` fails if one is

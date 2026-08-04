@@ -1,6 +1,6 @@
 # Repository truth audit — 2026-08
 
-Audit start HEAD: `0517aac` · audit date: 2026-08-03
+Audit start HEAD: `0517aac` · audit date: 2026-08-04
 
 This audit verifies that every tracked file is classified, that every current statement matches the implemented model, and that historical records and generated evidence are clearly distinguished. The machine-readable source of this document is `docs/audits/repository-inventory.json`; regenerate with `python3 scripts/build-repo-audit.py`. Paths are repository-relative only; no absolute local paths appear in this audit.
 
@@ -24,20 +24,20 @@ This audit verifies that every tracked file is classified, that every current st
 
 ## Summary
 
-Tracked files: **402** · inventory entries: **402**
+Tracked files: **408** · inventory entries: **408**
 
 | Category | Files |
 |---|---|
 | Immutable or generated evidence | 138 |
 | Production source | 102 |
-| Historical decision record | 27 |
+| Historical decision record | 30 |
 | Reviewed case-study interpretation | 26 |
 | Configuration | 23 |
+| Normative current documentation | 22 |
 | Script or developer tool | 22 |
-| Normative current documentation | 21 |
 | Template or stylesheet | 16 |
 | Test fixture | 11 |
-| Test source | 8 |
+| Test source | 10 |
 | GitHub/community metadata | 3 |
 | Packaging or release metadata | 3 |
 | License or third-party notice | 2 |
@@ -258,6 +258,7 @@ Tracked files: **402** · inventory entries: **402**
 | `docs/TASKS.md` | Historical decision record | maintainers | decision context at time of writing | no | historical | status and applicability reviewed in this audit | none | reviewed in this audit |
 | `docs/UX.md` | Normative current documentation | contributors and operators | implementation + canonical evidence (see docs/README authority map) | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
 | `docs/audits/2026-08-clean-clone.md` | Normative current documentation | maintainers | dated audit evidence | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
+| `docs/audits/2026-08-evaluator-bootstrap.md` | Historical decision record | maintainers | dated audit evidence | no | historical | status and applicability reviewed in this audit | none | reviewed in this audit |
 | `docs/audits/2026-08-fresh-event-candidates.md` | Normative current documentation | maintainers | dated audit evidence | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
 | `docs/audits/2026-08-fresh-event-discovery.md` | Historical decision record | maintainers | dated audit evidence | no | historical | status and applicability reviewed in this audit | none | reviewed in this audit |
 | `docs/audits/2026-08-grnoc-catalog-reconciliation.md` | Normative current documentation | maintainers | dated audit evidence | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
@@ -266,9 +267,12 @@ Tracked files: **402** · inventory entries: **402**
 | `docs/audits/2026-08-non-noaa-ip-event-candidates.md` | Historical decision record | maintainers | dated audit evidence | no | historical | status and applicability reviewed in this audit | none | reviewed in this audit |
 | `docs/audits/2026-08-project-scope-noaa-removal.md` | Historical decision record | maintainers | dated audit evidence | no | historical | status and applicability reviewed in this audit | none | reviewed in this audit |
 | `docs/audits/2026-08-repository-truth-audit.md` | Normative current documentation | maintainers | repository-inventory.json + git state (rendered, reviewed content) | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
+| `docs/audits/2026-08-second-network-neutrality.md` | Historical decision record | maintainers | dated audit evidence | no | historical | status and applicability reviewed in this audit | none | reviewed in this audit |
+| `docs/audits/2026-08-smithville-source-refresh.md` | Historical decision record | maintainers | dated audit evidence | no | historical | status and applicability reviewed in this audit | none | reviewed in this audit |
 | `docs/audits/external-links-2026-08.md` | Normative current documentation | maintainers | dated curl checks of documented external URLs | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
 | `docs/audits/repository-inventory.json` | Configuration | maintainers | reviewed classification of tracked files | no | current | reviewed in this audit | none | reviewed in this audit |
 | `docs/evaluation/NOC-ALPHA-EVALUATION.md` | Normative current documentation | evaluators | reviewed protocol | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
+| `docs/evaluation/SECOND-NETWORK-ALPHA-HANDOFF.md` | Normative current documentation | evaluators | line-by-line reviewed in this audit | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
 | `docs/session-10-baseline.md` | Historical decision record | maintainers | decision context at time of writing | no | historical | status and applicability reviewed in this audit | none | reviewed in this audit |
 | `docs/sources/GRNOC_BULK_ACCESS_REQUEST.md` | Normative current documentation | contributors and operators | implementation + canonical evidence (see docs/README authority map) | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
 | `docs/sources/GRNOC_PUBLIC_TASK_VIEWER.md` | Normative current documentation | contributors and operators | implementation + canonical evidence (see docs/README authority map) | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
@@ -447,5 +451,7 @@ Tracked files: **402** · inventory entries: **402**
 | `tests/queued_analysis_e2e_test.rs` | Production source | developers | implementation | no | current | implementation comments audited in this audit | none | reviewed in this audit |
 | `tests/release_test.rs` | Test source | maintainers | implementation behavior + fixtures | no | current | reviewed in this audit | none | reviewed in this audit |
 | `tests/rrc11_audit_test.rs` | Test source | maintainers | implementation behavior + fixtures | no | current | reviewed in this audit | none | reviewed in this audit |
+| `tests/second_network_semantics_test.rs` | Test source | maintainers | implementation behavior + fixtures | no | current | reviewed in this audit | none | reviewed in this audit |
+| `tests/smithville_rib_probe.rs` | Test source | maintainers | live research probe (network required; ignored in CI) | no | current | reviewed in this audit | none | reviewed in this audit |
 | `tests/vertical_slice_test.rs` | Test source | maintainers | implementation behavior + fixtures | no | current | reviewed in this audit | none | reviewed in this audit |
 
