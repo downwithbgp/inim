@@ -1,0 +1,105 @@
+# Evaluation scenario manifest — NOC alpha evaluation
+#
+# Authored reviewed configuration: scenario IDs, starting URLs, task
+# assignments, and intended semantic concepts for the external alpha
+# evaluation. This file contains NO answers. It is deterministic: it
+# must not depend on generated state, absolute paths, or ports.
+#
+# Field reference:
+#   id                 — stable scenario identifier (kebab-case)
+#   title              — display name shown to the evaluator
+#   path               — relative workbench URL (host/port are added by
+#                        the bootstrap; never embed a port here)
+#   source_case        — repository case-study or event slug
+#   task_ids           — task IDs from NOC-ALPHA-TASKS.md that this
+#                        scenario supports
+#   prerequisite_task_ids — tasks the evaluator should complete first
+#   concepts           — intended semantic concepts (facilitator
+#                        vocabulary; never shown to the evaluator)
+#   status             — evaluator | optional | facilitator-only
+#
+# Scenario URLs are verified against the deterministic demo by the
+# evaluation drift guards and the CI evaluation-smoke job.
+
+schema_version = 1
+
+[[scenarios]]
+id = "nordunet-route-changes"
+title = "NORDUnet route changes"
+path = "/case-studies/manlan-2019/workbench"
+source_case = "manlan-2019"
+task_ids = ["A1", "A2", "A3", "B1", "B2", "B3", "B4", "B5", "B6", "F1", "F2", "F3", "G1"]
+prerequisite_task_ids = []
+concepts = [
+    "direct-vs-indirect-observation",
+    "collector-site-vs-peer-location",
+    "event-baseline-vs-pre-finding-state",
+    "exact-event-baseline-restoration",
+    "analysis-final-state",
+    "cooldown-behavior",
+    "observer-comparison",
+]
+status = "evaluator"
+
+[[scenarios]]
+id = "uva-prepend-withdrawal"
+title = "UVA prepend and withdrawal chronology"
+path = "/events/INC0299001/workbench"
+source_case = "inc0299001"
+task_ids = ["A1", "A2", "A3", "C1", "C2", "C3", "C4", "C5", "C6", "C7", "F1", "F2", "F3", "G1"]
+prerequisite_task_ids = []
+concepts = [
+    "event-baseline-vs-pre-finding-state",
+    "prepend-change-vs-withdrawal",
+    "absence-duration",
+    "first-returned-route",
+    "final-state-vs-baseline",
+    "prefix-group-vs-outlier",
+]
+status = "evaluator"
+
+[[scenarios]]
+id = "i2px-not-assessable"
+title = "I2PX named relationship not assessable"
+path = "/events/INC0302574/workbench"
+source_case = "inc0302574"
+task_ids = ["A1", "A2", "A3", "D1", "D2", "D3", "D4", "D5"]
+prerequisite_task_ids = []
+concepts = [
+    "named-relationship",
+    "direct-session-eligibility",
+    "target-origin-baseline-absent",
+    "supporting-evidence-vs-relationship-evidence",
+    "not-assessable-vs-no-change",
+]
+status = "evaluator"
+
+[[scenarios]]
+id = "smithville-insufficient-visibility"
+title = "Smithville provisional insufficient visibility"
+path = "/events/INC0301970/workbench"
+source_case = "indiana-gigapop-smithville-2026"
+task_ids = ["A1", "A2", "A3", "E1", "E2", "E3", "E4", "E5", "E6", "G2"]
+prerequisite_task_ids = []
+concepts = [
+    "target-visible-relationship-absent",
+    "open-source-event",
+    "provisional-cutoff",
+    "insufficient-visibility-vs-no-change",
+    "named-relationship-vs-total-connectivity",
+]
+status = "evaluator"
+
+[[scenarios]]
+id = "esnet-optical-scope"
+title = "ESnet optical participant scope"
+path = "/events/INC0040293/workbench"
+source_case = "manlan-esnet-2019"
+task_ids = ["H1"]
+prerequisite_task_ids = []
+concepts = [
+    "public-bgp-cannot-observe-optical-interface",
+    "supporting-observation-is-not-relationship-evidence",
+    "scope-limit-classification",
+]
+status = "optional"
