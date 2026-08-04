@@ -70,7 +70,7 @@ finding by its category and its impact on the task outcome.
 
 ## Issue labels
 
-Labels used for evaluation feedback (when repository labels permit):
+Labels used for evaluation feedback (created 2026-08-04):
 
 - `alpha-evaluation`
 - `correctness`
@@ -80,6 +80,13 @@ Labels used for evaluation feedback (when repository labels permit):
 - `evaluator-blocking`
 
 No automatic labeling is performed.
+
+## Milestone
+
+A GitHub milestone "Public alpha evaluation" exists for grouping real
+feedback (created 2026-08-04, no completion date). It is repository
+administration, not a product dependency; the session does not fail if
+it is unavailable elsewhere.
 
 ## Workflow
 

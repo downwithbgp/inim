@@ -1,7 +1,7 @@
 name: NOC alpha feedback
 description: Feedback from a network engineer evaluating the public alpha (see docs/evaluation/evaluator/NOC-ALPHA-TASKS.md)
 title: "[NOC alpha] "
-labels: ["noc-alpha-feedback"]
+labels: ["alpha-evaluation"]
 body:
   - type: markdown
     attributes:
