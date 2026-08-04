@@ -1,5 +1,13 @@
 # NOC alpha evaluation — protocol
 
+> **Superseded (2026-08-04).** This early protocol is replaced by the
+> Session 51 evaluation kit: task booklet
+> (`docs/evaluation/evaluator/NOC-ALPHA-TASKS.md`), response sheet,
+> facilitator guide, generated answer key
+> (`evaluation/generated/answer-key.md`), and the supported bootstrap
+> (`scripts/evaluator-bootstrap.sh`). It is retained as the historical
+> starting protocol; its task list is subsumed by the booklet.
+
 This protocol supports a 20–30 minute evaluation of the inim alpha
 workbench by a network engineer. The evaluator does not need session
 history, the repository changelog, or the implementation. The goal is

@@ -24,7 +24,7 @@ is authoritative and the contradiction is a P0 defect.
 - **affected_prefix_count**: 11
 - **absence_duration_seconds**: 2
 - **returned_path**: 11537 22388 24489 24489 24489 24489 24490 20965 2603 (still traverses AS11537)
-- **exact_baseline_restoration_range_utc**: 2019-08-21T16:59:26Z .. 2019-08-21T17:02:19Z
+- **exact_baseline_restoration_range_utc**: 2019-08-21T16:59:26Z .. 2019-08-21T17:02:03Z
 - **analysis_final_state**: exact event-baseline path present at analysis end (18:30:00 UTC)
 - **rrc15_cooldown**:
   - count: 11

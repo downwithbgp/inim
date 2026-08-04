@@ -98,10 +98,14 @@ def nordunet_section(root: Path) -> dict:
     rrc00 = next(r for r in matrix["re_plane_runs"] if r["collector"] == "rrc00")
     rrc06 = next(r for r in matrix["re_plane_runs"] if r["collector"] == "rrc06")
     rrc15m = next(r for r in matrix["re_plane_runs"] if r["collector"] == "rrc15")
-    # Exact baseline-restoration range from the direct run lifecycles:
-    # ReturnToBaseline transition timestamps per prefix.
+    # Exact baseline-restoration range for the 11-prefix group: the
+    # ReturnToBaseline transition timestamps of the temporarily absent
+    # streams only (matches the workbench's "11-prefix group" claim;
+    # the pilot result reports all 33 streams restored by 17:02:19Z).
     restorations = []
     for lc in rv2_lifecycle["lifecycles"]:
+        if not lc.get("was_withdrawn", False):
+            continue
         for t in lc.get("transitions", []):
             if t.get("kind") == "ReturnToBaseline" and t.get("timestamp"):
                 restorations.append(t["timestamp"])

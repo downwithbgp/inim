@@ -108,7 +108,7 @@
     "absence_duration_seconds": 2,
     "affected_prefix_count": 11,
     "analysis_final_state": "exact event-baseline path present at analysis end (18:30:00 UTC)",
-    "exact_baseline_restoration_range_utc": "2019-08-21T16:59:26Z .. 2019-08-21T17:02:19Z",
+    "exact_baseline_restoration_range_utc": "2019-08-21T16:59:26Z .. 2019-08-21T17:02:03Z",
     "first_direct_absence_utc": "2019-08-21T16:45:25+00:00",
     "reference": "case-studies/manlan-2019/pilot/pilot-result.json",
     "returned_path": "11537 22388 24489 24489 24489 24489 24490 20965 2603 (still traverses AS11537)",
