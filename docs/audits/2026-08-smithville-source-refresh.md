@@ -58,3 +58,59 @@ selected route states change during the operator-reported event?**
 The reviewed representation is chosen from event-date MRT evidence (the
 observed path adjacency for AS11550-origin routes) corroborated by RIR
 registration; OriginOnly is not used as a fallback.
+
+## Event-date baseline preflight (2026-07-28) — decisive evidence
+
+Baseline RIBs/bviews (event start 2026-07-28T04:35:26Z; latest
+pre-event archives): route-views2 rib.20260728.0400.bz2, route-views6
+rib.20260728.0400.bz2, rrc00/rrc06/rrc11 bview.20260728.0000.gz (all
+acquired through the cache layer; integrity sidecars written). No
+UPDATE archives were acquired.
+
+| Collector | Family | Announces parsed | AS11550 routes | Distinct prefixes | AS19782 in any path | Direct AS19782 sessions |
+|---|---|---|---|---|---|---|
+| route-views2 | RouteViews | 18,226,403 | 221 | 13 (IPv4) | 2,452 | 0 |
+| rrc00 | RIPE RIS | 55,255,901 | 546 | 13 (IPv4) | 6,704 | 0 |
+| rrc06 | RIPE RIS | 6,700,798 | 65 | 13 (IPv4) | 839 | 0 |
+| rrc11 | RIPE RIS | — | 91 | 13 (IPv4) | — | 0 |
+| route-views6 | RouteViews (v6) | 4,854,128 | 0 | 0 | — | 0 |
+
+All AS11550 paths traverse commercial transit (AS174 Cogent, AS1299
+Telia, AS19151 BroadbandONE — the latter confirmed by ARIN RDAP as a
+commercial hosting provider, NOT the managed network). Smithville's
+observed multi-transit set positively corroborates the
+no-global-single-homing caveat.
+
+**Determination (deliverable B):** the named Indiana GigaPOP–Smithville
+peer relationship is NOT assessable through the selected public
+collectors at the event date:
+
+- Classification per collector: TargetPresentRelationshipAbsent (target
+  routes present; the reviewed relationship absent from their paths)
+  and RequiredSessionAbsent (no direct AS19782 observer session exists
+  at any selected collector).
+- No AS11550 path traverses AS19782 (0 of 923 AS11550 routes across
+  the IPv4 collectors).
+- IPv6: no AS11550 origin visibility (0 of 4.85M announces on the
+  IPv6-only collector) — the IPv6 family has no qualifying baseline.
+- No plan can be Ready on this evidence; no UPDATE acquisition is
+  justified; no mapping, predicate, or end time was guessed.
+
+## Same-network bounded fallback search (Part 27)
+
+Indiana GigaPOP domain surface (2 searches, HTTP 200, no throttle):
+8 records. IP-layer peer events: INC0301970 (Smithville — primary,
+blocked above) and INC0285525 "Outage - Indiana GigaPOP Peer Akamai"
+(open, work_start 2026-05-13T16:51:58Z, no end — the window to any
+cutoff is unbounded, far above the 72-archive execution limit).
+Remaining records are DDoS mitigations and alarms (excluded classes).
+No same-network fallback is independently Ready; no event was
+executed.
+
+## Final session outcome
+
+- Primary deliverable: **B** — precise, evidence-backed determination
+  that the named relationship is not assessable through the selected
+  public collectors.
+- No event executed; no UPDATE archives acquired; no blocked Internet2
+  candidate revisited; project-scope policy unchanged.
