@@ -307,9 +307,26 @@ the observer peer's location and does not indicate affected geography.</p>
 collector with peer-level detail beneath. Agreement across collectors is not
 global proof.</p>
 <table>
-<thead><tr><th>Prefix</th><th>Collector</th><th>Collector site</th><th>Family</th><th>Plane</th><th>Cohort predicate</th><th>First change (UTC)</th><th>Temporary absence</th><th>Path replacement</th><th>Transit departure</th><th>Restoration (UTC)</th><th>Baseline visibility</th></tr></thead>
+<thead><tr><th>Prefix</th><th>Collector</th><th>Collector site</th><th>Family</th><th>Plane</th><th>Cohort predicate</th><th>First change (UTC)</th><th>Temporary absence</th><th>Path replacement</th><th>Transit departure</th><th>Restoration (UTC)</th><th>Baseline visibility</th><th>Observer peer detail</th></tr></thead>
 <tbody>
 {% for g in observer_comparison.groups %}
+{% if g.peers.is_empty() %}
+<tr>
+  <td><code>{{ g.prefix }}</code></td>
+  <td>{{ g.collector }}</td>
+  <td>{% if g.collector_site.is_empty() %}<span class="muted">not recorded</span>{% else %}{{ g.collector_site }}{% endif %}</td>
+  <td>{{ g.family }}</td>
+  <td>{{ g.plane }}</td>
+  <td>{{ g.cohort_predicate }}</td>
+  <td>{{ g.first_change_utc }}</td>
+  <td>{{ g.temporary_absence }}</td>
+  <td>{{ g.path_replacement }}</td>
+  <td>{{ g.transit_departure }}</td>
+  <td>{{ g.restoration_utc }}</td>
+  <td>{{ g.baseline_visibility }}</td>
+  <td class="muted">no peer detail</td>
+</tr>
+{% else %}
 <tr>
   <td rowspan="{{ g.peers.len() }}"><code>{{ g.prefix }}</code></td>
   <td rowspan="{{ g.peers.len() }}">{{ g.collector }}</td>
@@ -323,12 +340,16 @@ global proof.</p>
   <td rowspan="{{ g.peers.len() }}">{{ g.transit_departure }}</td>
   <td rowspan="{{ g.peers.len() }}">{{ g.restoration_utc }}</td>
   <td rowspan="{{ g.peers.len() }}">{{ g.baseline_visibility }}</td>
+  <td>peer {{ g.peers[0].peer }}{% if !g.peers[0].peer_asn.is_empty() %} (ASN {{ g.peers[0].peer_asn }}){% endif %}{% if !g.peers[0].first_change_utc.is_empty() %} · first change {{ g.peers[0].first_change_utc }}{% endif %}{% if !g.peers[0].temporary_absence.is_empty() %} · {{ g.peers[0].temporary_absence }}{% endif %}{% if !g.peers[0].restoration_utc.is_empty() %} · restored {{ g.peers[0].restoration_utc }}{% endif %}</td>
 </tr>
 {% for p in g.peers %}
+{% if !loop.first %}
 <tr>
   <td>peer {{ p.peer }}{% if !p.peer_asn.is_empty() %} (ASN {{ p.peer_asn }}){% endif %}{% if !p.first_change_utc.is_empty() %} · first change {{ p.first_change_utc }}{% endif %}{% if !p.temporary_absence.is_empty() %} · {{ p.temporary_absence }}{% endif %}{% if !p.restoration_utc.is_empty() %} · restored {{ p.restoration_utc }}{% endif %}</td>
 </tr>
+{% endif %}
 {% endfor %}
+{% endif %}
 {% endfor %}
 </tbody>
 </table>

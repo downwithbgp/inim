@@ -1001,16 +1001,17 @@ fn workflow_status_for(
         .find(|r| r.status == "Complete");
     if let Some(run) = imported {
         let verdict = run.verdict.clone().unwrap_or_default();
+        let presented = present_run_verdict(&verdict).0;
         return Ok((
             "Open workbench".to_string(),
             format!("/events/{event_id}/workbench"),
             format!(
                 "completed run {}; verdict: {}",
                 run.id,
-                if verdict.is_empty() {
+                if presented.is_empty() {
                     "—".to_string()
                 } else {
-                    verdict
+                    presented
                 }
             ),
             None,
@@ -1431,25 +1432,53 @@ fn format_predicate(value: &serde_json::Value) -> String {
 
 /// Reviewed collector site from the tracked collector-locations record
 /// (source-neutral lookup; empty when the collector is unknown).
+/// Collector site from reviewed collector-location metadata.
+///
+/// Reviewed location metadata lives at `case-studies/<slug>/pilot/
+/// collector-locations.json` (a reviewed interpretation file). Every
+/// case-study directory is consulted generically — no case-study slug
+/// is hard-coded. Returns the first matching collector's site, or an
+/// empty string when no metadata records the collector.
 fn collector_site_for(root: &std::path::Path, collector: &str) -> String {
-    let locations = root.join("case-studies/manlan-2019/pilot/collector-locations.json");
-    let Ok(content) = std::fs::read_to_string(&locations) else {
+    let Ok(entries) = std::fs::read_dir(root.join("case-studies")) else {
         return String::new();
     };
-    let Ok(json) = serde_json::from_str::<serde_json::Value>(&content) else {
-        return String::new();
-    };
-    json.get("collectors")
-        .and_then(|v| v.as_array())
-        .map(|arr| {
-            arr.iter()
-                .find(|c| c.get("collector").and_then(|v| v.as_str()) == Some(collector))
-                .and_then(|c| c.get("site"))
-                .and_then(|v| v.as_str())
-                .unwrap_or("")
-                .to_string()
-        })
-        .unwrap_or_default()
+    let mut locations: Vec<std::path::PathBuf> = Vec::new();
+    for entry in entries.flatten() {
+        let slug = entry.path();
+        if !slug.is_dir() {
+            continue;
+        }
+        let candidate = slug.join("pilot/collector-locations.json");
+        if candidate.is_file() {
+            locations.push(candidate);
+        }
+    }
+    locations.sort();
+    for path in locations {
+        let Ok(content) = std::fs::read_to_string(&path) else {
+            continue;
+        };
+        let Ok(json) = serde_json::from_str::<serde_json::Value>(&content) else {
+            continue;
+        };
+        let site: String = json
+            .get("collectors")
+            .and_then(|v| v.as_array())
+            .map(|arr| {
+                arr.iter()
+                    .find(|c| c.get("collector").and_then(|v| v.as_str()) == Some(collector))
+                    .and_then(|c| c.get("location"))
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .to_string()
+            })
+            .unwrap_or_default();
+        if !site.is_empty() {
+            return site;
+        }
+    }
+    String::new()
 }
 
 /// Source family from an archive-manifest entry's URL host.

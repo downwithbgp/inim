@@ -24,8 +24,12 @@ use std::path::{Path, PathBuf};
 /// under `root`, or return `None` when no candidate exists.
 pub fn resolve_artifact(root: &Path, rel: &str) -> Option<PathBuf> {
     let rel_path = Path::new(rel);
-    if rel_path.is_absolute() {
-        return None; // absolute artifact paths are rejected at import
+    if rel_path.is_absolute()
+        || rel_path
+            .components()
+            .any(|c| c == std::path::Component::ParentDir)
+    {
+        return None; // absolute and parent-relative artifact paths are rejected at import
     }
     let mut candidates: Vec<PathBuf> = vec![root.join(rel_path), root.join("out").join(rel_path)];
     if let Ok(entries) = std::fs::read_dir(root.join("case-studies")) {
@@ -110,6 +114,14 @@ mod tests {
         let d = tempfile::tempdir().unwrap();
         assert!(resolve_artifact(d.path(), "/etc/passwd").is_none());
         assert!(resolve_artifact(d.path(), "../outside").is_none());
+        assert!(resolve_artifact(d.path(), "EVENT/../../outside").is_none());
+        // A parent-relative candidate must not resolve even when the
+        // file exists outside the root.
+        let outside = tempfile::tempdir().unwrap();
+        std::fs::write(outside.path().join("outside"), "{}").unwrap();
+        let root = outside.path().join("root");
+        std::fs::create_dir_all(&root).unwrap();
+        assert!(resolve_artifact(&root, "../outside").is_none());
     }
 
     #[test]
