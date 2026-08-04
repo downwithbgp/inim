@@ -27,6 +27,25 @@ There is no Contributor License Agreement.
   scripts/audit-docs.sh                          # documentation drift audit
   cargo deny check licenses && cargo deny check bans
   ```
+- **Alpha-freeze awareness.** During the external alpha evaluation
+  period, feature expansion is paused (see
+  `docs/evaluation/ALPHA-FREEZE.md`): correctness, provenance,
+  security, accessibility, and evaluator-blocking fixes remain welcome;
+  new dashboards, events, aggregate metrics, and speculative conveniences
+  are deferred. Feature proposals may be recorded and deferred.
+- **Evaluator feedback should include the task and evidence.** Feedback
+  without a task reference and an evidence reference is hard to triage
+  (see `docs/evaluation/FEEDBACK-TRIAGE.md`).
+- **Case-study additions require reviewed scope and provenance.**
+  Screenshots alone are not sufficient evidence for a semantic
+  correction.
+- **No live-network tests in CI.** CI is fully offline; the
+  evaluation-smoke job verifies the demo and evaluation kit without
+  contacting any live source.
+- **Project-scope policy must be respected.**
+  `config/project-scope.toml` is the reviewed authority; excluded
+  entities and source records never appear in default views or the
+  evaluation material.
 - **Event subjects and ASN mappings are data, not code.** A new ticket
   title, participant, or transit ASN belongs in a reviewed manifest
   (`manifests/`) with provenance — never as a special case in production

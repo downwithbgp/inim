@@ -53,6 +53,39 @@ follow-up ADRs.
 | Historical decisions | `docs/ADRs/` (index: `docs/ADRs/README.md`) |
 | Audit trail of this repository truth audit | `docs/audits/` |
 
+## External alpha evaluation
+
+Audiences are explicit: **evaluators** use the task booklet, glossary,
+and response sheet; **facilitators** use the guide, answer key, notes
+template, and triage; the **project owner** uses the freeze policy,
+registry, and decision gate. Evaluators are never required to read
+architecture or observability documentation before the tasks.
+
+| Document | Audience |
+|---|---|
+| Alpha freeze policy (what may change during evaluation) | contributors, project owner |
+| Evaluator task booklet (`evaluator/NOC-ALPHA-TASKS.md`) | evaluators |
+| Evaluator glossary (`evaluator/TERMS.md`) | evaluators |
+| Manual response sheet (`evaluator/NOC-ALPHA-RESPONSE-SHEET.md`) | evaluators |
+| Facilitator guide (`facilitator/NOC-ALPHA-FACILITATOR-GUIDE.md`) | facilitators |
+| Session-notes template (`facilitator/SESSION-NOTES-TEMPLATE.md`) | facilitators |
+| Post-session decision template (`facilitator/POST-SESSION-DECISION.md`) | facilitators |
+| Generated answer key (`evaluation/generated/answer-key.md`, JSON authoritative) | facilitators |
+| Answer-key generation (`scripts/build-evaluation-answer-key.py`) | facilitators |
+| Feedback triage (`FEEDBACK-TRIAGE.md`) | facilitators, project owner |
+| Pilot registry (`PILOT-REGISTRY.md`) | project owner |
+| External pilot checklist (`EXTERNAL-PILOT-CHECKLIST.md`) | facilitators |
+| Post-pilot decision gate (`POST-PILOT-DECISION-GATE.md`) | project owner |
+| Evaluation data handling (`EVALUATION-DATA-HANDLING.md`) | evaluators, facilitators |
+| Invitation draft (`NOC-ALPHA-INVITATION.md`) | project owner |
+| Scenario manifest (`evaluation/scenarios.toml`) | facilitators, CI |
+| Evaluator bootstrap (`scripts/evaluator-bootstrap.sh`) | evaluators |
+| Evaluation pack builder (`scripts/build-evaluation-pack.sh`) | facilitators |
+
+The `docs/audits/` directory holds the dated evaluation audits
+(evaluator journey, task answerability, accessibility, procedural dry
+run).
+
 ## Read order for a new contributor
 
 1. `README.md` — what the project is, what it can and cannot conclude.
