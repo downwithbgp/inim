@@ -215,7 +215,7 @@ The following lists are compared with `git ls-files` by
 must be classified in a table above (or in `repository-inventory.json`
 for non-documentation files).
 
-### Tracked Markdown files (88, excluding `spec/`)
+### Tracked Markdown files (89, excluding `spec/`)
 
 ```
 .github/PULL_REQUEST_TEMPLATE.md
@@ -261,6 +261,7 @@ docs/audits/2026-08-clean-clone.md
 docs/audits/2026-08-documentation-clean-clone.md
 docs/audits/2026-08-documentation-inventory.md
 docs/audits/2026-08-documentation-spec-conformance.md
+docs/audits/2026-08-entity-taxonomy-smithville-summary.md
 docs/audits/2026-08-evaluation-accessibility.md
 docs/audits/2026-08-evaluation-procedural-dry-run.md
 docs/audits/2026-08-evaluation-task-answerability.md
@@ -313,7 +314,8 @@ tests/fixtures/README.md
 
 
 
-### Tracked files under `docs/` (68)
+
+### Tracked files under `docs/` (69)
 
 ```
 docs/ADRs/CASE-STUDY-LAYER.md
@@ -340,6 +342,7 @@ docs/audits/2026-08-clean-clone.md
 docs/audits/2026-08-documentation-clean-clone.md
 docs/audits/2026-08-documentation-inventory.md
 docs/audits/2026-08-documentation-spec-conformance.md
+docs/audits/2026-08-entity-taxonomy-smithville-summary.md
 docs/audits/2026-08-evaluation-accessibility.md
 docs/audits/2026-08-evaluation-procedural-dry-run.md
 docs/audits/2026-08-evaluation-task-answerability.md
@@ -385,6 +388,7 @@ docs/session-10-baseline.md
 docs/sources/GRNOC_BULK_ACCESS_REQUEST.md
 docs/sources/GRNOC_PUBLIC_TASK_VIEWER.md
 ```
+
 
 
 
