@@ -6,6 +6,7 @@
 pub mod access;
 pub mod analyzability;
 pub mod archive_plan;
+pub mod artifact_path;
 pub mod batch;
 pub mod case_study_compare;
 pub mod case_study_import;

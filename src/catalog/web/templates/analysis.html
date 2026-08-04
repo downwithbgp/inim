@@ -15,23 +15,111 @@
 <p>{{ assessment }}</p>
 </div>
 
+{% if insufficiency.is_some() %}
+{% let iv = insufficiency.as_ref().unwrap() %}
+<div class="panel">
+<h2>Reviewed relationship and target</h2>
+<table>
+  <tr><th>Reviewed relationship</th><td>{{ iv.relationship_label }}</td></tr>
+  <tr><th>Reviewed path condition</th><td>{{ iv.predicate_text }}</td></tr>
+  <tr><th>Target origin</th><td>{{ iv.target_origin_text }}</td></tr>
+  <tr><th>Source lifecycle</th><td>{{ iv.lifecycle }}</td></tr>
+  {% if !iv.cutoff.is_empty() %}
+  <tr><th>Analysis cutoff (reviewed snapshot cutoff)</th><td>{{ iv.cutoff }}</td></tr>
+  {% endif %}
+</table>
+{% if !iv.reason.is_empty() %}
+<p>{{ iv.reason }}</p>
+{% endif %}
+</div>
+
+<div class="panel">
+<h2>Qualifying cohort</h2>
+<p>No qualifying cohort was frozen: the selected baseline evidence did not
+establish any observer-prefix stream on the reviewed path condition.</p>
+<table>
+  <tr><th>Qualifying observer sessions</th><td>{{ iv.qualifying_sessions }}</td></tr>
+  <tr><th>Qualifying observer-prefix streams</th><td>{{ iv.qualifying_streams }}</td></tr>
+  <tr><th>Reviewed relationship matches</th><td>{{ iv.relationship_matches }}</td></tr>
+  <tr><th>Lifecycle classifications</th><td>Not applicable — no qualifying cohort was frozen</td></tr>
+</table>
+</div>
+
+<div class="panel">
+<h2>Public vantage points checked</h2>
+{% if iv.collectors.is_empty() %}
+<p class="muted">No baseline archives are recorded in the run artifacts.</p>
+{% else %}
+<p class="muted">Collector site is the site hosting the collector; it is not
+the observer peer's location and does not indicate affected geography.</p>
+<table>
+<thead><tr><th>Collector</th><th>Collector site</th><th>Source family</th><th>Observer peer</th><th>Baseline archive</th><th>Baseline SHA-256</th><th>Qualification</th></tr></thead>
+<tbody>
+{% for c in iv.collectors %}
+<tr>
+  <td>{{ c.collector }}</td>
+  <td>{% if c.site.is_empty() %}<span class="muted">not recorded</span>{% else %}{{ c.site }}{% endif %}</td>
+  <td>{{ c.family }}</td>
+  <td class="muted">{{ c.peer }}</td>
+  <td><code>{{ c.baseline_archive }}</code></td>
+  <td><code>{{ c.baseline_sha256 }}</code></td>
+  <td>Baseline acquired — no qualifying stream frozen</td>
+</tr>
+{% endfor %}
+</tbody>
+</table>
+{% endif %}
+</div>
+
+<div class="panel">
+<h2>Why this is insufficient visibility, not no route-state change</h2>
+{% if iv.updates_acquired %}
+<p>UPDATE archives were acquired, but the baseline preflight produced no
+qualifying observer-prefix streams; the selected evidence cannot support a
+route-state claim for the reviewed relationship.</p>
+{% else %}
+<p>No UPDATE archives were acquired because baseline preflight produced no
+qualifying observer-prefix streams. This is an execution-boundary
+decision recorded by the run, not a failure.</p>
+{% endif %}
+<p>Without a qualifying cohort, no route-state change can be observed;
+"no route-state change observed" requires complete coverage of a
+qualifying cohort and is not claimed here.</p>
+</div>
+
+{% if !iv.reviewed_notes.is_empty() %}
+<div class="panel">
+<h2>Reviewed determination (manifest analyst notes)</h2>
+<p class="muted">Quoted from the reviewed manifest revision; reviewed
+interpretation, not machine-discovered fact.</p>
+<ul class="flat">
+{% for note in iv.reviewed_notes %}
+  <li>{{ note }}</li>
+{% endfor %}
+</ul>
+</div>
+{% endif %}
+{% else %}
+
 <div class="panel">
 <h2>Observation scope</h2>
 <ul class="flat">
 {% for key in ["collectors", "baseline_observer_prefix_streams", "baseline_route_instances", "multiple_instance_streams", "archive_coverage"] %}
-  <li>{{ key }}: {{ scope.get(key).unwrap_or(&serde_json::Value::Null) }}</li>
+  <li>{{ key }}: {% if scope.is_null() || scope.get(key).is_none() %}<span class="muted">not applicable</span>{% else %}{{ scope.get(key).unwrap() }}{% endif %}</li>
 {% endfor %}
 </ul>
 </div>
 
+{% if lifecycle.is_object() %}
 <div class="panel">
 <h2>Lifecycle counts (observer-prefix streams)</h2>
 <ul class="flat">
 {% for key in ["unchanged", "prepend_only", "material_path_changes", "streams_retaining_transit", "streams_departing_transit", "withdrawn_streams", "restored_streams", "unresolved_streams", "add_path_ambiguous_streams"] %}
-  <li>{{ key }}: {{ lifecycle.get(key).unwrap_or(&serde_json::Value::Null) }}</li>
+  <li>{{ key }}: {% if lifecycle.get(key).is_none() %}<span class="muted">not applicable</span>{% else %}{{ lifecycle.get(key).unwrap() }}{% endif %}</li>
 {% endfor %}
 </ul>
 </div>
+{% endif %}
 
 {% if waves.is_array() && !waves.as_array().unwrap().is_empty() %}
 <div class="panel">
@@ -44,20 +132,29 @@
 </div>
 {% endif %}
 
+<p><a href="/analyses/{{ run_id }}/streams">Stream lifecycle detail</a></p>
+{% endif %}
+
 <div class="panel">
 <h2>Evidence and artifact links</h2>
 <table>
-<thead><tr><th>Kind</th><th>Path (relative to catalog root)</th><th>SHA-256</th><th>Size</th></tr></thead>
+<thead><tr><th>Kind</th><th>Path</th><th>SHA-256</th><th>Size</th><th>Availability</th></tr></thead>
 <tbody>
 {% for a in artifacts %}
-<tr><td>{{ a.kind }}</td><td><code>{{ a.relative_path }}</code></td><td><code>{{ a.sha256 }}</code></td><td>{{ a.size }}</td></tr>
+<tr>
+  <td>{{ a.kind }}</td>
+  <td><code>{{ a.relative_path }}</code></td>
+  <td><code>{{ a.sha256 }}</code></td>
+  <td>{{ a.size }}</td>
+  <td>{% if a.available %}<span class="tag">present</span>{% else %}<span class="tag">unavailable</span>{% endif %}</td>
+</tr>
 {% endfor %}
 </tbody>
 </table>
 {% if !missing_artifacts.is_empty() %}
-<p class="error">Missing artifact files: {{ missing_artifacts.join(", ") }}</p>
+<p class="error">Missing artifact files: {{ missing_artifacts.join(", ") }}. These catalog rows do not
+resolve under the catalog root; they are marked unavailable above and are
+not offered as functional links.</p>
 {% endif %}
 </div>
-
-<p><a href="/analyses/{{ run_id }}/streams">Stream lifecycle detail</a></p>
 {% endblock %}

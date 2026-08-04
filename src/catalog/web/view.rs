@@ -313,6 +313,11 @@ pub struct EventDetailView {
     pub workflow_detail: String,
     pub active_job_id: Option<String>,
     pub completed_run_id: Option<i64>,
+    /// Reviewed snapshot cutoff for open events (manifest
+    /// analysis_end_utc); empty when the event is closed.
+    pub analysis_cutoff: String,
+    /// Whether the source lifecycle is Open (no published end).
+    pub is_open: bool,
     /// Reviewed relationship is not directly observable in public BGP;
     /// any BGP run is a scope-mismatched supporting observation.
     pub supporting_only: bool,
@@ -326,6 +331,10 @@ pub struct SnapshotView {
     pub source_url: String,
     pub sha256: String,
     pub raw_preview: String,
+    /// True when the snapshot was imported from a tracked offline
+    /// fixture (file:// provenance) rather than fetched from the
+    /// original public source.
+    pub fixture_import: bool,
 }
 
 pub struct ManifestView {
@@ -353,6 +362,9 @@ pub struct RunView {
     pub missing_artifacts: Vec<String>,
     pub status: String,
     pub started_at: String,
+    /// Dedicated presentation for runs whose outcome is
+    /// InsufficientVisibility (no qualifying cohort was frozen).
+    pub insufficiency: Option<InsufficientVisibilityView>,
 }
 
 pub struct ArtifactView {
@@ -360,6 +372,48 @@ pub struct ArtifactView {
     pub relative_path: String,
     pub sha256: String,
     pub size: i64,
+    /// Whether the file resolves on disk under the catalog root.
+    pub available: bool,
+}
+
+/// One checked public vantage point for an InsufficientVisibility run.
+#[derive(Serialize)]
+pub struct CoverageCollectorView {
+    pub collector: String,
+    /// Reviewed collector site (reviewed metadata); empty when unknown.
+    pub site: String,
+    pub family: String,
+    /// Observer peer; "not recorded in run artifacts" when absent.
+    pub peer: String,
+    pub baseline_archive: String,
+    pub baseline_sha256: String,
+}
+
+/// Dedicated presentation model for an insufficient-visibility outcome.
+///
+/// Renders only facts the run establishes (manifest, report, acquired
+/// archives, reviewed notes) and never passes lifecycle counters through
+/// the normal changed-routes presentation. Lifecycle classifications are
+/// "Not applicable" because no qualifying cohort was frozen; numeric
+/// zero is reserved for known measured zero (qualifying sessions,
+/// streams, relationship matches).
+#[derive(Serialize)]
+pub struct InsufficientVisibilityView {
+    pub relationship_label: String,
+    pub predicate_text: String,
+    pub target_origin_text: String,
+    pub lifecycle: String,
+    /// Reviewed snapshot cutoff for open events; empty when closed.
+    pub cutoff: String,
+    pub reason: String,
+    pub qualifying_sessions: i64,
+    pub qualifying_streams: i64,
+    pub relationship_matches: i64,
+    pub collectors: Vec<CoverageCollectorView>,
+    pub updates_acquired: bool,
+    /// Reviewed manifest notes (analyst_notes), quoted as reviewed
+    /// determination rather than machine-discovered fact.
+    pub reviewed_notes: Vec<String>,
 }
 
 #[derive(Template)]
@@ -713,7 +767,10 @@ fn latest_result(
     let runs = db::list_runs_for_event(conn, event_id)?;
     let latest = runs.into_iter().find(|r| r.status == "Complete");
     Ok((
-        latest.as_ref().and_then(|r| r.verdict.clone()),
+        latest
+            .as_ref()
+            .and_then(|r| r.verdict.clone())
+            .map(|v| present_run_verdict(&v).0),
         latest.as_ref().and_then(|r| r.assessment.clone()),
     ))
 }
@@ -783,6 +840,7 @@ pub fn load_event_detail(
             source_url: s.source_url.clone(),
             sha256: s.content_sha256.clone(),
             raw_preview: s.raw_payload.chars().take(220).collect(),
+            fixture_import: s.source_url.starts_with("file://"),
         })
         .collect();
     let manifest_views = db::list_manifest_revisions(conn, event.id)?
@@ -832,6 +890,7 @@ pub fn load_event_detail(
     // Plan status, job status, and run status stay visually distinct.
     let (workflow_status, workflow_link, workflow_detail, active_job_id, completed_run_id) =
         workflow_status_for(conn, event.id, &st, &result)?;
+    let (analysis_cutoff, is_open) = event_cutoff(conn, event.id)?;
 
     Ok(Some(EventDetailView {
         event,
@@ -854,7 +913,34 @@ pub fn load_event_detail(
         workflow_detail,
         active_job_id,
         completed_run_id,
+        analysis_cutoff,
+        is_open,
     }))
+}
+
+/// Reviewed snapshot cutoff for open events: the latest manifest
+/// revision's `analysis_end_utc` when the manifest marks the event
+/// open. Returns (cutoff, is_open).
+fn event_cutoff(conn: &rusqlite::Connection, event_id: i64) -> Result<(String, bool), String> {
+    let Some(m) = db::list_manifest_revisions(conn, event_id)?
+        .into_iter()
+        .next()
+    else {
+        return Ok((String::new(), false));
+    };
+    let value: serde_json::Value =
+        serde_json::from_str(&m.payload).unwrap_or_else(|_| serde_json::json!({}));
+    let open = value.get("open").and_then(|v| v.as_bool()).unwrap_or(false);
+    let cutoff = if open {
+        value
+            .get("analysis_end_utc")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string()
+    } else {
+        String::new()
+    };
+    Ok((cutoff, open))
 }
 
 /// The event-page workflow line: status text, link, detail, active job
@@ -905,6 +991,31 @@ fn workflow_status_for(
             ),
             None,
             Some(run_id),
+        ));
+    }
+    // Imported completed runs (case-study evidence imported without a
+    // durable job, e.g. the offline demo) lead the workflow state over
+    // a Ready plan: a completed analysis is the operator-facing result.
+    let imported = db::list_runs_for_event(conn, event_id)?
+        .into_iter()
+        .find(|r| r.status == "Complete");
+    if let Some(run) = imported {
+        let verdict = run.verdict.clone().unwrap_or_default();
+        let presented = present_run_verdict(&verdict).0;
+        return Ok((
+            "Open workbench".to_string(),
+            format!("/events/{event_id}/workbench"),
+            format!(
+                "completed run {}; verdict: {}",
+                run.id,
+                if presented.is_empty() {
+                    "—".to_string()
+                } else {
+                    presented
+                }
+            ),
+            None,
+            Some(run.id),
         ));
     }
     if let Some(job) = latest {
@@ -985,18 +1096,36 @@ pub fn load_run(
     let mut missing_artifacts = Vec::new();
     let mut report_value = serde_json::Value::Null;
     let mut report_available = false;
-    for a in &artifacts {
-        if a.kind == "report" && a.relative_path.ends_with("report.json") {
-            let full = state.catalog_root.join(&a.relative_path);
-            match std::fs::read_to_string(&full) {
-                Ok(content) => {
-                    report_value = serde_json::from_str(&content).unwrap_or_default();
-                    report_available = true;
-                }
-                Err(_) => missing_artifacts.push(a.relative_path.clone()),
+    let artifact_views: Vec<ArtifactView> = artifacts
+        .iter()
+        .map(|a| {
+            let resolved = crate::catalog::artifact_path::resolve_artifact(
+                &state.catalog_root,
+                &a.relative_path,
+            );
+            let available = resolved.is_some();
+            if !available {
+                missing_artifacts.push(a.relative_path.clone());
             }
-        }
-    }
+            if a.kind == "report" && a.relative_path.ends_with("report.json") && available {
+                let resolved = resolved.expect("available above");
+                match std::fs::read_to_string(&resolved) {
+                    Ok(content) => {
+                        report_value = serde_json::from_str(&content).unwrap_or_default();
+                        report_available = true;
+                    }
+                    Err(_) => missing_artifacts.push(a.relative_path.clone()),
+                }
+            }
+            ArtifactView {
+                kind: a.kind.clone(),
+                relative_path: a.relative_path.clone(),
+                sha256: a.sha256.clone(),
+                size: a.size,
+                available,
+            }
+        })
+        .collect();
 
     // Current presentation: the stored machine verdict (or frozen
     // legacy label) is mapped through the source-neutral observed-result
@@ -1077,6 +1206,15 @@ pub fn load_run(
         })
         .unwrap_or_else(|| event.external_id.clone());
 
+    let insufficiency = build_insufficiency_view(
+        conn,
+        &state.catalog_root,
+        &run,
+        &manifest,
+        &report_value,
+        report_available,
+    )?;
+
     Ok(Some(RunView {
         run_id: run.id,
         event_id: event.external_id.clone(),
@@ -1087,19 +1225,304 @@ pub fn load_run(
         scope,
         lifecycle,
         waves,
-        artifacts: artifacts
-            .iter()
-            .map(|a| ArtifactView {
-                kind: a.kind.clone(),
-                relative_path: a.relative_path.clone(),
-                sha256: a.sha256.clone(),
-                size: a.size,
-            })
-            .collect(),
+        artifacts: artifact_views,
         missing_artifacts,
         status: run.status.clone(),
         started_at: run.started_at.clone(),
+        insufficiency,
     }))
+}
+
+/// Build the dedicated insufficient-visibility presentation for a run,
+/// or `None` when the outcome is not InsufficientVisibility.
+///
+/// Every value comes from the run's own canonical record: the manifest
+/// revision payload (reviewed relationship, target, lifecycle, cutoff,
+/// collectors, analyst notes), the report artifact (reason), the
+/// archive-manifest artifact (acquired baselines with SHA-256), the
+/// reviewed collector-locations metadata (sites), and catalog counts
+/// (zero qualifying sessions/streams/matches). Nothing is inferred.
+fn build_insufficiency_view(
+    conn: &rusqlite::Connection,
+    catalog_root: &std::path::Path,
+    run: &crate::catalog::domain::AnalysisRun,
+    manifest: &crate::catalog::domain::ManifestRevision,
+    report_value: &serde_json::Value,
+    report_available: bool,
+) -> Result<Option<InsufficientVisibilityView>, String> {
+    let outcome = report_value
+        .get("outcome")
+        .and_then(|o| o.get("status"))
+        .and_then(|v| v.as_str())
+        .unwrap_or("");
+    let stored = run.verdict.clone().unwrap_or_default();
+    let is_insufficient = outcome == "insufficient_visibility"
+        || stored == "insufficient_visibility"
+        || stored == "InsufficientVisibility";
+    if !is_insufficient {
+        return Ok(None);
+    }
+    let m: serde_json::Value =
+        serde_json::from_str(&manifest.payload).unwrap_or_else(|_| serde_json::json!({}));
+    let target = m.get("target").cloned().unwrap_or_default();
+    let label = target
+        .get("label")
+        .and_then(|v| v.as_str())
+        .unwrap_or("")
+        .to_string();
+    let origin_asns: Vec<String> = target
+        .get("origin_asns")
+        .and_then(|v| v.as_array())
+        .map(|arr| {
+            arr.iter()
+                .filter_map(|v| v.as_u64())
+                .map(|n| format!("AS{n}"))
+                .collect()
+        })
+        .unwrap_or_default();
+    let predicate_text = format_predicate(
+        target
+            .get("transit_predicate")
+            .unwrap_or(&serde_json::Value::Null),
+    );
+    let open = m.get("open").and_then(|v| v.as_bool()).unwrap_or(false);
+    let cutoff = if open {
+        m.get("analysis_end_utc")
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string()
+    } else {
+        String::new()
+    };
+    let lifecycle = if open {
+        "Open".to_string()
+    } else {
+        "Closed".to_string()
+    };
+    let reason = if report_available {
+        report_value
+            .get("assessment")
+            .and_then(|a| a.get("statement"))
+            .and_then(|v| v.as_str())
+            .unwrap_or("")
+            .to_string()
+    } else {
+        String::new()
+    };
+    let reviewed_notes: Vec<String> = m
+        .get("analyst_notes")
+        .and_then(|v| v.as_array())
+        .map(|arr| {
+            arr.iter()
+                .filter_map(|v| v.as_str().map(|s| s.to_string()))
+                .collect()
+        })
+        .unwrap_or_default();
+
+    // Acquired baselines from the run's archive-manifest artifact.
+    let mut collectors: Vec<CoverageCollectorView> = Vec::new();
+    let mut updates_acquired = false;
+    for a in db::list_artifacts(conn, run.id)? {
+        if a.kind != "archive-manifest" {
+            continue;
+        }
+        let Some(path) =
+            crate::catalog::artifact_path::resolve_artifact(catalog_root, &a.relative_path)
+        else {
+            continue;
+        };
+        let Ok(content) = std::fs::read_to_string(&path) else {
+            continue;
+        };
+        let Ok(manifest_json) = serde_json::from_str::<serde_json::Value>(&content) else {
+            continue;
+        };
+        if let Some(archives) = manifest_json.get("archives").and_then(|v| v.as_array()) {
+            for arch in archives {
+                let collector = arch
+                    .get("collector")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .to_string();
+                let data_type = arch.get("data_type").and_then(|v| v.as_str()).unwrap_or("");
+                if data_type == "updates" {
+                    updates_acquired = true;
+                    continue;
+                }
+                if collector.is_empty() {
+                    continue;
+                }
+                let baseline = arch
+                    .get("local_basename")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .to_string();
+                let sha = arch
+                    .get("sha256")
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .to_string();
+                let site = collector_site_for(catalog_root, &collector);
+                collectors.push(CoverageCollectorView {
+                    collector,
+                    site,
+                    family: source_family_for(arch),
+                    peer: "not recorded in run artifacts".to_string(),
+                    baseline_archive: baseline,
+                    baseline_sha256: sha,
+                });
+            }
+        }
+    }
+    collectors.sort_by(|a, b| a.collector.cmp(&b.collector));
+
+    let qualifying_sessions = qualifying_session_count(conn, run.id)?;
+    let qualifying_streams = stream_count(conn, run.id)?;
+    let relationship_matches = relationship_match_count(conn, run.id)?;
+
+    Ok(Some(InsufficientVisibilityView {
+        relationship_label: label,
+        predicate_text,
+        target_origin_text: origin_asns.join(", "),
+        lifecycle,
+        cutoff,
+        reason,
+        qualifying_sessions,
+        qualifying_streams,
+        relationship_matches,
+        collectors,
+        updates_acquired,
+        reviewed_notes,
+    }))
+}
+
+/// Format a manifest transit-predicate value for presentation.
+fn format_predicate(value: &serde_json::Value) -> String {
+    let pred = value.get("predicate").cloned().unwrap_or_default();
+    match pred {
+        serde_json::Value::Object(map) => {
+            if let Some(list) = map.get("ContainsAny").and_then(|v| v.as_array()) {
+                let asns: Vec<String> = list
+                    .iter()
+                    .filter_map(|v| v.as_u64())
+                    .map(|n| format!("AS{n}"))
+                    .collect();
+                format!("ContainsAny({})", asns.join(", "))
+            } else if let Some(list) = map.get("ContainsAll").and_then(|v| v.as_array()) {
+                let asns: Vec<String> = list
+                    .iter()
+                    .filter_map(|v| v.as_u64())
+                    .map(|n| format!("AS{n}"))
+                    .collect();
+                format!("ContainsAll({})", asns.join(", "))
+            } else if let Some(list) = map.get("Adjacent").and_then(|v| v.as_array()) {
+                let asns: Vec<String> = list
+                    .iter()
+                    .filter_map(|v| v.as_u64())
+                    .map(|n| format!("AS{n}"))
+                    .collect();
+                format!("Adjacent({})", asns.join(", "))
+            } else {
+                "reviewed predicate".to_string()
+            }
+        }
+        _ => "reviewed predicate".to_string(),
+    }
+}
+
+/// Reviewed collector site from the tracked collector-locations record
+/// (source-neutral lookup; empty when the collector is unknown).
+/// Collector site from reviewed collector-location metadata.
+///
+/// Reviewed location metadata lives at `case-studies/<slug>/pilot/
+/// collector-locations.json` (a reviewed interpretation file). Every
+/// case-study directory is consulted generically — no case-study slug
+/// is hard-coded. Returns the first matching collector's site, or an
+/// empty string when no metadata records the collector.
+fn collector_site_for(root: &std::path::Path, collector: &str) -> String {
+    let Ok(entries) = std::fs::read_dir(root.join("case-studies")) else {
+        return String::new();
+    };
+    let mut locations: Vec<std::path::PathBuf> = Vec::new();
+    for entry in entries.flatten() {
+        let slug = entry.path();
+        if !slug.is_dir() {
+            continue;
+        }
+        let candidate = slug.join("pilot/collector-locations.json");
+        if candidate.is_file() {
+            locations.push(candidate);
+        }
+    }
+    locations.sort();
+    for path in locations {
+        let Ok(content) = std::fs::read_to_string(&path) else {
+            continue;
+        };
+        let Ok(json) = serde_json::from_str::<serde_json::Value>(&content) else {
+            continue;
+        };
+        let site: String = json
+            .get("collectors")
+            .and_then(|v| v.as_array())
+            .map(|arr| {
+                arr.iter()
+                    .find(|c| c.get("collector").and_then(|v| v.as_str()) == Some(collector))
+                    .and_then(|c| c.get("location"))
+                    .and_then(|v| v.as_str())
+                    .unwrap_or("")
+                    .to_string()
+            })
+            .unwrap_or_default();
+        if !site.is_empty() {
+            return site;
+        }
+    }
+    String::new()
+}
+
+/// Source family from an archive-manifest entry's URL host.
+fn source_family_for(arch: &serde_json::Value) -> String {
+    let url = arch.get("url").and_then(|v| v.as_str()).unwrap_or("");
+    if url.contains("data.ris.ripe.net") {
+        "RIPE RIS".to_string()
+    } else if url.contains("archive.routeviews.org")
+        || url.contains("archive.nsrc.org")
+        || url.contains("route-views")
+    {
+        "RouteViews".to_string()
+    } else {
+        "not recorded".to_string()
+    }
+}
+
+fn qualifying_session_count(conn: &rusqlite::Connection, run_id: i64) -> Result<i64, String> {
+    conn.query_row(
+        "SELECT COUNT(DISTINCT collector || '/' || peer_ip) FROM stream_lifecycle_summaries WHERE run_id = ?1",
+        [run_id],
+        |r| r.get(0),
+    )
+    .map_err(|e| format!("cannot count qualifying sessions: {e}"))
+}
+
+fn stream_count(conn: &rusqlite::Connection, run_id: i64) -> Result<i64, String> {
+    conn.query_row(
+        "SELECT COUNT(*) FROM stream_lifecycle_summaries WHERE run_id = ?1",
+        [run_id],
+        |r| r.get(0),
+    )
+    .map_err(|e| format!("cannot count streams: {e}"))
+}
+
+fn relationship_match_count(conn: &rusqlite::Connection, run_id: i64) -> Result<i64, String> {
+    conn.query_row(
+        "SELECT COUNT(*) FROM stream_lifecycle_summaries
+         WHERE run_id = ?1
+           AND category IN ('Unchanged','PrependOnly','PathChangedStillViaTransit')",
+        [run_id],
+        |r| r.get(0),
+    )
+    .map_err(|e| format!("cannot count relationship matches: {e}"))
 }
 
 pub fn load_run_streams(
@@ -1373,9 +1796,15 @@ pub struct CaseStudyView {
     pub phases: Vec<PhaseView>,
     pub related_tickets: Vec<RelatedTicketView>,
     pub documents: Vec<DocumentView>,
+    /// Reviewed analyzed targets (derived from linked runs' manifests):
+    /// the operator-reported participants actually analyzed.
+    pub analyzed_targets: Vec<AnalyzedTargetView>,
+    /// Other operator-reported participants not reviewed for analysis.
     pub targets: Vec<TargetView>,
     pub plan: Option<PlanView>,
     pub runs: Vec<RunLinkView>,
+    /// Operator-first route story derived from the linked runs' evidence.
+    pub route_story: Vec<String>,
     pub phase_summaries: Vec<PhaseSummaryView>,
     pub comparison: Vec<ComparisonRowView>,
     pub observability_potentially_visible: usize,
@@ -1386,6 +1815,16 @@ pub struct CaseStudyView {
     pub public_tickets: Vec<PublicTicketView>,
     /// Cross-observer comparison over linked runs.
     pub observer_comparison: ObserverComparisonView,
+}
+
+/// A reviewed analyzed target: the reviewed target of one or more
+/// linked runs (derived from their manifest revisions).
+#[derive(Serialize)]
+pub struct AnalyzedTargetView {
+    pub label: String,
+    pub origin_asns: String,
+    pub predicate_text: String,
+    pub run_ids: Vec<i64>,
 }
 
 /// One related public corpus ticket with its reviewed interpretation.
@@ -1404,12 +1843,65 @@ pub struct PublicTicketView {
 /// Cross-observer comparison (rows + statements + conclusion wording).
 #[derive(Serialize, Default)]
 pub struct ObserverComparisonView {
+    /// Legacy flat prefix × observer-peer rows (kept for API/artifact
+    /// compatibility; the page renders the grouped view below).
     pub rows: Vec<ObserverComparisonRowView>,
+    /// Per-(prefix, collector) grouped evidence: one entry per collector
+    /// per prefix, with peer-level differences disclosed beneath.
+    pub groups: Vec<ObserverGroupView>,
+    /// Compact per-collector summaries shown before the grouped matrix.
+    pub collector_summaries: Vec<CollectorSummaryView>,
     pub statements: Vec<ObserverStatementView>,
     /// Narrow conclusion wording per the reviewed session brief.
     pub conclusion: String,
     /// Explainer lines for the first screen (distinct routing planes).
     pub planes_explainer: Vec<String>,
+}
+
+/// One (prefix, collector) evidence group: collector-level timing is
+/// shown once; peer-level variation is preserved as detail rows.
+#[derive(Serialize)]
+pub struct ObserverGroupView {
+    pub prefix: String,
+    pub collector: String,
+    pub family: String,
+    /// Historically correct collector location (reviewed metadata).
+    pub collector_site: String,
+    pub peers: Vec<ObserverPeerDetailView>,
+    /// Distinct collector-level first-change times (deduplicated).
+    pub first_change_utc: String,
+    pub temporary_absence: String,
+    pub path_replacement: String,
+    pub transit_departure: String,
+    pub restoration_utc: String,
+    pub baseline_visibility: String,
+    pub relationship: String,
+    pub plane: String,
+    pub cohort_predicate: String,
+}
+
+/// Peer-level detail within a (prefix, collector) group.
+#[derive(Serialize)]
+pub struct ObserverPeerDetailView {
+    pub peer: String,
+    pub peer_asn: String,
+    pub first_change_utc: String,
+    pub temporary_absence: String,
+    pub restoration_utc: String,
+}
+
+/// Compact per-collector summary for the first screen.
+#[derive(Serialize)]
+pub struct CollectorSummaryView {
+    pub collector: String,
+    pub family: String,
+    pub collector_site: String,
+    pub peers: usize,
+    pub changed_prefixes: usize,
+    pub baseline_visible_prefixes: usize,
+    pub first_change_utc: String,
+    pub restoration_utc: String,
+    pub summary: String,
 }
 
 #[derive(Serialize)]
@@ -1419,7 +1911,7 @@ pub struct ObserverComparisonRowView {
     pub family: String,
     pub peer: String,
     /// Historically correct collector location (reviewed metadata).
-    pub location: String,
+    pub collector_site: String,
     /// Peer ASN from the historical RIB MRT header (session audit).
     pub peer_asn: String,
     /// Direct vs indirect relationship to the named planes (audit data).
@@ -1464,6 +1956,8 @@ pub struct RelatedTicketView {
     pub reviewed_note: String,
     /// Link to the catalog event page when a snapshot-backed event exists.
     pub event_href: Option<String>,
+    /// Current provenance status (derived from catalog state).
+    pub status: String,
 }
 
 #[derive(Serialize)]
@@ -1532,6 +2026,16 @@ pub struct RunLinkView {
     pub started_at: String,
     pub verdict: String,
     pub assessment: String,
+    /// Reviewed target label from the run's manifest revision.
+    pub target: String,
+    /// Source family from the run's manifest revision.
+    pub family: String,
+    /// Reviewed collectors from the run's manifest revision.
+    pub collectors: String,
+    /// Current observed-result human label.
+    pub observed_result: String,
+    /// Current expectation-assessment human label.
+    pub expectation_assessment: String,
 }
 
 #[derive(Serialize)]
@@ -1741,7 +2245,10 @@ pub fn load_case_study(
         let mut stmt = conn
             .prepare(
                 "SELECT l.external_identifier, l.relationship,
-                        COALESCE(l.reviewed_note, ''), l.catalog_event_id
+                        COALESCE(l.reviewed_note, ''), l.catalog_event_id,
+                        (SELECT COUNT(*) FROM event_snapshots s
+                         JOIN catalog_events e ON e.id = s.event_id
+                         WHERE e.external_id = l.external_identifier)
                  FROM case_study_event_links l
                  WHERE l.case_study_id = ?1 ORDER BY l.sort_order",
             )
@@ -1753,18 +2260,45 @@ pub fn load_case_study(
                     r.get::<_, String>(1)?,
                     r.get::<_, String>(2)?,
                     r.get::<_, Option<i64>>(3)?,
+                    r.get::<_, i64>(4)?,
                 ))
             })
             .map_err(|e| format!("catalog read failed: {e}"))?;
         for row in rows {
-            let (external_id, relationship, note, event_id) =
+            let (external_id, relationship, note, event_id, snapshot_count) =
                 row.map_err(|e| format!("catalog read failed: {e}"))?;
             let event_href = event_id.map(|_| format!("/events/{external_id}"));
+            let status = if event_id.is_some() && snapshot_count > 0 {
+                if relationship.is_empty() {
+                    "immutable source snapshot acquired".to_string()
+                } else {
+                    "immutable source snapshot acquired; reviewed relationship assigned".to_string()
+                }
+            } else if external_id.starts_with("TASK") || note.contains("TASK") {
+                "unresolved document reference".to_string()
+            } else if note.contains("not independently retrieved") {
+                "AAR reference only".to_string()
+            } else {
+                "reviewed reference".to_string()
+            };
+            // Presentation hygiene: a stale "not independently
+            // retrieved" note is superseded once an immutable snapshot
+            // exists. The reviewed note text itself is canonical data
+            // and is never edited; only its page rendering is replaced.
+            let presented_note = if snapshot_count > 0 {
+                note.replace(
+                    "not independently retrieved",
+                    "AAR-listed; superseded by the acquired immutable snapshot",
+                )
+            } else {
+                note
+            };
             related_tickets.push(RelatedTicketView {
                 external_id,
                 relationship,
-                reviewed_note: note,
+                reviewed_note: presented_note,
                 event_href,
+                status,
             });
         }
     }
@@ -2041,13 +2575,17 @@ pub fn load_case_study(
         }
     });
 
-    // Linked runs.
+    // Linked runs (with manifest context for target/collector identity).
     let mut runs = Vec::new();
+    let mut run_manifests: Vec<serde_json::Value> = Vec::new();
     {
         let mut stmt = conn
             .prepare(
-                "SELECT r.id, r.started_at, COALESCE(r.verdict, ''), COALESCE(r.assessment, '')
+                "SELECT r.id, r.started_at, COALESCE(r.verdict, ''), COALESCE(r.assessment, ''),
+                        COALESCE(m.payload, '{}')
                  FROM analysis_runs r
+                 JOIN analysis_plans p ON p.id = r.plan_id
+                 JOIN manifest_revisions m ON m.id = p.manifest_revision_id
                  JOIN case_study_analysis_links l ON l.run_id = r.id
                  WHERE l.case_study_id = ?1 ORDER BY r.id",
             )
@@ -2059,19 +2597,135 @@ pub fn load_case_study(
                     r.get::<_, String>(1)?,
                     r.get::<_, String>(2)?,
                     r.get::<_, String>(3)?,
+                    r.get::<_, String>(4)?,
                 ))
             })
             .map_err(|e| format!("catalog read failed: {e}"))?;
         for row in rows {
-            let (id, started, verdict, assessment) =
+            let (id, started, verdict, assessment, manifest_json) =
                 row.map_err(|e| format!("catalog read failed: {e}"))?;
+            let m: serde_json::Value =
+                serde_json::from_str(&manifest_json).unwrap_or_else(|_| serde_json::json!({}));
+            let target_label = m
+                .get("target")
+                .and_then(|t| t.get("label"))
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string();
+            let family = m
+                .get("source_family")
+                .and_then(|v| v.as_str())
+                .unwrap_or("")
+                .to_string();
+            let collectors: Vec<String> = m
+                .get("collectors")
+                .and_then(|v| v.as_array())
+                .map(|arr| {
+                    arr.iter()
+                        .filter_map(|v| v.as_str().map(|s| s.to_string()))
+                        .collect()
+                })
+                .unwrap_or_default();
+            let (observed, expectation) = present_run_verdict(&verdict);
             runs.push(RunLinkView {
                 id,
                 started_at: started,
                 verdict,
                 assessment,
+                target: target_label,
+                family,
+                collectors: collectors.join(", "),
+                observed_result: observed,
+                expectation_assessment: expectation,
             });
+            run_manifests.push(m);
         }
+    }
+
+    // Analyzed targets: distinct reviewed targets of linked runs
+    // (derived from their manifests), grouped by origin ASNs. These are
+    // the operator-reported participants that were actually analyzed.
+    let mut analyzed_targets: Vec<AnalyzedTargetView>;
+    {
+        let mut by_key: std::collections::BTreeMap<String, AnalyzedTargetView> =
+            std::collections::BTreeMap::new();
+        for (idx, run) in runs.iter().enumerate() {
+            let m = run_manifests.get(idx).cloned().unwrap_or_default();
+            let label = run.target.clone();
+            if label.is_empty() {
+                continue;
+            }
+            let origin_asns: Vec<String> = m
+                .get("target")
+                .and_then(|t| t.get("origin_asns"))
+                .and_then(|v| v.as_array())
+                .map(|arr| {
+                    arr.iter()
+                        .filter_map(|v| v.as_u64())
+                        .map(|n| format!("AS{n}"))
+                        .collect()
+                })
+                .unwrap_or_default();
+            let predicate_text = format_predicate(
+                m.get("target")
+                    .and_then(|t| t.get("transit_predicate"))
+                    .unwrap_or(&serde_json::Value::Null),
+            );
+            let key = if origin_asns.is_empty() {
+                label.clone()
+            } else {
+                origin_asns.join(",")
+            };
+            by_key
+                .entry(key.clone())
+                .or_insert_with(|| AnalyzedTargetView {
+                    label: label.clone(),
+                    origin_asns: origin_asns.join(", "),
+                    predicate_text: predicate_text.clone(),
+                    run_ids: Vec::new(),
+                });
+            if let Some(entry) = by_key.get_mut(&key) {
+                entry.run_ids.push(run.id);
+            }
+        }
+        analyzed_targets = by_key.into_values().collect();
+    }
+    // The analyzed section uses the reviewed target-row label when one
+    // matches (e.g. the reviewed label from the case-study target
+    // record); otherwise the manifest label is used verbatim. Matching
+    // target rows leave the "mentioned" list below.
+    {
+        let row_labels: Vec<(String, String)> = targets
+            .iter()
+            .map(|t| (t.source_label.clone(), t.candidate_asns.clone()))
+            .collect();
+        let mut mentioned_retain = Vec::new();
+        for t in &targets {
+            let matched = analyzed_targets.iter().any(|a| {
+                a.origin_asns
+                    .split(',')
+                    .map(|s| s.trim().to_string())
+                    .filter(|s| s.starts_with("AS"))
+                    .any(|asn| t.candidate_asns.split([',', ' ']).any(|c| c.trim() == asn))
+                    || (!t.source_label.is_empty()
+                        && a.label
+                            .to_lowercase()
+                            .contains(&t.source_label.to_lowercase()))
+            });
+            if !matched {
+                mentioned_retain.push(t.source_label.clone());
+            }
+        }
+        // Assign reviewed labels and keep only non-analyzed rows.
+        for a in &mut analyzed_targets {
+            if let Some((label, _)) = row_labels
+                .iter()
+                .find(|(l, _)| !l.is_empty() && a.label.to_lowercase().contains(&l.to_lowercase()))
+            {
+                a.label = label.clone();
+            }
+        }
+        targets.retain(|t| mentioned_retain.contains(&t.source_label));
     }
 
     // Phase-conditioned BGP summaries (per linked run).
@@ -2116,7 +2770,7 @@ pub fn load_case_study(
         conn.query_row(
             "SELECT COUNT(*) FROM case_study_claims c WHERE c.case_study_id = ?1 AND c.observability = ?2",
             rusqlite::params![cs_id, o],
-            |r| r.get(0),
+            |r| r.get::<_, i64>(0),
         )
         .unwrap_or(0) as usize
     };
@@ -2140,6 +2794,12 @@ pub fn load_case_study(
             runs.len()
         )
     };
+    // Operator-first route story derived from the linked runs' evidence:
+    // target, reviewed plane, changed/unchanged collectors, direct
+    // observer absence, first-change and restoration ranges, cooldown
+    // re-change, and the analyzed-scope limitation. Aggregate stream
+    // counts remain available in the secondary coverage section.
+    let route_story = build_route_story(conn, &runs, &analyzed_targets, &cs.title)?;
     let mut what_bgp_could_not_show = Vec::new();
     {
         let mut stmt = conn
@@ -2263,7 +2923,7 @@ pub fn load_case_study(
     // studies — the comparison then shows the plain columns only).
     let session_context =
         crate::catalog::web::session_context::SessionContext::load_for_slug(&cs.slug);
-    let observer_rows = comparison_data
+    let observer_rows: Vec<ObserverComparisonRowView> = comparison_data
         .rows
         .iter()
         .map(|r| {
@@ -2291,7 +2951,7 @@ pub fn load_case_study(
                 collector: r.collector.clone(),
                 family: r.family.clone(),
                 peer: r.peer.clone(),
-                location,
+                collector_site: location,
                 peer_asn,
                 relationship,
                 plane,
@@ -2317,6 +2977,126 @@ pub fn load_case_study(
             }
         })
         .collect();
+
+    // Grouped prefix × collector evidence: collector-level timing is
+    // shown once per collector; peer-level variation is preserved as
+    // detail rows (cross-observer statements never repeat identical
+    // collector/timestamp pairs).
+    let mut groups: Vec<ObserverGroupView> = Vec::new();
+    {
+        let mut by_key: std::collections::BTreeMap<(String, String), Vec<usize>> =
+            std::collections::BTreeMap::new();
+        for (i, row) in observer_rows.iter().enumerate() {
+            by_key
+                .entry((row.prefix.clone(), row.collector.clone()))
+                .or_default()
+                .push(i);
+        }
+        for ((prefix, collector), idxs) in by_key {
+            let rows: Vec<&ObserverComparisonRowView> =
+                idxs.iter().map(|&i| &observer_rows[i]).collect();
+            let first_row = rows[0];
+            let mut first_changes: std::collections::BTreeSet<String> =
+                std::collections::BTreeSet::new();
+            let mut peer_detail: Vec<ObserverPeerDetailView> = Vec::new();
+            for r in &rows {
+                if !r.first_change_utc.is_empty() {
+                    first_changes.insert(r.first_change_utc.clone());
+                }
+                peer_detail.push(ObserverPeerDetailView {
+                    peer: r.peer.clone(),
+                    peer_asn: r.peer_asn.clone(),
+                    first_change_utc: r.first_change_utc.clone(),
+                    temporary_absence: r.temporary_absence.clone(),
+                    restoration_utc: r.restoration_utc.clone(),
+                });
+            }
+            peer_detail.sort_by(|a, b| a.peer.cmp(&b.peer));
+            groups.push(ObserverGroupView {
+                prefix: prefix.clone(),
+                collector: collector.clone(),
+                family: first_row.family.clone(),
+                collector_site: first_row.collector_site.clone(),
+                peers: peer_detail,
+                first_change_utc: first_changes.into_iter().collect::<Vec<_>>().join(", "),
+                temporary_absence: first_row.temporary_absence.clone(),
+                path_replacement: first_row.path_replacement.clone(),
+                transit_departure: first_row.transit_departure.clone(),
+                restoration_utc: first_row.restoration_utc.clone(),
+                baseline_visibility: first_row.baseline_visibility.clone(),
+                relationship: first_row.relationship.clone(),
+                plane: first_row.plane.clone(),
+                cohort_predicate: first_row.cohort_predicate.clone(),
+            });
+        }
+    }
+
+    // Compact per-collector summaries (shown before the grouped matrix).
+    let mut collector_summaries: Vec<CollectorSummaryView> = Vec::new();
+    {
+        let mut by_collector: std::collections::BTreeMap<String, Vec<&ObserverComparisonRowView>> =
+            std::collections::BTreeMap::new();
+        for row in &observer_rows {
+            by_collector
+                .entry(row.collector.clone())
+                .or_default()
+                .push(row);
+        }
+        for (collector, rows) in by_collector {
+            let peers: std::collections::BTreeSet<&str> =
+                rows.iter().map(|r| r.peer.as_str()).collect();
+            let changed_prefixes: std::collections::BTreeSet<&str> = rows
+                .iter()
+                .filter(|r| !r.first_change_utc.is_empty() || !r.temporary_absence.is_empty())
+                .map(|r| r.prefix.as_str())
+                .collect();
+            let visible_prefixes: std::collections::BTreeSet<&str> = rows
+                .iter()
+                .filter(|r| r.baseline_visibility == "yes")
+                .map(|r| r.prefix.as_str())
+                .collect();
+            let mut first_changes: std::collections::BTreeSet<&str> =
+                std::collections::BTreeSet::new();
+            let mut restorations: std::collections::BTreeSet<&str> =
+                std::collections::BTreeSet::new();
+            for r in &rows {
+                if !r.first_change_utc.is_empty() {
+                    first_changes.insert(&r.first_change_utc);
+                }
+                if !r.restoration_utc.is_empty() {
+                    restorations.insert(&r.restoration_utc);
+                }
+            }
+            let summary = if changed_prefixes.is_empty() {
+                "no selected route-state change".to_string()
+            } else if first_changes.len() > 1 {
+                format!(
+                    "{} prefixes changed ({} → {})",
+                    changed_prefixes.len(),
+                    first_changes.iter().next().unwrap_or(&""),
+                    first_changes.iter().next_back().unwrap_or(&"")
+                )
+            } else {
+                format!(
+                    "{} prefixes changed at {}",
+                    changed_prefixes.len(),
+                    first_changes.iter().next().unwrap_or(&"")
+                )
+            };
+            collector_summaries.push(CollectorSummaryView {
+                collector: collector.clone(),
+                family: rows[0].family.clone(),
+                collector_site: rows[0].collector_site.clone(),
+                peers: peers.len(),
+                changed_prefixes: changed_prefixes.len(),
+                baseline_visible_prefixes: visible_prefixes.len(),
+                first_change_utc: first_changes.into_iter().collect::<Vec<_>>().join(", "),
+                restoration_utc: restorations.into_iter().collect::<Vec<_>>().join(", "),
+                summary,
+            });
+        }
+    }
+
     let observer_statements = comparison_data
         .statements
         .iter()
@@ -2330,6 +3110,8 @@ pub fn load_case_study(
         .collect();
     let observer_comparison = ObserverComparisonView {
         rows: observer_rows,
+        groups,
+        collector_summaries,
         statements: observer_statements,
         conclusion: session_context
             .as_ref()
@@ -2353,9 +3135,11 @@ pub fn load_case_study(
         phases,
         related_tickets,
         documents,
+        analyzed_targets,
         targets,
         plan,
         runs,
+        route_story,
         phase_summaries,
         comparison,
         public_tickets,
@@ -2371,6 +3155,181 @@ pub fn load_case_study(
         ),
         observability_unknown: obs(crate::catalog::domain::OBSERVABILITY_UNKNOWN),
     }))
+}
+
+/// Operator-first route story for a case study, derived from the linked
+/// runs' stream lifecycles and manifest context. Aggregate stream
+/// counts are deliberately secondary; the story answers which
+/// observers changed, what changed, and within which ranges.
+fn build_route_story(
+    conn: &rusqlite::Connection,
+    runs: &[RunLinkView],
+    analyzed_targets: &[AnalyzedTargetView],
+    case_title: &str,
+) -> Result<Vec<String>, String> {
+    let mut story: Vec<String> = Vec::new();
+    if runs.is_empty() {
+        return Ok(story);
+    }
+
+    // Lead: target and reviewed path condition.
+    for t in analyzed_targets {
+        let condition = if t.predicate_text.is_empty() {
+            String::new()
+        } else {
+            format!("; reviewed path condition {}", t.predicate_text)
+        };
+        story.push(format!(
+            "Reviewed target: {} (origin {}){}.",
+            t.label,
+            if t.origin_asns.is_empty() {
+                "not recorded".to_string()
+            } else {
+                t.origin_asns.clone()
+            },
+            condition
+        ));
+    }
+
+    // Per-run facts.
+    let mut any_change = false;
+    let mut first_range: Option<(String, String)> = None;
+    let mut absence_runs: Vec<String> = Vec::new();
+    let mut unchanged_collectors: Vec<String> = Vec::new();
+    let mut cooldown_collectors: Vec<String> = Vec::new();
+    let mut path_change_collectors: Vec<String> = Vec::new();
+    for run in runs {
+        let streams = crate::catalog::db::list_streams(conn, run.id, None, None)?;
+        let changed: Vec<_> = streams
+            .iter()
+            .filter(|s| s.first_change_utc.is_some())
+            .collect();
+        let absent: Vec<_> = streams
+            .iter()
+            .filter(|s| s.category == "Withdrawn")
+            .collect();
+        let restored: Vec<_> = streams
+            .iter()
+            .filter(|s| s.restoration_time_utc.is_some())
+            .collect();
+        if changed.is_empty() {
+            if !streams.is_empty() {
+                unchanged_collectors.push(run.collectors.clone());
+            }
+            continue;
+        }
+        any_change = true;
+        let first = changed
+            .iter()
+            .filter_map(|s| s.first_change_utc.clone())
+            .min();
+        let last = changed
+            .iter()
+            .filter_map(|s| s.first_change_utc.clone())
+            .max();
+        first_range = match (first_range.clone(), first, last) {
+            (Some((a0, a1)), Some(b0), Some(b1)) => Some((a0.min(b0), a1.max(b1))),
+            (None, Some(b0), Some(b1)) => Some((b0, b1)),
+            (Some(r), _, _) => Some(r),
+            (None, _, _) => None,
+        };
+        if !absent.is_empty() {
+            let rest_min = restored
+                .iter()
+                .filter_map(|s| s.restoration_time_utc.clone())
+                .min()
+                .unwrap_or_default();
+            let rest_max = restored
+                .iter()
+                .filter_map(|s| s.restoration_time_utc.clone())
+                .max()
+                .unwrap_or_default();
+            let rest = if rest_min.is_empty() {
+                String::new()
+            } else if rest_min == rest_max {
+                format!("; restored by {rest_min} UTC")
+            } else {
+                format!("; restored {rest_min}–{rest_max} UTC")
+            };
+            absence_runs.push(format!(
+                "{}: {} selected prefixes became temporarily absent{}",
+                run.collectors,
+                absent.len(),
+                rest
+            ));
+        }
+        // Material path changes (from the run's compact transition
+        // index) without observer-route absence.
+        let path_change: i64 = conn
+            .query_row(
+                "SELECT COUNT(DISTINCT prefix) FROM run_transitions
+                 WHERE run_id = ?1 AND material_path_changed = 1 AND withdrawn = 0",
+                [run.id],
+                |r| r.get(0),
+            )
+            .unwrap_or(0);
+        if path_change > 0 && absent.is_empty() {
+            path_change_collectors.push(run.collectors.clone());
+        }
+        // Cooldown re-change: any transition during the Cooldown phase.
+        let cool: Vec<String> = conn
+            .prepare(
+                "SELECT DISTINCT collector FROM run_transitions
+                 WHERE run_id = ?1 AND run_phase = 'Cooldown' ORDER BY collector",
+            )
+            .map_err(|e| format!("catalog read failed: {e}"))?
+            .query_map([run.id], |r| r.get::<_, String>(0))
+            .map_err(|e| format!("catalog read failed: {e}"))?
+            .flatten()
+            .collect();
+        for c in cool {
+            if !cooldown_collectors.contains(&c) {
+                cooldown_collectors.push(c);
+            }
+        }
+    }
+
+    if any_change {
+        if let Some((a, b)) = &first_range {
+            if a == b {
+                story.push(format!(
+                    "Selected observers saw route changes beginning at {a} UTC."
+                ));
+            } else {
+                story.push(format!(
+                    "Selected observers saw route changes beginning between {a} and {b} UTC."
+                ));
+            }
+        }
+    }
+    for line in absence_runs {
+        story.push(format!(
+            "Observer-route absence: {line} (not traffic loss)."
+        ));
+    }
+    if !path_change_collectors.is_empty() {
+        story.push(format!(
+            "{} saw path changes rather than complete observer-route absence.",
+            path_change_collectors.join(" and ")
+        ));
+    }
+    for c in unchanged_collectors {
+        story.push(format!("{c} saw no selected route-state change."));
+    }
+    for c in cooldown_collectors {
+        story.push(format!(
+            "{c} changed again during cooldown, so its final analyzed state was not restored."
+        ));
+    }
+    let scope = if analyzed_targets.len() == 1 {
+        "a single-target analysis".to_string()
+    } else {
+        format!("{} analyzed targets", analyzed_targets.len())
+    };
+    story.push(format!(
+        "Reviewed scope: {scope}; not a complete {case_title} incident assessment."
+    ));
+    Ok(story)
 }
 
 /// A resolved document file ready to serve.

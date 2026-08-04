@@ -418,23 +418,11 @@ pub fn render_report(report: &DemoReport) -> String {
     out
 }
 
-/// Resolve an artifact relative path the same way the workbench does:
-/// catalog root first, then out/, then the reviewed case-study trees.
+/// Resolve an artifact relative path the same way the web run page does
+/// (shared resolver; catalog root first, then out/, then the reviewed
+/// case-study trees).
 fn resolve_artifact(root: &Path, rel: &str) -> std::path::PathBuf {
-    let candidates = [
-        root.join(rel),
-        root.join("out").join(rel),
-        root.join("case-studies/manlan-2019/pilot/out").join(rel),
-        root.join("case-studies/manlan-esnet-2019/out").join(rel),
-        root.join("case-studies/indiana-gigapop-smithville-2026/out")
-            .join(rel),
-        root.join("case-studies/inc0302574/out").join(rel),
-        root.join("case-studies/inc0299001/out").join(rel),
-    ];
-    candidates
-        .into_iter()
-        .find(|p| p.is_file())
-        .unwrap_or_else(|| root.join(rel))
+    crate::catalog::artifact_path::resolve_artifact(root, rel).unwrap_or_else(|| root.join(rel))
 }
 
 /// Whether any expected workbench renders (web layer check).

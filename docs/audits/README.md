@@ -28,6 +28,7 @@ header say so.
 | `2026-08-smithville-source-refresh.md` | 2026-08 | Smithville refresh evidence | pre-`91ac498` | identity + cutoff provenance | — |
 | `2026-08-incident-family-deferral.md` | 2026-08 | deferral decision | pre-`91ac498` | deferral rationale | — |
 | `external-links-2026-08.md` | 2026-08 | external link status record | pre-`91ac498` | nonblocking; not CI-failing | — |
+| `2026-08-internal-evaluator-findings.md` | 2026-08 | internal evaluator walkthrough findings | `94f8aad` | motivating audit for the workbench corrections | — |
 | `2026-08-documentation-inventory.md` | 2026-08 | documentation-surface inventory | `91ac498` | checked lists (drift-guarded) | — |
 | `2026-08-specification-coverage.md` | 2026-08 | specification coverage matrix | `91ac498` | navigation aid; not normative | — |
 | `2026-08-documentation-spec-conformance.md` | 2026-08 | final documentation conformance audit | `91ac498` | this session's audit | — |
