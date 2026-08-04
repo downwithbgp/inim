@@ -24,14 +24,14 @@ This audit verifies that every tracked file is classified, that every current st
 
 ## Summary
 
-Tracked files: **463** · inventory entries: **463**
+Tracked files: **470** · inventory entries: **470**
 
 | Category | Files |
 |---|---|
 | Immutable or generated evidence | 148 |
 | Production source | 106 |
-| Normative current documentation | 42 |
-| Historical decision record | 41 |
+| Normative current documentation | 48 |
+| Historical decision record | 42 |
 | Reviewed case-study interpretation | 30 |
 | Script or developer tool | 25 |
 | Configuration | 24 |
@@ -293,9 +293,16 @@ Tracked files: **463** · inventory entries: **463**
 | `docs/audits/2026-08-second-network-neutrality.md` | Historical decision record | maintainers | dated audit evidence | no | historical | status and applicability reviewed in this audit | none | reviewed in this audit |
 | `docs/audits/2026-08-smithville-source-refresh.md` | Historical decision record | maintainers | dated audit evidence | no | historical | status and applicability reviewed in this audit | none | reviewed in this audit |
 | `docs/audits/2026-08-specification-coverage.md` | Historical decision record | maintainers | dated audit | no | historical | status and applicability reviewed in this audit | none | reviewed in this audit |
+| `docs/audits/2026-08-wirthian-design-recovery.md` | Historical decision record | maintainers | dated audit | no | historical | status and applicability reviewed in this audit | none | reviewed in this audit |
 | `docs/audits/README.md` | Historical decision record | maintainers | dated audit index | no | historical | status and applicability reviewed in this audit | none | reviewed in this audit |
 | `docs/audits/external-links-2026-08.md` | Normative current documentation | maintainers | dated curl checks of documented external URLs | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
 | `docs/audits/repository-inventory.json` | Configuration | maintainers | reviewed classification of tracked files | no | current | reviewed in this audit | none | reviewed in this audit |
+| `docs/computational-model.md` | Normative current documentation | contributors and maintainers | implementation + canonical evidence (see docs/README authority map) | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
+| `docs/design/algorithm-data-matrix.md` | Normative current documentation | contributors and maintainers | implementation + canonical evidence (session 56 design recovery) | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
+| `docs/design/algorithms.md` | Normative current documentation | contributors and maintainers | implementation + canonical evidence (session 56 design recovery) | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
+| `docs/design/data-structures.md` | Normative current documentation | contributors and maintainers | implementation + canonical evidence (session 56 design recovery) | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
+| `docs/design/invariants.md` | Normative current documentation | contributors and maintainers | implementation + canonical evidence (session 56 design recovery) | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
+| `docs/design/state-machines.md` | Normative current documentation | contributors and maintainers | implementation + canonical evidence (session 56 design recovery) | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
 | `docs/evaluation/ALPHA-FREEZE.md` | Normative current documentation | contributors | reviewed protocol | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
 | `docs/evaluation/EVALUATION-DATA-HANDLING.md` | Normative current documentation | evaluators | reviewed protocol | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
 | `docs/evaluation/EXTERNAL-PILOT-CHECKLIST.md` | Normative current documentation | facilitators | reviewed protocol | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
