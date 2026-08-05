@@ -123,3 +123,31 @@ revision and canonical plan hash returns the existing active job with
   archives.
 - The web UI route tree (HTML pages) is documented separately in
   `docs/reference/WEB-ROUTES.md`.
+
+## Observed result vs expectation assessment
+
+Run JSON (`/api/v1/analyses/{run_id}` and the `runs` array of
+`/api/v1/case-studies/{slug}`) exposes two separate, evidence-scoped
+projections derived from the stored verdict:
+
+- `observed_result` — `{ "kind", "label" }` — what public BGP evidence
+  and coverage support. Labels never contain expectation wording
+  (`RouteStateChangesObserved`, `NoRouteStateChangeObserved`,
+  `InsufficientQualifyingVisibility`, `AnalysisIncomplete`; unknown
+  stored values project as the neutral
+  `Observed result not classified (legacy value)`).
+- `expectation_assessment` — `{ "kind", "label" }` — how that observed
+  result compares with the reviewed event expectation
+  (`ConsistentWithReviewedExpectation`,
+  `PartiallyConsistentWithReviewedExpectation`,
+  `LessExternallyVisibleChangeThanReviewedExpectation`,
+  `MoreExternallyVisibleChangeThanReviewedExpectation`,
+  `NotAssessableFromSelectedPublicObservers`,
+  `NoReviewedExpectationExists`, `ProvisionalAssessment`).
+
+The raw stored `verdict` and `assessment` fields remain for historical
+compatibility and carry mixed legacy semantics (some stored verdict
+strings name expectations, e.g. `ExpectedLossOfReachability`). They are
+not the primary interpretation: consumers must use the structured
+projections above. Project scope and analytical applicability are
+event-level facts, never route results.

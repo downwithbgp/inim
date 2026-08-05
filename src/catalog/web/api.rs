@@ -220,8 +220,14 @@ pub async fn api_case_study(
                 "notes": p.notes,
             })),
             "runs": v.runs.iter().map(|r| serde_json::json!({
-                "id": r.id, "started_at": r.started_at, "verdict": r.verdict,
+                "id": r.id, "started_at": r.started_at,
+                // Legacy raw stored values (mixed historical semantics);
+                // current interpretation must use the structured
+                // projections below.
+                "verdict": r.verdict,
                 "assessment": r.assessment,
+                "observed_result": r.observed_result,
+                "expectation_assessment": r.expectation_assessment,
             })).collect::<Vec<_>>(),
             "observability": {
                 "potentially_visible": v.observability_potentially_visible,
