@@ -221,9 +221,10 @@ pub async fn api_case_study(
             })),
             "runs": v.runs.iter().map(|r| serde_json::json!({
                 "id": r.id, "started_at": r.started_at,
-                // Legacy raw stored values (mixed historical semantics);
-                // current interpretation must use the structured
-                // projections below.
+                // Current interpretation: the projected observed-result and
+                // expectation-assessment labels (evidence-scoped; the raw
+                // stored verdict remains available in the run-detail
+                // endpoint as the legacy field).
                 "verdict": r.verdict,
                 "assessment": r.assessment,
                 "observed_result": r.observed_result,

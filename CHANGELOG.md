@@ -1,5 +1,29 @@
 ## [unreleased]
 
+### Pre-pilot correctness and provenance invariant closure (2026-08)
+
+- Continuity gate ordering: the analysis eligibility/continuity gate now
+  runs before any result is derived from finding counts, so an empty
+  finding set can no longer produce a "no route-state change" verdict
+  when UPDATE archive gaps or session resets make the absence of changes
+  unproven. (No tracked historical result changed.)
+- Artifact resolution consolidated: every artifact consumer (run page,
+  workbench, demo verifier, artifact audit) uses the single
+  containment-validating resolver; crafted or legacy artifact paths
+  (absolute, parent traversal, symlink escape, Windows normalization
+  hazards) cannot leave the configured artifact root.
+- Open events now require an explicit reviewed analysis cutoff with
+  recorded provenance before any Ready plan can exist; malformed open
+  manifests are rejected, legacy invalid plans are blocked at queue and
+  worker time before source access, and the cutoff participates in plan
+  identity.
+- Project-scope exclusions now apply to standalone `inim analyze` as
+  well as the catalog workflow, before any planning or source access;
+  the CLI warns when the policy file is absent.
+- Observed results and expectation assessments are exposed as separate,
+  evidence-scoped projections in the run API; stored verdict strings
+  remain as documented legacy fields.
+
 ### Corrected MAN LAN entity taxonomy and Smithville coverage provenance (2026-08-05)
 
 - MAN LAN entity taxonomy correction: Ixia is test/measurement equipment

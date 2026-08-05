@@ -126,9 +126,8 @@ revision and canonical plan hash returns the existing active job with
 
 ## Observed result vs expectation assessment
 
-Run JSON (`/api/v1/analyses/{run_id}` and the `runs` array of
-`/api/v1/case-studies/{slug}`) exposes two separate, evidence-scoped
-projections derived from the stored verdict:
+Run JSON (`/api/v1/analyses/{run_id}`) exposes two separate,
+evidence-scoped projections derived from the stored verdict:
 
 - `observed_result` — `{ "kind", "label" }` — what public BGP evidence
   and coverage support. Labels never contain expectation wording
@@ -144,6 +143,11 @@ projections derived from the stored verdict:
   `MoreExternallyVisibleChangeThanReviewedExpectation`,
   `NotAssessableFromSelectedPublicObservers`,
   `NoReviewedExpectationExists`, `ProvisionalAssessment`).
+
+The `runs` array of `/api/v1/case-studies/{slug}` carries the same two
+projections as flat label strings (`observed_result`,
+`expectation_assessment`) together with the raw stored `verdict` and
+`assessment` strings.
 
 The raw stored `verdict` and `assessment` fields remain for historical
 compatibility and carry mixed legacy semantics (some stored verdict
