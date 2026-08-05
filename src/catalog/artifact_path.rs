@@ -32,7 +32,10 @@ use std::path::{Component, Path, PathBuf};
 /// - rejects Windows drive-letter prefixes (`C:...`) and UNC roots,
 ///   because a stored path may later be consumed on Windows;
 /// - rejects backslash separators on every platform so an alternate
-///   separator cannot smuggle a Windows path.
+///   separator cannot smuggle a Windows path;
+/// - rejects components ending in `.` or a space, which Windows
+///   path normalization rewrites (a `.. ` component can normalize to
+///   parent traversal on Win32).
 ///
 /// Lexical containment is the minimum trust boundary. `resolve_artifact`
 /// additionally verifies that an existing candidate's canonicalized path
@@ -58,8 +61,15 @@ pub fn is_safe_relative_path(rel: &str) -> bool {
     if rel_path.is_absolute() {
         return false;
     }
-    rel_path.components().all(|c| {
-        matches!(c, Component::Normal(_) | Component::CurDir)
+    rel_path.components().all(|c| match c {
+        Component::Normal(name) => {
+            let name = name.to_string_lossy();
+            // Windows normalization hazard: trailing '.' or ' ' is
+            // rewritten on Win32 (`.. ` can become parent traversal).
+            !name.ends_with('.') && !name.ends_with(' ')
+        }
+        Component::CurDir => true,
+        _ => false,
     })
 }
 
@@ -208,6 +218,11 @@ mod tests {
         assert!(!is_safe_relative_path("C:\\windows\\passwd"));
         assert!(!is_safe_relative_path("\\\\server\\share\\file"));
         assert!(!is_safe_relative_path("EVENT\\..\\escape"));
+        // Windows normalization hazards: trailing '.' / ' ' components.
+        assert!(!is_safe_relative_path("EVENT/.. /outside"));
+        assert!(!is_safe_relative_path("EVENT/../outside "));
+        assert!(!is_safe_relative_path("EVENT/report.json."));
+        assert!(!is_safe_relative_path("EVENT/report.json "));
     }
 
     #[test]
@@ -272,7 +287,11 @@ mod tests {
         // the same answer for listing, existence checks, and access.
         let d = tempfile::tempdir().unwrap();
         write(d.path(), "case-studies/alpha/out/EVT/report.json", "{}");
-        write(d.path(), "case-studies/beta/pilot/out/EVT2/report.json", "{}");
+        write(
+            d.path(),
+            "case-studies/beta/pilot/out/EVT2/report.json",
+            "{}",
+        );
         let rels = [
             "EVT/report.json",
             "EVT2/report.json",
@@ -302,12 +321,24 @@ mod tests {
         // match on identical inputs.
         let d = tempfile::tempdir().unwrap();
         write(d.path(), "case-studies/gamma/out/E/report.json", "{}");
-        write(d.path(), "case-studies/gamma/pilot/out/E2/report.json", "{}");
-        for rel in ["E/report.json", "E2/report.json", "../escape", "E/missing.json"] {
+        write(
+            d.path(),
+            "case-studies/gamma/pilot/out/E2/report.json",
+            "{}",
+        );
+        for rel in [
+            "E/report.json",
+            "E2/report.json",
+            "../escape",
+            "E/missing.json",
+        ] {
             let shared = resolve_artifact(d.path(), rel).map(|p| p.to_string_lossy().into_owned());
             let demo = crate::catalog::demo::resolve_artifact(d.path(), rel)
                 .map(|p| p.to_string_lossy().into_owned());
-            assert_eq!(demo, shared, "demo resolver must match shared resolver for {rel}");
+            assert_eq!(
+                demo, shared,
+                "demo resolver must match shared resolver for {rel}"
+            );
         }
     }
 
@@ -323,7 +354,12 @@ mod tests {
             write(root, "case-studies/alpha/pilot/out/EVT2/report.json", "{}");
             write(root, "out/EVT3/report.json", "{}");
         }
-        for rel in ["EVT/report.json", "EVT2/report.json", "EVT3/report.json", "../escape"] {
+        for rel in [
+            "EVT/report.json",
+            "EVT2/report.json",
+            "EVT3/report.json",
+            "../escape",
+        ] {
             let a = resolve_artifact(git_root.path(), rel)
                 .map(|p| p.file_name().unwrap().to_string_lossy().into_owned());
             let b = resolve_artifact(pkg_root.path(), rel)

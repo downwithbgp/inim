@@ -269,7 +269,9 @@ pub fn validate_plan_for_queue(
             .map(|c| !c.trim().is_empty())
             .unwrap_or(false);
         if !has_cutoff {
-            return Err("invalid_plan: open event requires an explicit analysis cutoff".to_string());
+            return Err(
+                "invalid_plan: open event requires an explicit analysis cutoff".to_string(),
+            );
         }
     }
     // Defense in depth (F-4): an open event requires the reviewed
@@ -283,7 +285,9 @@ pub fn validate_plan_for_queue(
             .map(|c| !c.trim().is_empty())
             .unwrap_or(false);
         if !has_cutoff {
-            return Err("invalid_plan: open event requires an explicit analysis cutoff".to_string());
+            return Err(
+                "invalid_plan: open event requires an explicit analysis cutoff".to_string(),
+            );
         }
     }
     canonical_plan_hash(&payload)

@@ -6772,8 +6772,7 @@ fn run_meta(
             // The shared containment-validating resolver is the single
             // authority for artifact paths (it searches the catalog
             // root, out/, and every reviewed case-study tree generically).
-            let Some(full) =
-                crate::catalog::artifact_path::resolve_artifact(catalog_root, &rel)
+            let Some(full) = crate::catalog::artifact_path::resolve_artifact(catalog_root, &rel)
             else {
                 continue;
             };

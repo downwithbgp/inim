@@ -1239,13 +1239,13 @@ fn analyze_scope_block(
         return Some(reason);
     }
     if scope.any_asn_excluded(&manifest.target.origin_asns) {
-        return Some(
-            inim::catalog::scope::REASON_PROJECT_OWNER_EXCLUSION.to_string(),
-        );
+        return Some(inim::catalog::scope::REASON_PROJECT_OWNER_EXCLUSION.to_string());
     }
     None
 }
 
+/// CLI passthrough; each argument maps to one flag.
+#[allow(clippy::too_many_arguments)]
 fn cmd_analyze(
     stdout: &mut dyn Write,
     stderr: &mut dyn Write,
@@ -1284,6 +1284,20 @@ fn cmd_analyze(
     // analysis as well as the catalog workflow. Fail closed on an
     // invalid policy and block excluded input BEFORE any planning,
     // broker discovery, archive acquisition, or MRT parsing (F-5).
+    //
+    // The policy is loaded from `config/project-scope.toml` under the
+    // current working directory (the analyze CLI has no catalog root).
+    // When the file is absent the established empty all-Included policy
+    // applies for every caller — but on this path the consequence is
+    // made explicit so exclusions are never silently skipped.
+    let scope_path = std::path::Path::new("config/project-scope.toml");
+    if !scope_path.is_file() {
+        let _ = writeln!(
+            stderr,
+            "warning: config/project-scope.toml not found under the current directory; \
+             project-scope exclusions are not applied to this standalone analysis"
+        );
+    }
     let scope = match inim::catalog::scope::ProjectScope::load(std::path::Path::new(".")) {
         Ok(s) => s,
         Err(e) => {
@@ -2604,7 +2618,11 @@ mod tests {
         inim::catalog::scope::ProjectScope::from_config(file).unwrap()
     }
 
-    fn scope_test_manifest(event_id: &str, label: &str, origin_asn: u32) -> inim::manifest::Manifest {
+    fn scope_test_manifest(
+        event_id: &str,
+        label: &str,
+        origin_asn: u32,
+    ) -> inim::manifest::Manifest {
         serde_json::from_str(
             &serde_json::json!({
                 "event_id": event_id,
@@ -2711,8 +2729,7 @@ mod tests {
         // Scope-blocked analyze: decision function returns Some; the
         // caller returns EXIT_ANALYSIS_BLOCKED without touching out/.
         let scope = synthetic_scope(None, None, Some("INC-SYNTH-EXCLUDED"));
-        let excluded_manifest =
-            scope_test_manifest("INC-SYNTH-EXCLUDED", "Synthetic event", 64500);
+        let excluded_manifest = scope_test_manifest("INC-SYNTH-EXCLUDED", "Synthetic event", 64500);
         assert!(analyze_scope_block(&scope, "INC-SYNTH-EXCLUDED", &excluded_manifest).is_some());
     }
 
@@ -2724,7 +2741,10 @@ mod tests {
             toml::from_str("schema_version = 999\n");
         assert!(file.is_ok()); // parses; validation rejects below
         let scope = inim::catalog::scope::ProjectScope::from_config(file.unwrap());
-        assert!(scope.is_err(), "unsupported schema version must fail closed");
+        assert!(
+            scope.is_err(),
+            "unsupported schema version must fail closed"
+        );
         let bad: Result<inim::catalog::scope::ScopeConfigFile, _> = toml::from_str("nonsense [[[");
         assert!(bad.is_err(), "malformed TOML must fail to parse");
     }

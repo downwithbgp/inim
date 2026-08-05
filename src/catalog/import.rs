@@ -496,17 +496,15 @@ pub fn build_plan_record(
         "Ready"
     };
     let block_reason = if status == "Blocked" {
-        Some(
-            if open_without_cutoff {
-                "MissingAnalysisEndForOpenTicket".to_string()
-            } else if !origin_mapping_reviewed && !manifest.target.origin_asns.is_empty() {
-                "OriginMappingNeedsReview".to_string()
-            } else if manifest.target.origin_asns.is_empty() {
-                "MissingReviewedEntityMapping".to_string()
-            } else {
-                "MissingReviewedTransitPredicate".to_string()
-            },
-        )
+        Some(if open_without_cutoff {
+            "MissingAnalysisEndForOpenTicket".to_string()
+        } else if !origin_mapping_reviewed && !manifest.target.origin_asns.is_empty() {
+            "OriginMappingNeedsReview".to_string()
+        } else if manifest.target.origin_asns.is_empty() {
+            "MissingReviewedEntityMapping".to_string()
+        } else {
+            "MissingReviewedTransitPredicate".to_string()
+        })
     } else {
         None
     };
@@ -1300,7 +1298,11 @@ mod tests {
         assert_eq!(plans[0].status, "Blocked");
     }
 
-    fn open_manifest_with_cutoff(event_id: &str, cutoff: Option<&str>, open: bool) -> crate::manifest::Manifest {
+    fn open_manifest_with_cutoff(
+        event_id: &str,
+        cutoff: Option<&str>,
+        open: bool,
+    ) -> crate::manifest::Manifest {
         serde_json::from_str(
             &serde_json::json!({
                 "event_id": event_id,

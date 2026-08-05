@@ -700,7 +700,10 @@ async fn api_exposes_structured_observed_result() {
     assert_eq!(observed["kind"], "NoRouteStateChangeObserved");
     let label = observed["label"].as_str().unwrap().to_lowercase();
     for word in ["expected", "unexpected", "impact"] {
-        assert!(!label.contains(word), "observed label contains {word}: {body}");
+        assert!(
+            !label.contains(word),
+            "observed label contains {word}: {body}"
+        );
     }
 }
 
@@ -792,7 +795,7 @@ async fn smithville_projects_insufficient_visibility_separately_from_assessment(
 
 #[tokio::test]
 async fn nordunet_projects_route_change_separately_from_expectation_consistency() {
-    // Probe: a run whose stored verdict is the NORDUnet pilot's
+    // Probe: a run whose stored verdict is the pilot run's
     // ExpectedLossOfReachability must project the route change (observed
     // result) separately from the consistency judgment (expectation
     // assessment). The probe is source-neutral: it sets the stored

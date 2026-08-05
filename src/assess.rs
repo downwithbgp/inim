@@ -638,14 +638,26 @@ mod tests {
         // (continuity, findings present, expected verdict)
         let exp = ImpactExpectation::redundant(Some("NEWY32AOA"), "test");
         let cases = [
-            (continuity_established(), false, Verdict::NoObservableBgpImpact),
+            (
+                continuity_established(),
+                false,
+                Verdict::NoObservableBgpImpact,
+            ),
             (continuity_unknown(), false, Verdict::InsufficientVisibility),
-            (continuity_established(), true, Verdict::ExpectedRedundantImpact),
+            (
+                continuity_established(),
+                true,
+                Verdict::ExpectedRedundantImpact,
+            ),
             (continuity_unknown(), true, Verdict::InsufficientVisibility),
         ];
         for (continuity, has_findings, expected) in cases {
             let transitions = if has_findings {
-                vec![path_change(vec![6447, 11537, 1101], vec![6447, 237, 1101], 0)]
+                vec![path_change(
+                    vec![6447, 11537, 1101],
+                    vec![6447, 237, 1101],
+                    0,
+                )]
             } else {
                 vec![]
             };
@@ -681,7 +693,11 @@ mod tests {
             None,
         );
         assert_eq!(empty_a.verdict, empty_b.verdict);
-        let findings = vec![path_change(vec![6447, 11537, 1101], vec![6447, 237, 1101], 0)];
+        let findings = vec![path_change(
+            vec![6447, 11537, 1101],
+            vec![6447, 237, 1101],
+            0,
+        )];
         let f_a = assess(
             EventId::from("TEST"),
             exp.clone(),

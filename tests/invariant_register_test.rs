@@ -20,10 +20,14 @@ fn invariant_register_declared_counts_match_rows() {
     });
 
     // Row pattern: | ID-1 | statement | status | enforcement | falsification |
-    let row_re = regex::Regex::new(r"^\| ([A-Z]{2}-[0-9]+) \| .*? \| (.+?) \| .*? \| .*? \|$").unwrap();
+    let row_re =
+        regex::Regex::new(r"^\| ([A-Z]{2}-[0-9]+) \| .*? \| (.+?) \| .*? \| .*? \|$").unwrap();
 
     // Declared totals: "- Enforced: N" etc.
-    let count_re = regex::Regex::new(r"^- (Enforced|Partially enforced|Assumed|Claimed|Unknown|Total table rows): (\d+)$").unwrap();
+    let count_re = regex::Regex::new(
+        r"^- (Enforced|Partially enforced|Assumed|Claimed|Unknown|Total table rows): (\d+)$",
+    )
+    .unwrap();
 
     let mut rows = 0usize;
     let mut by_status: BTreeMap<String, usize> = BTreeMap::new();

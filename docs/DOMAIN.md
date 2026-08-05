@@ -308,7 +308,11 @@ the web app, CLI, worker, and demo. It is a universal first-party
 execution policy: the standalone `inim analyze` path applies the same
 reviewed exclusions as the catalog workflow, before any planning,
 broker discovery, archive acquisition, or MRT parsing (a scope-blocked
-analyze exits `EXIT_ANALYSIS_BLOCKED` and writes no outputs). It is
+analyze exits `EXIT_ANALYSIS_BLOCKED` and writes no outputs). The
+standalone `analyze` CLI has no catalog root: it loads the policy from
+`config/project-scope.toml` under the current working directory, and
+warns on stderr when that file is absent (the established empty
+all-Included policy applies for every caller in that case). It is
 ORTHOGONAL to the analytical
 applicability vocabulary: an exclusion never marks an event
 not-observable, failed, or invalid. Matching keys, in precedence order:

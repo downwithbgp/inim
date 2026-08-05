@@ -631,14 +631,7 @@ fn open_event_does_not_imply_incomplete_analysis() {
     use inim::outcome::AnalysisOutcome;
 
     let exp = ImpactExpectation::redundant(Some("NEWY32AOA"), "test");
-    let assessment = inim::assess::assess(
-        EventId::from("TEST"),
-        exp,
-        &[],
-        vec![],
-        false,
-        None,
-    );
+    let assessment = inim::assess::assess(EventId::from("TEST"), exp, &[], vec![], false, None);
     // Established continuity + no findings is the no-change result, not
     // an incomplete analysis.
     assert_eq!(
@@ -669,15 +662,10 @@ fn no_route_state_change_does_not_imply_continuity_failure() {
         false, // continuity established
         None,
     );
-    assert_eq!(
-        assessment.verdict,
-        Verdict::NoObservableBgpImpact
-    );
+    assert_eq!(assessment.verdict, Verdict::NoObservableBgpImpact);
     // The observed-result projection is the evidence-scoped no-change
     // statement, not an insufficiency or continuity label.
-    let kind = assessment
-        .verdict
-        .observed_result_kind();
+    let kind = assessment.verdict.observed_result_kind();
     assert_eq!(
         kind,
         inim::domain::assessment::ObservedResultKind::NoRouteStateChangeObserved
@@ -744,7 +732,9 @@ fn ready_plan_does_not_imply_in_scope_event_unless_policy_says_so() {
     let file: inim::catalog::scope::ScopeConfigFile = toml::from_str(scope_text).unwrap();
     let scope = inim::catalog::scope::ProjectScope::from_config(file).unwrap();
     assert!(
-        scope.source_record_reason("grnoc-public-task-viewer", "INC-GENERIC-READY").is_some(),
+        scope
+            .source_record_reason("grnoc-public-task-viewer", "INC-GENERIC-READY")
+            .is_some(),
         "policy may exclude an event whose plan is Ready"
     );
 }
