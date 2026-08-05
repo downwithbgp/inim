@@ -611,3 +611,140 @@ fn import_prefers_tracked_case_evidence_over_runtime_stub() {
         .unwrap();
     assert_eq!(n, 1);
 }
+
+// ── Status-boundary matrix (Session 57, Part 12) ───────────────────
+//
+// Source lifecycle, plan readiness, project scope, analytical
+// applicability, job status, execution stage, run completion, evidence
+// continuity, observed result, expectation assessment, and artifact
+// validity are separate axes. These negative tests pin the boundaries
+// without creating one universal status enum.
+
+#[test]
+fn open_event_does_not_imply_incomplete_analysis() {
+    // An open event is analyzed provisionally through the reviewed
+    // cutoff; a completed run for an open event is not an incomplete
+    // analysis.
+    use inim::domain::assessment::Verdict;
+    use inim::domain::event::EventId;
+    use inim::domain::expectation::ImpactExpectation;
+    use inim::outcome::AnalysisOutcome;
+
+    let exp = ImpactExpectation::redundant(Some("NEWY32AOA"), "test");
+    let assessment = inim::assess::assess(
+        EventId::from("TEST"),
+        exp,
+        &[],
+        vec![],
+        false,
+        None,
+    );
+    // Established continuity + no findings is the no-change result, not
+    // an incomplete analysis.
+    assert_eq!(
+        assessment.verdict,
+        Verdict::NoObservableBgpImpact,
+        "established-continuity empty run is a real no-change result"
+    );
+    let outcome = AnalysisOutcome::completed(assessment);
+    assert!(matches!(outcome, AnalysisOutcome::Completed { .. }));
+    assert!(!matches!(outcome, AnalysisOutcome::Incomplete { .. }));
+}
+
+#[test]
+fn no_route_state_change_does_not_imply_continuity_failure() {
+    // A no-change result with ESTABLISHED continuity is a legitimate
+    // observation; it does not claim continuity failed. (The converse —
+    // no-change WITHOUT continuity — is suppressed by the F-1 gate.)
+    use inim::domain::assessment::Verdict;
+    use inim::domain::event::EventId;
+    use inim::domain::expectation::ImpactExpectation;
+
+    let exp = ImpactExpectation::redundant(Some("NEWY32AOA"), "test");
+    let assessment = inim::assess::assess(
+        EventId::from("TEST"),
+        exp,
+        &[],
+        vec![],
+        false, // continuity established
+        None,
+    );
+    assert_eq!(
+        assessment.verdict,
+        Verdict::NoObservableBgpImpact
+    );
+    // The observed-result projection is the evidence-scoped no-change
+    // statement, not an insufficiency or continuity label.
+    let kind = assessment
+        .verdict
+        .observed_result_kind();
+    assert_eq!(
+        kind,
+        inim::domain::assessment::ObservedResultKind::NoRouteStateChangeObserved
+    );
+    assert_ne!(
+        kind,
+        inim::domain::assessment::ObservedResultKind::InsufficientQualifyingVisibility
+    );
+}
+
+#[test]
+fn insufficient_visibility_does_not_imply_no_route_state_change() {
+    use inim::domain::assessment::{ObservedResultKind, Verdict};
+    assert_ne!(
+        Verdict::InsufficientVisibility.observed_result_kind(),
+        ObservedResultKind::NoRouteStateChangeObserved
+    );
+    assert_eq!(
+        Verdict::InsufficientVisibility.observed_result_kind(),
+        ObservedResultKind::InsufficientQualifyingVisibility
+    );
+}
+
+#[test]
+fn ready_plan_does_not_imply_in_scope_event_unless_policy_says_so() {
+    // Plan readiness and project-scope inclusion are separate axes: a
+    // Ready plan's status never encodes scope, and the scope decision is
+    // applied separately at queue/worker/analyze time.
+    use inim::manifest::Manifest;
+    let manifest: Manifest = serde_json::from_str(
+        &serde_json::json!({
+            "event_id": "INC-GENERIC-READY",
+            "revision": 1,
+            "schema_version": 2,
+            "event_window_utc": {"start": "2026-08-01T00:00:00Z", "end": "2026-08-01T01:00:00Z"},
+            "ticket_window_local": {"start": "", "end": "", "timezone": "UTC"},
+            "warmup_minutes": 0,
+            "cooldown_minutes": 0,
+            "target": {
+                "label": "Generic included org",
+                "origin_asns": [64500],
+                "transit_predicate": {
+                    "status": "Reviewed",
+                    "predicate": {"ContainsAny": [64501]},
+                    "provenance": {"statement": "r", "reviewed_by": "local-review", "date": "2026-08-01"}
+                }
+            },
+            "collectors": ["route-views2"],
+            "source_family": "RouteViews"
+        })
+        .to_string(),
+    )
+    .unwrap();
+    let plan = inim::plan::plan_from_manifest(
+        "INC-GENERIC-READY",
+        inim::domain::expectation::ImpactExpectation::redundant(Some("NEWY32AOA"), "test"),
+        &manifest,
+    )
+    .unwrap();
+    assert!(matches!(plan.status, inim::plan::AnalysisPlanStatus::Ready));
+    // Readiness is a plan fact; scope inclusion is a policy overlay and
+    // is not part of the plan status vocabulary.
+    let scope_text = "schema_version = 1\n[[excluded_source_records]]\nsource_family = \"grnoc-public-task-viewer\"\nexternal_id = \"INC-GENERIC-READY\"\nreason_code = \"project_owner_exclusion\"\n";
+    let file: inim::catalog::scope::ScopeConfigFile = toml::from_str(scope_text).unwrap();
+    let scope = inim::catalog::scope::ProjectScope::from_config(file).unwrap();
+    assert!(
+        scope.source_record_reason("grnoc-public-task-viewer", "INC-GENERIC-READY").is_some(),
+        "policy may exclude an event whose plan is Ready"
+    );
+}
