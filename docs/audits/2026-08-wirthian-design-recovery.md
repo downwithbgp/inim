@@ -273,3 +273,27 @@ External evaluation sessions: **zero**. Pilot registry unchanged
 
 Navigation updated: `../README.md` (docs index), `./README.md`
 (audits index). No other documentation was modified.
+
+## Follow-up status (Session 57 — pre-pilot invariant closure)
+
+The findings below were addressed by
+[`2026-08-pre-pilot-invariant-closure.md`](2026-08-pre-pilot-invariant-closure.md).
+This section records status only; the historical findings above are not
+rewritten.
+
+| Finding | Status | Correction | Enforcement / tests | Residual limitation |
+|---------|--------|------------|---------------------|---------------------|
+| F-1 Continuity-gate bypass | resolved | gate runs before empty-finding fallback (`src/assess.rs`) | `continuity_failure_precedes_empty_finding_fallback`, `continuity_gate_decision_table`, `assessment_is_deterministic` | F-10 (historical occurrence) not demonstrated |
+| F-2 Duplicated artifact resolvers | resolved | all consumers use `resolve_artifact` or the shared primitive | `all_artifact_consumers_agree_on_validity`, `workbench_and_demo_resolver_equivalent`, `git_checkout_and_packaged_source_resolver_equivalent` | none identified |
+| F-3 Unvalidated root.join(rel) | resolved | `is_safe_relative_path` lexical containment + canonical containment for existing candidates | `artifact_symlink_escape_rejected`, `artifact_parent_traversal_rejected`, `artifact_absolute_path_rejected`, `missing_artifact_distinct_from_invalid_artifact_path` | none identified |
+| F-4 Storable Ready plan for open event without cutoff | resolved | load rejects; plan Blocks; queue/worker require cutoff regardless of declared end; import requires provenance | `open_event_ready_plan_requires_cutoff`, `open_event_ready_plan_requires_cutoff_provenance`, `worker_missing_cutoff_fails_loudly`, `source_fetch_time_not_implicitly_analysis_cutoff` | legacy rows are blocked at queue/worker before source access |
+| F-5 Standalone analyze has no project-scope enforcement | resolved by enforcement (Outcome A: universal first-party execution policy) | `analyze_scope_block` in `cmd_analyze` before planning/source access; boundary documented in `docs/DOMAIN.md` | `standalone_analyze_scope_boundary_is_explicit`, `project_scope_checked_before_network_access_where_applicable`, `standalone_output_cannot_silently_bypass_scoped_publication` | scope is policy, not sandboxing (documented) |
+| F-6 Expectation vocabulary in stored/API verdict strings | resolved (compatibility-narrowed) | structured `observed_result`/`expectation_assessment` projections; neutral fallback; raw fields documented legacy | `api_exposes_structured_observed_result`, `api_exposes_structured_expectation_assessment`, `legacy_verdict_does_not_override_current_projection`, `historical_runs_remain_readable` | the legacy `verdict`/`assessment` fields remain on stored rows and reports for compatibility |
+| F-7 WAL sidecars under read-only serving | remains open (accepted boundary) | not implemented (out of scope) | — | catalog opens read-write WAL; logical rows unchanged under GET (PV-2) |
+| F-8 Pre-existing red documentation CI | resolved | CHANGELOG entry rewritten in product language; render regenerated; regression test | `changelog_contains_no_session_narrative`; `scripts/audit-docs.sh` green | none |
+| F-9 Extraction-reuse predicate caveat | remains open (out of scope) | not implemented | — | origin-keyed extraction reuse may miss predicate-2-only streams at production scale |
+| F-10 Occurrence of F-1 in a historical real run | no tracked run demonstrated affected | static inspection of all 12 tracked `report.json` files found zero runs with the unknown-continuity + empty-findings combination | — | absence is demonstrated for the tracked set only; not proven for untracked runtime catalogs |
+
+Synthetic reproduction of the F-1 input combination is covered by the
+gate-ordering tests; that is not evidence that any historical run was
+affected.
