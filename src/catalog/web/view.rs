@@ -4195,7 +4195,9 @@ pub fn resolve_document_file(
     let Some((media_type, sha256, Some(rel))) = row else {
         return Ok(None);
     };
-    if rel.is_empty() || rel.starts_with('/') || rel.contains("..") || rel.contains('\\') {
+    // Documents use the same lexical containment primitive as analysis
+    // artifacts, then verify canonical containment below.
+    if !crate::catalog::artifact_path::is_safe_relative_path(&rel) {
         return Err(format!("document path is not catalog-relative: {rel}"));
     }
     let resolved = catalog_root.join(&rel);

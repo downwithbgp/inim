@@ -265,7 +265,7 @@ pub fn demo_verify(db_path: &Path, root: &Path) -> Result<DemoReport, String> {
             report.absolute_paths.push(rel);
             continue;
         }
-        if !resolve_artifact(root, &rel).is_file() {
+        if resolve_artifact(root, &rel).is_none() {
             report.unresolved_artifacts.push(rel);
         }
     }
@@ -418,11 +418,12 @@ pub fn render_report(report: &DemoReport) -> String {
     out
 }
 
-/// Resolve an artifact relative path the same way the web run page does
-/// (shared resolver; catalog root first, then out/, then the reviewed
-/// case-study trees).
-fn resolve_artifact(root: &Path, rel: &str) -> std::path::PathBuf {
-    crate::catalog::artifact_path::resolve_artifact(root, rel).unwrap_or_else(|| root.join(rel))
+/// Resolve an artifact relative path the same way every other consumer
+/// does — the shared containment-validating resolver. Returns `None` for
+/// invalid paths and for valid paths whose file is missing, so demo
+/// verification and web access can never disagree.
+pub(crate) fn resolve_artifact(root: &Path, rel: &str) -> Option<std::path::PathBuf> {
+    crate::catalog::artifact_path::resolve_artifact(root, rel)
 }
 
 /// Whether any expected workbench renders (web layer check).

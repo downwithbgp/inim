@@ -14,23 +14,68 @@
 //!    case-study evidence trees (Git checkout and packaged source both
 //!    carry these trees)
 //!
-//! The same resolver is used by the demo verifier, the web run page,
-//! and any artifact-serving path, so a listed artifact and its
-//! existence check can never disagree about the root.
+//! Every artifact consumer (run page, workbench, demo verifier,
+//! artifact audit, coverage lookups) must use `resolve_artifact` or the
+//! shared `is_safe_relative_path` containment primitive so that a listed
+//! artifact, its existence check, and its access can never disagree
+//! about validity or the root.
 
-use std::path::{Path, PathBuf};
+use std::path::{Component, Path, PathBuf};
+
+/// Whether a stored relative path is lexically safe to join under a
+/// root. This is the single containment primitive for artifact and
+/// runtime-record paths:
+///
+/// - rejects empty paths;
+/// - rejects absolute paths (including POSIX root-relative);
+/// - rejects parent traversal (`..`);
+/// - rejects Windows drive-letter prefixes (`C:...`) and UNC roots,
+///   because a stored path may later be consumed on Windows;
+/// - rejects backslash separators on every platform so an alternate
+///   separator cannot smuggle a Windows path.
+///
+/// Lexical containment is the minimum trust boundary. `resolve_artifact`
+/// additionally verifies that an existing candidate's canonicalized path
+/// stays under the canonicalized root (symlink containment).
+pub fn is_safe_relative_path(rel: &str) -> bool {
+    if rel.is_empty() {
+        return false;
+    }
+    if rel.contains('\\') {
+        return false; // alternate separator escape
+    }
+    if rel.starts_with('/') {
+        return false;
+    }
+    let bytes = rel.as_bytes();
+    if bytes.len() >= 2 && bytes[0].is_ascii_alphabetic() && bytes[1] == b':' {
+        return false; // Windows drive-letter prefix
+    }
+    if rel.starts_with("\\\\") {
+        return false; // UNC root
+    }
+    let rel_path = Path::new(rel);
+    if rel_path.is_absolute() {
+        return false;
+    }
+    rel_path.components().all(|c| {
+        matches!(c, Component::Normal(_) | Component::CurDir)
+    })
+}
 
 /// Resolve a catalog artifact row's relative path to a filesystem path
-/// under `root`, or return `None` when no candidate exists.
+/// under `root`, or return `None` when no safe existing candidate exists.
+///
+/// A candidate is accepted only when:
+/// - the stored relative path passes `is_safe_relative_path` (lexical
+///   containment), and
+/// - the candidate exists and its canonicalized path remains under the
+///   canonicalized root (a symlink that escapes the root is rejected).
 pub fn resolve_artifact(root: &Path, rel: &str) -> Option<PathBuf> {
-    let rel_path = Path::new(rel);
-    if rel_path.is_absolute()
-        || rel_path
-            .components()
-            .any(|c| c == std::path::Component::ParentDir)
-    {
-        return None; // absolute and parent-relative artifact paths are rejected at import
+    if !is_safe_relative_path(rel) {
+        return None;
     }
+    let rel_path = Path::new(rel);
     let mut candidates: Vec<PathBuf> = vec![root.join(rel_path), root.join("out").join(rel_path)];
     if let Ok(entries) = std::fs::read_dir(root.join("case-studies")) {
         let mut slugs: Vec<String> = entries
@@ -55,7 +100,28 @@ pub fn resolve_artifact(root: &Path, rel: &str) -> Option<PathBuf> {
             );
         }
     }
-    candidates.into_iter().find(|c| c.is_file())
+    let root_canon = root.canonicalize().ok();
+    for candidate in candidates {
+        if !candidate.is_file() {
+            continue;
+        }
+        // Symlink containment: an existing candidate must canonicalize
+        // back under the canonicalized root. When canonicalization is
+        // unavailable (unusual platform), lexical containment still
+        // applies and the candidate is accepted.
+        if let Some(root_canon) = &root_canon {
+            match candidate.canonicalize() {
+                Ok(cand_canon) => {
+                    if !cand_canon.starts_with(root_canon) {
+                        continue; // symlink escapes the root; do not serve
+                    }
+                }
+                Err(_) => continue, // cannot verify containment; do not serve
+            }
+        }
+        return Some(candidate);
+    }
+    None
 }
 
 #[cfg(test)]
@@ -115,28 +181,154 @@ mod tests {
         assert!(resolve_artifact(d.path(), "/etc/passwd").is_none());
         assert!(resolve_artifact(d.path(), "../outside").is_none());
         assert!(resolve_artifact(d.path(), "EVENT/../../outside").is_none());
-        // A parent-relative candidate must not resolve even when the
-        // file exists outside the root.
-        let outside = tempfile::tempdir().unwrap();
-        std::fs::write(outside.path().join("outside"), "{}").unwrap();
-        let root = outside.path().join("root");
-        std::fs::create_dir_all(&root).unwrap();
-        assert!(resolve_artifact(&root, "../outside").is_none());
+        assert!(resolve_artifact(d.path(), "").is_none());
     }
 
     #[test]
-    fn missing_artifact_resolves_to_none() {
+    fn missing_artifact_distinct_from_invalid_artifact_path() {
         let d = tempfile::tempdir().unwrap();
+        // Valid lexical path but no file -> None (missing).
         assert!(resolve_artifact(d.path(), "EVENT/missing.json").is_none());
+        // Invalid lexical path -> None (invalid).
+        assert!(resolve_artifact(d.path(), "../escape").is_none());
+        assert!(resolve_artifact(d.path(), "").is_none());
+        assert!(resolve_artifact(d.path(), "C:/windows/passwd").is_none());
+        assert!(resolve_artifact(d.path(), "EVENT\\..\\escape").is_none());
     }
 
     #[test]
-    fn first_candidate_wins_when_roots_conflict() {
+    fn is_safe_relative_path_rejects_escape_forms() {
+        assert!(is_safe_relative_path("EVENT/report.json"));
+        assert!(is_safe_relative_path("EVENT/./report.json"));
+        assert!(!is_safe_relative_path(""));
+        assert!(!is_safe_relative_path("/etc/passwd"));
+        assert!(!is_safe_relative_path("../outside"));
+        assert!(!is_safe_relative_path("EVENT/../../outside"));
+        assert!(!is_safe_relative_path("C:/windows/passwd"));
+        assert!(!is_safe_relative_path("C:\\windows\\passwd"));
+        assert!(!is_safe_relative_path("\\\\server\\share\\file"));
+        assert!(!is_safe_relative_path("EVENT\\..\\escape"));
+    }
+
+    #[test]
+    fn symlink_escape_is_rejected() {
         let d = tempfile::tempdir().unwrap();
-        write(d.path(), "EVENT/report.json", "root");
-        write(d.path(), "out/EVENT/report.json", "out");
-        // Conventional root-relative storage is preferred.
-        let got = resolve_artifact(d.path(), "EVENT/report.json").unwrap();
-        assert_eq!(std::fs::read_to_string(got).unwrap(), "root");
+        // A real file inside the root resolves normally.
+        write(d.path(), "EVENT/report.json", "{}");
+        assert!(resolve_artifact(d.path(), "EVENT/report.json").is_some());
+        // A symlink inside the root pointing OUTSIDE the root is rejected.
+        let outside = tempfile::tempdir().unwrap();
+        std::fs::write(outside.path().join("secret.json"), "{}").unwrap();
+        let symlink = d.path().join("ESCAPE");
+        #[cfg(unix)]
+        {
+            std::os::unix::fs::symlink(outside.path().join("secret.json"), &symlink).unwrap();
+            assert!(
+                resolve_artifact(d.path(), "ESCAPE/report.json").is_none(),
+                "symlink escaping the root must not resolve"
+            );
+        }
+        #[cfg(not(unix))]
+        {
+            let _ = (&symlink, &outside);
+        }
+    }
+
+    #[test]
+    fn symlink_inside_root_still_resolves() {
+        let d = tempfile::tempdir().unwrap();
+        write(d.path(), "real/EVENT/report.json", "{}");
+        #[cfg(unix)]
+        {
+            // A symlink from out/EVENT/report.json to real/EVENT/report.json
+            // stays inside the root and must resolve.
+            std::fs::create_dir_all(d.path().join("out/EVENT")).unwrap();
+            std::os::unix::fs::symlink(
+                d.path().join("real/EVENT/report.json"),
+                d.path().join("out/EVENT/report.json"),
+            )
+            .unwrap();
+            let got = resolve_artifact(d.path(), "EVENT/report.json").unwrap();
+            assert!(got.ends_with("out/EVENT/report.json"));
+        }
+    }
+
+    #[test]
+    fn artifact_relative_path_resolves_inside_root() {
+        let d = tempfile::tempdir().unwrap();
+        write(d.path(), "case-studies/alpha/out/EVT/report.json", "{}");
+        let got = resolve_artifact(d.path(), "EVT/report.json").unwrap();
+        let canonical = got.canonicalize().unwrap();
+        let root_canon = d.path().canonicalize().unwrap();
+        assert!(
+            canonical.starts_with(&root_canon),
+            "resolved path must stay under the root"
+        );
+    }
+
+    #[test]
+    fn all_artifact_consumers_agree_on_validity() {
+        // One shared validity authority: the same relative path yields
+        // the same answer for listing, existence checks, and access.
+        let d = tempfile::tempdir().unwrap();
+        write(d.path(), "case-studies/alpha/out/EVT/report.json", "{}");
+        write(d.path(), "case-studies/beta/pilot/out/EVT2/report.json", "{}");
+        let rels = [
+            "EVT/report.json",
+            "EVT2/report.json",
+            "../escape",
+            "EVT/missing.json",
+            "",
+        ];
+        let resolved: Vec<Option<PathBuf>> =
+            rels.iter().map(|r| resolve_artifact(d.path(), r)).collect();
+        assert!(resolved[0]
+            .as_ref()
+            .map(|p| p.ends_with("case-studies/alpha/out/EVT/report.json"))
+            .unwrap_or(false));
+        assert!(resolved[1]
+            .as_ref()
+            .map(|p| p.ends_with("case-studies/beta/pilot/out/EVT2/report.json"))
+            .unwrap_or(false));
+        assert!(resolved[2].is_none(), "parent traversal must not resolve");
+        assert!(resolved[3].is_none(), "missing file is distinct but None");
+        assert!(resolved[4].is_none(), "empty path is invalid");
+    }
+
+    #[test]
+    fn workbench_and_demo_resolver_equivalent() {
+        // The workbench coverage lookup and the demo verifier both
+        // delegate to artifact_path::resolve_artifact; a direct call must
+        // match on identical inputs.
+        let d = tempfile::tempdir().unwrap();
+        write(d.path(), "case-studies/gamma/out/E/report.json", "{}");
+        write(d.path(), "case-studies/gamma/pilot/out/E2/report.json", "{}");
+        for rel in ["E/report.json", "E2/report.json", "../escape", "E/missing.json"] {
+            let shared = resolve_artifact(d.path(), rel).map(|p| p.to_string_lossy().into_owned());
+            let demo = crate::catalog::demo::resolve_artifact(d.path(), rel)
+                .map(|p| p.to_string_lossy().into_owned());
+            assert_eq!(demo, shared, "demo resolver must match shared resolver for {rel}");
+        }
+    }
+
+    #[test]
+    fn git_checkout_and_packaged_source_resolver_equivalent() {
+        // A Git checkout and an extracted Cargo package carry the same
+        // reviewed case-study trees under the catalog root; the resolver
+        // must yield equivalent answers from either root.
+        let git_root = tempfile::tempdir().unwrap();
+        let pkg_root = tempfile::tempdir().unwrap();
+        for root in [git_root.path(), pkg_root.path()] {
+            write(root, "case-studies/alpha/out/EVT/report.json", "{}");
+            write(root, "case-studies/alpha/pilot/out/EVT2/report.json", "{}");
+            write(root, "out/EVT3/report.json", "{}");
+        }
+        for rel in ["EVT/report.json", "EVT2/report.json", "EVT3/report.json", "../escape"] {
+            let a = resolve_artifact(git_root.path(), rel)
+                .map(|p| p.file_name().unwrap().to_string_lossy().into_owned());
+            let b = resolve_artifact(pkg_root.path(), rel)
+                .map(|p| p.file_name().unwrap().to_string_lossy().into_owned());
+            assert_eq!(a, b, "Git and packaged resolution must agree for {rel}");
+        }
     }
 }

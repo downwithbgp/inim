@@ -6769,32 +6769,14 @@ fn run_meta(
             .map_err(|e| format!("catalog read failed: {e}"))?;
         for row in rows {
             let rel = row.map_err(|e| format!("catalog read failed: {e}"))?;
-            // Artifact relative paths are stored relative to the import
-            // out/ directory; resolve against the catalog root first,
-            // then the conventional out/ subdirectory, then the pilot
-            // case-study out/ tree (pilot runs are imported from
-            // case-studies/<slug>/pilot as their own root), then the
-            // reviewed event evidence trees (case-studies/<slug>/out).
-            let mut full = catalog_root.join(&rel);
-            if !full.is_file() {
-                full = catalog_root.join("out").join(&rel);
-            }
-            if !full.is_file() {
-                full = catalog_root
-                    .join("case-studies/manlan-2019/pilot/out")
-                    .join(&rel);
-            }
-            if !full.is_file() {
-                full = catalog_root
-                    .join("case-studies/manlan-esnet-2019/out")
-                    .join(&rel);
-            }
-            if !full.is_file() {
-                full = catalog_root.join("case-studies/inc0302574/out").join(&rel);
-            }
-            if !full.is_file() {
-                full = catalog_root.join("case-studies/inc0299001/out").join(&rel);
-            }
+            // The shared containment-validating resolver is the single
+            // authority for artifact paths (it searches the catalog
+            // root, out/, and every reviewed case-study tree generically).
+            let Some(full) =
+                crate::catalog::artifact_path::resolve_artifact(catalog_root, &rel)
+            else {
+                continue;
+            };
             if let Ok(raw) = std::fs::read_to_string(full) {
                 if let Ok(v) = serde_json::from_str::<serde_json::Value>(&raw) {
                     if let Some(cov) = v
