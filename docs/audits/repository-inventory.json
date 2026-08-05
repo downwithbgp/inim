@@ -3758,5 +3758,21 @@
   "authoritative": "dated audit",
   "generated": false,
   "current": false
+ },
+ {
+  "path": "docs/audits/2026-08-pre-pilot-invariant-closure.md",
+  "category": "Historical decision record",
+  "audience": "maintainers",
+  "authoritative": "dated audit",
+  "generated": false,
+  "current": false
+ },
+ {
+  "path": "tests/invariant_register_test.rs",
+  "category": "Test source",
+  "audience": "maintainers",
+  "authoritative": "invariant register + implementation",
+  "generated": false,
+  "current": true
  }
 ]

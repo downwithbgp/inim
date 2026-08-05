@@ -674,6 +674,198 @@ async fn api_returns_structured_not_found() {
     assert_eq!(value["error"]["message"], "event not found");
 }
 
+// ── Observed-result vs expectation-assessment projection (F-6) ─────
+
+#[tokio::test]
+async fn api_exposes_structured_observed_result() {
+    if !repo_artifacts_available() {
+        return;
+    }
+    let (dbdir, rootdir) = setup_catalog();
+    let app = build_app(state_from(&dbdir, &rootdir));
+    let run_id = run_id_for(&dbdir, "INC0302574");
+    let (_, body) = get(&app, &format!("/api/v1/analyses/{run_id}")).await;
+    let value: serde_json::Value = serde_json::from_str(&body).unwrap();
+    let observed = &value["data"]["run"]["observed_result"];
+    assert!(
+        observed["kind"].as_str().is_some(),
+        "structured observed_result.kind required: {body}"
+    );
+    assert!(
+        observed["label"].as_str().is_some(),
+        "structured observed_result.label required: {body}"
+    );
+    // NoObservableBgpImpact -> no route-state change observed (evidence-
+    // scoped; no expectation vocabulary in the label).
+    assert_eq!(observed["kind"], "NoRouteStateChangeObserved");
+    let label = observed["label"].as_str().unwrap().to_lowercase();
+    for word in ["expected", "unexpected", "impact"] {
+        assert!(
+            !label.contains(word),
+            "observed label contains {word}: {body}"
+        );
+    }
+}
+
+#[tokio::test]
+async fn api_exposes_structured_expectation_assessment() {
+    if !repo_artifacts_available() {
+        return;
+    }
+    let (dbdir, rootdir) = setup_catalog();
+    let app = build_app(state_from(&dbdir, &rootdir));
+    let run_id = run_id_for(&dbdir, "INC0302574");
+    let (_, body) = get(&app, &format!("/api/v1/analyses/{run_id}")).await;
+    let value: serde_json::Value = serde_json::from_str(&body).unwrap();
+    let assessment = &value["data"]["run"]["expectation_assessment"];
+    assert!(
+        assessment["kind"].as_str().is_some(),
+        "structured expectation_assessment.kind required: {body}"
+    );
+    assert!(
+        assessment["label"].as_str().is_some(),
+        "structured expectation_assessment.label required: {body}"
+    );
+    // The expectation assessment references the reviewed expectation;
+    // it is a separate field from the observed result.
+    assert_eq!(assessment["kind"], "ConsistentWithReviewedExpectation");
+}
+
+#[tokio::test]
+async fn legacy_verdict_does_not_override_current_projection() {
+    if !repo_artifacts_available() {
+        return;
+    }
+    let (dbdir, rootdir) = setup_catalog();
+    let app = build_app(state_from(&dbdir, &rootdir));
+    let run_id = run_id_for(&dbdir, "INC0302574");
+    let (_, body) = get(&app, &format!("/api/v1/analyses/{run_id}")).await;
+    let value: serde_json::Value = serde_json::from_str(&body).unwrap();
+    let run = &value["data"]["run"];
+    // The legacy raw verdict is preserved for compatibility...
+    assert_eq!(run["verdict"], "NoObservableBgpImpact");
+    // ...but the current interpretation is the structured projection.
+    assert_eq!(run["observed_result"]["kind"], "NoRouteStateChangeObserved");
+    let label = run["observed_result"]["label"].as_str().unwrap();
+    assert_ne!(label, run["verdict"].as_str().unwrap());
+}
+
+#[tokio::test]
+async fn historical_runs_remain_readable() {
+    if !repo_artifacts_available() {
+        return;
+    }
+    let (dbdir, rootdir) = setup_catalog();
+    let app = build_app(state_from(&dbdir, &rootdir));
+    let run_id = run_id_for(&dbdir, "INC0040293");
+    let (status, body) = get(&app, &format!("/api/v1/analyses/{run_id}")).await;
+    assert_eq!(status, StatusCode::OK);
+    let value: serde_json::Value = serde_json::from_str(&body).unwrap();
+    assert_eq!(value["data"]["run"]["status"], "Complete");
+    assert!(value["data"]["run"]["verdict"].is_string());
+    assert!(value["data"]["run"]["observed_result"]["kind"].is_string());
+}
+
+#[tokio::test]
+async fn smithville_projects_insufficient_visibility_separately_from_assessment() {
+    // The Smithville run is insufficient-visibility: the observed result
+    // says so; the expectation assessment says the event is not
+    // assessable from the selected observers. Two separate fields.
+    if !repo_artifacts_available() {
+        return;
+    }
+    let (dbdir, rootdir) = setup_catalog();
+    let app = build_app(state_from(&dbdir, &rootdir));
+    let run_id = run_id_for(&dbdir, "INC0301970");
+    let (_, body) = get(&app, &format!("/api/v1/analyses/{run_id}")).await;
+    let value: serde_json::Value = serde_json::from_str(&body).unwrap();
+    assert_eq!(
+        value["data"]["run"]["observed_result"]["kind"],
+        "InsufficientQualifyingVisibility"
+    );
+    assert_eq!(
+        value["data"]["run"]["expectation_assessment"]["kind"],
+        "NotAssessableFromSelectedPublicObservers"
+    );
+    assert_ne!(
+        value["data"]["run"]["observed_result"]["kind"],
+        value["data"]["run"]["expectation_assessment"]["kind"]
+    );
+}
+
+#[tokio::test]
+async fn nordunet_projects_route_change_separately_from_expectation_consistency() {
+    // Probe: a run whose stored verdict is the pilot run's
+    // ExpectedLossOfReachability must project the route change (observed
+    // result) separately from the consistency judgment (expectation
+    // assessment). The probe is source-neutral: it sets the stored
+    // verdict on a temp-catalog run.
+    if !repo_artifacts_available() {
+        return;
+    }
+    let (dbdir, rootdir) = setup_catalog();
+    let conn = db::open_catalog(&dbdir.path().join("catalog.sqlite")).unwrap();
+    // Use a real completed run in the temp catalog; rewrite only its
+    // stored verdict to the probed value (temp catalog, not tracked).
+    let run_id: i64 = conn
+        .query_row(
+            "SELECT id FROM analysis_runs WHERE verdict IS NOT NULL ORDER BY id LIMIT 1",
+            [],
+            |r| r.get(0),
+        )
+        .unwrap();
+    conn.execute(
+        "UPDATE analysis_runs SET verdict = 'ExpectedLossOfReachability' WHERE id = ?1",
+        rusqlite::params![run_id],
+    )
+    .unwrap();
+    drop(conn);
+    let app = build_app(state_from(&dbdir, &rootdir));
+    let (_, body) = get(&app, &format!("/api/v1/analyses/{run_id}")).await;
+    let value: serde_json::Value = serde_json::from_str(&body).unwrap();
+    assert_eq!(
+        value["data"]["run"]["observed_result"]["kind"],
+        "RouteStateChangesObserved"
+    );
+    assert_eq!(
+        value["data"]["run"]["expectation_assessment"]["kind"],
+        "ConsistentWithReviewedExpectation"
+    );
+    assert_ne!(
+        value["data"]["run"]["observed_result"]["kind"],
+        value["data"]["run"]["expectation_assessment"]["kind"]
+    );
+}
+
+#[tokio::test]
+async fn optical_applicability_not_projected_as_route_result() {
+    // INC0040293 is reviewed NotDirectlyObservableInPublicBgp (optical
+    // participant interface). Its supporting run's observed result is
+    // the route-state projection, and the reviewed applicability stays
+    // an event-level fact — never a route result.
+    if !repo_artifacts_available() {
+        return;
+    }
+    let (dbdir, rootdir) = setup_catalog();
+    let app = build_app(state_from(&dbdir, &rootdir));
+    let run_id = run_id_for(&dbdir, "INC0040293");
+    let (_, body) = get(&app, &format!("/api/v1/analyses/{run_id}")).await;
+    let value: serde_json::Value = serde_json::from_str(&body).unwrap();
+    let run = &value["data"]["run"];
+    assert_eq!(run["status"], "Complete");
+    // The observed result speaks only about route state.
+    let observed = run["observed_result"]["kind"].as_str().unwrap();
+    assert!(
+        observed == "RouteStateChangesObserved" || observed == "NoRouteStateChangeObserved",
+        "route-state projection only: {observed}"
+    );
+    let serialized = serde_json::to_string(&value).unwrap();
+    assert!(
+        !serialized.contains("NotDirectlyObservable"),
+        "applicability must not be projected as a route result: {serialized}"
+    );
+}
+
 #[tokio::test]
 async fn api_rejects_unsupported_pagination() {
     if !repo_artifacts_available() {

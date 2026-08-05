@@ -19,6 +19,11 @@ use crate::lifecycle::StreamLifecycle;
 /// If continuity is Unknown for any relevant collector, strong verdicts
 /// are suppressed (Indeterminate or InsufficientVisibility).
 ///
+/// The continuity gate runs BEFORE result derivation from finding
+/// cardinality: an empty finding set cannot bypass failed continuity
+/// (a gap-free UPDATE sequence is required before "no route-state
+/// change" may be concluded).
+///
 /// When `lifecycles` is provided, the verdict uses per-stream lifecycle
 /// evidence rather than raw transition counts.
 pub fn assess(
@@ -204,7 +209,16 @@ fn derive_verdict(
         .iter()
         .any(|t| matches!(t.kind, TransitionKind::SessionReset));
 
-    // No observable impact at all
+    // Continuity gate: suppress strong verdicts BEFORE any result
+    // derivation from finding cardinality. An empty finding set must not
+    // bypass failed continuity: without a gap-free UPDATE sequence (or
+    // with a session reset) the absence of findings is not proven, so a
+    // "no route-state change" verdict would overstate the observation.
+    if any_unknown_continuity || has_session_resets {
+        return Verdict::InsufficientVisibility;
+    }
+
+    // No observable impact at all (continuity is established here).
     if transitions.is_empty() {
         return match expectation.kind {
             ExpectationKind::ParticipantRelationshipUnavailable => {
@@ -216,11 +230,6 @@ fn derive_verdict(
             }
             _ => Verdict::NoObservableBgpImpact,
         };
-    }
-
-    // Continuity gate: suppress strong verdicts
-    if any_unknown_continuity || has_session_resets {
-        return Verdict::InsufficientVisibility;
     }
 
     match expectation.kind {
@@ -510,6 +519,202 @@ mod tests {
             None,
         );
         assert_eq!(assessment.verdict, Verdict::InsufficientVisibility);
+    }
+
+    // ── Continuity-gate ordering (F-1) ──────────────────────────────
+    //
+    // The continuity/eligibility gate must execute BEFORE result
+    // derivation from finding cardinality. An empty finding set must not
+    // bypass failed continuity and produce a "no route-state change"
+    // verdict: that would overstate the observation when UPDATE archive
+    // gaps or session resets mean the absence of findings is not proven.
+    //
+    // Named helpers document the boolean meaning:
+    //   `any_unknown_continuity = true`  → continuity_unknown()
+    //   `any_unknown_continuity = false` → continuity_established()
+
+    fn continuity_established() -> bool {
+        false
+    }
+
+    fn continuity_unknown() -> bool {
+        true
+    }
+
+    #[test]
+    fn continuity_failure_precedes_empty_finding_fallback() {
+        let exp = ImpactExpectation::redundant(Some("NEWY32AOA"), "test");
+        let assessment = assess(
+            EventId::from("TEST"),
+            exp,
+            &[],
+            vec![],
+            continuity_unknown(),
+            None,
+        );
+        assert_eq!(
+            assessment.verdict,
+            Verdict::InsufficientVisibility,
+            "continuity failure must gate before the empty-finding fallback"
+        );
+    }
+
+    #[test]
+    fn empty_findings_do_not_imply_no_change_without_continuity() {
+        let exp = ImpactExpectation::redundant(Some("NEWY32AOA"), "test");
+        let assessment = assess(
+            EventId::from("TEST"),
+            exp,
+            &[],
+            vec![],
+            continuity_unknown(),
+            None,
+        );
+        assert_ne!(
+            assessment.verdict,
+            Verdict::NoObservableBgpImpact,
+            "absence of findings is not 'no route-state change' when continuity is unknown"
+        );
+    }
+
+    #[test]
+    fn findings_do_not_override_failed_continuity() {
+        let exp = ImpactExpectation::redundant(Some("NEWY32AOA"), "test");
+        let transitions = vec![path_change(
+            vec![6447, 11537, 1101],
+            vec![6447, 237, 1101],
+            0,
+        )];
+        let assessment = assess(
+            EventId::from("TEST"),
+            exp,
+            &transitions,
+            vec![],
+            continuity_unknown(),
+            None,
+        );
+        assert_eq!(assessment.verdict, Verdict::InsufficientVisibility);
+    }
+
+    #[test]
+    fn successful_continuity_with_empty_findings_uses_correct_existing_result() {
+        let exp = ImpactExpectation::redundant(Some("NEWY32AOA"), "test");
+        let assessment = assess(
+            EventId::from("TEST"),
+            exp,
+            &[],
+            vec![],
+            continuity_established(),
+            None,
+        );
+        assert_eq!(
+            assessment.verdict,
+            Verdict::NoObservableBgpImpact,
+            "established continuity + no findings is the existing no-change result"
+        );
+    }
+
+    #[test]
+    fn successful_continuity_with_findings_preserves_existing_result() {
+        let exp = ImpactExpectation::redundant(Some("NEWY32AOA"), "test");
+        let transitions = vec![path_change(
+            vec![6447, 11537, 1101],
+            vec![6447, 237, 1101],
+            0,
+        )];
+        let assessment = assess(
+            EventId::from("TEST"),
+            exp,
+            &transitions,
+            vec![],
+            continuity_established(),
+            None,
+        );
+        assert_eq!(assessment.verdict, Verdict::ExpectedRedundantImpact);
+    }
+
+    #[test]
+    fn continuity_gate_decision_table() {
+        // (continuity, findings present, expected verdict)
+        let exp = ImpactExpectation::redundant(Some("NEWY32AOA"), "test");
+        let cases = [
+            (
+                continuity_established(),
+                false,
+                Verdict::NoObservableBgpImpact,
+            ),
+            (continuity_unknown(), false, Verdict::InsufficientVisibility),
+            (
+                continuity_established(),
+                true,
+                Verdict::ExpectedRedundantImpact,
+            ),
+            (continuity_unknown(), true, Verdict::InsufficientVisibility),
+        ];
+        for (continuity, has_findings, expected) in cases {
+            let transitions = if has_findings {
+                vec![path_change(
+                    vec![6447, 11537, 1101],
+                    vec![6447, 237, 1101],
+                    0,
+                )]
+            } else {
+                vec![]
+            };
+            let assessment = assess(
+                EventId::from("TEST"),
+                exp.clone(),
+                &transitions,
+                vec![],
+                continuity,
+                None,
+            );
+            assert_eq!(assessment.verdict, expected);
+        }
+    }
+
+    #[test]
+    fn assessment_is_deterministic() {
+        let exp = ImpactExpectation::redundant(Some("NEWY32AOA"), "test");
+        let empty_a = assess(
+            EventId::from("TEST"),
+            exp.clone(),
+            &[],
+            vec![],
+            continuity_unknown(),
+            None,
+        );
+        let empty_b = assess(
+            EventId::from("TEST"),
+            exp.clone(),
+            &[],
+            vec![],
+            continuity_unknown(),
+            None,
+        );
+        assert_eq!(empty_a.verdict, empty_b.verdict);
+        let findings = vec![path_change(
+            vec![6447, 11537, 1101],
+            vec![6447, 237, 1101],
+            0,
+        )];
+        let f_a = assess(
+            EventId::from("TEST"),
+            exp.clone(),
+            &findings,
+            vec![],
+            continuity_established(),
+            None,
+        );
+        let f_b = assess(
+            EventId::from("TEST"),
+            exp,
+            &findings,
+            vec![],
+            continuity_established(),
+            None,
+        );
+        assert_eq!(f_a.verdict, f_b.verdict);
     }
 
     #[test]

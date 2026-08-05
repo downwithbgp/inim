@@ -304,7 +304,16 @@ complete.
 
 Project scope is a reviewed project-owner decision, stored in
 `config/project-scope.toml` (schema v1) and loaded once per process by
-the web app, CLI, worker, and demo. It is ORTHOGONAL to the analytical
+the web app, CLI, worker, and demo. It is a universal first-party
+execution policy: the standalone `inim analyze` path applies the same
+reviewed exclusions as the catalog workflow, before any planning,
+broker discovery, archive acquisition, or MRT parsing (a scope-blocked
+analyze exits `EXIT_ANALYSIS_BLOCKED` and writes no outputs). The
+standalone `analyze` CLI has no catalog root: it loads the policy from
+`config/project-scope.toml` under the current working directory, and
+warns on stderr when that file is absent (the established empty
+all-Included policy applies for every caller in that case). It is
+ORTHOGONAL to the analytical
 applicability vocabulary: an exclusion never marks an event
 not-observable, failed, or invalid. Matching keys, in precedence order:
 exact external source ID, exact reviewed entity name, exact reviewed
@@ -314,6 +323,9 @@ after claim and cancels pre-execution jobs (`excluded_by_project_scope`);
 imports skip excluded manifests explicitly; demo verify fails when an
 excluded event is present; immutable runtime records are hidden from
 default views and reported by the read-only `project-scope audit`.
+Project scope is policy, not authentication or sandboxing: it constrains
+which subjects first-party commands analyze and publish, and does not
+protect a hostile local caller.
 
 ## Candidate grouping
 

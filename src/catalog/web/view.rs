@@ -789,7 +789,15 @@ fn present_run_verdict(stored: &str) -> (String, String) {
             v.observed_result_kind().human_label().to_string(),
             v.expectation_assessment_kind().human_label().to_string(),
         ),
-        None => (stored.to_string(), String::new()),
+        None => (
+            // F-6: an unrecognized stored value must never appear in the
+            // observed-result slot (it could carry expectation wording or
+            // an unclassified string). The raw stored value remains
+            // available in the legacy verdict field; the projected
+            // observed result stays evidence-scoped.
+            "Observed result not classified (legacy value)".to_string(),
+            String::new(),
+        ),
     }
 }
 
@@ -2000,6 +2008,16 @@ pub fn load_run_json(
             })
         })
         .collect::<Vec<_>>();
+    let stored_verdict = run.verdict.as_deref().unwrap_or("");
+    let (observed_label, expectation_label) = present_run_verdict(stored_verdict);
+    let observed_kind = crate::domain::assessment::Verdict::from_stored(stored_verdict)
+        .map(|v| v.observed_result_kind())
+        .map(|k| format!("{k:?}"))
+        .unwrap_or_else(|| "unclassified".to_string());
+    let expectation_kind = crate::domain::assessment::Verdict::from_stored(stored_verdict)
+        .map(|v| v.expectation_assessment_kind())
+        .map(|k| format!("{k:?}"))
+        .unwrap_or_else(|| "unclassified".to_string());
     Ok(Some(serde_json::json!({
         "schema_version": 1,
         "run": {
@@ -2008,8 +2026,20 @@ pub fn load_run_json(
             "software_version": run.software_version,
             "status": run.status,
             "started_at": run.started_at,
+            // Legacy raw stored values (mixed historical semantics);
+            // current interpretation must use the structured projections.
             "verdict": run.verdict,
             "assessment": run.assessment,
+            // F-6: observed result and expectation assessment are
+            // separate, evidence-scoped projections.
+            "observed_result": {
+                "kind": observed_kind,
+                "label": observed_label,
+            },
+            "expectation_assessment": {
+                "kind": expectation_kind,
+                "label": expectation_label,
+            },
         },
         "artifacts": artifacts,
     })))
@@ -4195,7 +4225,9 @@ pub fn resolve_document_file(
     let Some((media_type, sha256, Some(rel))) = row else {
         return Ok(None);
     };
-    if rel.is_empty() || rel.starts_with('/') || rel.contains("..") || rel.contains('\\') {
+    // Documents use the same lexical containment primitive as analysis
+    // artifacts, then verify canonical containment below.
+    if !crate::catalog::artifact_path::is_safe_relative_path(&rel) {
         return Err(format!("document path is not catalog-relative: {rel}"));
     }
     let resolved = catalog_root.join(&rel);

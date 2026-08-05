@@ -33,6 +33,7 @@ header say so.
 | `2026-08-specification-coverage.md` | 2026-08 | specification coverage matrix | `91ac498` | navigation aid; not normative | — |
 | `2026-08-documentation-spec-conformance.md` | 2026-08 | final documentation conformance audit | `91ac498` | this session's audit | — |
 | `2026-08-wirthian-design-recovery.md` | 2026-08 | as-built computational-model recovery (reconstruction/falsification/synthesis) | `92f83d8` | current normative model in `docs/computational-model.md` + `docs/design/` | — |
+| `2026-08-pre-pilot-invariant-closure.md` | 2026-08 | incremental design checksum for the pre-pilot invariant closure | `b2fde81` | correction range checksum; see also the Session 56 follow-up status | — |
 
 ## Rules
 

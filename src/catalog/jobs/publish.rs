@@ -368,6 +368,13 @@ pub fn reconcile_orphans(conn: &Connection, catalog_root: &Path) -> Result<Orpha
         .map_err(|e| format!("cannot read run artifacts: {e}"))?;
     for row in rows {
         let rel = row.map_err(|e| format!("bad artifact row: {e}"))?;
+        // data/runs rows are catalog-root-relative; enforce the same
+        // lexical containment primitive before joining so a crafted row
+        // cannot probe outside the configured root.
+        if !crate::catalog::artifact_path::is_safe_relative_path(&rel) {
+            report.missing_run_artifacts.push(rel);
+            continue;
+        }
         if !catalog_root.join(&rel).is_file() {
             report.missing_run_artifacts.push(rel);
         }
