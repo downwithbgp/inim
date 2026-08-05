@@ -937,13 +937,13 @@ fn generic_ticket_input(
         .and_then(|x| x.as_str())
         .unwrap_or("")
         .to_string();
-    // OPEN events: the normalized model has no end; the reviewed
-    // analysis cutoff (analysis_end_utc from the plan's manifest) is
-    // the explicit analysis end. The result stays provisional.
-    if end.trim().is_empty() {
-        // An OPEN event needs the reviewed analysis cutoff; a missing
-        // cutoff or an unreadable manifest is a HARD error (never a
-        // silently empty end).
+    // OPEN events: the reviewed analysis cutoff (analysis_end_utc from
+    // the plan's manifest) is the explicit analysis end; the result
+    // stays provisional. A missing cutoff is a HARD error (never a
+    // silently empty end), and this applies regardless of any declared
+    // end in the normalized model, so a legacy invalid open plan can
+    // never reach source access (F-4).
+    {
         let payload: String = conn
             .lock()
             .unwrap()
@@ -960,15 +960,20 @@ fn generic_ticket_input(
         let value: serde_json::Value = serde_json::from_str(&payload).map_err(|e| {
             format!("invalid_plan: manifest payload unreadable for open event: {e}")
         })?;
+        let is_open = value.get("open").and_then(|x| x.as_bool()).unwrap_or(false);
         let cutoff = value
             .get("analysis_end_utc")
             .and_then(|x| x.as_str())
             .map(|s| s.trim().to_string())
-            .filter(|c| !c.is_empty())
-            .ok_or_else(|| {
+            .filter(|c| !c.is_empty());
+        if is_open {
+            let cutoff = cutoff.ok_or_else(|| {
                 "invalid_plan: open event requires an explicit analysis cutoff".to_string()
             })?;
-        end = cutoff;
+            end = cutoff;
+        } else if end.trim().is_empty() {
+            return Err("invalid_plan: event end unavailable".to_string());
+        }
     }
     let task_type = v
         .get("task_type")

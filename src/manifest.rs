@@ -152,6 +152,23 @@ impl Manifest {
         {
             return Err("manifest event_window_utc has empty start/end".into());
         }
+        // OPEN events always require an explicit reviewed analysis
+        // cutoff: the reviewed manifest is the authority for the
+        // provisional analysis end. A missing or empty cutoff is
+        // internally contradictory reviewed input and is rejected,
+        // regardless of any declared event end.
+        if self.open {
+            let has_cutoff = self
+                .analysis_end_utc
+                .as_deref()
+                .map(|c| !c.trim().is_empty())
+                .unwrap_or(false);
+            if !has_cutoff {
+                return Err(
+                    "manifest open event requires an explicit analysis_end_utc cutoff".into(),
+                );
+            }
+        }
         if self.collectors.is_empty() {
             return Err("manifest collectors list is empty".into());
         }

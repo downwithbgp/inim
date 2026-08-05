@@ -149,6 +149,31 @@ pub(crate) fn import_one(
     // and lifecycle-at-snapshot), then the tracked offline fixture,
     // else derive from the manifest. ──
     let case_study_snapshot = case_study_snapshot_for(out_dir, &event_id_str);
+    // ── Open-event cutoff provenance (F-4) ─────────────────────────
+    // An open manifest's reviewed analysis cutoff must be backed by
+    // recorded provenance in the reviewed material: the snapshot
+    // sidecar's cutoff_provenance field or a manifest analyst note that
+    // names the cutoff. Reviewed input without that provenance is
+    // analytically incomplete and rejected at import; the source fetch
+    // time is never treated as an implicit cutoff.
+    if manifest.open {
+        let has_sidecar_provenance = case_study_snapshot
+            .as_ref()
+            .and_then(|(_, meta)| meta.get("cutoff_provenance"))
+            .and_then(|v| v.as_str())
+            .map(|s| !s.trim().is_empty())
+            .unwrap_or(false);
+        let has_note_provenance = manifest
+            .analyst_notes
+            .iter()
+            .any(|n| n.contains("cutoff") || n.contains("analysis_end_utc"));
+        if !has_sidecar_provenance && !has_note_provenance {
+            return Err(format!(
+                "reviewed manifest for open event {} lacks cutoff provenance (snapshot sidecar cutoff_provenance or an analyst note naming the cutoff)",
+                manifest.event_id
+            ));
+        }
+    }
     let fixture_path = ticket_fixture_for(&event_id_str);
     let (snapshot, snapshot_sha) = if let Some((snapshot_path, meta)) = case_study_snapshot {
         let raw = std::fs::read_to_string(&snapshot_path)
@@ -450,9 +475,21 @@ pub fn build_plan_record(
     // Origin mapping review is explicit: free-form ASN entry marks the
     // plan NeedsReview and it cannot be queued until reviewed.
     let needs_review = !origin_mapping_reviewed && !manifest.target.origin_asns.is_empty();
+    // An open event without an explicit reviewed analysis cutoff can
+    // never be Ready: the reviewed manifest is the authority for the
+    // provisional analysis end (F-4). Manifest::load rejects such input,
+    // so this is defense in depth for any non-validating construction
+    // path and keeps the stored catalog row honest.
+    let open_without_cutoff = manifest.open
+        && manifest
+            .analysis_end_utc
+            .as_deref()
+            .map(|c| c.trim().is_empty())
+            .unwrap_or(true);
     let status = if needs_review
         || manifest.target.origin_asns.is_empty()
         || !manifest.target.transit_predicate.is_ready()
+        || open_without_cutoff
     {
         "Blocked"
     } else {
@@ -460,7 +497,9 @@ pub fn build_plan_record(
     };
     let block_reason = if status == "Blocked" {
         Some(
-            if !origin_mapping_reviewed && !manifest.target.origin_asns.is_empty() {
+            if open_without_cutoff {
+                "MissingAnalysisEndForOpenTicket".to_string()
+            } else if !origin_mapping_reviewed && !manifest.target.origin_asns.is_empty() {
                 "OriginMappingNeedsReview".to_string()
             } else if manifest.target.origin_asns.is_empty() {
                 "MissingReviewedEntityMapping".to_string()
@@ -1259,6 +1298,106 @@ mod tests {
         let manifests = db::list_manifest_revisions(&conn, e.id).unwrap();
         let plans = db::list_plans_for_manifest(&conn, manifests[0].id).unwrap();
         assert_eq!(plans[0].status, "Blocked");
+    }
+
+    fn open_manifest_with_cutoff(event_id: &str, cutoff: Option<&str>, open: bool) -> crate::manifest::Manifest {
+        serde_json::from_str(
+            &serde_json::json!({
+                "event_id": event_id,
+                "revision": 1,
+                "schema_version": 2,
+                "open": open,
+                "analysis_end_utc": cutoff,
+                "event_window_utc": {"start": "2026-08-01T00:00:00Z", "end": if open { "" } else { "2026-08-01T01:00:00Z" }},
+                "ticket_window_local": {"start": "", "end": "", "timezone": "UTC"},
+                "warmup_minutes": 0,
+                "cooldown_minutes": 0,
+                "target": {
+                    "label": "Open event",
+                    "origin_asns": [64500],
+                    "transit_predicate": {
+                        "status": "Reviewed",
+                        "predicate": {"ContainsAny": [64501]},
+                        "provenance": {"statement": "r", "reviewed_by": "local-review", "date": "2026-08-01"}
+                    }
+                },
+                "collectors": ["rrc00"],
+                "source_family": "RipeRis"
+            })
+            .to_string(),
+        )
+        .unwrap()
+    }
+
+    #[test]
+    fn open_event_ready_plan_requires_cutoff() {
+        // F-4: an open event without a reviewed analysis cutoff is
+        // Blocked, never Ready (defense in depth: Manifest::load rejects
+        // the input earlier; this covers any non-validating construction
+        // path).
+        let (_dir, conn) = open_temp_db();
+        let manifest = open_manifest_with_cutoff("OPEN-NOCUT", None, true);
+        let rec = super::build_plan_record(&conn, 1, &manifest, true).unwrap();
+        assert_eq!(rec.status, "Blocked");
+        assert_eq!(
+            rec.block_reason.as_deref(),
+            Some("MissingAnalysisEndForOpenTicket")
+        );
+        // With a reviewed cutoff the same manifest is Ready.
+        let manifest2 = open_manifest_with_cutoff("OPEN-CUT", Some("2026-08-02T00:00:00Z"), true);
+        let rec2 = super::build_plan_record(&conn, 1, &manifest2, true).unwrap();
+        assert_eq!(rec2.status, "Ready");
+    }
+
+    #[test]
+    fn closed_event_may_use_reviewed_end_under_existing_rules() {
+        // F-4: closed events keep using the reviewed declared end; no
+        // analysis cutoff is required and the plan is Ready.
+        let (_dir, conn) = open_temp_db();
+        let manifest = open_manifest_with_cutoff("CLOSED-EVT", None, false);
+        let rec = super::build_plan_record(&conn, 1, &manifest, true).unwrap();
+        assert_eq!(rec.status, "Ready");
+    }
+
+    #[test]
+    fn open_event_ready_plan_requires_cutoff_provenance() {
+        // F-4: import_one rejects an open manifest whose reviewed
+        // cutoff has no recorded provenance (neither a snapshot sidecar
+        // cutoff_provenance nor an analyst note naming the cutoff).
+        // The source fetch time is never an implicit cutoff.
+        let (_dir, conn) = open_temp_db();
+        let dir = tempfile::tempdir().unwrap();
+        let mpath = dir.path().join("m.json");
+        std::fs::write(
+            &mpath,
+            serde_json::json!({
+                "event_id": "OPEN-NOPROV",
+                "revision": 1,
+                "schema_version": 2,
+                "open": true,
+                "analysis_end_utc": "2026-08-02T00:00:00Z",
+                "event_window_utc": {"start": "2026-08-01T00:00:00Z", "end": ""},
+                "ticket_window_local": {"start": "", "end": "", "timezone": "UTC"},
+                "warmup_minutes": 0,
+                "cooldown_minutes": 0,
+                "target": {
+                    "label": "Open no provenance",
+                    "origin_asns": [64500],
+                    "transit_predicate": {
+                        "status": "Reviewed",
+                        "predicate": {"ContainsAny": [64501]},
+                        "provenance": {"statement": "r", "reviewed_by": "local-review", "date": "2026-08-01"}
+                    }
+                },
+                "collectors": ["rrc00"],
+                "source_family": "RipeRis"
+            })
+            .to_string(),
+        )
+        .unwrap();
+        let mut summary = ImportSummary::default();
+        let err = import_one(&conn, &mpath, dir.path(), "0.1.0", None, &mut summary).unwrap_err();
+        assert!(err.contains("cutoff provenance"), "{err}");
     }
 
     #[test]

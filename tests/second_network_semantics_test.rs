@@ -396,7 +396,54 @@ fn open_event_cutoff_drives_pipeline_window() {
 }
 
 #[test]
+fn source_fetch_time_not_implicitly_analysis_cutoff() {
+    // F-4: the analysis cutoff is the reviewed manifest
+    // analysis_end_utc, never the snapshot fetch time. The manifest
+    // window ignores any other timestamp.
+    let dir = tempfile::tempdir().unwrap();
+    let p = dir.path().join("m.json");
+    std::fs::write(
+        &p,
+        serde_json::json!({
+            "event_id": "INC-GENERIC",
+            "revision": 1,
+            "schema_version": 2,
+            "open": true,
+            "event_window_utc": {"start": "2026-07-28T04:35:26Z", "end": ""},
+            "ticket_window_local": {"start": "2026-07-28 04:35:26", "end": "", "timezone": "UTC"},
+            // Reviewed cutoff differs from any plausible fetch time.
+            "analysis_end_utc": "2026-08-10T12:00:00Z",
+            "warmup_minutes": 60,
+            "cooldown_minutes": 60,
+            "target": {
+                "label": "Generic",
+                "origin_asns": [64500],
+                "transit_predicate": {
+                    "predicate": {"ContainsAny": [64501]},
+                    "status": "Reviewed",
+                    "provenance": {"statement": "x", "reviewed_by": "t", "date": "2026-08-04"}
+                }
+            },
+            "collectors": ["rrc00"],
+            "source_family": "RipeRis"
+        })
+        .to_string(),
+    )
+    .unwrap();
+    let manifest = inim::manifest::Manifest::load(&p).unwrap();
+    let (_, end) = manifest.event_window().unwrap();
+    assert_eq!(
+        end.to_rfc3339(),
+        "2026-08-10T12:00:00+00:00",
+        "the reviewed analysis cutoff must be used, not any fetch time"
+    );
+}
+
+#[test]
 fn open_event_without_cutoff_is_a_hard_error() {
+    // An open manifest without an explicit reviewed analysis cutoff is
+    // internally contradictory reviewed input: rejected at load (F-4),
+    // never admitted to planning, queueing, or execution.
     let dir = tempfile::tempdir().unwrap();
     let p = dir.path().join("m.json");
     std::fs::write(
@@ -425,9 +472,8 @@ fn open_event_without_cutoff_is_a_hard_error() {
         .to_string(),
     )
     .unwrap();
-    let manifest = inim::manifest::Manifest::load(&p).unwrap();
-    let err = manifest.event_window().unwrap_err();
-    assert!(err.contains("explicit analysis cutoff"), "{err}");
+    let err = inim::manifest::Manifest::load(&p).unwrap_err();
+    assert!(err.contains("analysis_end_utc cutoff"), "{err}");
 }
 
 #[test]

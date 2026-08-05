@@ -63,13 +63,22 @@ impl CanonicalPlan {
             .provenance
             .as_ref()
             .map(|p| format!("{}|{}", p.reviewed_by, p.date));
+        // The effective analysis end is the reviewed cutoff for open
+        // events (analysis_end_utc), else the declared event end. The
+        // cutoff is execution-relevant, so it participates in the plan
+        // identity (F-4).
+        let analysis_end = if manifest.open {
+            manifest.analysis_end_utc.clone().unwrap_or_default()
+        } else {
+            manifest.event_window_utc.end.clone()
+        };
         Ok(CanonicalPlan {
             event_id: manifest.event_id.clone(),
             manifest_schema: manifest.schema_version,
             manifest_revision: manifest.revision,
             lifecycle: lifecycle.to_string(),
             analysis_start: manifest.event_window_utc.start.clone(),
-            analysis_end: manifest.event_window_utc.end.clone(),
+            analysis_end,
             warmup_minutes: manifest.warmup_minutes,
             cooldown_minutes: manifest.cooldown_minutes,
             source_family: manifest.source_family.clone(),
@@ -248,22 +257,33 @@ pub fn validate_plan_for_queue(
         ));
     }
     if manifest.event_window_utc.end.is_empty() {
-        if manifest.open {
-            // Open events are executable only with an explicit REVIEWED
-            // analysis cutoff; the plan records it and the result is
-            // provisional. A missing cutoff is a hard plan error.
-            let has_cutoff = manifest
-                .analysis_end_utc
-                .as_deref()
-                .map(|c| !c.trim().is_empty())
-                .unwrap_or(false);
-            if !has_cutoff {
-                return Err(
-                    "invalid_plan: open event requires an explicit analysis cutoff".to_string(),
-                );
-            }
-        } else {
+        if !manifest.open {
             return Err("invalid_plan: event end unavailable".to_string());
+        }
+        // Open events are executable only with an explicit REVIEWED
+        // analysis cutoff; the plan records it and the result is
+        // provisional. A missing cutoff is a hard plan error.
+        let has_cutoff = manifest
+            .analysis_end_utc
+            .as_deref()
+            .map(|c| !c.trim().is_empty())
+            .unwrap_or(false);
+        if !has_cutoff {
+            return Err("invalid_plan: open event requires an explicit analysis cutoff".to_string());
+        }
+    }
+    // Defense in depth (F-4): an open event requires the reviewed
+    // analysis cutoff regardless of any declared event end, so a legacy
+    // or crafted manifest with `open: true` and no cutoff can never
+    // reach the queue.
+    if manifest.open {
+        let has_cutoff = manifest
+            .analysis_end_utc
+            .as_deref()
+            .map(|c| !c.trim().is_empty())
+            .unwrap_or(false);
+        if !has_cutoff {
+            return Err("invalid_plan: open event requires an explicit analysis cutoff".to_string());
         }
     }
     canonical_plan_hash(&payload)
@@ -316,6 +336,23 @@ mod tests {
         v["target"]["origin_asns"] = serde_json::json!([64510]);
         let changed = canonical_plan_hash(&v.to_string()).unwrap();
         assert_ne!(base, changed);
+    }
+
+    #[test]
+    fn cutoff_participates_in_plan_hash_when_semantic() {
+        // F-4: the reviewed analysis cutoff is part of the canonical
+        // plan payload, so changing it changes the plan hash (an open
+        // plan's identity includes its cutoff).
+        let mut v: serde_json::Value = serde_json::from_str(&manifest_json()).unwrap();
+        v["open"] = serde_json::json!(true);
+        v["analysis_end_utc"] = serde_json::json!("2026-08-02T00:00:00Z");
+        let base = canonical_plan_hash(&v.to_string()).unwrap();
+        v["analysis_end_utc"] = serde_json::json!("2026-08-02T01:00:00Z");
+        let changed = canonical_plan_hash(&v.to_string()).unwrap();
+        assert_ne!(base, changed, "cutoff must participate in plan identity");
+        // And the same payload hashes deterministically.
+        let again = canonical_plan_hash(&v.to_string()).unwrap();
+        assert_eq!(changed, again);
     }
 
     #[test]
