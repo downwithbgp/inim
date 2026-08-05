@@ -15,6 +15,24 @@ fn read(path: &str) -> String {
 }
 
 #[test]
+fn changelog_contains_no_session_narrative() {
+    // CHANGELOG.md is a normative current document; the documentation
+    // drift audit (scripts/audit_docs.py, SESSION_RE = "Session \d+")
+    // rejects internal Agent-session narrative there. Entries must use
+    // product/change language, not "Session N" headings. (Regression:
+    // the Session 55 heading broke the docs audit and reddened main CI
+    // at 92f83d89.)
+    let changelog = read("CHANGELOG.md");
+    let session_re = regex::Regex::new(r"Session \d+").unwrap();
+    for line in changelog.lines() {
+        assert!(
+            !session_re.is_match(line),
+            "CHANGELOG.md must not contain session-number narrative: {line}"
+        );
+    }
+}
+
+#[test]
 fn cargo_manifest_declares_mit() {
     let toml = read("Cargo.toml");
     // The [package] section declares the SPDX license expression.
