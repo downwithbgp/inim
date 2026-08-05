@@ -1,6 +1,6 @@
 ## [unreleased]
 
-### Session 55 — fabric entity taxonomy + Smithville coverage summary (2026-08-05)
+### Corrected MAN LAN entity taxonomy and Smithville coverage provenance (2026-08-05)
 
 - MAN LAN entity taxonomy correction: Ixia is test/measurement equipment
   (not a fabric attachment, peer, or AS node); WIX interconnect is

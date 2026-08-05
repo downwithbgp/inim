@@ -1,6 +1,6 @@
 # Repository truth audit — 2026-08
 
-Audit start HEAD: `0517aac` · audit date: 2026-08-04
+Audit start HEAD: `0517aac` · audit date: 2026-08-05
 
 This audit verifies that every tracked file is classified, that every current statement matches the implemented model, and that historical records and generated evidence are clearly distinguished. The machine-readable source of this document is `docs/audits/repository-inventory.json`; regenerate with `python3 scripts/build-repo-audit.py`. Paths are repository-relative only; no absolute local paths appear in this audit.
 
