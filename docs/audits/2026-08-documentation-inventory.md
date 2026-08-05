@@ -215,7 +215,7 @@ The following lists are compared with `git ls-files` by
 must be classified in a table above (or in `repository-inventory.json`
 for non-documentation files).
 
-### Tracked Markdown files (96, excluding `spec/`)
+### Tracked Markdown files (97, excluding `spec/`)
 
 ```
 .github/PULL_REQUEST_TEMPLATE.md
@@ -280,6 +280,7 @@ docs/audits/2026-08-incident-family-deferral.md
 docs/audits/2026-08-internal-evaluator-findings.md
 docs/audits/2026-08-manlan-ticket-readiness.md
 docs/audits/2026-08-non-noaa-ip-event-candidates.md
+docs/audits/2026-08-pre-pilot-invariant-closure.md
 docs/audits/2026-08-project-scope-noaa-removal.md
 docs/audits/2026-08-repository-truth-audit.md
 docs/audits/2026-08-second-network-neutrality.md
@@ -322,7 +323,7 @@ tests/fixtures/README.md
 
 
 
-### Tracked files under `docs/` (76)
+### Tracked files under `docs/` (77)
 
 ```
 docs/ADRs/CASE-STUDY-LAYER.md
@@ -368,6 +369,7 @@ docs/audits/2026-08-incident-family-deferral.md
 docs/audits/2026-08-internal-evaluator-findings.md
 docs/audits/2026-08-manlan-ticket-readiness.md
 docs/audits/2026-08-non-noaa-ip-event-candidates.md
+docs/audits/2026-08-pre-pilot-invariant-closure.md
 docs/audits/2026-08-project-scope-noaa-removal.md
 docs/audits/2026-08-repository-truth-audit.md
 docs/audits/2026-08-second-network-neutrality.md

@@ -24,19 +24,19 @@ This audit verifies that every tracked file is classified, that every current st
 
 ## Summary
 
-Tracked files: **470** · inventory entries: **470**
+Tracked files: **472** · inventory entries: **472**
 
 | Category | Files |
 |---|---|
 | Immutable or generated evidence | 148 |
 | Production source | 106 |
 | Normative current documentation | 48 |
-| Historical decision record | 42 |
+| Historical decision record | 43 |
 | Reviewed case-study interpretation | 30 |
 | Script or developer tool | 25 |
 | Configuration | 24 |
 | Template or stylesheet | 16 |
-| Test source | 11 |
+| Test source | 12 |
 | Test fixture | 11 |
 | GitHub/community metadata | 4 |
 | Packaging or release metadata | 3 |
@@ -288,6 +288,7 @@ Tracked files: **470** · inventory entries: **470**
 | `docs/audits/2026-08-internal-evaluator-findings.md` | Historical decision record | maintainers | dated audit | no | historical | status and applicability reviewed in this audit | none | reviewed in this audit |
 | `docs/audits/2026-08-manlan-ticket-readiness.md` | Normative current documentation | maintainers | dated audit evidence | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
 | `docs/audits/2026-08-non-noaa-ip-event-candidates.md` | Historical decision record | maintainers | dated audit evidence | no | historical | status and applicability reviewed in this audit | none | reviewed in this audit |
+| `docs/audits/2026-08-pre-pilot-invariant-closure.md` | Historical decision record | maintainers | dated audit | no | historical | status and applicability reviewed in this audit | none | reviewed in this audit |
 | `docs/audits/2026-08-project-scope-noaa-removal.md` | Historical decision record | maintainers | dated audit evidence | no | historical | status and applicability reviewed in this audit | none | reviewed in this audit |
 | `docs/audits/2026-08-repository-truth-audit.md` | Normative current documentation | maintainers | repository-inventory.json + git state (rendered, reviewed content) | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
 | `docs/audits/2026-08-second-network-neutrality.md` | Historical decision record | maintainers | dated audit evidence | no | historical | status and applicability reviewed in this audit | none | reviewed in this audit |
@@ -506,6 +507,7 @@ Tracked files: **470** · inventory entries: **470**
 | `tests/fixtures/ris/updates.20190821.1600.gz` | Test fixture | maintainers | immutable public source snapshot | no | current | provenance reviewed in this audit | none | reviewed in this audit |
 | `tests/grnoc_reconciliation_test.rs` | Production source | developers | implementation | no | current | implementation comments audited in this audit | none | reviewed in this audit |
 | `tests/i2px_audit_test.rs` | Test source | maintainers | implementation behavior + fixtures | no | current | reviewed in this audit | none | reviewed in this audit |
+| `tests/invariant_register_test.rs` | Test source | maintainers | invariant register + implementation | no | current | reviewed in this audit | none | reviewed in this audit |
 | `tests/job_migration_test.rs` | Production source | developers | implementation | no | current | implementation comments audited in this audit | none | reviewed in this audit |
 | `tests/job_workflow_tests.rs` | Production source | developers | implementation | no | current | implementation comments audited in this audit | none | reviewed in this audit |
 | `tests/project_scope_enforcement_test.rs` | Test source | maintainers | implementation behavior + fixtures | no | current | reviewed in this audit | none | reviewed in this audit |
