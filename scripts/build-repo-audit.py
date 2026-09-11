@@ -17,9 +17,9 @@ import json
 import subprocess
 import sys
 from collections import Counter
-from datetime import date
 
 AUDIT_START = "0517aac"  # HEAD when the 2026-08 repository truth audit began
+AUDIT_DATE = "2026-08-05"  # inventory review date; update only with a new review
 INVENTORY = "docs/audits/repository-inventory.json"
 OUTPUT = "docs/audits/2026-08-repository-truth-audit.md"
 
@@ -109,7 +109,7 @@ def main() -> int:
     w = lines.append
     w("# Repository truth audit — 2026-08")
     w("")
-    w(f"Audit start HEAD: `{AUDIT_START}` · audit date: {date.today().isoformat()}")
+    w(f"Audit start HEAD: `{AUDIT_START}` · audit date: {AUDIT_DATE}")
     w("")
     w("This audit verifies that every tracked file is classified, that every "
       "current statement matches the implemented model, and that historical "
