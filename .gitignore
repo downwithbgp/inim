@@ -12,3 +12,6 @@ data/
 tmp/
 /out/
 mrt_core_dump
+
+# Local agent/session scratch (never tracked).
+.reasonix/
