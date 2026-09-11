@@ -24,14 +24,14 @@ This audit verifies that every tracked file is classified, that every current st
 
 ## Summary
 
-Tracked files: **472** · inventory entries: **472**
+Tracked files: **473** · inventory entries: **473**
 
 | Category | Files |
 |---|---|
 | Immutable or generated evidence | 148 |
 | Production source | 106 |
 | Normative current documentation | 48 |
-| Historical decision record | 43 |
+| Historical decision record | 44 |
 | Reviewed case-study interpretation | 30 |
 | Script or developer tool | 25 |
 | Configuration | 24 |
@@ -295,6 +295,7 @@ Tracked files: **472** · inventory entries: **472**
 | `docs/audits/2026-08-smithville-source-refresh.md` | Historical decision record | maintainers | dated audit evidence | no | historical | status and applicability reviewed in this audit | none | reviewed in this audit |
 | `docs/audits/2026-08-specification-coverage.md` | Historical decision record | maintainers | dated audit | no | historical | status and applicability reviewed in this audit | none | reviewed in this audit |
 | `docs/audits/2026-08-wirthian-design-recovery.md` | Historical decision record | maintainers | dated audit | no | historical | status and applicability reviewed in this audit | none | reviewed in this audit |
+| `docs/audits/2026-09-repository-audit.md` | Historical decision record | maintainers | dated audit | no | historical | status and applicability reviewed in this audit | none | reviewed in this audit |
 | `docs/audits/README.md` | Historical decision record | maintainers | dated audit index | no | historical | status and applicability reviewed in this audit | none | reviewed in this audit |
 | `docs/audits/external-links-2026-08.md` | Normative current documentation | maintainers | dated curl checks of documented external URLs | no | current | line-by-line reviewed in this audit | none | reviewed in this audit |
 | `docs/audits/repository-inventory.json` | Configuration | maintainers | reviewed classification of tracked files | no | current | reviewed in this audit | none | reviewed in this audit |

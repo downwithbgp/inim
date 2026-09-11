@@ -215,7 +215,7 @@ The following lists are compared with `git ls-files` by
 must be classified in a table above (or in `repository-inventory.json`
 for non-documentation files).
 
-### Tracked Markdown files (97, excluding `spec/`)
+### Tracked Markdown files (98, excluding `spec/`)
 
 ```
 .github/PULL_REQUEST_TEMPLATE.md
@@ -287,6 +287,7 @@ docs/audits/2026-08-second-network-neutrality.md
 docs/audits/2026-08-smithville-source-refresh.md
 docs/audits/2026-08-specification-coverage.md
 docs/audits/2026-08-wirthian-design-recovery.md
+docs/audits/2026-09-repository-audit.md
 docs/audits/README.md
 docs/audits/external-links-2026-08.md
 docs/evaluation/ALPHA-FREEZE.md
@@ -323,7 +324,7 @@ tests/fixtures/README.md
 
 
 
-### Tracked files under `docs/` (77)
+### Tracked files under `docs/` (78)
 
 ```
 docs/ADRs/CASE-STUDY-LAYER.md
@@ -376,6 +377,7 @@ docs/audits/2026-08-second-network-neutrality.md
 docs/audits/2026-08-smithville-source-refresh.md
 docs/audits/2026-08-specification-coverage.md
 docs/audits/2026-08-wirthian-design-recovery.md
+docs/audits/2026-09-repository-audit.md
 docs/audits/README.md
 docs/audits/external-links-2026-08.md
 docs/audits/repository-inventory.json
