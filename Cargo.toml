@@ -36,13 +36,13 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 chrono = { version = "0.4", features = ["serde"] }
 regex = "1"
-bgpkit-parser = { version = "=0.21.0", default-features = false, features = ["parser", "local"] }
-bgpkit-broker = "0.12"
+bgpkit-parser = { version = "=0.23.0", default-features = false, features = ["parser", "local"] }
+bgpkit-broker = "0.14"
 sha2 = "0.11"
 flate2 = "1"
 reqwest = { version = "0.13", features = ["blocking"] }
 tokio = { version = "1", features = ["macros", "net", "rt", "rt-multi-thread", "signal"] }
-rusqlite = { version = "0.40.1", features = ["bundled", "trace"] }
+rusqlite = { version = "0.41.1", features = ["bundled", "trace"] }
 axum = "0.8.9"
 askama = "0.16.0"
 toml = "1.1"
